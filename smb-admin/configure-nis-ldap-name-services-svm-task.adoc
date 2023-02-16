@@ -1,0 +1,110 @@
+---
+permalink: smb-admin/configure-nis-ldap-name-services-svm-task.html 
+sidebar: sidebar 
+keywords: smb, access, map, unix, user, perform, data, ntfs, security-style, volume, windows, correspond, unix, information, nis, ldap, directory, store, name, configure nis or ldap name services on the svm 
+summary: Con el acceso SMB, se siempre se realiza la asignación de usuario a un usuario UNIX, incluso al acceder a los datos de un volumen de estilo de seguridad NTFS. Si asigna usuarios de Windows a los usuarios UNIX correspondientes cuya información se almacena en almacenes de directorios NIS o LDAP, o si utiliza LDAP para la asignación de nombres, deberá configurar estos servicios de nombres durante la instalación de SMB. 
+---
+= Configure los servicios de nombres NIS o LDAP en la SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Con el acceso SMB, se siempre se realiza la asignación de usuario a un usuario UNIX, incluso al acceder a los datos de un volumen de estilo de seguridad NTFS. Si asigna usuarios de Windows a los usuarios UNIX correspondientes cuya información se almacena en almacenes de directorios NIS o LDAP, o si utiliza LDAP para la asignación de nombres, deberá configurar estos servicios de nombres durante la instalación de SMB.
+
+.Antes de empezar
+Debe haber personalizado la configuración de la base de datos de servicios de nombres para que coincida con su infraestructura de servicios de nombres.
+
+.Acerca de esta tarea
+Las SVM utilizan las bases de datos ns-switch de servicios de nombres para determinar el orden en el que buscar los orígenes de una base de datos de servicios de nombres determinada. La fuente del conmutador NS puede ser cualquier combinación de "'files'", "'nis'" o "'ldap'". En la base de datos de grupos, ONTAP intenta obtener las pertenencias a grupos de todos los orígenes configurados y, a continuación, utiliza la información consolidada de pertenencia a grupos para las comprobaciones de acceso. Si uno de estos orígenes no está disponible en el momento de obtener información del grupo UNIX, ONTAP no puede obtener las credenciales de UNIX completas y las comprobaciones de acceso posteriores podrían fallar. Por lo tanto, siempre debe comprobar que todas las fuentes del conmutador ns están configuradas para la base de datos de grupo en la configuración del conmutador ns.
+
+El valor predeterminado es que el servidor SMB asigne todos los usuarios de Windows al usuario UNIX predeterminado que se almacena en el local `passwd` base de datos. Si desea utilizar la configuración predeterminada, es opcional configurar los servicios de nombre de usuario y grupo de UNIX NIS o LDAP, o la asignación de usuario LDAP para el acceso a SMB.
+
+.Pasos
+. Si la información de usuario, grupo y netgroup de UNIX es administrada por servicios de nombres NIS, configure los servicios de nombres NIS:
++
+.. Determine el pedido actual de servicios de nombres mediante el `vserver services name-service ns-switch show` comando.
++
+En este ejemplo, las tres bases de datos (`group`, `passwd`, y. `netgroup`) que puede utilizar `nis` como origen de servicio de nombre sólo está utilizando `files` como origen.
+
++
+`vserver services name-service ns-switch show -vserver vs1`
+
++
+[listing]
+----
+
+                                               Source
+Vserver         Database       Enabled         Order
+--------------- ------------   ---------       ---------
+vs1             hosts          true            dns,
+                                               files
+vs1             group          true            files
+vs1             passwd         true            files
+vs1             netgroup       true            files
+vs1             namemap        true            files
+----
++
+Debe añadir el `nis` fuente de la `group` y.. `passwd` y, opcionalmente, en la `netgroup` base de datos.
+
+.. Ajuste el orden de la base de datos del servicio de nombres ns-switch según lo desee mediante el `vserver services name-service ns-switch modify` comando.
++
+Para obtener el mejor rendimiento, no debe agregar un servicio de nombres a una base de datos del servicio de nombres a menos que planifique configurar ese servicio de nombres en la SVM.
+
++
+Si modifica la configuración de más de una base de datos de servicio de nombres, debe ejecutar el comando por separado para cada base de datos de servicio de nombres que desee modificar.
+
++
+En este ejemplo: `nis` y.. `files` se configuran como orígenes para `group` y.. `passwd` bases de datos, en ese orden. El resto de las bases de datos de servicios de nombres no han cambiado.
+
++
+`vserver services name-service ns-switch modify -vserver vs1 -database group -sources nis,files` `vserver services name-service ns-switch modify -vserver vs1 -database passwd -sources nis,files`
+
+.. Compruebe que la solicitud de servicios de nombres es correcta mediante el `vserver services name-service ns-switch show` comando.
++
+`vserver services name-service ns-switch show -vserver vs1`
+
++
+[listing]
+----
+
+                                               Source
+Vserver         Database       Enabled         Order
+--------------- ------------   ---------       ---------
+vs1             hosts          true            dns,
+                                               files
+vs1             group          true            nis,
+                                               files
+vs1             passwd         true            nis,
+                                               files
+vs1             netgroup       true            files
+vs1             namemap        true            files
+----
+.. Cree la configuración del servicio de nombres NIS: +
+`vserver services name-service nis-domain create -vserver _vserver_name_ -domain _NIS_domain_name_ -servers _NIS_server_IPaddress_,... -active true+`
++
+`vserver services name-service nis-domain create -vserver vs1 -domain example.com -servers 10.0.0.60 -active true`
+
++
+[NOTE]
+====
+A partir de ONTAP 9.2, el campo `-nis-servers` reemplaza el campo `-servers`. Este nuevo campo puede tomar un nombre de host o una dirección IP para el servidor NIS.
+
+====
+.. Compruebe que el servicio de nombres NIS está configurado correctamente y activo: `vserver services name-service nis-domain show vserver _vserver_name_`
++
+`vserver services name-service nis-domain show vserver vs1`
+
++
+[listing]
+----
+
+Vserver       Domain              Active Server
+------------- ------------------- ------ ---------------
+vs1           example.com         true   10.0.0.60
+----
+
+
+. Si la información de usuario, grupo y netgroup de UNIX o la asignación de nombres se gestiona mediante servicios de nombres LDAP, configure los servicios de nombres LDAP mediante la información ubicada link:../nfs-admin/index.html["Gestión de NFS"].
+

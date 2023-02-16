@@ -1,0 +1,70 @@
+---
+permalink: smb-admin/manage-accessibility-users-home-directories-task.html 
+sidebar: sidebar 
+keywords: 'default, user, home, directory, access, dynamic, name, share, precede, enable, disable, windows, administrator, public, access, manage accessibility to users" home directories' 
+summary: 'De forma predeterminada, sólo el usuario puede acceder al directorio principal de un usuario. Para los recursos compartidos donde el nombre dinámico del recurso compartido va precedido de una tilde ({tilde}), los administradores de Windows o cualquier otro usuario (acceso público) pueden habilitar o deshabilitar el acceso a los directorios principales de los usuarios.' 
+---
+= Gestionar la accesibilidad a los directorios iniciales de los usuarios
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+De forma predeterminada, sólo el usuario puede acceder al directorio principal de un usuario. Para los recursos compartidos donde el nombre dinámico del recurso compartido va precedido de una tilde ({tilde}), los administradores de Windows o cualquier otro usuario (acceso público) pueden habilitar o deshabilitar el acceso a los directorios principales de los usuarios.
+
+.Antes de empezar
+Los recursos compartidos de directorio inicial en la máquina virtual de almacenamiento (SVM) deben configurarse con nombres de recursos compartidos dinámicos que van precedidos por una tilde ({tilde}). En los siguientes casos se ilustran los requisitos de nomenclatura de los recursos compartidos:
+
+|===
+| Nombre del recurso compartido del directorio inicial | Ejemplo de comando para conectarse al recurso compartido 
+
+
+ a| 
+{tilde}%d{tilde}%w
+ a| 
+`net use * {backslash}{backslash}IPaddress{backslash}{tilde}domain{tilde}user/u:credentials`
+
+
+
+ a| 
+{tilde}%w
+ a| 
+`net use * {backslash}{backslash}IPaddress{backslash}{tilde}user/u:credentials`
+
+
+
+ a| 
+{tilde}abc{tilde}%w
+ a| 
+`net use * {backslash}{backslash}IPaddress{backslash}abc{tilde}user/u:credentials`
+
+|===
+.Paso
+. Ejecute la acción adecuada:
++
+|===
+| Si desea activar o desactivar el acceso a los directorios de inicio de los usuarios a... | Introduzca lo siguiente... 
+
+
+| Administradores de Windows | `vserver cifs home-directory modify -vserver _vserver_name_ -is-home-dirs-access-for-admin-enabled {true{vbar}false}`El valor predeterminado es `true`. 
+
+
+| Cualquier usuario (acceso público)  a| 
+.. Establezca el nivel de privilegio en Advanced: +
+`set -privilege advanced`
+.. Activar o desactivar el acceso: `vserver cifs home-directory modify -vserver _vserver_name_ -is-home-dirs-access-for-public-enabled {true|false}` + el valor predeterminado es `false`.
+.. Vuelva al nivel de privilegio de administrador: +
+`set -privilege admin`
+
+
+|===
+
+
+El ejemplo siguiente permite el acceso público a los directorios principales de los usuarios: +
+`set -privilege advanced` +
+`vserver cifs home-directory modify -vserver vs1 -is-home-dirs-access-for-public-enabled true` +
+`set -privilege admin`
+
+.Información relacionada
+xref:display-user-home-directory-path-task.adoc[Mostrar información acerca de la ruta de acceso al directorio de inicio de un usuario SMB]

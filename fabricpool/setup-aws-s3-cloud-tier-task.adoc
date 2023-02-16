@@ -1,0 +1,80 @@
+---
+permalink: fabricpool/setup-aws-s3-cloud-tier-task.html 
+sidebar: sidebar 
+keywords: setting up, aws, s3, cloud tier 
+summary: 'Si utiliza ONTAP 9.2 o una versión posterior, puede configurar AWS S3 como nivel de cloud para FabricPool. Si utiliza ONTAP 9.5 o una versión posterior, puede configurar servicios de cloud comercial (C2S) de AWS para FabricPool.' 
+---
+= Configure AWS S3 como nivel del cloud
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si utiliza ONTAP 9.2 o una versión posterior, puede configurar AWS S3 como nivel de cloud para FabricPool. Si utiliza ONTAP 9.5 o una versión posterior, puede configurar servicios de cloud comercial (C2S) de AWS para FabricPool.
+
+.Consideraciones para usar AWS S3 con FabricPool
+* Puede que necesite una licencia de FabricPool.
++
+** Los sistemas AFF recientemente solicitados incluyen 10 TB de capacidad libre para usar FabricPool.
++
+Si necesita capacidad adicional en un sistema AFF, si utiliza AWS S3 en un sistema que no es AFF o si actualiza desde un clúster existente, necesitará una licencia de FabricPool.
+
++
+Si solicita FabricPool por primera vez para un clúster existente, existe una licencia FabricPool con 10 TB de capacidad libre.
+
+
+
+* La LIF que utiliza ONTAP para conectarse con el servidor de objetos AWS S3 debe estar en un puerto de 10 Gbps.
+* En los sistemas AFF y FAS y en ONTAP Select, FabricPool admite las siguientes clases de almacenamiento Amazon S3:
++
+** Amazon S3 Standard
+** Amazon S3 Estándar - acceso poco frecuente (Estándar - IA)
+** Amazon S3 One Zone - acceso poco frecuente (una zona - IA)
+** Segmentación inteligente de Amazon S3
+** Servicios de cloud comercial de Amazon
++
+https://aws.amazon.com/s3/storage-classes/["Documentación de Amazon Web Services (AWS): Clases de almacenamiento de Amazon S3"]
+
+
+
++
+Póngase en contacto con su representante de ventas para obtener información sobre las clases de almacenamiento que no aparecen en esta lista.
+
+* En Cloud Volumes ONTAP, FabricPool admite la organización en niveles desde SSD de uso general (gp2) y volúmenes de HDD optimizados para el rendimiento (st1) de Amazon Elastic Block Store (EBS).
+
+
+.Pasos
+. Especifique la información de configuración de AWS S3 mediante el `storage aggregate object-store config create` con el `-provider-type` `AWS_S3` parámetro.
++
+** Utilice la `-auth-type` `CAP` Parámetro para obtener credenciales de acceso al C2S.
++
+Cuando utilice la `-auth-type` `CAP` debe usar el `-cap-url` Parámetro para especificar la URL completa para solicitar credenciales temporales para el acceso C2S.
+
+** La `storage aggregate object-store config create` Se produce un error con el comando si ONTAP no puede acceder a AWS S3 con la información proporcionada.
+** Utilice la `-access-key` Parámetro para especificar la clave de acceso para autorizar solicitudes al almacén de objetos AWS S3.
+** Utilice la `-secret-password` Parámetro para especificar la contraseña (clave de acceso secreta) para autenticar solicitudes en el almacén de objetos AWS S3.
+** Si se cambia la contraseña de AWS S3, debe actualizar de inmediato la contraseña correspondiente almacenada en ONTAP.
++
+De esta manera, ONTAP puede acceder a los datos en AWS S3 sin interrupciones.
+
++
+[listing]
+----
+cluster1::> storage aggregate object-store config create
+-object-store-name my_aws_store -provider-type AWS_S3
+-server s3.amazonaws.com -container-name my-aws-bucket
+-access-key DXJRXHPXHYXA9X31X3JX
+----
++
+[listing]
+----
+cluster1::> storage aggregate object-store config create -object-store-name my_c2s_store -provider-type AWS_S3 -auth-type CAP -cap-url https://123.45.67.89/api/v1/credentials?agency=XYZ&mission=TESTACCT&role=S3FULLACCESS -server my-c2s-s3server-fqdn -container my-c2s-s3-bucket
+----
+
+
+. Muestre y verifique la información de configuración de AWS S3 mediante el `storage aggregate object-store config show` comando.
++
+La `storage aggregate object-store config modify` Permite modificar la información de configuración de AWS S3 para FabricPool.
+
+

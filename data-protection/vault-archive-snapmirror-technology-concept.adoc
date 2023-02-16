@@ -1,0 +1,64 @@
+---
+permalink: data-protection/vault-archive-snapmirror-technology-concept.html 
+sidebar: sidebar 
+keywords: vault, archiving, snapmirror, technology 
+summary: Las políticas de almacén de SnapMirror sustituyen a la tecnología SnapVault en ONTAP 9.3 y versiones posteriores. Se utiliza una política de almacén de SnapMirror para la replicación de copias Snapshot de disco a disco para el cumplimiento de normativas y otros fines relacionados con la gobernanza. A diferencia de la relación de SnapMirror, en la que el destino normalmente solo contiene las copias Snapshot que actualmente se encuentran en el volumen de origen, un destino de almacén normalmente conserva las copias Snapshot puntuales creadas durante un período mucho más largo. 
+---
+= Archivado de vault con tecnología SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Las políticas de almacén de SnapMirror sustituyen a la tecnología SnapVault en ONTAP 9.3 y versiones posteriores. Se utiliza una política de almacén de SnapMirror para la replicación de copias Snapshot de disco a disco para el cumplimiento de normativas y otros fines relacionados con la gobernanza. A diferencia de la relación de SnapMirror, en la que el destino normalmente solo contiene las copias Snapshot que actualmente se encuentran en el volumen de origen, un destino de almacén normalmente conserva las copias Snapshot puntuales creadas durante un período mucho más largo.
+
+Es posible que desee conservar copias Snapshot mensuales de sus datos en un plazo de 20 años, por ejemplo, para cumplir con las normativas de contabilidad gubernamental de su empresa. Como no hay necesidad de servir datos desde un almacenamiento de almacén, puede utilizar discos más lentos y menos costosos en el sistema de destino.
+
+La siguiente figura muestra las relaciones de protección de datos de SnapMirror Vault.
+
+image::../media/snapvault-data-protection.gif[protección de datos de SnapVault]
+
+
+
+== Cómo se inicializan las relaciones de protección de datos del almacén
+
+La política de SnapMirror para la relación define el contenido de la línea de base y cualquier actualización.
+
+Una transferencia de línea de base en la política de almacén predeterminada `XDPDefault` Realiza una copia Snapshot del volumen de origen, luego transfiere esa copia y los bloques de datos que hace referencia al volumen de destino. A diferencia de las relaciones de SnapMirror, un backup de almacén no incluye copias Snapshot anteriores en la base.
+
+
+
+== Cómo se actualizan las relaciones de protección de datos de almacén
+
+Las actualizaciones son asíncronas, según la programación configurada. Las reglas que defina en la política para la relación identifican qué nuevas copias Snapshot deben incluir en las actualizaciones y cuántas copias deben retener. Las etiquetas definidas en la política ("mensual", por ejemplo) deben coincidir con una o más etiquetas definidas en la política de Snapshot en la fuente. De lo contrario, la replicación falla.
+
+En cada actualización bajo `XDPDefault` Política, SnapMirror transfiere copias Snapshot que se han realizado desde la última actualización, siempre que tengan las etiquetas que coincidan con las etiquetas definidas en las reglas de la política. En el siguiente resultado de la `snapmirror policy show` comando para `XDPDefault` política, tenga en cuenta lo siguiente:
+
+* `Create Snapshot` es «falso», lo que lo indica `XDPDefault` No crea una copia Snapshot cuando SnapMirror actualiza la relación.
+* `XDPDefault` Dispone de reglas «diaria» y «semanal», que indican que todas las copias Snapshot con etiquetas coincidentes del origen se transfieren cuando SnapMirror actualiza la relación.
+
+
+[listing]
+----
+cluster_dst::> snapmirror policy show -policy XDPDefault -instance
+
+                     Vserver: vs0
+      SnapMirror Policy Name: XDPDefault
+      SnapMirror Policy Type: vault
+                Policy Owner: cluster-admin
+                 Tries Limit: 8
+           Transfer Priority: normal
+   Ignore accesstime Enabled: false
+     Transfer Restartability: always
+ Network Compression Enabled: false
+             Create Snapshot: false
+                     Comment: Default policy for XDP relationships with daily and weekly
+                              rules.
+       Total Number of Rules: 2
+                  Total Keep: 59
+                       Rules: SnapMirror Label     Keep  Preserve Warn Schedule Prefix
+                              ----------------     ----  -------- ---- -------- ------
+                              daily                   7  false       0 -        -
+                              weekly                 52  false       0 -        -
+----

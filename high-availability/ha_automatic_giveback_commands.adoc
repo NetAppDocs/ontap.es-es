@@ -1,0 +1,212 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_automatic_giveback_commands.html 
+keywords: ontap, high, availability, ha, pair, automatic, giveback, commands 
+summary: Comandos de devolución automática 
+---
+= Comandos de devolución automática
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+De forma predeterminada, el nodo del partner de recuperación vuelve a ofrecer almacenamiento automáticamente cuando el nodo externo vuelve a estar en línea, por lo que restaura la relación de pareja de alta disponibilidad. En la mayoría de los casos, este es el comportamiento deseado. Si necesita desactivar la devolución automática, por ejemplo, si desea investigar la causa de la toma de control antes de dar vuelta, debe conocer la interacción de la configuración no predeterminada.
+
+|===
+
+
+| Si desea... | Se usa este comando... 
+
+
+ a| 
+Habilite la devolución automática para que la devolución se produzca en cuanto arranca el nodo tomado, alcanza el estado esperando devolución y el retraso antes de que caduque el periodo de restauración automática.
+
+El valor predeterminado es TRUE.
+ a| 
+`storage failover modify ‑node _nodename_ ‑auto‑giveback true`
+
+
+
+ a| 
+Desactivar devolución automática. El valor predeterminado es TRUE.
+
+*Nota:* al establecer este parámetro en FALSE no se desactiva la devolución automática después de la toma de control en caso de pánico; la devolución automática después de la toma de control en caso de pánico debe estar desactivada estableciendo la `‑auto‑giveback‑after‑panic` parámetro a false.
+ a| 
+`storage failover modify ‑node _nodename_ ‑auto‑giveback false`
+
+
+
+ a| 
+Deshabilite la devolución automática después de tomar el control de pánico (esta configuración está habilitada de forma predeterminada).
+ a| 
+`storage failover modify ‑node _nodename_ ‑auto‑giveback‑after‑panic false`
+
+
+
+ a| 
+Retrasar la devolución automática durante un número de segundos especificado (el valor predeterminado es 600). Esta opción determina el tiempo mínimo que un nodo permanece durante la toma de control antes de realizar una devolución automática.
+ a| 
+`storage failover modify ‑node _nodename_ ‑delay‑seconds _seconds_`
+
+|===
+
+
+== De qué manera las variaciones del comando de modificación de la conmutación por error del almacenamiento afectan a la devolución automática
+
+El funcionamiento de la devolución automática depende de la forma en que se configuren los parámetros del comando de modificación de la conmutación por error del almacenamiento.
+
+En la siguiente tabla, se enumeran los ajustes predeterminados del `storage failover modify` parámetros de comando que se aplican a eventos de toma de control no causados por una alarma.
+
+|===
+
+
+| Parámetro | Configuración predeterminada 
+
+
+ a| 
+`-auto-giveback _true_ | _false_`
+ a| 
+`_true_`
+
+
+
+ a| 
+`-delay-seconds _integer_ (seconds)`
+ a| 
+600
+
+
+
+ a| 
+`-onreboot _true_ | _false_`
+ a| 
+`_true_`
+
+|===
+En la siguiente tabla se describen cómo las combinaciones de `-onreboot` y.. `-auto-giveback` los parámetros afectan la devolución automática para eventos de toma de control que no están causados por una alarma.
+
+|===
+
+
+| `storage failover modify` parámetros utilizados | Causa de la toma de control | ¿Se produce la devolución automática? 
+
+
+ a| 
+`-onreboot _true_`
+
+`-auto-giveback _true_`
+| comando reboot | Sí 
+
+
+| Comando detenido o operación de ciclo de encendido emitido por el Service Processor | Sí 
+
+
+ a| 
+`-onreboot _true_`
+
+`-auto-giveback _false_`
+| comando reboot | Sí 
+
+
+| Comando detenido o operación de ciclo de encendido emitido por el Service Processor | No 
+
+
+ a| 
+`-onreboot _false_`
+
+`-auto-giveback _true_`
+| comando reboot | N/A en este caso, no se produce la toma de control 
+
+
+| Comando detenido o operación de ciclo de encendido emitido por el Service Processor | Sí 
+
+
+ a| 
+`-onreboot _false_`
+
+`-auto-giveback _false_`
+| comando reboot | No 
+
+
+| Comando detenido o operación de ciclo de encendido emitido por el Service Processor | No 
+|===
+La `-auto-giveback` el parámetro controla el retorno tras el pánico y todos los demás tovers automáticos. Si la `-onreboot` el parámetro se establece en `true` y la toma de control se produce debido al reinicio, entonces se realiza siempre la devolución automática, independientemente de si la `-auto-giveback` el parámetro se establece en `true`.
+
+La `-onreboot` El parámetro se aplica a los reinicios y los comandos de detención emitidos desde ONTAP. Cuando la `-onreboot` el parámetro se establece en false, la toma de control no se produce en caso de reiniciar el nodo. Por lo tanto, no se puede producir una devolución automática, independientemente de si `-auto-giveback` el parámetro se establece en true. Se produce una interrupción del cliente.
+
+
+
+== Los efectos de las combinaciones de parámetros de devolución automática que se aplican a situaciones de pánico.
+
+En la siguiente tabla, se muestra el `storage failover modify` parámetros de comando que se aplican a situaciones de pánico:
+
+|===
+
+
+| Parámetro | Configuración predeterminada 
+
+
+ a| 
+`-onpanic _true | false_`
+ a| 
+`_true_`
+
+
+
+ a| 
+`-auto-giveback-after-panic _true | false_`
+
+(Privilegio: Avanzado)
+ a| 
+`_true_`
+
+
+
+ a| 
+`-auto-giveback _true | false_`
+ a| 
+`_true_`
+
+|===
+En la siguiente tabla se describe cómo las combinaciones de parámetros del `storage failover modify` comando que afecta la devolución automática en situaciones de emergencia.
+
+[cols="60,40"]
+|===
+
+
+| `storage failover` parámetros utilizados | ¿Se produce una devolución automática después de una alarma? 
+
+
+| `-onpanic true`
+`-auto-giveback true`
+`-auto-giveback-after-panic true` | Sí 
+
+
+| `-onpanic true`
+`-auto-giveback true`
+`-auto-giveback-after-panic false` | Sí 
+
+
+| `-onpanic true`
+`-auto-giveback false`
+`-auto-giveback-after-panic true` | Sí 
+
+
+| `-onpanic true`
+`-auto-giveback false`
+`-auto-giveback-after-panic false` | No 
+
+
+| `-onpanic false`Si `-onpanic` se establece en `false`, la toma de control/devolución no se produce, independientemente del valor establecido para `-auto-giveback` o. `-auto-giveback-after-panic` | No 
+|===
+
+NOTE: Una toma de control puede ser el resultado de un fallo no asociado a una caída del pánico. Se experimenta un _failure_ cuando se pierde la comunicación entre un nodo y su compañero, también llamado _beat loss_. Si se produce una toma de control debido a un error, la devolución se controla mediante la `-onfailure` en lugar de `-auto-giveback-after-panic parameter`.
+
+
+NOTE: Cuando un nodo produce una alarma, envía un paquete de alarma a su nodo compañero. Si por algún motivo el nodo del partner no recibe el paquete de pánico, el pánico se puede interpretar como un fallo. Sin recibir el paquete de pánico, el nodo asociado sólo sabe que la comunicación se ha perdido, y no sabe que ha ocurrido un pánico. En este caso, el nodo del partner procesa la pérdida de comunicación como un fallo en lugar de una alarma, y la devolución se controla mediante `-onfailure` parámetro (y no por la `-auto-giveback-after-panic parameter`).
+
+Para obtener más detalles sobre todos `storage failover modify` parámetros, consulte link:https://docs.netapp.com/us-en/ontap-cli-9121/storage-failover-modify.html["Páginas de manual de ONTAP"].

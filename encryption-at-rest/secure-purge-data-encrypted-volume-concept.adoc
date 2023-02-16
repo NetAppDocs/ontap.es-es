@@ -1,0 +1,67 @@
+---
+permalink: encryption-at-rest/secure-purge-data-encrypted-volume-concept.html 
+sidebar: sidebar 
+keywords: secure, purge, scrub, data, encrypted, volume, nve, netapp 
+summary: 'A partir de ONTAP 9.4, puede utilizar la purga segura para eliminar datos sin interrupciones en volúmenes con la función NVE habilitada. La depuración de datos en un volumen cifrado garantiza que no se pueda recuperar de los medios físicos, por ejemplo, en casos de `spillage,` donde los seguimientos de datos se pueden haber dejado atrás cuando se sobrescribieron bloques o para eliminar de forma segura los datos de un inquilino que está vaciando.' 
+---
+= Purgue los datos de forma segura en una información general de los volúmenes cifrados
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.4, puede utilizar la purga segura para eliminar datos sin interrupciones en volúmenes con la función NVE habilitada. La depuración de datos en un volumen cifrado garantiza que no pueda recuperarse de los medios físicos, por ejemplo, en casos de "eliminación de columnas", donde los seguimientos de datos pueden haberse quedado atrás cuando se sobrescriben los bloques o cuando se eliminan de forma segura los datos de un inquilino que están vaciando.
+
+La purga segura solo funciona con los archivos eliminados previamente en volúmenes habilitados para NVE. No puede limpiar un volumen no cifrado. Debe usar los servidores KMIP para suministrar claves, no el gestor de claves incorporado.
+
+
+
+== Consideraciones que tener en cuenta al utilizar la purga segura
+
+* Los volúmenes creados en un agregado habilitado para el cifrado de agregados de NetApp (NAE) no admiten la purga segura.
+* La purga segura solo funciona con los archivos eliminados previamente en volúmenes habilitados para NVE.
+* No puede limpiar un volumen no cifrado.
+* Debe usar los servidores KMIP para suministrar claves, no el gestor de claves incorporado.
+
+
+Las funciones de purga segura varían dependiendo de su versión de ONTAP.
+
+[role="tabbed-block"]
+====
+.ONTAP 9.8 y posteriores
+--
+* MetroCluster y FlexGroup admiten la purga segura.
+* Si el volumen que se purga es el origen de una relación de SnapMirror, no es necesario interrumpir la relación de SnapMirror para realizar una purga segura.
+* El método de recifrado es diferente para los volúmenes que utilizan protección de datos SnapMirror frente a los volúmenes que no utilizan protección de datos de SnapMirror (DP) o los que utilizan protección de datos ampliada de SnapMirror.
++
+** De forma predeterminada, los volúmenes que utilizan el modo de protección de datos de SnapMirror (DP) vuelven a cifrar los datos con el método de recifrado del volumen.
+** De forma predeterminada, los volúmenes que no utilizan la protección de datos de SnapMirror o volúmenes mediante el modo de protección de datos ampliada (XDP) de SnapMirror utilizan el método de recifrado in situ.
+** Estos valores predeterminados se pueden cambiar con `secure purge re-encryption-method [volume-move|in-place-rekey]` comando.
+
+
+* De manera predeterminada, todas las copias de Snapshot de los volúmenes FlexVol se eliminan automáticamente durante la operación de purga segura. De manera predeterminada, las snapshots en volúmenes de FlexGroup y los volúmenes que utilizan la protección de datos de SnapMirror no se eliminan automáticamente durante la operación de purga segura. Estos valores predeterminados se pueden cambiar con `secure purge delete-all-snapshots [true|false]` comando.
+
+
+--
+.ONTAP 9.7 y anteriores:
+--
+* La purga segura no admite lo siguiente:
++
+** FlexClone
+** SnapVault
+** FabricPool
+
+
+* Si el volumen que se purga es el origen de una relación de SnapMirror, debe interrumpir la relación de SnapMirror para poder purgar el volumen.
++
+Si hay copias Snapshot ocupadas en el volumen, debe liberar las copias Snapshot antes de poder purgar el volumen. Por ejemplo, es posible que deba dividir un volumen FlexClone de su principal.
+
+* Al invocar correctamente la función de purga de seguridad, se activa un movimiento de volúmenes que se vuelve a cifrar los datos restantes sin purgar con una clave nueva.
++
+El volumen movido permanece en el agregado actual. La clave antigua se destruye automáticamente, lo que garantiza que los datos purgados no puedan recuperarse del medio de almacenamiento.
+
+
+
+--
+====

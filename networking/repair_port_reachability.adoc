@@ -1,0 +1,176 @@
+---
+sidebar: sidebar 
+permalink: networking/repair_port_reachability.html 
+keywords: port, reachability, repair, fix, error, switch, configuration, cable, cabling, wiring, wire, wired, re-cabled, layer 2, repair port reachability, network port reachability show -detail -node -port, repair reachability decision tree, unexpected ports, unreachable ports, lifs and repaired ports, vlans and repaired ports, interface groups and repaired ports 
+summary: Si se vuelve a cablear un puerto o se cambia la configuración del switch, es posible que se deba reparar un puerto en un dominio de retransmisión diferente, nuevo o existente 
+---
+= Reparar la accesibilidad del puerto
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Los dominios de retransmisión se crean automáticamente. Sin embargo, si un puerto se vuelve a transferir o si cambia la configuración del switch, es posible que sea necesario reparar un puerto en un dominio de difusión diferente (nuevo o existente).
+
+.Antes de empezar
+Para realizar esta tarea, debe ser un administrador de clústeres.
+
+.Acerca de esta tarea
+Hay un comando disponible para reparar automáticamente la configuración del dominio de difusión para un puerto según la accesibilidad de la capa 2 detectada por ONTAP.
+
+.Pasos
+. Compruebe la configuración y el cableado del switch.
+. Compruebe la accesibilidad del puerto:
++
+`network port reachability show -detail -node -port`
+
++
+El resultado del comando contiene resultados de accesibilidad.
+
+. Use el árbol de decisión y la tabla siguientes para comprender los resultados de la accesibilidad y determinar qué hacer, si es que hay algo, a continuación.
++
+image:ontap_nm_image1.png["Árbol de decisión de accesibilidad de reparación"]
+
+
+
+[cols="20,80"]
+|===
+
+
+| Accesibilidad-estado | Descripción 
+
+
+ a| 
+de acuerdo
+ a| 
+El puerto tiene capacidad de acceso de capa 2 a su dominio de difusión asignado. Si el reachability-status es "ok", pero hay "puertos inesperados", considere combinar uno o más dominios de difusión. Para obtener más información, consulte la siguiente fila _inesperado ports_.
+
+Si el reachability-status es "ok", pero hay "puertos inaccesibles", considere dividir uno o más dominios de difusión. Para obtener más información, consulte la siguiente fila _ports_ sin acceso.
+
+Si el estado de accesibilidad es "correcto" y no hay puertos inesperados o no accesibles, la configuración es correcta.
+
+
+
+ a| 
+Puertos inesperados
+ a| 
+El puerto tiene la habilidad de la capa 2 para su dominio de broadcast asignado; sin embargo, también tiene la habilidad de la capa 2 para al menos otro dominio de broadcast.
+
+Examine la configuración física del conmutador y la conectividad para determinar si es incorrecta o si el dominio de difusión asignado al puerto necesita combinarse con uno o más dominios de difusión.
+
+Para obtener más información, consulte link:merge_broadcast_domains.html["Fusionar dominios de retransmisión"].
+
+
+
+ a| 
+Puertos inaccesibles
+ a| 
+Si un solo dominio de difusión se ha particionado en dos conjuntos de accesibilidad diferentes, puede dividir un dominio de difusión para sincronizar la configuración de ONTAP con la topología de red física.
+
+Normalmente, la lista de puertos inaccesibles define el conjunto de puertos que se deben dividir en otro dominio de retransmisión después de verificar que la configuración física y de switch es correcta.
+
+Para obtener más información, consulte link:split_broadcast_domains.html["Divida los dominios de retransmisión"].
+
+
+
+ a| 
+función mal configurada
+ a| 
+El puerto no tiene posibilidad de recurrir a la capa 2 a su dominio de difusión asignado; sin embargo, el puerto tiene capacidad de acceso de capa 2 a un dominio de difusión diferente.
+
+Puede reparar la accesibilidad del puerto. Cuando ejecute el siguiente comando, el sistema asignará el puerto al dominio de retransmisión al que se le habrá accesibilidad:
+
+`network port reachability repair -node -port`
+
+
+
+ a| 
+ausencia de accesibilidad
+ a| 
+El puerto no tiene posibilidad de recurrir a ningún dominio de difusión existente de capa 2.
+
+Puede reparar la accesibilidad del puerto. Cuando ejecute el siguiente comando, el sistema asignará el puerto a un dominio de retransmisión creado automáticamente en el espacio IP predeterminado:
+
+`network port reachability repair -node -port`
+
+
+
+ a| 
+accesibilidad multi-dominio
+ a| 
+El puerto tiene la habilidad de la capa 2 para su dominio de broadcast asignado; sin embargo, también tiene la habilidad de la capa 2 para al menos otro dominio de broadcast.
+
+Examine la configuración física del conmutador y la conectividad para determinar si es incorrecta o si el dominio de difusión asignado al puerto necesita combinarse con uno o más dominios de difusión.
+
+Para obtener más información, consulte link:merge_broadcast_domains.html["Fusionar dominios de retransmisión"].
+
+
+
+ a| 
+desconocido
+ a| 
+Si el estado de accesibilidad es "desconocido", espere unos minutos y vuelva a intentar el comando.
+
+|===
+Después de reparar un puerto, compruebe si hay VLAN y LIF desplazadas. Si el puerto era parte de un grupo de interfaces, también necesita comprender lo que ha sucedido con ese grupo de interfaces.
+
+
+
+== LIF
+
+Cuando se repara un puerto y se mueve a otro dominio de difusión, los LIF configurados en el puerto reparado se asignarán automáticamente a un nuevo puerto doméstico. Si es posible, ese puerto de inicio se selecciona del mismo dominio de difusión en el mismo nodo. Como alternativa, se selecciona un puerto de inicio de otro nodo o, si no existen puertos de inicio adecuados, se borrará el puerto de inicio.
+
+Si se mueve el puerto principal de un LIF a otro nodo o se borra, entonces se considera que el LIF ha sido "desplazado". Puede ver estas LIF desplazadas con el siguiente comando:
+
+`displaced-interface show`
+
+Si hay alguna LIF desplazada, debe:
+
+* Restaurar el hogar de la LIF desplazada:
++
+`displaced-interface restore`
+
+* Establezca la casa de la LIF manualmente:
++
+`network interface modify -home-port -home-node`
+
+* Quite la entrada de la tabla de "interfaces desplazadas" si está satisfecho con el hogar configurado actualmente de la LIF:
++
+`displaced-interface delete`
+
+
+
+
+
+== VLAN
+
+Si el puerto reparado tenía VLAN, esas VLAN se eliminan automáticamente, pero también se registran como "desplazadas". Puede ver estas VLAN desplazadas:
+
+`displaced-vlans show`
+
+Si hay alguna VLAN desplazada, debe:
+
+* Restaure las VLAN a otro puerto:
++
+`displaced-vlans restore`
+
+* Quite la entrada de la tabla "desplazados-vlan":
++
+`displaced-vlans delete`
+
+
+
+
+
+== Grupos de interfaces
+
+Si el puerto reparado formaba parte de un grupo de interfaces, se elimina de ese grupo de interfaces. Si era el único puerto miembro asignado al grupo de interfaces, se elimina el propio grupo de interfaces.
+
+.Temas relacionados
+link:https://docs.netapp.com/us-en/ontap/networking/verify_your_network_configuration.html["Compruebe la configuración de red después de actualizar"]
+
+link:monitor_the_reachability_of_network_ports.html["Supervise la accesibilidad de los puertos de red"]

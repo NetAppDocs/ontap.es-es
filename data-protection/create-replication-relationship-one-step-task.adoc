@@ -1,0 +1,103 @@
+---
+permalink: data-protection/create-replication-relationship-one-step-task.html 
+sidebar: sidebar 
+keywords: configure, replication, relationship, one step, snapmirror, protect, policy, volumes, job schedule 
+summary: A partir de ONTAP 9.3, puede utilizar el comando snapmirror Protect para configurar una relación de protección de datos en un solo paso. Especifique una lista de volúmenes que se van a replicar, una SVM en el clúster de destino, una programación de trabajos y una política de SnapMirror. snapmirror protect hace el resto. 
+---
+= Configurar una relación de replicación en un paso
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.3, puede utilizar la `snapmirror protect` comando para configurar una relación de protección de datos en un solo paso. Especifique una lista de volúmenes que se van a replicar, una SVM en el clúster de destino, una programación de trabajos y una política de SnapMirror. `snapmirror protect` hace el resto.
+
+.Lo que necesitará
+* Las SVM y los clústeres de origen y destino deben tener una relación entre iguales.
++
+https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html["Relaciones entre iguales de clústeres y SVM"]
+
+* El idioma del volumen de destino debe ser el mismo que el del volumen de origen.
+
+
+.Acerca de esta tarea
+La `snapmirror protect` El comando elige un agregado asociado con la SVM especificada. Si no hay ningún agregado asociado con la SVM, elige de todos los agregados del clúster. La elección del agregado se basa en la cantidad de espacio libre y el número de volúmenes del agregado.
+
+La `snapmirror protect` a continuación, el comando realiza los siguientes pasos:
+
+* Crea un volumen de destino con un tipo adecuado y la cantidad de espacio reservado para cada volumen de la lista de volúmenes que se van a replicar.
+* Configura una relación de replicación adecuada para la directiva que usted especifique.
+* Inicializa la relación.
+
+
+El nombre del volumen de destino tiene el formato `_source_volume_name_dst_`. En caso de un conflicto con un nombre existente, el comando añade un número al nombre del volumen. Puede especificar un prefijo o sufijo en las opciones del comando. El sufijo sustituye al suministrado por el sistema `dst` sufijo.
+
+En ONTAP 9.3 y versiones anteriores, los volúmenes de destino pueden contener hasta 251 copias Snapshot. A partir de la versión 9.4 de ONTAP, un volumen de destino puede contener hasta 1019 copias snapshot.
+
+[NOTE]
+====
+La inicialización puede requerir mucho tiempo. `snapmirror protect` no espera a que se complete la inicialización antes de que termine el trabajo. Por esta razón, debe utilizar la `snapmirror show` en lugar de la `job show` comando para determinar cuándo se ha completado la inicialización.
+
+====
+A partir de ONTAP 9.5, las relaciones de SnapMirror síncrono se pueden crear mediante el `snapmirror protect` comando.
+
+.Paso
+. Cree e inicialice una relación de replicación en un paso:
++
+`snapmirror protect -path-list _SVM:volume_|_cluster://SVM/volume_, ... -destination-vserver _destination_SVM_ -policy _policy_ -schedule _schedule_ -auto-initialize true|false -destination-volume-prefix _prefix_ -destination-volume-suffix _suffix_`
+
++
+[NOTE]
+====
+Se debe ejecutar este comando desde la SVM de destino o el clúster de destino. La `-auto-initialize` la opción predeterminada es «'true'».
+
+====
++
+En el siguiente ejemplo se crea e inicializa una relación de recuperación ante desastres de SnapMirror con los valores predeterminados `MirrorAllSnapshots` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_backup -policy MirrorAllSnapshots -schedule replication_daily
+----
++
+[NOTE]
+====
+Puede utilizar una directiva personalizada si lo prefiere. Para obtener más información, consulte link:create-custom-replication-policy-concept.html["Creación de una política de replicación personalizada"].
+
+====
++
+En el siguiente ejemplo se crea e inicializa una relación SnapVault con el valor predeterminado `XDPDefault` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_backup -policy XDPDefault -schedule replication_daily
+----
++
+En el ejemplo siguiente se crea e inicializa una relación de replicación unificada con el valor predeterminado `MirrorAndVault` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_backup -policy MirrorAndVault
+----
++
+En el siguiente ejemplo se crea e inicializa una relación de SnapMirror síncrono con el valor predeterminado `Sync` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_sync -policy Sync
+----
++
+[NOTE]
+====
+Para las políticas de SnapVault y de replicación unificada, puede que sea útil definir una programación para crear una copia de la última copia de Snapshot transferida en el destino. Para obtener más información, consulte link:define-schedule-create-local-copy-destination-task.html["Definir una programación para crear una copia local en el destino"].
+
+====
+
+
+.Después de terminar
+Utilice la `snapmirror show` Comando para verificar que la relación de SnapMirror se ha creado. Para obtener una sintaxis de comando completa, consulte la página man.

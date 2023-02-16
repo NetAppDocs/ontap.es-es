@@ -1,0 +1,106 @@
+---
+permalink: s3-config/create-s3-object-store-server-task.html 
+sidebar: sidebar 
+keywords: create, s3 object, store, server 
+summary: El servidor de almacenamiento de objetos ONTAP gestiona los datos como objetos S3, a diferencia del almacenamiento de archivos o bloques que proporcionan los servidores NAS y SAN de ONTAP. 
+---
+= Cree el servidor de almacenamiento de objetos S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El servidor de almacenamiento de objetos ONTAP gestiona los datos como objetos S3, a diferencia del almacenamiento de archivos o bloques que proporcionan los servidores NAS y SAN de ONTAP.
+
+.Lo que necesitará
+Debe estar preparado para introducir el nombre del servidor S3 como un nombre de dominio completo (FQDN), que los clientes usarán para el acceso S3. El FQDN no debe comenzar por un nombre de bloque.
+
+Debe tener un certificado de CA autofirmado (creado en pasos anteriores) o un certificado firmado por un proveedor de CA externo. Un certificado de CA no es necesario para un caso de uso de organización en niveles local, donde el tráfico de IP pasa únicamente por las LIF del clúster.
+
+.Acerca de esta tarea
+Cuando se crea un servidor de almacenamiento de objetos, se crea un usuario raíz con UID 0. No se genera ninguna clave de acceso ni clave secreta para este usuario raíz. El administrador de ONTAP debe ejecutar el `object-store-server users regenerate-keys` comando para establecer la clave de acceso y la clave secreta de este usuario.
+
+[NOTE]
+====
+Como práctica recomendada por NetApp, no utilice este usuario raíz. Cualquier aplicación cliente que utilice la clave de acceso o la clave secreta del usuario raíz tiene acceso completo a todos los bloques y objetos del almacén de objetos.
+
+====
+Consulte `vserver object-store-server` páginas de manual para opciones de visualización y configuración adicionales.
+
+.Pasos
+[role="tabbed-block"]
+====
+.CLI
+--
+. Cree el servidor S3:
++
+`vserver object-store-server create -vserver _svm_name_ -object-store-server _s3_server_fqdn_ -certificate-name _s3_server_name_ -comment _text_ [additional_options]`
+
++
+Puede especificar opciones adicionales al crear el servidor S3 o en cualquier momento posterior.
+
++
+** El nombre de la SVM puede ser una SVM o una `Cluster` (El nombre de SVM del sistema) si va a configurar la organización en niveles local.
+** De forma predeterminada, HTTPS está habilitado en el puerto 443. Puede cambiar el número de puerto con el `-secure-listener-port` opción.
++
+Cuando HTTPS está habilitado, se requieren certificados de CA para una integración correcta con SSL/TLS.
+
+** HTTP está desactivado de forma predeterminada; cuando está habilitado, el servidor escucha en el puerto 80. Puede habilitarla mediante el `-is-http-enabled` o cambie el número de puerto con el `-listener-port` opción.
++
+Cuando HTTP está activado, todas las solicitudes y respuestas se envían a través de la red en texto no cifrado.
+
+
+
+. Compruebe que S3 esté configurado como se desee:
++
+`vserver object-store-server show`
+
+
+
+.Ejemplo
+El siguiente comando verifica los valores de configuración de todos los servidores de almacenamiento de objetos:
+
+[listing]
+----
+cluster1::> vserver object-store-server show
+
+            Vserver: vs1
+
+                      Object Store Server Name: s3.example.com
+                          Administrative State: up
+                        Listener Port For HTTP: 80
+                Secure Listener Port For HTTPS: 443
+                                  HTTP Enabled: false
+                                 HTTPS Enabled: true
+             Certificate for HTTPS Connections: svm1_ca
+                                       Comment: Server comment
+----
+--
+.System Manager
+--
+Utilice este procedimiento si va a añadir un servidor S3 a una máquina virtual de almacenamiento existente. Para añadir un servidor de S3 a una máquina virtual de almacenamiento nueva, consulte link:create-svm-s3-task.html["Cree una SVM de almacenamiento para S3"].
+
+Debe estar preparado para introducir direcciones IP para los datos de roles de interfaz.
+
+. Habilitar S3 en una máquina virtual de almacenamiento existente.
++
+.. Seleccione la VM de almacenamiento: Haga clic en *almacenamiento > Storage VMs*, seleccione una VM de almacenamiento, haga clic en *Configuración* y, a continuación, haga clic en image:icon_gear.gif["icono de ajustes"] En *S3*.
+.. Haga clic en *Activar S3* y, a continuación, introduzca el nombre del servidor S3.
+.. Seleccione el tipo de certificado.
++
+Tanto si selecciona un certificado generado por el sistema como uno propio, será necesario para el acceso de los clientes.
+
+.. Introduzca las interfaces de red.
+
+
+. Si seleccionó el certificado generado por el sistema, la información del certificado se muestra cuando se confirma la creación de la máquina virtual de almacenamiento nueva. Haga clic en *Descargar* y guárdelo para acceder a los clientes.
++
+** La clave secreta no se volverá a mostrar.
+** Si necesita de nuevo la información del certificado: Haga clic en *almacenamiento > Storage VMs*, seleccione la VM de almacenamiento y haga clic en *Configuración*.
+
+
+
+
+--
+====

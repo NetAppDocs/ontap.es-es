@@ -1,0 +1,52 @@
+---
+permalink: smb-config/open-export-policy-svm-root-volume-task.html 
+sidebar: sidebar 
+keywords: default, export, policy, svm, root, volume, rule, client, smb, rule, open the export policy of the svm root volume 
+summary: La política de exportación predeterminada del volumen raíz de la SVM debe incluir una regla para permitir que todos los clientes abran el acceso mediante SMB. Sin esa regla, todos los clientes SMB se ven privados del acceso a la SVM y sus volúmenes. 
+---
+= Abra la política de exportación del volumen raíz de la SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La política de exportación predeterminada del volumen raíz de la SVM debe incluir una regla para permitir que todos los clientes abran el acceso mediante SMB. Sin esa regla, todos los clientes SMB se ven privados del acceso a la SVM y sus volúmenes.
+
+.Acerca de esta tarea
+Cuando se crea una SVM nueva, se crea automáticamente una política de exportación predeterminada (denominada predeterminada) para el volumen raíz de la SVM. Debe crear una o varias reglas para la política de exportación predeterminada para que los clientes puedan acceder a los datos de la SVM.
+
+Debe verificar que todo el acceso a SMB esté abierto en la política de exportación predeterminada y, más adelante, restringir el acceso a volúmenes individuales mediante la creación de políticas de exportación personalizadas para volúmenes o qtrees individuales.
+
+.Pasos
+. Si va a utilizar una SVM existente, compruebe la política de exportación de volumen raíz predeterminada: `vserver export-policy rule show`
++
+El resultado del comando debe ser similar a lo siguiente:
+
++
+[listing]
+----
+
+cluster::> vserver export-policy rule show -vserver vs1.example.com -policyname default -instance
+
+                                    Vserver: vs1.example.com
+                                Policy Name: default
+                                 Rule Index: 1
+                            Access Protocol: cifs
+Client Match Hostname, IP Address, Netgroup, or Domain: 0.0.0.0/0
+                             RO Access Rule: any
+                             RW Access Rule: any
+User ID To Which Anonymous Users Are Mapped: 65534
+                   Superuser Security Types: any
+               Honor SetUID Bits in SETATTR: true
+                  Allow Creation of Devices: true
+----
++
+Si existe una regla de este tipo que permite el acceso abierto, esta tarea se completa. De lo contrario, continúe con el siguiente paso.
+
+. Cree una regla de exportación para el volumen raíz de la SVM: `vserver export-policy rule create -vserver vserver_name -policyname default -ruleindex 1 -protocol cifs -clientmatch 0.0.0.0/0 -rorule any -rwrule any -superuser any`
+. Compruebe la creación de reglas mediante `vserver export-policy rule show` comando.
+
+
+.Resultados
+Ahora, cualquier cliente de SMB puede acceder a cualquier volumen o qtree creado en la SVM.

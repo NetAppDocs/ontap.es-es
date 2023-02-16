@@ -1,0 +1,112 @@
+---
+sidebar: sidebar 
+permalink: networking/monitor_the_reachability_of_network_ports.html 
+keywords: monitor, monitoring, manage, managing, automatic, reachability, port, network, identify, determine, monitor the reachability of network ports in ontap 9.8 and later, ontap 9.8 and later, determine if the physical network topology does not match the ontap configuration 
+summary: ONTAP 9.8 y versiones posteriores, determinar si la topología de red física no coincide con la configuración de ONTAP 
+---
+= Supervise la accesibilidad de los puertos de red en ONTAP 9.8 y versiones posteriores
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+La supervisión de la accesibilidad está integrada en ONTAP 9.8 y versiones posteriores. Utilice esta supervisión para identificar cuándo la topología de red física no coincide con la configuración de ONTAP. En algunos casos, ONTAP puede reparar la accesibilidad de los puertos. En otros casos, se requieren pasos adicionales.
+
+.Acerca de esta tarea
+Utilice estos comandos para verificar, diagnosticar y reparar configuraciones incorrectas de red procedentes de la configuración de ONTAP que no coinciden con el cableado físico o la configuración del switch de red.
+
+.Paso
+. Ver accesibilidad de puertos:
++
+....
+network port reachability show
+....
+. Utilice el árbol de decisiones y la tabla siguientes para determinar el siguiente paso, si existe alguno.
+
+
+image:ontap_nm_image1.png["Árbol de decisión de accesibilidad de reparación"]
+
+[cols="20,80"]
+|===
+
+
+| Accesibilidad-estado | Descripción 
+
+
+ a| 
+de acuerdo
+ a| 
+El puerto tiene capacidad de acceso de capa 2 a su dominio de difusión asignado. Si el reachability-status es "ok", pero hay "puertos inesperados", considere combinar uno o más dominios de difusión. Para obtener más información, consulte la siguiente fila _inesperado ports_.
+
+Si el reachability-status es "ok", pero hay "puertos inaccesibles", considere dividir uno o más dominios de difusión. Para obtener más información, consulte la siguiente fila _ports_ sin acceso.
+
+Si el estado de accesibilidad es "correcto" y no hay puertos inesperados o no accesibles, la configuración es correcta.
+
+
+
+ a| 
+Puertos inesperados
+ a| 
+El puerto tiene la habilidad de la capa 2 para su dominio de broadcast asignado; sin embargo, también tiene la habilidad de la capa 2 para al menos otro dominio de broadcast.
+
+Examine la configuración física del conmutador y la conectividad para determinar si es incorrecta o si el dominio de difusión asignado al puerto necesita combinarse con uno o más dominios de difusión.
+
+Para obtener más información, consulte link:merge_broadcast_domains.html["Fusionar dominios de retransmisión"].
+
+
+
+ a| 
+Puertos inaccesibles
+ a| 
+Si un solo dominio de difusión se ha particionado en dos conjuntos de accesibilidad diferentes, puede dividir un dominio de difusión para sincronizar la configuración de ONTAP con la topología de red física.
+
+Normalmente, la lista de puertos inaccesibles define el conjunto de puertos que se deben dividir en otro dominio de retransmisión después de verificar que la configuración física y de switch es correcta.
+
+Para obtener más información, consulte link:split_broadcast_domains.html["Divida los dominios de retransmisión"].
+
+
+
+ a| 
+función mal configurada
+ a| 
+El puerto no tiene posibilidad de recurrir a la capa 2 a su dominio de difusión asignado; sin embargo, el puerto tiene capacidad de acceso de capa 2 a un dominio de difusión diferente.
+
+Puede reparar la accesibilidad del puerto. Cuando ejecute el siguiente comando, el sistema asignará el puerto al dominio de retransmisión al que se le habrá accesibilidad:
+
+`network port reachability repair -node -port`Para obtener más información, consulte link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].
+
+
+
+ a| 
+ausencia de accesibilidad
+ a| 
+El puerto no tiene posibilidad de recurrir a ningún dominio de difusión existente de capa 2.
+
+Puede reparar la accesibilidad del puerto. Cuando ejecute el siguiente comando, el sistema asignará el puerto a un dominio de retransmisión creado automáticamente en el espacio IP predeterminado:
+
+`network port reachability repair -node -port`Para obtener más información, consulte link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].
+
+
+
+ a| 
+accesibilidad multi-dominio
+ a| 
+El puerto tiene la habilidad de la capa 2 para su dominio de broadcast asignado; sin embargo, también tiene la habilidad de la capa 2 para al menos otro dominio de broadcast.
+
+Examine la configuración física del conmutador y la conectividad para determinar si es incorrecta o si el dominio de difusión asignado al puerto necesita combinarse con uno o más dominios de difusión.
+
+Para obtener más información, consulte link:merge_broadcast_domains.html["Fusionar dominios de retransmisión"] o. link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].
+
+
+
+ a| 
+desconocido
+ a| 
+Si el estado de accesibilidad es "desconocido", espere unos minutos y vuelva a intentar el comando.
+
+|===
+Después de reparar un puerto, necesita comprobar y resolver las LIF y VLAN desplazadas. Si el puerto era parte de un grupo de interfaces, también necesita comprender lo que ha sucedido con ese grupo de interfaces. Para obtener más información, consulte link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].

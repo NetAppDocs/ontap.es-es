@@ -1,0 +1,66 @@
+---
+permalink: volumes/set-fractional-reserve-concept.html 
+sidebar: sidebar 
+keywords: considerations, setting, fractional, reserve 
+summary: La reserva fraccionaria, también denominada reserva de sobrescritura de LUN, le permite desactivar la reserva de sobrescritura para archivos y LUN de espacio reservado en un volumen de FlexVol. Esto puede ayudarle a maximizar el uso del almacenamiento, pero si su entorno se ve afectado negativamente por errores en las operaciones de escritura debido a la falta de espacio, debe comprender los requisitos que impone esta configuración. 
+---
+= Consideraciones para establecer la reserva fraccionaria
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La reserva fraccionaria, también denominada _LUN overwrite reserve_, le permite desactivar la reserva de sobrescritura para archivos y LUN reservados de espacio en un volumen de FlexVol. Esto puede ayudarle a maximizar el uso del almacenamiento, pero si su entorno se ve afectado negativamente por errores en las operaciones de escritura debido a la falta de espacio, debe comprender los requisitos que impone esta configuración.
+
+La configuración de reserva fraccionaria se expresa como un porcentaje; los únicos valores válidos son `0` y.. `100` porcentaje. La configuración de reserva fraccionaria es un atributo del volumen.
+
+Estableciendo la reserva fraccionaria en `0` aumenta la utilización del almacenamiento. Sin embargo, una aplicación que acceda a los datos del volumen puede sufrir una interrupción del servicio de los datos si el volumen no tiene espacio libre, incluso con la garantía de volumen establecida en `volume`. Sin embargo, con una configuración de volumen y un uso adecuados, se puede minimizar la posibilidad de que falle la escritura. ONTAP proporciona una garantía de escritura «"best effort"» para volúmenes con reserva fraccionaria establecida en `0` cuando se cumplan _all_ de los siguientes requisitos:
+
+* La deduplicación no se está utilizando
+* La compresión no se está utilizando
+* No se utilizan subarchivos FlexClone
+* Todos los archivos de FlexClone y LUN de FlexClone están habilitados para la eliminación automática
++
+Esta no es la configuración predeterminada. Debe habilitar de forma explícita la eliminación automática, ya sea en el momento de la creación o modificando el archivo FlexClone o la LUN de FlexClone después de crearla.
+
+* No se están utilizando la descarga de copias ODX y FlexClone
+* La garantía de volumen se establece en `volume`
+* La reserva de espacio de la LUN o el archivo es `enabled`
+* La reserva de copias Snapshot de volumen se establece en `0`
+* La eliminación automática de copias Snapshot de volumen es `enabled` con un nivel de compromiso de `destroy`, una lista de destrucción de `lun_clone,vol_clone,cifs_share,file_clone,sfsr`, y un disparador de `volume`
++
+Esta configuración también garantiza que los archivos FlexClone y las LUN de FlexClone se eliminen cuando sea necesario.
+
+
+
+Tenga en cuenta que si la tasa de cambios es alta, en raras ocasiones la eliminación automática de la copia snapshot podría quedarse atrás, lo que dará como resultado que el volumen se quede sin espacio, incluso con todas las opciones de configuración requeridas anteriores en uso.
+
+Además, tiene la opción de usar la funcionalidad de crecimiento automático de volumen para reducir la probabilidad de que las copias de snapshot del volumen deban eliminarse automáticamente. Si se habilita la funcionalidad de crecimiento automático, se debe supervisar el espacio libre en el agregado asociado. Si el agregado está lo suficientemente lleno como para evitar que el volumen crezca, es probable que se eliminen más copias snapshot a medida que se agota el espacio libre del volumen.
+
+Si no puede satisfacer todos los requisitos de configuración anteriores y es necesario garantizar que el volumen no se quede sin espacio, debe establecer el valor de reserva fraccionaria del volumen en `100`. Esto requiere más espacio libre de antemano, pero garantiza que las operaciones de modificación de datos tendrán éxito incluso cuando las tecnologías enumeradas anteriormente estén en uso.
+
+El valor predeterminado y los valores permitidos para la configuración de reserva fraccionaria dependen de la garantía del volumen:
+
+[cols="3*"]
+|===
+| Garantía de volumen | Reserva fraccionaria predeterminada | Valores permitidos 
+
+
+ a| 
+Volumen
+ a| 
+100
+ a| 
+0, 100
+
+
+
+ a| 
+Ninguno
+ a| 
+0
+ a| 
+0, 100
+
+|===

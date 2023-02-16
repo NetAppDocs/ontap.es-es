@@ -1,0 +1,136 @@
+---
+permalink: error-messages/configure-webhooks-event-notifications-task.html 
+sidebar: sidebar 
+keywords: configure, important, ems, events, receive, email, notifications, forward, rest, api, webhook 
+summary: Puede configurar ONTAP para reenviar notificaciones de eventos importantes a una aplicación webhook. Los pasos de configuración necesarios dependen del nivel de seguridad que elija. 
+---
+= Configure eventos EMS importantes para reenviar notificaciones a una aplicación webhook
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede configurar ONTAP para reenviar notificaciones de eventos importantes a una aplicación webhook. Los pasos de configuración necesarios dependen del nivel de seguridad que elija.
+
+
+
+== Prepare la configuración del reenvío de eventos EMS
+
+Hay varios conceptos y requisitos que debe tener en cuenta antes de configurar ONTAP para reenviar notificaciones de eventos a una aplicación webhook.
+
+
+
+=== Aplicación Webhook
+
+Necesita una aplicación de webhook capaz de recibir las notificaciones de eventos de ONTAP. Un webhook es una rutina de devolución de llamada definida por el usuario que amplía la capacidad de la aplicación remota o el servidor donde se ejecuta. El cliente llama o activa a los enlaces web (en este caso ONTAP) enviando una solicitud HTTP a la dirección URL de destino. Específicamente, ONTAP envía una solicitud HTTP POST al servidor que aloja la aplicación webhook junto con los detalles de notificación de eventos formateados en XML.
+
+
+
+=== Opciones de seguridad
+
+Hay varias opciones de seguridad disponibles en función de cómo se utilice el protocolo de seguridad de la capa de transporte (TLS). La opción que elija determina la configuración de ONTAP que requiere.
+
+[NOTE]
+====
+TLS es un protocolo criptográfico que se utiliza ampliamente en Internet. Proporciona privacidad, así como integridad de datos y autenticación mediante uno o varios certificados de clave pública. Los certificados son emitidos por autoridades de certificados de confianza.
+
+====
+HTTP:: Es posible utilizar HTTP para transportar las notificaciones de eventos. Con esta configuración, la conexión no es segura. Las identidades del cliente ONTAP y de la aplicación webhook no se verifican. Además, el tráfico de red no está cifrado ni protegido. Consulte link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-http["Configure un destino de webhook para utilizar HTTP"] para obtener detalles de la configuración.
+HTTPS:: Para mayor seguridad, puede instalar un certificado en el servidor que aloja la rutina de webhook. ONTAP utiliza el protocolo HTTPS para verificar la identidad del servidor de aplicaciones webhook, así como de ambas partes, para garantizar la privacidad e integridad del tráfico de red. Consulte link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-https["Configure un destino de webhook para utilizar HTTPS"] para obtener detalles de la configuración.
+HTTPS con autenticación mutua:: Puede mejorar aún más la seguridad HTTPS mediante la instalación de un certificado de cliente en el sistema ONTAP que emite las solicitudes webbook. Además ONTAP de verificar la identidad del servidor de aplicaciones webhook y proteger el tráfico de red, la aplicación webhook verifica la identidad del cliente ONTAP. Esta autenticación de par bidireccional se conoce como _Mutual TLS_. Consulte link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-https-with-mutual-authentication["Configure un destino de webhook para utilizar HTTPS con autenticación mutua"] para obtener detalles de la configuración.
+
+
+.Información relacionada
+* https://www.rfc-editor.org/info/rfc8446["Protocolo de seguridad de la capa de transporte (TLS) versión 1.3"^]
+
+
+
+
+== Configure un destino de webhook para utilizar HTTP
+
+Puede configurar ONTAP para reenviar notificaciones de eventos a una aplicación webhook mediante HTTP. Esta es la opción menos segura pero la más sencilla de configurar.
+
+.Pasos
+. Cree un nuevo destino `restapi-ems` para recibir los eventos:
++
+`event notification destination create -name restapi-ems -rest-api-url \http://<webhook-application>`
+
++
+En el comando anterior, debe utilizar el esquema *HTTP* para el destino.
+
+. Cree una notificación que vincule el `important-events` filtre con la `restapi-ems` destino:
++
+`event notification create -filter-name important-events -destinations restapi-ems`
+
+
+
+
+
+== Configure un destino de webhook para utilizar HTTPS
+
+Puede configurar ONTAP para reenviar notificaciones de eventos a una aplicación de webhook mediante HTTPS. ONTAP utiliza el certificado de servidor para confirmar la identidad de la aplicación webhook y proteger el tráfico de red.
+
+.Antes de empezar
+* Genere una clave privada y un certificado para el servidor de aplicaciones de webhook
+* Tenga el certificado raíz disponible para instalar en ONTAP
+
+
+.Pasos
+. Instale la clave privada y los certificados del servidor adecuados en el servidor que aloja la aplicación webhook. Los pasos de configuración específicos dependen del servidor.
+. Instale el certificado raíz de servidor en ONTAP:
++
+`security certificate install -type server-ca`
+
++
+El comando solicitará el certificado.
+
+. Cree el `restapi-ems` destino para recibir los eventos:
++
+`event notification destination create -name restapi-ems -rest-api-url \https://<webhook-application>`
+
++
+En el comando anterior, debe utilizar el esquema *HTTPS* para el destino.
+
+. Cree la notificación que vincula el `important-events` filtrar con el nuevo `restapi-ems` destino:
++
+`event notification create -filter-name important-events -destinations restapi-ems`
+
+
+
+
+
+== Configure un destino de webhook para utilizar HTTPS con autenticación mutua
+
+Puede configurar ONTAP para reenviar notificaciones de eventos a una aplicación de webhook mediante HTTPS con autenticación mutua. Con esta configuración hay dos certificados. ONTAP utiliza el certificado de servidor para confirmar la identidad de la aplicación webhook y proteger el tráfico de red. Además, la aplicación que aloja el webhook utiliza el certificado de cliente para confirmar la identidad del cliente ONTAP.
+
+.Antes de empezar
+Debe hacer lo siguiente antes de configurar ONTAP:
+
+* Genere una clave privada y un certificado para el servidor de aplicaciones de webhook
+* Tenga el certificado raíz disponible para instalar en ONTAP
+* Genere una clave privada y un certificado para el cliente ONTAP
+
+
+.Pasos
+. Realice los dos primeros pasos de la tarea link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-https["Configure un destino de webhook para utilizar HTTPS"] Instalar el certificado de servidor para que ONTAP pueda verificar la identidad del servidor.
+. Instale los certificados raíz e intermedios adecuados en la aplicación webhook para validar el certificado de cliente.
+. Instale el certificado de cliente en ONTAP:
++
+`security certificate install -type client`
+
++
+El comando solicitará la clave privada y el certificado.
+
+. Cree el `restapi-ems` destino para recibir los eventos:
++
+`event notification destination create -name restapi-ems -rest-api-url \https://<webhook-application> -certificate-authority <issuer of the client certificate> -certificate-serial <serial of the client certificate>`
+
++
+En el comando anterior, debe utilizar el esquema *HTTPS* para el destino.
+
+. Cree la notificación que vincula el `important-events` filtrar con el nuevo `restapi-ems` destino:
++
+`event notification create -filter-name important-events -destinations restapi-ems`
+
+

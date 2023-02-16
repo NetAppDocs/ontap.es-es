@@ -1,0 +1,89 @@
+---
+sidebar: sidebar 
+permalink: task_nas_enable_nfs_and_smb.html 
+keywords: ontap, netapp, provision nas storage, linux, windows, NFS, SMB, SMB, CIFS, enable NFS, enable SMB, configure DNS, modify storage VM, configure DNS, configure name server, configure Kerberos, map user names 
+summary: Modificar equipos virtuales de almacenamiento para permitir a los servidores NFS y SMB proporcionar datos a clientes Linux y Windows. 
+---
+= Habilite el almacenamiento NAS para Windows y Linux usando NFS y SMB
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Crear o modificar máquinas virtuales de almacenamiento para permitir que los servidores NFS y SMB proporcionen datos a clientes de Linux y Windows.
+
+Este procedimiento permite que una máquina virtual de almacenamiento nueva o existente proporcione los protocolos NFS y SMB. Se asume que los detalles de la configuración están disponibles para cualquier servicio de red, autenticación o seguridad que requiera el entorno.
+
+image:workflow_nas_enable_nfs_and_smb.gif["Diagrama de flujo de trabajo para habilitar NAS tanto para servidores Linux como para Windows mediante NFS y SMB"]
+
+.Pasos
+. Habilite NFS y SMB en una máquina virtual de almacenamiento.
++
+.. Para los nuevos equipos virtuales de almacenamiento: Haga clic en *almacenamiento > Storage VMs*, haga clic en *Agregar*, escriba el nombre de un equipo virtual de almacenamiento y, en la ficha *SMB/CIFS, NFS, S3*, seleccione *Activar SMB/CIFS* y *Activar NFS*.
++
+*** Introduzca la siguiente información:
++
+**** Nombre y contraseña del administrador
+**** Nombre del servidor
+**** Dominio de Active Directory
+
+
+*** Confirme la unidad organizativa.
+*** Confirme los valores DNS.
+*** Confirme el idioma predeterminado.
+*** Agregue interfaces de red.
+*** Actualizar la información de cuenta del administrador de máquinas virtuales de almacenamiento (opcional).
+
+
+.. Para las VM de almacenamiento existentes: Haga clic en *almacenamiento > Storage VMs*, seleccione una VM de almacenamiento y, a continuación, haga clic en *Configuración*. Complete los siguientes subpasos si NFS o SMB todavía no está habilitado.
++
+*** Haga clic en image:icon_gear.gif["icono de ajustes"] En *NFS*.
+*** Haga clic en image:icon_gear.gif["icono de ajustes"] En *SMB*.
+
+
+
+
+. Abra la política de exportación del volumen raíz del equipo virtual de almacenamiento:
++
+.. Haga clic en *almacenamiento > volúmenes*, seleccione el volumen raíz de la VM de almacenamiento (que por defecto es _volume-name_root_) y, a continuación, haga clic en la directiva que aparece en *Política de exportación*.
+.. Haga clic en *Agregar* para agregar una regla.
++
+*** Especificación del cliente = `0.0.0.0/0`
+*** Protocolos de acceso = NFS
+*** Detalles de acceso = solo lectura para NFS
+
+
+
+
+. Configure DNS para la resolución de nombres de host:
++
+.. Haga clic en *almacenamiento > Storage VMs*, seleccione la VM de almacenamiento, haga clic en *Configuración* y, a continuación, haga clic en image:icon_gear.gif["icono de ajustes"] En *DNS*.
+.. Cuando se complete la configuración de DNS, cambie al servidor DNS y asigne el servidor SMB.
++
+*** Cree entradas de búsqueda hacia delante (a - Registro de dirección) e inversa (PTR - Registro de puntero) para asignar el nombre del servidor SMB a la dirección IP de la interfaz de red de datos.
+*** Si utiliza alias NetBIOS, cree una entrada de búsqueda de nombre canónico (registro de recursos CNAME) de alias para asignar cada alias a la dirección IP de la interfaz de red de datos del servidor SMB.
+
+
+
+
+. Configure los servicios de nombres según sea necesario:
++
+.. Haga clic en *almacenamiento > Storage VMs*, seleccione la VM de almacenamiento, haga clic en *Configuración* y, a continuación, haga clic en image:icon_gear.gif["icono de ajustes"] Para LDAP o NIS.
+.. Incluya cualquier cambio en el archivo de cambio de servicios de nombre: Haga clic en image:icon_pencil.gif["icono editar"] En *Cambio de servicios de nombres*.
+
+
+. Configure Kerberos si es necesario: Haga clic en image:icon_arrow.gif["icono de flecha"] En el mosaico Kerberos y, a continuación, haga clic en *Agregar*.
+. Asignar nombres de usuario de UNIX y Windows si es necesario: Haga clic en image:icon_arrow.gif["icono de flecha"] En *asignación de nombres* y, a continuación, haga clic en *Agregar*.
++
+Debe utilizar este procedimiento sólo si el sitio tiene cuentas de usuario de Windows y UNIX que no se asignan implícitamente, que es cuando la versión en minúscula de cada nombre de usuario de Windows coincide con el nombre de usuario de UNIX. Este procedimiento se puede realizar utilizando usuarios LDAP, NIS o locales. Si tiene dos conjuntos de usuarios que no coinciden, debe configurar la asignación de nombres.
+
+

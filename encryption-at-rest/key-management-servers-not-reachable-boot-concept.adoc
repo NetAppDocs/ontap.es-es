@@ -1,0 +1,90 @@
+---
+permalink: encryption-at-rest/key-management-servers-not-reachable-boot-concept.html 
+sidebar: sidebar 
+keywords: what, happens, key management servers, not reachable, boot, process 
+summary: ONTAP toma ciertas precauciones para evitar un comportamiento no deseado en el caso de que un sistema de almacenamiento configurado para NSE no pueda alcanzar ninguno de los servidores de gestión de claves especificados durante el proceso de arranque. 
+---
+= Qué sucede cuando no se puede acceder a los servidores de gestión de claves durante el proceso de arranque
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP toma ciertas precauciones para evitar un comportamiento no deseado en el caso de que un sistema de almacenamiento configurado para NSE no pueda alcanzar ninguno de los servidores de gestión de claves especificados durante el proceso de arranque.
+
+Si el sistema de almacenamiento está configurado para NSE, el SED está recodificado y bloqueado y el SED está encendido, el sistema de almacenamiento debe recuperar las claves de autenticación necesarias de los servidores de gestión de claves para autenticarse en el SED antes de poder acceder a los datos.
+
+El sistema de almacenamiento intenta contactar con los servidores de gestión de claves especificados durante tres horas. Si el sistema de almacenamiento no puede alcanzar ninguna de ellas después de esa hora, el proceso de arranque se detiene y el sistema de almacenamiento se detiene.
+
+Si el sistema de almacenamiento se contacta correctamente con el servidor de gestión de claves especificado, se intenta establecer una conexión SSL hasta 15 minutos. Si el sistema de almacenamiento no puede establecer una conexión SSL con cualquier servidor de gestión de claves especificado, el proceso de arranque se detiene y el sistema de almacenamiento se detiene.
+
+Mientras el sistema de almacenamiento intenta comunicarse y conectarse a servidores de gestión de claves, muestra información detallada sobre los intentos fallidos en la CLI. Puede interrumpir los intentos de contacto en cualquier momento con Ctrl-C.
+
+Como medida de seguridad, el cifrado de disco automático permite únicamente un número limitado de intentos de acceso no autorizados, tras los cuales se deshabilita el acceso a los datos existentes. Si el sistema de almacenamiento no puede ponerse en contacto con ningún servidor de gestión de claves especificado para obtener las claves de autenticación adecuadas, solo puede intentar autenticarse con la clave predeterminada, lo que provoca un intento fallido y una alarma. Si el sistema de almacenamiento está configurado para reiniciarse automáticamente en caso de producirse una alarma, entra en un bucle de arranque, lo que da como resultado intentos de autenticación con errores constantes en el SED.
+
+Detener el sistema de almacenamiento en estas situaciones es mediante un diseño para evitar que el sistema de almacenamiento entre en un bucle de arranque y posible pérdida de datos involuntaria como resultado del cifrado de disco de forma permanente debido a que se supera el límite de seguridad de un cierto número de intentos de autenticación fallidos consecutivos. El límite y el tipo de protección de bloqueo dependen de las especificaciones de fabricación y del tipo de SED:
+
+[cols="30,15,55"]
+|===
+
+
+| Tipo SED | Número de intentos fallidos consecutivos de autenticación que provocan el bloqueo | Tipo de protección de bloqueo cuando se alcanza el límite de seguridad 
+
+
+ a| 
+HDD
+ a| 
+1024
+ a| 
+Permanente. No se pueden recuperar los datos, incluso cuando la clave de autenticación correcta vuelva a estar disponible.
+
+
+
+ a| 
+X440_PHM2800MCTO SSD NSE de 800 GB con revisiones de firmware NA00 o NA01
+ a| 
+5
+ a| 
+Temporal. El bloqueo solo está activo hasta que se somete al disco a un ciclo de encendido y apagado.
+
+
+
+ a| 
+X577_PHM2800MCTO SSD NSE de 800 GB con revisiones de firmware NA00 o NA01
+ a| 
+5
+ a| 
+Temporal. El bloqueo solo está activo hasta que se somete al disco a un ciclo de encendido y apagado.
+
+
+
+ a| 
+X440_PHM2800MCTO SSD NSE de 800 GB con revisiones de firmware superiores
+ a| 
+1024
+ a| 
+Permanente. No se pueden recuperar los datos, incluso cuando la clave de autenticación correcta vuelva a estar disponible.
+
+
+
+ a| 
+X577_PHM2800MCTO SSD NSE de 800 GB con revisiones de firmware superiores
+ a| 
+1024
+ a| 
+Permanente. No se pueden recuperar los datos, incluso cuando la clave de autenticación correcta vuelva a estar disponible.
+
+
+
+ a| 
+El resto de modelos de SSD
+ a| 
+1024
+ a| 
+Permanente. No se pueden recuperar los datos, incluso cuando la clave de autenticación correcta vuelva a estar disponible.
+
+|===
+Para todos los tipos de SED, una autenticación correcta restablece el recuento de prueba a cero.
+
+Si encuentra esta situación en la que se detiene el sistema de almacenamiento debido a un error en el cual se llega a los servidores de gestión de claves especificados, primero debe identificar y corregir la causa del error de comunicación antes de intentar seguir arrancando el sistema de almacenamiento.

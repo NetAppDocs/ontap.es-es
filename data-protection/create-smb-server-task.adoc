@@ -1,0 +1,78 @@
+---
+permalink: data-protection/create-smb-server-task.html 
+sidebar: sidebar 
+keywords: cifs, create, server 
+summary: Si la SVM de origen tiene una configuración de SMB y decide establecer la conservación de identidad en false, se debe crear un servidor SMB para la SVM de destino. En algunas configuraciones SMB, como los recursos compartidos durante la inicialización de la relación de SnapMirror, es necesario el servidor SMB. 
+---
+= SMB Only: Cree un servidor SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si la SVM de origen tiene una configuración de SMB y se optó por establecer `identity-preserve` para `false`, Debe crear un servidor SMB para la SVM de destino. En algunas configuraciones SMB, como los recursos compartidos durante la inicialización de la relación de SnapMirror, es necesario el servidor SMB.
+
+.Pasos
+. Inicie la SVM de destino con el `vserver start` comando.
++
+[listing]
+----
+destination_cluster::> vserver start -vserver dvs1
+[Job 30] Job succeeded: DONE
+----
+. Compruebe que la SVM de destino está en la `running` el estado y el subtipo es `dp-destination` mediante el uso de `vserver show` comando.
++
+[listing]
+----
+destination_cluster::> vserver show
+                                   Admin      Operational Root
+Vserver  Type    Subtype           State      State       Volume     Aggregate
+-------- ------- ----------       ---------- ----------- ---------- ----------
+dvs1     data    dp-destination    running    running       -         -
+----
+. Cree una LIF mediante el `network interface create` comando.
++
+[listing]
+----
+destination_cluster::>network interface create -vserver dvs1 -lif NAS1 -role data -data-protocol cifs -home-node destination_cluster-01 -home-port a0a-101  -address 192.0.2.128 -netmask 255.255.255.128
+----
+. Cree una ruta mediante `network route create` comando.
++
+[listing]
+----
+destination_cluster::>network route create -vserver dvs1 -destination 0.0.0.0/0
+-gateway 192.0.2.1
+----
++
+link:../networking/index.html["Gestión de redes"]
+
+. Configure DNS mediante la `vserver services dns create` comando.
++
+[listing]
+----
+destination_cluster::>vserver services dns create -domains mydomain.example.com -vserver
+dvs1 -name-servers 192.0.2.128 -state enabled
+----
+. Agregue el controlador de dominio preferido mediante `vserver cifs domain preferred-dc add` comando.
++
+[listing]
+----
+destination_cluster::>vserver cifs domain preferred-dc add -vserver dvs1 -preferred-dc
+192.0.2.128 -domain mydomain.example.com
+----
+. Cree el servidor SMB mediante el `vserver cifs create` comando.
++
+[listing]
+----
+destination_cluster::>vserver cifs create -vserver dvs1 -domain mydomain.example.com
+-cifs-server CIFS1
+----
+. Detenga la SVM de destino con el `vserver stop` comando.
++
+[listing]
+----
+destination_cluster::> vserver stop -vserver dvs1
+[Job 46] Job succeeded: DONE
+----
+

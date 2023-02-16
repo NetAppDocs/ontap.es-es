@@ -1,0 +1,58 @@
+---
+permalink: s3-config/assess-physical-storage-requirements-task.html 
+sidebar: sidebar 
+keywords: s3, assess, physical, storage, requirements, cloud volumes ontap 
+summary: Antes de aprovisionar el almacenamiento S3 para clientes, debe asegurarse de que haya espacio suficiente en los agregados existentes para el nuevo almacén de objetos. Si no lo hay, puede añadir discos a los agregados existentes o crear nuevos agregados del tipo y la ubicación que desee. 
+---
+= Evaluar los requisitos de almacenamiento físico
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de aprovisionar el almacenamiento S3 para clientes, debe asegurarse de que haya espacio suficiente en los agregados existentes para el nuevo almacén de objetos. Si no lo hay, puede añadir discos a los agregados existentes o crear nuevos agregados del tipo y la ubicación que desee.
+
+.Acerca de esta tarea
+Cuando se crea un bloque de S3 en una SVM con la función S3 habilitada, se crea automáticamente un volumen FlexGroup para admitir el bloque. Puede dejar a ONTAP Select los agregados y componentes de FlexGroup automáticamente (predeterminado) o puede seleccionar los agregados subyacentes y los componentes de FlexGroup usted mismo.
+
+Si decide especificar los agregados y los componentes de FlexGroup; por ejemplo, si tiene requisitos de rendimiento específicos para los discos subyacentes, debe asegurarse de que la configuración de su agregado sea conforme a las directrices de prácticas recomendadas para aprovisionar un volumen de FlexGroup. Obtenga más información:
+
+* link:../flexgroup/index.html["Gestión de volúmenes de FlexGroup"]
+* https://www.netapp.com/pdf.html?item=/media/17251-tr4571apdf.pdf["Informe técnico de NetApp 4571-a: Mejores prácticas para los volúmenes ONTAP FlexGroup de NetApp"^]
+
+
+Si está sirviendo bloques de Cloud Volumes ONTAP, se recomienda encarecidamente que seleccione manualmente los agregados subyacentes para garantizar que estén usando solo un nodo. El uso de agregados de ambos nodos puede afectar al rendimiento, ya que los nodos se encuentran en zonas de disponibilidad separadas geográficamente y, por lo tanto, pueden estar expuestos a problemas de latencia. Descubra link:create-bucket-task.html["Creación de bloques para Cloud Volumes ONTAP"].
+
+Puede usar el servidor ONTAP S3 para crear un nivel de capacidad FabricPool local, es decir, en el mismo clúster que el nivel de rendimiento. Esto puede resultar útil, por ejemplo, si tiene discos SSD conectados a un par de alta disponibilidad y desea colocar en niveles los datos _fríos_ en discos HDD de otro par de alta disponibilidad. En este caso de uso, el servidor de S3 y el bloque que contiene el nivel de capacidad local deben estar, por lo tanto, en un par de alta disponibilidad diferente al nivel de rendimiento. La organización en niveles local no es compatible en clústeres de un nodo ni de dos nodos.
+
+.Pasos
+. Mostrar el espacio disponible en los agregados existentes:
++
+`storage aggregate show`
+
++
+Si hay un agregado con espacio suficiente o la ubicación de nodos necesaria, registre su nombre para la configuración de S3.
+
++
+[listing]
+----
+cluster-1::> storage aggregate show
+Aggregate     Size Available Used% State   #Vols  Nodes  RAID Status
+--------- -------- --------- ----- ------- ------ ------ -----------
+aggr_0     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_1     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_2     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_3     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_4     239.0GB   238.9GB   95% online       5 node3  raid_dp,
+                                                         normal
+aggr_5     239.0GB   239.0GB   95% online       4 node4  raid_dp,
+                                                         normal
+6 entries were displayed.
+----
+. Si no hay agregados con suficiente espacio o la ubicación de nodos necesaria, añada discos a un agregado existente mediante el uso de `storage aggregate add-disks` o cree un nuevo agregado con el `storage aggregate create` comando.
+

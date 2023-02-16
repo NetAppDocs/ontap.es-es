@@ -1,0 +1,67 @@
+---
+permalink: nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html 
+sidebar: sidebar 
+keywords: use, ldap, fast, bind, authentication, configure 
+summary: 'A partir de ONTAP 9.11.1, puede aprovechar la funcionalidad LDAP _fast bind_ (también conocida como _concurrente bind_) para obtener solicitudes de autenticación de clientes más rápidas y sencillas. Para utilizar esta funcionalidad, el servidor LDAP debe admitir la funcionalidad de enlace rápido' 
+---
+= Utilice el enlace rápido LDAP para la autenticación nsswitch
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.11.1, puede aprovechar la funcionalidad LDAP _fast bind_ (también conocida como _concurrente bind_) para obtener solicitudes de autenticación de clientes más rápidas y sencillas. Para utilizar esta funcionalidad, el servidor LDAP debe admitir la funcionalidad de enlace rápido.
+
+.Acerca de esta tarea
+Sin enlace rápido, ONTAP utiliza la vinculación simple de LDAP para autenticar usuarios administradores con el servidor LDAP. Con este método de autenticación, ONTAP envía un nombre de usuario o de grupo al servidor LDAP, recibe la contraseña hash almacenada y compara el código hash del servidor con la contraseña hash generada localmente desde la contraseña de usuario. Si son idénticas, ONTAP otorga permiso de inicio de sesión.
+
+Con la funcionalidad de enlace rápido, ONTAP sólo envía credenciales de usuario (nombre de usuario y contraseña) al servidor LDAP a través de una conexión segura. A continuación, el servidor LDAP valida estas credenciales y le indica a ONTAP que conceda permisos de inicio de sesión.
+
+Una ventaja de enlace rápido es que no es necesario que ONTAP admita todos los nuevos algoritmos de hash compatibles con los servidores LDAP, ya que el servidor LDAP realiza hash de contraseñas.
+
+link:https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/dc4eb502-fb94-470c-9ab8-ad09fa720ea6["Aprenda sobre el uso de FAST BIND."^]
+
+Puede utilizar las configuraciones de cliente LDAP existentes para enlace rápido LDAP. Sin embargo, se recomienda encarecidamente que el cliente LDAP esté configurado para TLS o LDAPS; de lo contrario, la contraseña se envía por el cable en texto sin formato.
+
+Para habilitar el enlace rápido de LDAP en un entorno ONTAP, debe cumplir con estos requisitos:
+
+* Los usuarios del administrador de ONTAP deben estar configurados en un servidor LDAP que admita el enlace rápido.
+* La SVM de ONTAP debe configurarse para LDAP en la base de datos de switches de servicios de nombres (nsswitch).
+* Las cuentas de usuario y de grupo admin de ONTAP deben configurarse para la autenticación nsswitch mediante fast bind.
+
+
+.Pasos
+. Confirme con el administrador LDAP que el enlace rápido LDAP es compatible con el servidor LDAP.
+. Asegúrese de que las credenciales de usuario administrador de ONTAP estén configuradas en el servidor LDAP.
+. Confirmar que el administrador o la SVM de datos están configurados correctamente para el enlace LDAP rápido.
++
+.. Para confirmar que el servidor de enlace rápido LDAP aparece en la configuración de cliente LDAP, introduzca:
++
+`vserver services name-service ldap client show`
+
++
+link:https://docs.netapp.com/us-en/ontap/nfs-config/create-ldap-client-config-task.html["Obtenga información acerca de la configuración del cliente LDAP."]
+
+.. Para confirmarlo `ldap` es una de las fuentes configuradas para nsswitch `passwd` database, introduzca:
++
+`vserver services name-service ns-switch show`
+
++
+link:https://docs.netapp.com/us-en/ontap/nfs-config/configure-name-service-switch-table-task.html["Más información sobre la configuración de nsswitch."]
+
+
+
+. Asegúrese de que los usuarios de administrador se autenticen con nsswitch y de que la autenticación de enlace rápido LDAP esté habilitada en sus cuentas.
++
+** Para los usuarios existentes, introduzca `security login modify` y verifique los siguientes ajustes de parámetros:
++
+`-authentication-method nsswitch`
+
++
+`-is-ldap-fastbind true`
+
+** Para los nuevos usuarios administradores, consulte link:https://docs.netapp.com/us-en/ontap/authentication/grant-access-nis-ldap-user-accounts-task.html["Habilite el acceso a cuenta de LDAP o NIS."]
+
+
+

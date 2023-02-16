@@ -1,0 +1,143 @@
+---
+permalink: system-admin/restore-cluster-config-from-existing-task.html 
+sidebar: sidebar 
+keywords: restore, cluster, configuration, existing, configuration, failure, recovering, node, rejoin, cluster 
+summary: Para restaurar una configuración de clúster a partir de una configuración existente tras el fallo de un clúster, debe volver a crear el clúster con la configuración de clúster que seleccionó y poner a disposición del nodo a recuperar y, a continuación, volver a unir cada nodo adicional al nuevo clúster. 
+---
+= Restaure una configuración de clúster a partir de una configuración existente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para restaurar una configuración de clúster a partir de una configuración existente tras el fallo de un clúster, debe volver a crear el clúster con la configuración de clúster que seleccionó y poner a disposición del nodo a recuperar y, a continuación, volver a unir cada nodo adicional al nuevo clúster.
+
+.Acerca de esta tarea
+Solo debe realizar esta tarea para recuperar el sistema tras un desastre que provocó la pérdida de la configuración del clúster.
+
+[NOTE]
+====
+Si va a volver a crear el clúster a partir de un archivo de backup de configuración, debe ponerse en contacto con el soporte técnico para resolver las discrepancias entre el archivo de backup de configuración y la configuración presente en el clúster.
+
+Si va a recuperar el clúster a partir de un archivo de copia de seguridad de configuración, se perderán todos los cambios de configuración realizados desde que se realizó la copia de seguridad. Debe resolver las discrepancias entre el archivo de copia de seguridad de la configuración y la actual después de la recuperación. Consulte el artículo de la base de conocimientos https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/ONTAP_Configuration_Backup_Resolution_Guide["Guía de resolución de backups de configuración de ONTAP para la solución de problemas"].
+
+====
+.Pasos
+. Desactive la conmutación por error del almacenamiento para cada par de alta disponibilidad:
++
+`*storage failover modify -node _node_name_ -enabled false*`
+
++
+Solo tiene que deshabilitar la conmutación por error del almacenamiento una vez para cada par de alta disponibilidad. Cuando deshabilita la conmutación al respaldo de almacenamiento para un nodo, la conmutación al respaldo de almacenamiento también se deshabilita en el compañero de nodo.
+
+. Detenga cada nodo excepto el nodo en recuperación:
++
+`*system node halt -node _node_name_ -reason "text"*`
+
++
+[listing]
+----
+cluster1::*> system node halt -node node0 -reason "recovering cluster"
+
+Warning: Are you sure you want to halt the node? {y|n}: y
+----
+. Configure el nivel de privilegio en Advanced:
++
+`*set -privilege advanced*`
+
+. En el nodo de recuperación, utilice `*system configuration recovery cluster recreate*` comando para volver a crear el clúster.
++
+En este ejemplo se vuelve a crear el clúster con la información de configuración almacenada en el nodo a recuperar:
+
++
+[listing]
+----
+cluster1::*> configuration recovery cluster recreate -from node
+
+Warning: This command will destroy your existing cluster. It will
+         rebuild a new single-node cluster consisting of this node
+         and its current configuration. This feature should only be
+         used to recover from a disaster. Do not perform any other
+         recovery operations while this operation is in progress.
+Do you want to continue? {y|n}: y
+----
++
+Se crea un nuevo clúster en el nodo a recuperar.
+
+. Si va a volver a crear el clúster desde un archivo de backup de configuración, compruebe que la recuperación del clúster aún esté en curso:
++
+`*system configuration recovery cluster show*`
+
++
+No es necesario comprobar el estado de recuperación del clúster si se vuelve a crear el clúster desde un nodo en buen estado.
+
++
+[listing]
+----
+cluster1::*> system configuration recovery cluster show
+ Recovery Status: in-progress
+ Is Recovery Status Persisted: false
+----
+. Arranque cada nodo que se tiene que volver a unir al clúster creado nuevamente.
++
+Debe reiniciar los nodos de uno en uno.
+
+. Para cada nodo que debe unirse al clúster de nuevo creado, haga lo siguiente:
++
+.. A partir de un nodo en buen estado del clúster recreado, vuelva a unir el nodo de destino:
++
+`*system configuration recovery cluster rejoin -node _node_name_*`
+
++
+En este ejemplo se vuelve a unir el nodo de destino «'2'» al clúster creado de nuevo:
+
++
+[listing]
+----
+cluster1::*> system configuration recovery cluster rejoin -node node2
+
+Warning: This command will rejoin node "node2" into the local
+         cluster, potentially overwriting critical cluster
+         configuration files. This command should only be used
+         to recover from a disaster. Do not perform any other
+         recovery operations while this operation is in progress.
+         This command will cause node "node2" to reboot.
+Do you want to continue? {y|n}: y
+----
++
+El nodo de destino se reinicia y, a continuación, se une al clúster.
+
+.. Compruebe que el nodo de destino esté en buen estado y que haya formado quórum con el resto de los nodos del clúster:
++
+`*cluster show -eligibility true*`
+
++
+El nodo de destino debe volver a unirse al clúster recreado antes de poder volver a unir otro nodo.
+
++
+[listing]
+----
+cluster1::*> cluster show -eligibility true
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node0                true    true          false
+node1                true    true          false
+2 entries were displayed.
+----
+
+
+. Si vuelve a crear el clúster a partir de un archivo de backup de configuración, establezca el estado de recuperación en Complete:
++
+`*system configuration recovery cluster modify -recovery-status complete*`
+
+. Vuelva al nivel de privilegio de administrador:
++
+`*set -privilege admin*`
+
+. Si el clúster solo consta de dos nodos, use el `*cluster ha modify*` Comando para volver a habilitar el clúster ha.
+. Utilice la `*storage failover modify*` Comando para volver a habilitar la recuperación tras fallos del almacenamiento para cada par de alta disponibilidad.
+
+
+.Después de terminar
+Si el clúster tiene relaciones de SnapMirror entre iguales, también debe volver a crear esas relaciones. Para obtener más información, consulte link:../data-protection/index.html["Protección de datos"].

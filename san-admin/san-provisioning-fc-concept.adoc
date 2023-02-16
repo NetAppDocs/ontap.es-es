@@ -1,0 +1,84 @@
+---
+permalink: san-admin/san-provisioning-fc-concept.html 
+sidebar: sidebar 
+keywords:  
+summary: Debe conocer los conceptos importantes necesarios para comprender cómo implementa ONTAP UNA SAN FC. 
+---
+= Aprovisionamiento DE SAN con FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe conocer los conceptos importantes necesarios para comprender cómo implementa ONTAP UNA SAN FC.
+
+
+
+== Cómo se conectan los nodos de destino de FC a la red
+
+Los sistemas de almacenamiento y hosts cuentan con adaptadores para que se puedan conectar a switches FC con cables.
+
+Cuando un nodo está conectado a LA SAN FC, cada SVM registra el nombre de puerto WWPN de su LIF con el servicio de nombres de estructura del switch. ONTAP asigna automáticamente el WWNN de la SVM y el nombre de puerto WWPN de cada LIF.
+
+[NOTE]
+====
+No se admite la conexión directa a nodos de hosts con FC, se requiere NPIV y esto requiere que se utilice un switch.con sesiones iSCSI, la comunicación funciona con conexiones que están enrutadas de red o de conexión directa. Sin embargo, ONTAP admite ambos métodos.
+
+====
+
+
+== Cómo se identifican los nodos FC
+
+Cada SVM configurada con FC se identifica con un nombre de nodo WWNN.
+
+
+
+== Cómo se utilizan los WWPN
+
+Los WWPN identifican cada LIF en una SVM configurada para admitir FC. Estos LIF utilizan puertos FC físicos en cada nodo del clúster, que pueden ser tarjetas objetivo FC, UTA o UTA2 configurados como FC o FCoE en los nodos.
+
+* Crear un iGroup
++
+Los WWPN de los HBA del host se usan para crear un iGroup. Un igroup se utiliza para controlar el acceso del host a una LUN específica. Puede crear un igroup especificando una colección de WWPN de iniciadores en una red de FC. Cuando asigna una LUN en un sistema de almacenamiento a un igroup, puede conceder a todos los iniciadores de ese grupo el acceso a esa LUN. Si el WWPN de un host no está en un igroup que se asigna a una LUN, ese host no tiene acceso a la LUN. Esto significa que los LUN no aparecen como discos en ese host.
+
++
+También puede crear conjuntos de puertos para que una LUN sea visible solo en puertos de destino específicos. Un conjunto de puertos consta de un grupo de puertos de destino FC. Es posible enlazar un igroup con un conjunto de puertos. Cualquier host del igroup solo puede acceder a las LUN mediante la conexión a los puertos de destino del puerto establecido.
+
+* Identificación exclusiva de LIF FC
++
+Los WWPN identifican de forma única cada interfaz lógica de FC. El sistema operativo del host utiliza la combinación del WWNN y el WWPN para identificar SVM y LIF de FC. Algunos sistemas operativos requieren un enlace persistente para garantizar que la LUN aparece con el mismo ID objetivo en el host.
+
+
+
+
+
+== Cómo funcionan las asignaciones de nombres en todo el mundo
+
+Los nombres de todo el mundo se crean secuencialmente en ONTAP. Sin embargo, debido a la forma en que ONTAP los asigna, puede parecer que están asignados en un orden no secuencial.
+
+Cada adaptador tiene un WWPN y un WWNN preconfigurados, pero ONTAP no usa estos valores preconfigurados. En su lugar, ONTAP asigna sus propios WWPN o WWN, según las direcciones MAC de los puertos Ethernet internos.
+
+Puede parecer que los nombres internacionales no son secuenciales cuando se asignan por los siguientes motivos:
+
+* Los nombres mundiales se asignan en todos los nodos y las máquinas virtuales de almacenamiento (SVM) del clúster.
+* Los nombres liberados en todo el mundo se reciclan y se añaden al grupo de nombres disponibles.
+
+
+
+
+== Cómo se identifican los switches FC
+
+Los switches Fibre Channel tienen un nombre de nodo WWNN del dispositivo mismo, y un nombre de puerto WWPN para cada uno de sus puertos.
+
+Por ejemplo, el siguiente diagrama muestra cómo se asignan los WWPN a cada uno de los puertos de un switch Brocade de 16 puertos. Para obtener detalles sobre cómo están numerados los puertos de un switch determinado, consulte la documentación suministrada por el proveedor de ese switch.
+
+image::../media/drw-fcswitch-scrn-en-noscale.gif[fcswitch drw scrn en nocale]
+
+Puerto *0*, WWPN 20:**00**:00:60:69:51:06:b4
+
+Puerto *1*, WWPN 20:**01**:00:60:69:51:06:b4
+
+Puerto *14*, WWPN 20:**0e**:00:60:69:51:06:b4
+
+Puerto *15*, WWPN 20:**0f**:00:60:69:51:06:b4

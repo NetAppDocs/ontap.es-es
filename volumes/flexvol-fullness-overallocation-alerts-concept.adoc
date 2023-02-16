@@ -1,0 +1,99 @@
+---
+permalink: volumes/flexvol-fullness-overallocation-alerts-concept.html 
+sidebar: sidebar 
+keywords: how to, address, flexvol, volume, fullness, overallocation, alerts 
+summary: ONTAP emite mensajes de EMS cuando los volúmenes de FlexVol se están quedando sin espacio, por lo que puede tomar medidas correctivas proporcionando más espacio para el volumen completo. Conocer los tipos de alertas y cómo afrontarlas le ayuda a garantizar la disponibilidad de sus datos. 
+---
+= Envíe las alertas de ocupación y sobreasignación del volumen de FlexVol en la dirección correspondiente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP emite mensajes de EMS cuando los volúmenes de FlexVol se están quedando sin espacio, por lo que puede tomar medidas correctivas proporcionando más espacio para el volumen completo. Conocer los tipos de alertas y cómo afrontarlas le ayuda a garantizar la disponibilidad de sus datos.
+
+Cuando un volumen se describe como _Full_, significa que el porcentaje del espacio disponible en el volumen para su uso por parte del sistema de archivos activo (datos de usuario) ha caído por debajo de un umbral (configurable). Cuando un volumen se convierte en _overasignó_, se ha agotado el espacio utilizado por ONTAP para los metadatos y para admitir el acceso a los datos básicos. A veces, el espacio que se reserva normalmente para otros fines se puede utilizar para mantener el volumen en funcionamiento, pero la reserva de espacio o la disponibilidad de los datos pueden estar en riesgo.
+
+La sobreasignación puede ser lógica o física. _Sobreasignación lógica_ significa que el espacio reservado para cumplir con los compromisos espaciales futuros, como la reserva espacial, se ha utilizado para otro propósito. _Physical overasignada_ significa que el volumen se está quedando sin bloques físicos que usar. Los volúmenes en este estado corren el riesgo de rechazar escrituras, desconectarse o potencialmente provocar una interrupción de controladora.
+
+Un volumen puede estar lleno más de un 100% debido al espacio utilizado o reservado por los metadatos. Sin embargo, una asignación excesiva puede o no sobreasignada a un volumen que esté lleno a más del 100 %. Si existen recursos compartidos a nivel de qtree y volumen en el mismo pool FlexVol o SCVMM, los qtrees aparecen como directorios en el recurso compartido de FlexVol. Por lo tanto, debe tener cuidado de no eliminarlos accidentalmente.
+
+En la siguiente tabla se describen las alertas de ocupación y sobreasignación de volúmenes, las acciones que se pueden realizar para resolver el problema y los riesgos de no emprender acciones:
+
+[cols="6*"]
+|===
+| Tipo de alerta | Nivel de EMS | ¿Configurable? | Definición | Formas de abordar | Riesgo si no se toman medidas 
+
+
+ a| 
+Casi lleno
+ a| 
+Depurar
+ a| 
+Y
+ a| 
+El sistema de archivos ha superado el umbral configurado para esta alerta (el valor predeterminado es 95 %). El porcentaje es el `Used` Total menos el tamaño de la reserva de Snapshot.
+ a| 
+* Aumentar el tamaño del volumen
+* Reducción de los datos de usuario
+
+ a| 
+Todavía no existen riesgos de operaciones de escritura ni disponibilidad de datos.
+
+
+
+ a| 
+Lleno
+ a| 
+Depurar
+ a| 
+Y
+ a| 
+El sistema de archivos ha superado el umbral configurado para esta alerta (el valor predeterminado es 98 %). El porcentaje es el `Used` Total menos el tamaño de la reserva de Snapshot.
+ a| 
+* Aumentar el tamaño del volumen
+* Reducción de los datos de usuario
+
+ a| 
+Aún no hay riesgo de sufrir operaciones de escritura ni disponibilidad de datos, pero el volumen se está acercando al estadio en el que podrían estar en riesgo las operaciones de escritura.
+
+
+
+ a| 
+Sobreasignado lógicamente
+ a| 
+Error de servicio
+ a| 
+N
+ a| 
+Además de que el sistema de archivos está lleno, se agotó el espacio del volumen usado para los metadatos.
+ a| 
+* Aumentar el tamaño del volumen
+* Eliminar copias Snapshot
+* Reducción de los datos de usuario
+* Deshabilitación de la reserva de espacio para archivos o LUN
+
+ a| 
+Se puede producir un error en las operaciones de escritura en archivos no reservados.
+
+
+
+ a| 
+Sobreasignado físicamente
+ a| 
+Error de nodo
+ a| 
+N
+ a| 
+El volumen se está quedando sin bloques físicos en los que puede escribir.
+ a| 
+* Aumentar el tamaño del volumen
+* Eliminar copias Snapshot
+* Reducción de los datos de usuario
+
+ a| 
+Las operaciones de escritura están en riesgo y la disponibilidad de datos; el volumen puede desconectarse.
+
+|===
+Cada vez que se cruza un umbral para un volumen, ya sea que el porcentaje de ocupación está aumentando o cayendo, se genera un mensaje EMS. Cuando el nivel de llenado del volumen está por debajo de un umbral, A. `volume ok` Se genera un mensaje EMS.

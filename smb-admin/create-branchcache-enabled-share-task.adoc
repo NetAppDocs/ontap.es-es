@@ -1,0 +1,63 @@
+---
+permalink: smb-admin/create-branchcache-enabled-share-task.html 
+sidebar: sidebar 
+keywords: enable, branchcache, smb, create, share, setting, property, create a bracnhcache-enabled smb share 
+summary: Puede habilitar BranchCache en un recurso compartido de SMB cuando se crea el recurso compartido mediante la configuración de la propiedad compartido de branchcache. 
+---
+= Cree un recurso compartido de SMB habilitado con BranchCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede habilitar BranchCache en un recurso compartido de SMB al crear el recurso compartido mediante la configuración del `branchcache` compartir propiedad.
+
+.Acerca de esta tarea
+* Si se habilita BranchCache en el recurso compartido de SMB, el recurso compartido debe tener la configuración de los archivos sin conexión establecida en el almacenamiento manual en caché.
++
+Esta es la configuración predeterminada cuando se crea un recurso compartido.
+
+* También puede especificar parámetros de recurso compartido opcionales al crear el recurso compartido con BranchCache habilitado.
+* Puede ajustar la `branchcache` Propiedad en un recurso compartido incluso si BranchCache no está configurado y habilitado en la máquina virtual de almacenamiento (SVM).
++
+Sin embargo, si desea que el recurso compartido ofrezca contenido en caché, debe configurar y habilitar BranchCache en la SVM.
+
+* Puesto que no hay propiedades de recurso compartido predeterminadas aplicadas al recurso compartido cuando se utiliza `-share-properties` parámetro, debe especificar todas las demás propiedades de recursos compartidos que desea aplicar al recurso compartido además de `branchcache` compartir propiedad mediante una lista delimitada por comas.
+* Para obtener más información, consulte la página de manual de `vserver cifs share create` comando.
+
+
+.Paso
+. Cree un recurso compartido SMB habilitado con BranchCache: +
+`vserver cifs share create -vserver _vserver_name_ -share-name _share_name_ -path _path_ -share-properties branchcache[,...]`
+. Compruebe que la propiedad share de BranchCache se establece en el recurso compartido de SMB mediante el `vserver cifs share show` comando.
+
+
+.Ejemplo
+El siguiente comando crea un recurso compartido SMB habilitado con BranchCache denominado «data» con una ruta de `/data` En SVM vs1. De forma predeterminada, la opción Archivos sin conexión está establecida en `manual`:
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name data -path /data -share-properties branchcache,oplocks,browsable,changenotify
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data
+                      Vserver: vs1
+                        Share: data
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data
+             Share Properties: branchcache
+                               oplocks
+                               browsable
+                               changenotify
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: data
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+.Información relacionada
+xref:disable-branchcache-single-share-task.adoc[Deshabilitar BranchCache en un único recurso compartido de SMB]

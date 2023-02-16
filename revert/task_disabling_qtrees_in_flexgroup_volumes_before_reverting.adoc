@@ -1,0 +1,83 @@
+---
+permalink: revert/task_disabling_qtrees_in_flexgroup_volumes_before_reverting.html 
+sidebar: sidebar 
+keywords: ontap, revert, reverting, reversion, disable, disabling, qtree, functionality, function, flexgroup, volumes 
+summary: Los qtrees de volúmenes de FlexGroup no son compatibles antes de ONTAP 9.3. Debe deshabilitar la funcionalidad para qtrees en volúmenes de FlexGroup antes de revertir de ONTAP 9.3 a una versión anterior de ONTAP. 
+---
+= Deshabilite la funcionalidad Qtree en volúmenes FlexGroup antes de revertir
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Los qtrees de volúmenes de FlexGroup no son compatibles antes de ONTAP 9.3. Debe deshabilitar la funcionalidad para qtrees en volúmenes de FlexGroup antes de revertir de ONTAP 9.3 a una versión anterior de ONTAP.
+
+La funcionalidad Qtree se habilita al crear un qtree o si se modifican los atributos de estilo de seguridad y modo oplock del qtree predeterminado.
+
+. Identifique y elimine todos los qtrees no predeterminados en cada volumen de FlexGroup que estén habilitados con la funcionalidad Qtree:
++
+.. Inicie sesión en el nivel de privilegio avanzado: `set -privilege advanced`
+.. Compruebe si hay algún volumen de FlexGroup habilitado con la funcionalidad Qtree.
++
+Para ONTAP 9.6 o posterior, utilice: `volume show -is-qtree-caching-enabled true`
+
++
+Para ONTAP 9.5 o anterior, utilice: `volume show -is-flexgroup-qtree-enabled true`
+
++
+[listing]
+----
+cluster1::*> volume show -is-flexgroup-qtree-enabled true
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vs0       fg           -            online     RW        320MB    220.4MB   31%
+----
+.. Elimine todos los qtrees no predeterminados de cada volumen de FlexGroup que estén habilitados con la funcionalidad de qtree: `volume qtree delete -vserver svm_name -volume volume_name -qtree qtree_name`
++
+Si la funcionalidad Qtree se encuentra habilitada porque se modificaron los atributos del qtree predeterminado y, si no tiene ningún qtree, puede omitir este paso.
+
++
+[listing]
+----
+cluster1::*> volume qtree delete -vserver vs0 -volume fg -qtree qtree4
+WARNING: Are you sure you want to delete qtree qtree4 in volume fg vserver vs0?  {y|n}: y
+[Job 38] Job is queued: Delete qtree qtree4 in volume fg vserver vs0.
+----
+
+
+. Deshabilite la funcionalidad Qtree en cada volumen FlexGroup: `volume flexgroup qtree-disable -vserver svm_name -volume volume_name`
++
+[listing]
+----
+cluster1::*> volume flexgroup qtree-disable -vserver vs0 -volume fg
+----
+. Identificar y eliminar cualquier copia de Snapshot que esté habilitada con la funcionalidad de qtree.
++
+.. Compruebe si hay alguna copia Snapshot habilitada con la funcionalidad para qtrees: `volume snapshot show -vserver vserver_name -volume volume_name -fields is-flexgroup-qtree-enabled`
++
+[listing]
+----
+cluster1::*> volume snapshot show -vserver vs0 -volume fg -fields is-flexgroup-qtree-enabled
+vserver volume snapshot is-flexgroup-qtree-enabled
+------- ------ -------- --------------------------
+vs0     fg     fg_snap1 true
+vs0     fg     daily.2017-09-27_0010 true
+vs0     fg     daily.2017-09-28_0010 true
+vs0     fg     snapmirror.0241f354-a865-11e7-a1c0-00a098a71764_2147867740.2017-10-04_124524 true
+----
+.. Elimine todas las copias Snapshot que están habilitadas con la funcionalidad para qtrees: `volume snapshot delete -vserver svm_name -volume volume_name -snapshot snapshot_name -force true -ignore-owners true`
++
+Las copias Snapshot que deben eliminarse incluyen copias Snapshot regulares y las copias Snapshot realizadas para relaciones de SnapMirror. Si ha creado alguna relación de SnapMirror para los volúmenes de FlexGroup con un clúster de destino que ejecute ONTAP 9.2 o una versión anterior, debe eliminar todas las copias de Snapshot que se realizaron cuando se habilitó el volumen de FlexGroup de origen para la funcionalidad de qtree.
+
++
+[listing]
+----
+cluster1::> volume snapshot delete -vserver vs0 -volume fg -snapshot daily.2017-09-27_0010 -force true -ignore-owners true
+----
+
+
+
+
+.Información relacionada
+link:../flexgroup/index.html["Gestión de volúmenes de FlexGroup"]

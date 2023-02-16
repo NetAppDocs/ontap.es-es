@@ -1,0 +1,69 @@
+---
+permalink: s3-audit/index.html 
+sidebar: sidebar 
+keywords: S3, audit, management events 
+summary: En este artículo se explica cómo auditar eventos de datos y gestión en entornos ONTAP S3. 
+---
+= Auditar eventos S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.10.1, puede auditar eventos de datos y gestión en entornos ONTAP S3. La funcionalidad de auditoría de S3 es similar a las funcionalidades de auditoría NAS existentes, y la auditoría de S3 y NAS puede coexistir en un clúster.
+
+Cuando se crea y se habilita una configuración de auditoría de S3 en una SVM, los eventos de S3 se registran en un archivo de registro. El puede especificar los siguientes eventos que se registrarán:
+
+* Eventos de acceso a objetos (datos)
++
+GetObject, PutObject y DeleteObject
+
+* Eventos de gestión
++
+Cubo de puta y eliminarbloque
+
+
+
+El formato del registro es notación de objetos JavaScript (JSON).
+
+El límite combinado para las configuraciones de auditoría de S3 y NFS es de 50 SVM por clúster.
+
+Se requiere el siguiente paquete de licencia:
+
+* Paquete principal, para el protocolo ONTAP S3 y el almacenamiento
+
+
+Para obtener más información, consulte link:../nas-audit/auditing-process-concept.html["Cómo funciona el proceso de auditoría de ONTAP"].
+
+
+
+== Auditoría garantizada
+
+De forma predeterminada, se garantiza la auditoría de S3 y NAS. ONTAP garantiza que se registren todos los eventos de acceso a bloques que pueden someterse a auditorías, incluso si un nodo no está disponible. No se puede completar una operación de bloque solicitada hasta que el registro de auditoría de esa operación se guarde en el volumen provisional en un almacenamiento persistente. Si los registros de auditoría no se pueden guardar en los archivos de almacenamiento provisional, ya sea por falta de espacio o por otros problemas, se deniegan las operaciones de cliente.
+
+
+
+== Requisitos de espacio para la auditoría
+
+En el sistema de auditoría de ONTAP, los registros de auditoría se almacenan inicialmente en archivos binarios de almacenamiento provisional en nodos individuales. Periódicamente, se consolidan y convierten en registros de eventos legibles por el usuario, que se almacenan en el directorio del registro de eventos de auditoría de la SVM.
+
+Los archivos de almacenamiento provisional se almacenan en un volumen de almacenamiento provisional dedicado, que ONTAP crea cuando se crea la configuración de auditoría. Hay un volumen de almacenamiento provisional por agregado.
+
+Debe planificar el espacio disponible suficiente en la configuración de auditoría:
+
+* Para los volúmenes de almacenamiento provisional en agregados que contienen bloques auditados.
+* Para el volumen que contiene el directorio en el que se almacenan los registros de eventos convertidos.
+
+
+Es posible controlar el número de registros de eventos y, por lo tanto, el espacio disponible en el volumen, mediante uno de los dos métodos al crear la configuración de auditoría de S3:
+
+* Un límite numérico; el `-rotate-limit` parámetro controla la cantidad mínima de archivos de auditoría que se deben conservar.
+* Un límite de tiempo; el `-retention-duration` parámetro controla el período máximo que se pueden conservar los archivos.
+
+
+En ambos parámetros, una vez excedido el valor configurado, se pueden eliminar los archivos de auditoría más antiguos para dejar espacio para otros más nuevos. Para ambos parámetros, el valor es 0, lo que indica que se deben mantener todos los archivos. Para garantizar que haya espacio suficiente, se recomienda, por tanto, establecer uno de los parámetros en un valor distinto de cero.
+
+Debido a la auditoría garantizada, si el espacio disponible para los datos de auditoría se agota antes del límite de rotación, no se pueden crear datos de auditoría más nuevos, lo que provoca errores en el acceso de los clientes a los datos. Por lo tanto, la elección de este valor y del espacio asignado a la auditoría se debe elegir cuidadosamente, y debe responder a las advertencias sobre el espacio disponible del sistema de auditoría.
+
+Para obtener más información, consulte link:../nas-audit/basic-auditing-concept.html["Conceptos básicos de auditoría"].

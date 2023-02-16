@@ -1,0 +1,100 @@
+---
+permalink: nfs-config/create-server-task.html 
+sidebar: sidebar 
+keywords: create, nfs, server 
+summary: Tras verificar que NFS tiene licencia en el clúster, puede utilizar el comando vserver nfs create para crear un servidor NFS en la SVM y especificar las versiones de NFS que admite. 
+---
+= Cree un servidor NFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Tras comprobar que NFS tiene licencia en el clúster, puede utilizar la `vserver nfs create` Para crear un servidor NFS en la SVM y especificar las versiones de NFS que admite.
+
+.Lo que necesitará
+Debe haber configurado la SVM para permitir el protocolo NFS.
+
+.Acerca de esta tarea
+Es posible configurar SVM para que admita una o varias versiones de NFS. Si admite NFSv4 o posteriores:
+
+* El nombre de dominio de asignación del ID de usuario de NFSv4 debe ser igual en el servidor NFSv4 y en los clientes de destino.
++
+No necesariamente debe ser el mismo que un nombre de dominio LDAP o NIS siempre que el servidor NFSv4 y los clientes utilicen el mismo nombre.
+
+* Los clientes de destino deben admitir la configuración de ID numérico de NFSv4.
+* Por motivos de seguridad, debe utilizar LDAP para los servicios de nombres en las puestas en marcha de NFSv4.
+
+
+.Pasos
+. Compruebe que NFS tiene licencia en el clúster:
++
+`system license show -package nfs`
+
++
+Si no lo está, póngase en contacto con su representante de ventas.
+
+. Cree un servidor NFS:
++
+`vserver nfs create -vserver _vserver_name_ -v3 {enabled|disabled} -v4.0 {enabled|disabled} -v4-id-domain _nfsv4_id_domain_ -v4-numeric-ids {enabled|disabled} -v4.1 {enabled|disabled} -v4.1-pnfs {enabled|disabled}`
+
++
+Puede optar por habilitar cualquier combinación de versiones de NFS. Si desea admitir pNFS, debe habilitar ambos `-v4.1` y.. `-v4.1-pnfs` opciones.
+
++
+Si activa v4 o posterior, también debe estar seguro de que las siguientes opciones están configuradas correctamente:
+
++
+** `-v4-id-domain`
++
+Este parámetro opcional especifica la parte de dominio del formulario de cadena de nombres de usuario y de grupo, tal como lo define el protocolo NFSv4. De forma predeterminada, ONTAP utiliza el dominio NIS si se establece uno; si no es así, se utiliza el dominio DNS. Debe proporcionar un valor que coincida con el nombre de dominio utilizado por los clientes de destino.
+
+** `-v4-numeric-ids`
++
+Este parámetro opcional especifica si la compatibilidad con identificadores de cadena numéricos en los atributos de propietario de NFSv4 está habilitada. La configuración predeterminada está habilitada, pero debe verificar que los clientes de destino lo admitan.
+
+
+
++
+Puede habilitar las funciones NFS adicionales más adelante mediante la `vserver nfs modify` comando.
+
+. Compruebe que NFS está ejecutando:
++
+`vserver nfs status -vserver _vserver_name_`
+
+. Compruebe que NFS está configurado como se desea:
++
+`vserver nfs show -vserver _vserver_name_`
+
+
+
+.Ejemplos
+El siguiente comando crea un servidor NFS en la SVM llamada vs1 con NFSv3 y NFSv4.0 habilitado:
+
+[listing]
+----
+vs1::> vserver nfs create -vserver vs1 -v3 enabled -v4.0 enabled -v4-id-domain my_domain.com
+----
+Los siguientes comandos verifican el estado y los valores de configuración del nuevo servidor NFS llamado vs1:
+
+[listing]
+----
+vs1::> vserver nfs status -vserver vs1
+The NFS server is running on Vserver "vs1".
+
+vs1::> vserver nfs show -vserver vs1
+
+                            Vserver: vs1
+                 General NFS Access: true
+                             NFS v3: enabled
+                           NFS v4.0: enabled
+                       UDP Protocol: enabled
+                       TCP Protocol: enabled
+               Default Windows User: -
+                NFSv4.0 ACL Support: disabled
+    NFSv4.0 Read Delegation Support: disabled
+   NFSv4.0 Write Delegation Support: disabled
+            NFSv4 ID Mapping Domain: my_domain.com
+...
+----

@@ -1,0 +1,76 @@
+---
+permalink: smb-admin/configure-bypass-traverse-checking-concept.html 
+sidebar: sidebar 
+keywords: bypass, traverse, user, privilege, permission, directory, allow, check, configure, storage, virtual, machine, svm, configure bypass traverse checking 
+summary: 'La comprobación de recorrido de omisión es un derecho de usuario (también conocido como privilegio) que determina si un usuario puede recorrer todos los directorios de la ruta de acceso a un archivo aunque el usuario no tenga permisos en el directorio de recorrido. Debe comprender lo que sucede al permitir o dejar de permitir la comprobación de recorrido por omisión, y cómo configurar la comprobación de recorrido por omisión para los usuarios en máquinas virtuales de almacenamiento (SVM).' 
+---
+= Configurar el resumen de comprobación de recorrido de derivación
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La comprobación de recorrido de omisión es un derecho de usuario (también conocido como _Privilege_) que determina si un usuario puede recorrer todos los directorios de la ruta de acceso a un archivo incluso si el usuario no tiene permisos en el directorio de recorrido. Debe comprender lo que sucede al permitir o dejar de permitir la comprobación de recorrido por omisión, y cómo configurar la comprobación de recorrido por omisión para los usuarios en máquinas virtuales de almacenamiento (SVM).
+
+
+
+== Qué sucede cuando se permite o se despermite la comprobación de recorrido de derivación
+
+* Si se permite, cuando un usuario intenta acceder a un archivo, ONTAP no comprueba el permiso Traverse para los directorios intermedios al determinar si se concede o deniega el acceso al archivo.
+* Si no se permite, ONTAP comprueba el permiso recorrer (ejecutar) para todos los directorios de la ruta de acceso al archivo.
++
+Si alguno de los directorios intermedios no tiene el "'X'" (permiso de desplazamiento), ONTAP niega el acceso al archivo.
+
+
+
+
+
+== Configurar la comprobación de recorrido de derivación
+
+Puede configurar la comprobación de recorrido de desvío mediante la interfaz de línea de comandos de ONTAP o mediante la configuración de directivas de grupo de Active Directory con este derecho de usuario.
+
+La `SeChangeNotifyPrivilege` los privilegios controlan si se permite a los usuarios omitir la comprobación de recorrido.
+
+* Si se la agrega a los usuarios o grupos SMB locales en la SVM o a usuarios o grupos de dominio, permite omitir el control transversal.
+* Si lo elimina de usuarios o grupos SMB locales en la SVM o de usuarios o grupos de dominio, no permite omitir la comprobación cruzada.
+
+
+De forma predeterminada, los siguientes grupos BUILTIN de la SVM tienen derecho a omitir la comprobación de recorrido:
+
+* `BUILTIN\Administrators`
+* `BUILTIN\Power Users`
+* `BUILTIN\Backup Operators`
+* `BUILTIN\Users`
+* `Everyone`
+
+
+Si no desea permitir a los miembros de uno de estos grupos omitir la comprobación de recorrido, debe quitar este privilegio del grupo.
+
+Debe tener en cuenta lo siguiente al configurar la comprobación de derivación cruzada de usuarios y grupos de SMB locales en la SVM mediante la CLI:
+
+* Si desea permitir a los miembros de un grupo de dominio o local personalizado omitir la comprobación de recorrido, debe agregar el `SeChangeNotifyPrivilege` privilegio para ese grupo.
+* Si desea permitir que un usuario local o de dominio individual omita la comprobación de recorrido y que el usuario no sea miembro de un grupo con ese privilegio, puede agregar el `SeChangeNotifyPrivilege` privilegio para esa cuenta de usuario.
+* Puede deshabilitar la comprobación de recorrido de omisión para usuarios o grupos locales o de dominio quitando el `SeChangeNotifyPrivilege` de privilegio en cualquier momento.
++
+[NOTE]
+====
+Para deshabilitar la comprobación de travers de omisión para usuarios o grupos locales o de dominio especificados, también debe quitar el `SeChangeNotifyPrivilege` privilegio de la `Everyone` grupo.
+
+====
+
+
+.Información relacionada
+xref:allow-users-groups-bypass-directory-traverse-task.adoc[Permitir a los usuarios o grupos omitir la comprobación de recorrido del directorio]
+
+xref:disallow-users-groups-bypass-directory-traverse-task.adoc[No permitir a los usuarios o grupos omitir la comprobación de recorrido del directorio]
+
+xref:configure-character-mappings-file-name-translation-task.adoc[Configurar la asignación de caracteres para la traducción de nombres de archivo SMB en volúmenes]
+
+xref:create-share-access-control-lists-task.html[Cree listas de control de acceso a recursos compartidos de SMB]
+
+xref:secure-file-access-storage-level-access-guard-concept.html[Acceso seguro a archivos mediante Storage-Level Access Guard]
+
+xref:list-supported-privileges-reference.adoc[Lista de privilegios compatibles]
+
+xref:add-privileges-local-domain-users-groups-task.html[Añada privilegios a usuarios o grupos locales o de dominio]

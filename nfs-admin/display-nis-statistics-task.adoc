@@ -1,0 +1,80 @@
+---
+permalink: nfs-admin/display-nis-statistics-task.html 
+sidebar: sidebar 
+keywords: display, nis, statistics 
+summary: 'Puede mostrar estadísticas de NIS para las máquinas virtuales de almacenamiento (SVM) en el sistema de almacenamiento para supervisar el rendimiento y diagnosticar problemas.' 
+---
+= Mostrar estadísticas de NIS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede mostrar estadísticas de NIS para las máquinas virtuales de almacenamiento (SVM) en el sistema de almacenamiento para supervisar el rendimiento y diagnosticar problemas.
+
+.Pasos
+. Utilice la `statistics catalog object show` Comando para identificar los objetos NIS desde los que puede ver datos.
++
+`statistics catalog object show -object external_service_op*`
+
+. Utilice la `statistics start` y.. `statistics stop` comandos para recoger un ejemplo de datos de uno o más objetos.
+. Utilice la `statistics show` para ver los datos de ejemplo.
+
+
+
+
+== Seguimiento de las estadísticas de NIS
+
+Los siguientes ejemplos muestran datos de rendimiento para consultas NIS. Los siguientes comandos inician la recopilación de datos de una nueva muestra:
+
+[listing]
+----
+vs1::*> statistics start -object external_service_op -sample-id nis_sample1
+vs1::*> statistics start -object external_service_op_error -sample-id nis_sample2
+----
+El siguiente comando muestra los datos de la muestra especificando contadores que muestran el número de consultas NIS enviadas en comparación con el número de consultas NIS recibidas, fallidas o con el tiempo de espera agotado:
+
+[listing]
+----
+vs1::*> statistics show -sample-id nis_sample1 -counter instance|num_requests_sent|num_responses_received|num_successful_responses|num_timeouts|num_request_failures|num_not_found_responses
+
+Object: external_service_op
+Instance: vs1:NIS:Query:10.227.13.221
+Start-time: 3/8/2016 11:27:39
+End-time: 3/8/2016 11:27:56
+Elapsed-time: 17s
+Scope: vs1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    num_not_found_responses                                         0
+    num_request_failures                                            1
+    num_requests_sent                                               2
+    num_responses_received                                          1
+    num_successful_responses                                        1
+    num_timeouts                                                    0
+6 entries were displayed.
+----
+El siguiente comando muestra los datos de la muestra especificando contadores que muestran el número de veces que se recibió un error específico para una consulta NIS en el servidor concreto:
+
+[listing]
+----
+vs1::*> statistics show -sample-id nis_sample2 -counter server_ip_address|error_string|count
+
+Object: external_service_op_error
+Instance: vs1:NIS:Query:YP_NOTFOUND:10.227.13.221
+Start-time: 3/8/2016 11:33:05
+End-time: 3/8/2016 11:33:10
+Elapsed-time: 5s
+Scope: vs1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    count                                                           1
+    error_string                                          YP_NOTFOUND
+    server_ip_address                                   10.227.13.221
+3 entries were displayed.
+----
+.Información relacionada
+link:../performance-config/index.html["Configuración de supervisión del rendimiento"]

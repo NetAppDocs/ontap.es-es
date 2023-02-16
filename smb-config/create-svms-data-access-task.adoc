@@ -1,0 +1,72 @@
+---
+permalink: smb-config/create-svms-data-access-task.html 
+sidebar: sidebar 
+keywords: svm, cluster, data, access, smb, client, create, create an svm 
+summary: Si no tiene al menos una SVM en un clúster para proporcionar acceso a los datos a los clientes de SMB, debe crear una. 
+---
+= Cree una SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si no tiene al menos una SVM en un clúster para proporcionar acceso a los datos a los clientes de SMB, debe crear una.
+
+.Pasos
+. Cree una SVM: `vserver create -vserver vserver_name -rootvolume root_volume_name -aggregate aggregate_name -rootvolume-security-style ntfs -language C.UTF-8 -ipspace ipspace_name`
++
+** Utilice el valor NTFS para `-rootvolume-security-style` opción.
+** Utilice el C.UTF-8 predeterminado `-language` opción.
+** La `ipspace` el ajuste es opcional.
+
+
+. Compruebe la configuración y el estado de la SVM recién creada: `vserver show -vserver vserver_name`
++
+La `Allowed Protocols` El campo debe incluir CIFS. Puede editar esta lista más tarde.
+
++
+La `Vserver Operational State` el campo debe mostrar la `running` estado. Si muestra la `initializing` estado, significa que hubo un error en algunas operaciones intermedias, como la creación del volumen raíz, y que debe eliminarse la SVM y volver a crearla.
+
+
+
+.Ejemplos
+El siguiente comando crea una SVM para acceder a los datos en el espacio IP ipspaceA:
+
+[listing]
+----
+cluster1::> vserver create -vserver vs1.example.com -rootvolume root_vs1 -aggregate aggr1
+-rootvolume-security-style ntfs -language C.UTF-8 -ipspace ipspaceA
+
+[Job 2059] Job succeeded:
+Vserver creation completed
+----
+El siguiente comando muestra que se creó una SVM con un volumen raíz de 1 GB, y se inició automáticamente y está en `running` estado. El volumen raíz tiene una política de exportación predeterminada que no incluye reglas, por lo que el volumen raíz no se exporta tras la creación.
+
+[listing]
+----
+cluster1::> vserver show -vserver vs1.example.com
+                                    Vserver: vs1.example.com
+                               Vserver Type: data
+                            Vserver Subtype: default
+                               Vserver UUID: b8375669-19b0-11e5-b9d1-00a0983d9736
+                                Root Volume: root_vs1
+                                  Aggregate: aggr1
+                                 NIS Domain: -
+                 Root Volume Security Style: ntfs
+                                LDAP Client: -
+               Default Volume Language Code: C.UTF-8
+                            Snapshot Policy: default
+                                    Comment:
+                               Quota Policy: default
+                List of Aggregates Assigned: -
+ Limit on Maximum Number of Volumes allowed: unlimited
+                        Vserver Admin State: running
+                  Vserver Operational State: running
+   Vserver Operational State Stopped Reason: -
+                          Allowed Protocols: nfs, cifs, fcp, iscsi, ndmp
+                       Disallowed Protocols: -
+                           QoS Policy Group: -
+                                Config Lock: false
+                               IPspace Name: ipspaceA
+----

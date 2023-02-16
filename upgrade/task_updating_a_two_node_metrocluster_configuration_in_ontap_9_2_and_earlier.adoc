@@ -1,0 +1,171 @@
+---
+permalink: upgrade/task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, two-node, metrocluster, mcc, 9.2, earlier 
+summary: 'Puede actualizar ONTAP de forma no disruptiva para obtener una configuración de MetroCluster de dos nodos. Este método tiene varios pasos: Iniciar una conmutación negociada, actualizar el clúster en el sitio “fallido”, iniciar una conmutación de regreso y, a continuación, repetir el proceso en el clúster en el otro sitio.' 
+---
+= Actualización manual no disruptiva de una configuración MetroCluster de dos nodos en ONTAP 9.2 o una versión anterior mediante la interfaz de línea de comandos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede actualizar ONTAP de forma no disruptiva para obtener una configuración de MetroCluster de dos nodos. Este método tiene varios pasos: Iniciar una conmutación negociada, actualizar el clúster en el sitio «fallido», iniciar la conmutación de regreso y, a continuación, repetir el proceso en el clúster en el otro sitio.
+
+Este procedimiento es para configuraciones MetroCluster de dos nodos que ejecuten solo ONTAP 9.2 o una versión anterior.
+
++ no use este procedimiento si tiene una configuración MetroCluster de cuatro nodos.
+
++ Si tiene una configuración MetroCluster de dos nodos que ejecuta ONTAP 9.3 o una versión posterior, ejecute el xref:task_upgrade_andu_sm.html[Actualización no disruptiva automatizada mediante System Manager].
+
+. Establezca el nivel de privilegio en avanzado, introduzca *y* cuando se le solicite continuar: `set -privilege advanced`
++
+El aviso avanzado (`*>`) aparece.
+
+. En el clúster que se va a actualizar, instale la nueva imagen de software ONTAP como predeterminada: `system node image update -package package_location -setdefault true -replace-package true`
++
+[listing]
+----
+cluster_B::*> system node image update -package http://www.example.com/NewImage.tgz -setdefault true -replace-package true
+----
+. Compruebe que la imagen del software de destino está definida como la imagen predeterminada: `system node image show`
++
+El siguiente ejemplo muestra eso `NewImage` se establece como la imagen predeterminada:
+
++
+[listing]
+----
+cluster_B::*> system node image show
+                    Is      Is                           Install
+Node     Image      Default Current Version              Date
+-------- -------    ------- ------- -------------------- -------------------
+node_B_1
+         OldImage  false   true    X.X.X                MM/DD/YYYY TIME
+         NewImage  true    false   Y.Y.Y                MM/DD/YYYY TIME
+2 entries were displayed.
+----
+. Si la imagen del software de destino no está definida como la imagen predeterminada, cámbiela: `system image modify {-node * -iscurrent false} -isdefault true`
+. Compruebe que todas las SVM del clúster tengan un estado de estado: `metrocluster vserver show`
+. En el clúster que no se está actualizando, inicie una conmutación de sitios negociada: `metrocluster switchover`
++
+La operación puede llevar varios minutos. Puede usar el comando MetroCluster operation show para verificar que la conmutación se ha completado.
+
++
+En el siguiente ejemplo, se realiza una conmutación negociada en el clúster remoto ("cluster_A'"). Esto hace que el clúster local ("'cluster_B'') se detenga para que pueda actualizarlo.
+
++
+[listing]
+----
+cluster_A::> metrocluster switchover
+
+Warning: negotiated switchover is about to start. It will stop all the data
+         Vservers on cluster "cluster_B" and
+         automatically re-start them on cluster
+         "cluster_A". It will finally gracefully shutdown
+         cluster "cluster_B".
+Do you want to continue? {y|n}: y
+----
+. Compruebe que todas las SVM del clúster tengan un estado de estado: `metrocluster vserver show`
+. Resincronizar los agregados de datos en el clúster de «eurviving»: `metrocluster heal -phase aggregates`
++
+Después de actualizar la configuración IP de MetroCluster a ONTAP 9.5 o una versión posterior, los agregados estarán en estado degradado durante un breve periodo de tiempo antes de volver a sincronizar y volver a un estado de reflejo.
+
++
+[listing]
+----
+cluster_A::> metrocluster heal -phase aggregates
+[Job 130] Job succeeded: Heal Aggregates is successful.
+----
+. Compruebe que la operación de reparación se ha realizado correctamente: `metrocluster operation show`
++
+[listing]
+----
+cluster_A::> metrocluster operation show
+Operation: heal-aggregates
+State: successful
+Start Time: MM/DD/YYYY TIME
+End Time: MM/DD/YYYY TIME
+Errors: -
+----
+. Resincronice los agregados raíz en el clúster «esencial»: `metrocluster heal -phase root-aggregates`
++
+[listing]
+----
+cluster_A::> metrocluster heal -phase root-aggregates
+[Job 131] Job succeeded: Heal Root Aggregates is successful.
+----
+. Compruebe que la operación de reparación se ha realizado correctamente: `metrocluster operation show`
++
+[listing]
+----
+cluster_A::> metrocluster operation show
+Operation: heal-root-aggregates
+State: successful
+Start Time: MM/DD/YYYY TIME
+End Time: MM/DD/YYYY TIME
+Errors: -
+----
+. En el clúster detenido, arranque el nodo desde el símbolo del sistema del CARGADOR: `boot_ontap`
+. Espere a que termine el proceso de arranque y, a continuación, compruebe que todas las SVM del clúster estén en estado: `metrocluster vserver show`
+. Haga una regreso desde el cluster «de la revolución»: `metrocluster switchback`
+. Compruebe que la conmutación de estado se ha completado correctamente: `metrocluster operation show`
++
+[listing]
+----
+cluster_A::> metrocluster operation show
+Operation: switchback
+State: successful
+Start Time: MM/DD/YYYY TIME
+End Time: MM/DD/YYYY TIME
+Errors: -
+----
+. Compruebe que todas las SVM del clúster tengan un estado de estado: `metrocluster vserver show`
+. Repita todos los pasos anteriores en el otro clúster.
+. Compruebe que la configuración de MetroCluster sea correcta:
++
+.. Compruebe la configuración: `metrocluster check run`
++
+[listing]
+----
+cluster_A::> metrocluster check run
+Last Checked On: MM/DD/YYYY TIME
+Component           Result
+------------------- ---------
+nodes               ok
+lifs                ok
+config-replication  ok
+aggregates          ok
+4 entries were displayed.
+
+Command completed. Use the "metrocluster check show -instance"
+command or sub-commands in "metrocluster check" directory for
+detailed results.
+To check if the nodes are ready to do a switchover or switchback
+operation, run "metrocluster switchover -simulate" or "metrocluster
+switchback -simulate", respectively.
+----
+.. Si desea ver resultados más detallados, utilice el comando MetroCluster check run:
+.. Configure el nivel de privilegio en Advanced: `set -privilege advanced`
+.. Simule la operación switchover: `metrocluster switchover -simulate`
+.. Revise los resultados de la simulación de switchover: `metrocluster operation show`
++
+[listing]
+----
+cluster_A::*> metrocluster operation show
+    Operation: switchover
+        State: successful
+   Start time: MM/DD/YYYY TIME
+     End time: MM/DD/YYYY TIME
+       Errors: -
+----
+.. Vuelva al nivel de privilegio de administrador: `set -privilege admin`
+.. Repita estos mismos pasos en el otro clúster.
+
+
+
+
+Debe realizar cualquier tarea posterior a la actualización.
+
+.Información relacionada
+link:https://docs.netapp.com/us-en/ontap-metrocluster/disaster-recovery/concept_dr_workflow.html["Recuperación ante desastres de MetroCluster"]

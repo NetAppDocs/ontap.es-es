@@ -1,0 +1,62 @@
+---
+permalink: encryption-at-rest/assign-authentication-keys-seds-onboard-task.html 
+sidebar: sidebar 
+keywords: assign, data, authentication, key, fips, drive, sed, onboard, key, management 
+summary: Puede utilizar el comando Storage Encryption Disk modify para asignar una clave de autenticación de datos a una unidad FIPS o SED. Los nodos de clúster usan esta clave para acceder a los datos de la unidad. 
+---
+= Asignar una clave de autenticación de datos a una unidad FIPS o SED (gestión de claves incorporada)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `storage encryption disk modify` Para asignar una clave de autenticación de datos a una unidad FIPS o SED. Los nodos de clúster usan esta clave para acceder a los datos de la unidad.
+
+.Lo que necesitará
+Para realizar esta tarea, debe ser un administrador de clústeres.
+
+.Acerca de esta tarea
+Una unidad de autocifrado está protegida contra el acceso no autorizado solo si su ID de clave de autenticación se configura como un valor no predeterminado. El ID seguro del fabricante (MSID), que tiene el ID de clave 0x0, es el valor predeterminado estándar para las unidades SAS. Para las unidades NVMe, el valor predeterminado estándar es una clave nula, que se representa como un ID de clave en blanco. Cuando se asigna el ID de clave a una unidad de autocifrado, el sistema cambia el ID de clave de autenticación por un valor no predeterminado.
+
+.Pasos
+. Asigne una clave de autenticación de datos a una unidad FIPS o SED:
++
+`storage encryption disk modify -disk _disk_ID_ -data-key-id _key_ID_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+[NOTE]
+====
+Puede utilizar el `security key-manager key query -key-type NSE-AK` Comando para ver los ID clave.
+
+====
++
+[listing]
+----
+cluster1::> storage encryption disk modify -disk 0.10.* -data-key-id 0000000000000000020000000000010019215b9738bc7b43d4698c80246db1f4
+
+Info: Starting modify on 14 disks.
+      View the status of the operation by using the
+      storage encryption disk show-status command.
+----
+. Compruebe que se han asignado las claves de autenticación:
++
+`storage encryption disk show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[listing]
+----
+cluster1::> storage encryption disk show
+Disk    Mode Data Key ID
+-----   ---- ----------------------------------------------------------------
+0.0.0   data 0000000000000000020000000000010019215b9738bc7b43d4698c80246db1f4
+0.0.1   data 0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722
+[...]
+----
+

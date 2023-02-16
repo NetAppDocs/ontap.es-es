@@ -1,0 +1,161 @@
+---
+permalink: s3-audit/plan-config-task.html 
+sidebar: sidebar 
+keywords: s3, audit, create, configure s3 audit 
+summary: En esta tarea, se explican los parámetros que se utilizan en la auditoría de s3. 
+---
+= Planifique una configuración de auditoría de S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe especificar una serie de parámetros para la configuración de auditoría de S3 o aceptar los valores predeterminados. En particular, debe considerar qué parámetros de rotación de log ayudarán a garantizar un espacio libre adecuado.
+
+Consulte *`vserver object-store-server audit create`* man page para detalles de la sintaxis.
+
+
+
+== Parámetros generales
+
+Hay dos parámetros necesarios que debe especificar al crear la configuración de auditoría. También puede especificar tres parámetros opcionales.
+
+[cols="4,2,1"]
+|===
+
+
+| Tipo de información | Opción | Obligatorio 
+
+
+ a| 
+_SVM name_
+
+Nombre de la SVM en la que se creará la configuración de auditoría.
+
+La SVM ya debe existir y estar habilitada para S3.
+ a| 
+`-verserver _svm_name_`
+ a| 
+Sí
+
+
+
+ a| 
+_Ruta de destino del registro_
+
+Especifica dónde se almacenan los registros de auditoría convertidos. La ruta ya debe existir en la SVM.
+
+La ruta puede tener hasta 864 caracteres y debe tener permisos de lectura y escritura.
+
+Si la ruta no es válida, el comando de configuración de auditoría falla.
+ a| 
+`-destination _text_`
+ a| 
+Sí
+
+
+
+ a| 
+_Categorías de eventos para auditar_
+
+Se pueden auditar las siguientes categorías de eventos:
+
+* Eventos Data GetObject, PutObject y DeleteObject
+* Eventos de Management PutBucket y DeleteBucket
+
+
+El valor predeterminado es auditar únicamente los eventos de datos.
+ a| 
+`-events {data{vbar}management}, ...`
+ a| 
+No
+
+|===
+Es posible introducir uno de los siguientes parámetros para controlar la cantidad de archivos de registro de auditoría. Si no se introduce ningún valor, se conservan todos los archivos de registro.
+
+[cols="4,2,1"]
+|===
+
+
+| Tipo de información | Opción | Obligatorio 
+
+
+ a| 
+_Límite de rotación de los archivos de registro_
+
+Determina cuántos archivos de registro de auditoría se retendrán antes de rotar el archivo de registro más antiguo. Por ejemplo, si introduce un valor de 5, se conservan los cinco últimos archivos de registro.
+
+El valor 0 indica que se conservan todos los archivos de registro. El valor predeterminado es 0.
+ a| 
+`-rotate-limit _integer_`
+ a| 
+No
+
+
+
+ a| 
+_Límite de duración de los archivos de registro_
+
+Determina cuánto tiempo se puede retener un archivo de registro antes de eliminarlo. Por ejemplo, si introduce un valor de 5d0h0m, se eliminarán los registros de más de 5 días de antigüedad.
+
+El valor 0 indica que se conservan todos los archivos de registro. El valor predeterminado es 0.
+ a| 
+`-retention duration _integer_time_`
+ a| 
+No
+
+|===
+
+
+== Parámetros para la rotación del registro de auditoría
+
+Puede rotar los registros de auditoría en función del tamaño o la programación. El valor predeterminado es girar los registros de auditoría en función del tamaño.
+
+
+
+=== Rotar registros según el tamaño del registro
+
+Si desea utilizar el método de rotación de registro predeterminado y el tamaño de registro predeterminado, no necesita configurar ningún parámetro específico para la rotación de registros. El tamaño predeterminado del registro es 100 MB.
+
+Si no desea utilizar el tamaño predeterminado del registro, puede configurar el `-rotate-size` parámetro para especificar un tamaño de registro personalizado.
+
+Si desea restablecer la rotación basándose únicamente en un tamaño de registro, utilice el siguiente comando para anular la definición del `-rotate-schedule-minute` parámetro:
+
+`vserver audit modify -vserver _svm_name_ -destination / -rotate-schedule-minute -`
+
+
+
+=== Rotar registros según un programa
+
+Si opta por rotar los registros de auditoría según una programación, puede programar la rotación del registro utilizando los parámetros de rotación basados en tiempo en cualquier combinación.
+
+* Si utiliza rotación basada en tiempo, el `-rotate-schedule-minute` el parámetro es obligatorio.
+* Todos los demás parámetros de rotación basados en el tiempo son opcionales.
++
+** `-rotate-schedule-month`
+** `-rotate-schedule-dayofweek`
+** `-rotate-schedule-day`
+** `-rotate-schedule-hour`
+
+
+* El programa de rotación se calcula utilizando todos los valores relacionados con el tiempo. Por ejemplo, si especifica solo el `-rotate-schedule-minute` parámetro, los archivos de registro de auditoría se rotan en función de los minutos especificados en todos los días de la semana, durante todas las horas en todos los meses del año.
+* Si especifica solo uno o dos parámetros de rotación basados en la hora (por ejemplo, `-rotate-schedule-month` y.. `-rotate-schedule-minutes`), los archivos de registro se rotan en función de los valores de minutos que haya especificado en todos los días de la semana, durante todas las horas, pero sólo durante los meses especificados.
++
+Por ejemplo, puede especificar que el registro de auditoría se va a rotar durante los meses de enero, marzo y agosto todos los lunes, miércoles y sábados a las 10:30 a.m.
+
+* Si especifica valores para ambos `-rotate-schedule-dayofweek` y.. `-rotate-schedule-day`, se consideran independientes.
++
+Por ejemplo, si especifica `-rotate-schedule-dayofweek` Como viernes y. `-rotate-schedule-day` Como 13, los registros de auditoría se girarían cada viernes y el día 13 del mes especificado, no sólo cada viernes 13.
+
+* Si desea restablecer la rotación únicamente según una programación, utilice el siguiente comando para anular la definición del `-rotate-size parameter`:
++
+`vserver audit modify -vserver _svm_name_ -destination / -rotate-size -`
+
+
+
+
+
+=== Rotar registros según el tamaño del registro y el programa
+
+Puede optar por girar los archivos de registro según el tamaño del registro y una programación estableciendo tanto el parámetro -rotate-size como los parámetros de rotación basados en tiempo en cualquier combinación. Por ejemplo: Si `-rotate-size` Se establece en 10 MB y. `-rotate-schedule-minute` Se establece en 15, los archivos de registro giran cuando el tamaño del archivo de registro alcanza 10 MB o en el 15 minuto de cada hora (el evento que ocurra primero).

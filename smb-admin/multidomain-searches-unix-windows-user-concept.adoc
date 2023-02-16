@@ -1,0 +1,94 @@
+---
+permalink: smb-admin/multidomain-searches-unix-windows-user-concept.html 
+sidebar: sidebar 
+keywords: ontap, support, multidomain, search, map, unix, user, windows, discover, trust, domain, match, replacement, alternative, replacement, prefer, multidomain searches for unix user to windows user name mappings 
+summary: ONTAP admite las búsquedas multidominio al asignar usuarios de UNIX a usuarios de Windows. Se buscan todos los dominios de confianza detectados para que coincidan con el patrón de reemplazo hasta que se devuelva un resultado coincidente. También puede configurar una lista de dominios de confianza preferidos, que se utiliza en lugar de la lista de dominios de confianza detectados y se busca en orden hasta que se devuelve un resultado coincidente. 
+---
+= Busca usuarios de UNIX a través de multidominio para mapeos de nombres de usuario de Windows
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP admite las búsquedas multidominio al asignar usuarios de UNIX a usuarios de Windows. Se buscan todos los dominios de confianza detectados para que coincidan con el patrón de reemplazo hasta que se devuelva un resultado coincidente. También puede configurar una lista de dominios de confianza preferidos, que se utiliza en lugar de la lista de dominios de confianza detectados y se busca en orden hasta que se devuelve un resultado coincidente.
+
+
+
+== Cómo afectan las confianzas de dominio a las búsquedas de asignación de nombres de usuario de UNIX a Windows
+
+Para comprender cómo funciona la asignación de nombres de usuario multidominio, debe comprender cómo funcionan las relaciones de confianza de dominios con ONTAP. Las relaciones de confianza de Active Directory con el dominio principal del servidor CIFS pueden ser una confianza bidireccional o pueden ser uno de dos tipos de confianzas unidireccionales, ya sea una confianza de entrada o una confianza de salida. El dominio inicial es el dominio al que pertenece el servidor CIFS de la SVM.
+
+* _Confianza bidireccional_
++
+Con confianzas bidireccionales, ambos dominios confían entre sí. Si el dominio principal del servidor CIFS tiene una confianza bidireccional con otro dominio, el dominio principal puede autenticar y autorizar a un usuario que pertenezca al dominio de confianza, y viceversa.
+
++
+Las búsquedas de asignación de nombres de usuario de UNIX a usuario de Windows sólo se pueden realizar en dominios con relaciones de confianza bidireccionales entre el dominio principal y el otro dominio.
+
+* _Confianza saliente_
++
+Con una confianza saliente, el dominio principal confía en el otro dominio. En este caso, el dominio principal puede autenticar y autorizar a un usuario que pertenezca al dominio de confianza saliente.
+
++
+Se realiza una búsqueda en un dominio con una confianza saliente con el dominio principal al realizar búsquedas de asignación de nombres de usuario de UNIX a usuario de Windows.
+
+* _Confianza entrante_
++
+Con una confianza de entrada, el otro dominio confía en el dominio principal del servidor CIFS. En este caso, el dominio principal no puede autenticar ni autorizar a un usuario que pertenezca al dominio de confianza entrante.
+
++
+Se busca un dominio con una confianza entrante con el dominio principal cuando se realizan búsquedas de asignación de nombres de usuario de UNIX a nombre de usuario de Windows.
+
+
+
+
+
+== Cómo se utilizan los comodines (*) para configurar las búsquedas multidominio para la asignación de nombres
+
+Las búsquedas de asignación de nombres multidominio se facilitan mediante el uso de caracteres comodín en la sección de dominio del nombre de usuario de Windows. En la siguiente tabla se muestra cómo utilizar comodines en la parte de dominio de una entrada de asignación de nombres para habilitar las búsquedas multidominio:
+
+|===
+| Patrón | Sustitución | Resultado 
+
+
+ a| 
+raíz
+ a| 
+*\\administrador
+ a| 
+El usuario UNIX «'root'» está asignado al usuario denominado «'Administrator'». Todos los dominios de confianza se buscan en orden hasta que se encuentre el primer usuario coincidente denominado «'Administrator'».
+
+
+
+ a| 
+*
+ a| 
+\*\\*
+ a| 
+Los usuarios UNIX válidos se asignan a los usuarios de Windows correspondientes. Todos los dominios de confianza se buscan en orden hasta que se encuentre el primer usuario que coincida con ese nombre.
+
+[NOTE]
+====
+El patrón \*\\* sólo es válido para la asignación de nombres de UNIX a Windows, no al revés.
+
+====
+|===
+
+
+== Cómo se realizan las búsquedas de nombres multidominio
+
+Puede elegir uno de los dos métodos para determinar la lista de dominios de confianza utilizados para las búsquedas de nombres multidominio:
+
+* Utilice la lista de confianza bidireccional detectada automáticamente compilada por ONTAP
+* Utilice la lista de dominios de confianza preferida que compila
+
+
+Si un usuario de UNIX se asigna a un usuario de Windows con un comodín utilizado para la sección de dominio del nombre de usuario, se busca al usuario de Windows en todos los dominios de confianza de la siguiente manera:
+
+* Si se configura una lista de dominio de confianza preferido, el usuario de Windows asignado se busca sólo en esta lista de búsqueda, en orden.
+* Si no se configura una lista preferida de dominios de confianza, se busca al usuario de Windows en todos los dominios de confianza bidireccionales del dominio principal.
+* Si no hay dominios de confianza bidireccional para el dominio principal, se busca al usuario en el dominio principal.
+
+
+Si un usuario de UNIX está asignado a un usuario de Windows sin una sección de dominio en el nombre de usuario, se busca al usuario de Windows en el dominio principal.

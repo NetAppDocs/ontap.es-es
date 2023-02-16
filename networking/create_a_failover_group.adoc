@@ -1,0 +1,50 @@
+---
+sidebar: sidebar 
+permalink: networking/create_a_failover_group.html 
+keywords: create, creation, creating, add, adding, failover, fail, over, group, create a failover group, failover group of network ports automatically migrate a lif to a different port when a link failure occurs, failover-groups create, ifgrps 
+summary: Crear un grupo de recuperación tras fallos de puertos de red migra automáticamente un LIF a un puerto diferente cuando se produce un fallo de enlace 
+---
+= Cree un grupo de recuperación tras fallos
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Puede crear un grupo de recuperación tras fallos de puertos de red para que un LIF pueda migrar automáticamente a otro puerto si se produce un fallo de enlace en el puerto actual de la LIF. Esto permite al sistema redirigir el tráfico de red a otros puertos disponibles en el clúster.
+
+.Acerca de esta tarea
+Utilice la `network interface failover-groups create` comando para crear el grupo y para agregar puertos al grupo.
+
+* Los puertos que se añaden a un grupo de conmutación por error pueden ser puertos de red, VLAN o grupos de interfaces (ifgrps).
+* Todos los puertos agregados al grupo de conmutación por error deben pertenecer al mismo dominio de retransmisión.
+* Un único puerto puede residir en varios grupos de conmutación por error.
+* Si tiene LIF en diferentes VLAN o dominios de retransmisión, debe configurar grupos de conmutación al nodo de respaldo para cada VLAN o dominio de retransmisión.
+* Los grupos de recuperación tras fallos no se aplican en entornos SAN iSCSI o FC.
+
+
+.Paso
+Crear un grupo de recuperación tras fallos:
+
+`network interface failover-groups create -vserver _vserver_name_ -failover-group _failover_group_name_ -targets _ports_list_`
+
+* `_vserver_name_` Es el nombre de la SVM que puede usar el grupo de conmutación al nodo de respaldo.
+* `_failover_group_name_` es el nombre del grupo de conmutación por error que desea crear.
+* `_ports_list_` es la lista de puertos que se agregarán al grupo de conmutación por error. Los puertos se añaden con el formato _node_name>:<port_number>_, por ejemplo, 1:e0c.
+
+
+El siguiente comando crea un grupo de conmutación por error fg3 para SVM vs3 y añade dos puertos:
+
+....
+network interface failover-groups create -vserver vs3 -failover-group fg3 -targets cluster1-01:e0e,cluster1-02:e0e
+....
+.Después de terminar
+* Debería aplicar el grupo de recuperación tras fallos a una LIF ahora que se ha creado el grupo de recuperación tras fallos.
+* La aplicación de un grupo de conmutación por error que no proporcione un destino de conmutación por error válido para una LIF da lugar a un mensaje de advertencia.
++
+Si una LIF que no tiene un destino de conmutación por error válido intenta conmutar al respaldo, se podría producir una interrupción del servicio.
+
+

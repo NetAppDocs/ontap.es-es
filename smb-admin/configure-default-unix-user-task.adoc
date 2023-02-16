@@ -1,0 +1,77 @@
+---
+permalink: smb-admin/configure-default-unix-user-task.html 
+sidebar: sidebar 
+keywords: configure, unix, user, map, fail, individual, windows, authentication, non-mapped, configure the default unix user 
+summary: Puede configurar el usuario UNIX predeterminado para que lo utilice si fallan todos los demás intentos de asignación para un usuario o si no desea asignar usuarios individuales entre UNIX y Windows. De manera alternativa, si desea que la autenticación de usuarios no asignados falle, no debe configurar el usuario UNIX predeterminado. 
+---
+= Configure el usuario UNIX predeterminado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede configurar el usuario UNIX predeterminado para que lo utilice si fallan todos los demás intentos de asignación para un usuario o si no desea asignar usuarios individuales entre UNIX y Windows. De manera alternativa, si desea que la autenticación de usuarios no asignados falle, no debe configurar el usuario UNIX predeterminado.
+
+.Acerca de esta tarea
+De forma predeterminada, el nombre del usuario UNIX predeterminado es "'pcuser'", lo que significa que, de forma predeterminada, se activa la asignación de usuarios al usuario UNIX predeterminado. Puede especificar otro nombre que se utilizará como usuario UNIX predeterminado. El nombre que especifique debe existir en las bases de datos del servicio de nombres configuradas para la máquina virtual de almacenamiento (SVM). Si esta opción está establecida en una cadena nula, nadie puede acceder al servidor CIFS como usuario predeterminado de UNIX. Es decir, cada usuario debe tener una cuenta en la base de datos de contraseñas para poder acceder al servidor CIFS.
+
+Para que un usuario pueda conectarse al servidor CIFS con la cuenta de usuario UNIX predeterminada, el usuario debe cumplir los siguientes requisitos previos:
+
+* El usuario se autentica.
+* El usuario se encuentra en la base de datos de usuarios Windows local del servidor CIFS, en el dominio principal del servidor CIFS o en un dominio de confianza (si las búsquedas de asignación de nombres multidominio están activadas en el servidor CIFS).
+* El nombre de usuario no se asigna explícitamente a una cadena nula.
+
+
+.Pasos
+. Configure el usuario UNIX predeterminado:
++
+|===
+| Si desea ... | Introduzca ... 
+
+
+ a| 
+Utilizar el usuario UNIX predeterminado "'pcuser'"
+ a| 
+`vserver cifs options modify -default-unix-user pcuser`
+
+
+
+ a| 
+Utilice otra cuenta de usuario UNIX como usuario predeterminado
+ a| 
+`vserver cifs options modify -default-unix-user _user_name_`
+
+
+
+ a| 
+Desactive el usuario UNIX predeterminado
+ a| 
+`vserver cifs options modify -default-unix-user ""`
+
+|===
++
+`vserver cifs options modify -default-unix-user pcuser`
+
+. Compruebe que el usuario UNIX predeterminado está configurado correctamente: `vserver cifs options show -vserver _vserver_name_`
++
+En el siguiente ejemplo, tanto el usuario UNIX predeterminado como el usuario UNIX invitado en SVM vs1 están configurados para utilizar el usuario UNIX "'pcuser'":
+
++
+`vserver cifs options show -vserver vs1`
+
++
+[listing]
+----
+
+Vserver: vs1
+
+  Client Session Timeout : 900
+  Default Unix Group     : -
+  Default Unix User      : pcuser
+  Guest Unix User        : pcuser
+  Read Grants Exec       : disabled
+  Read Only Delete       : disabled
+  WINS Servers           : -
+----
+

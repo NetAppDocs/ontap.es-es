@@ -1,0 +1,106 @@
+---
+permalink: revert/task_download_and_install_ontap_software_image.html 
+sidebar: sidebar 
+keywords: ontap, software, image, download, downloading, install, installing 
+summary: Primero debe descargar el software ONTAP; después, puede instalarlo. 
+---
+= Descargue e instale la imagen del software de ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Primero, tiene que descargar el software ONTAP del sitio de soporte de NetApp; entonces puede instalarlo.
+
+
+
+== Descargue la imagen del software
+
+Para degradar o revertir de ONTAP 9.4 y versiones posteriores, puede copiar la imagen del software ONTAP del sitio de soporte de NetApp a una carpeta local. Para una degradación o para revertir a ONTAP 9.3 o una versión anterior, debe copiar la imagen del software ONTAP en un servidor HTTP o FTP de la red.
+
+Debe tener en cuenta la siguiente información importante:
+
+* Las imágenes de software son específicas para los modelos de la plataforma.
++
+Debe obtener la imagen correcta para su clúster. Las imágenes de software, la información de versión de firmware y el firmware más reciente para el modelo de su plataforma están disponibles en el sitio de soporte de NetApp.
+
+* Las imágenes de software incluyen la versión más reciente del firmware del sistema disponible cuando se publicó una versión concreta de ONTAP.
+* Si va a cambiar a un sistema con el cifrado de volúmenes de NetApp desde ONTAP 9.5 o posterior, debe descargar la imagen del software ONTAP para países no restringidos, que incluye el cifrado de volúmenes de NetApp.
++
+Si utiliza la imagen de software de ONTAP para países restringidos a fin de degradar o revertir un sistema con el cifrado de volúmenes de NetApp, el sistema tendrá una alarma y perderá el acceso a los volúmenes.
+
++
+.. Busque el software ONTAP de destino en la link:http://mysupport.netapp.com/NOW/cgi-bin/software["Descargas de software"] Del sitio de soporte de NetApp.
+.. Copie la imagen del software.
++
+*** Para ONTAP 9.3 o una versión anterior, copie la imagen de software (por ejemplo, 93_q_image.tgz) del sitio de soporte de NetApp en el directorio del servidor HTTP o FTP a partir del que se servirá la imagen.
+*** Para ONTAP 9.4 o posterior, copie la imagen de software (por ejemplo, 97_q_image.tgz) del sitio de soporte de NetApp en el directorio del servidor HTTP o FTP a partir del que se servirá la imagen o en una carpeta local.
+
+
+
+
+
+
+
+
+== Instale la imagen del software
+
+Debe instalar la imagen de software de destino en los nodos del clúster.
+
+* Si va a degradar o revertir un sistema con cifrado de volumen de NetApp desde ONTAP 9.5 o posterior, debe haber descargado la imagen del software ONTAP para países no restringidos, que incluye el cifrado de volúmenes de NetApp.
++
+Si utiliza la imagen de software de ONTAP para países restringidos a fin de degradar o revertir un sistema con el cifrado de volúmenes de NetApp, el sistema tendrá una alarma y perderá el acceso a los volúmenes.
+
++
+.. Establezca el nivel de privilegio en avanzado, introduzca *y* cuando se le solicite continuar: `set -privilege advanced`
++
+El aviso avanzado (`*>`) aparece.
+
+.. Instale la imagen de software en los nodos.
++
+Este comando descarga e instala la imagen de software en todos los nodos al mismo tiempo. Para descargar e instalar la imagen en cada nodo de uno en uno, no especifique el parámetro -background.
+
++
+*** Si va a degradar o revertir una configuración que no sea de MetroCluster o una configuración de MetroCluster de dos nodos:``system node image update -node * -package location -replace-package true -setdefault true -background true``
++
+Este comando utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como imagen alternativa, para que sea la imagen predeterminada del nodo.
+
+*** Si va a revertir una configuración MetroCluster de cuatro u ocho nodos, debe emitir el siguiente comando en ambos clústeres: `system node image update -node * -package location -replace-package true true -background true -setdefault false`
++
+Este comando utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como la imagen alternativa en cada nodo.
+
+
+
+.. Introduzca `y` para continuar cuando se le solicite.
+.. Compruebe que la imagen de software se haya descargado e instalado en cada nodo: `system node image show-update-progress -node *`
++
+Este comando muestra el estado actual de la descarga e instalación de la imagen de software. Debe continuar ejecutando este comando hasta que todos los nodos informen sobre un estado de ejecución de salida y un estado de salida correcto.
+
++
+El comando de actualización de imagen del nodo del sistema puede fallar y mostrar mensajes de error o advertencia. Después de resolver errores o advertencias, puede volver a ejecutar el comando.
+
++
+Este ejemplo muestra un clúster de dos nodos en el cual la imagen de software se descarga y se instala correctamente en ambos nodos:
+
++
+[listing]
+----
+cluster1::*> system node image show-update-progress -node *
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node0.
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
+2 entries were acted on.
+----
+
+
+

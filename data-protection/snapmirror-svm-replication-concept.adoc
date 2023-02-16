@@ -1,0 +1,869 @@
+---
+permalink: data-protection/snapmirror-svm-replication-concept.html 
+sidebar: sidebar 
+keywords: understand, snapmirror, svm, replication, SVM DR storage limits 
+summary: Es posible usar SnapMirror para crear una relación de protección de datos entre la SVM. En este tipo de relación de protección de datos, se replica toda la configuración de la SVM, desde las exportaciones NFS y los recursos compartidos de SMB hasta el control de acceso basado en roles, así como los datos en los volúmenes que posee la SVM. 
+---
+= Acerca de la replicación de SVM de SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede usar SnapMirror para crear una relación de protección de datos entre SVM. En este tipo de relación de protección de datos, se replica toda o parte de la configuración de la SVM, desde las exportaciones NFS y los recursos compartidos de SMB hasta el RBAC, así como los datos en los volúmenes que posee la SVM.
+
+
+
+== Tipos de relaciones admitidos
+
+Solo los SVM que proporcionan servicios de datos pueden replicarse. Se admiten los siguientes tipos de relaciones de protección de datos:
+
+* _SnapMirror DR,_ en el que el destino normalmente solo contiene las copias Snapshot que están actualmente en el origen.
++
+A partir de ONTAP 9.9.1, este comportamiento cambia cuando se utiliza la directiva mirror-vault. A partir de ONTAP 9.9.1, puede crear diferentes políticas de Snapshot en el origen y el destino; las copias Snapshot en el destino no se sobrescriben con las copias Snapshot en el origen:
+
++
+** No se sobrescriben del origen al destino durante las operaciones programadas normales, las actualizaciones y la resincronización
+** No se eliminan durante las operaciones de interrupción.
+** No se eliminan durante las operaciones de resincronización. Cuando se configura una relación de recuperación ante desastres de SVM mediante la política de reflejo-almacén con ONTAP 9.9.1 y una versión posterior, la política se comporta de la siguiente manera:
+** Las políticas de copia de Snapshot definidas por el usuario en el origen no se copian en el destino.
+** Las políticas de copia de Snapshot definidas por el sistema no se copian en el destino.
+** La asociación de volumen con políticas de Snapshot definidas por el usuario y el sistema no se copia en el destino. + SVM.
+
+
+* A partir de ONTAP 9.2, se _replicación unificada de SnapMirror,_ en el que el destino está configurado para recuperación ante desastres y retención a largo plazo.
+
+
+Aquí puede encontrar información detallada sobre estos tipos de relaciones: link:snapmirror-replication-concept.html["Replicación de volúmenes de SnapMirror"].
+
+El _policy type_ de la directiva de replicación determina el tipo de relación que admite. La siguiente tabla muestra los tipos de políticas disponibles.
+
+[cols="2*"]
+|===
+
+
+| Tipo de política | Tipo de relación 
+
+
+ a| 
+reflejo asíncrono
+ a| 
+Recuperación ante desastres de SnapMirror
+
+
+
+ a| 
+mirror-vault
+ a| 
+Replicación unificada
+
+|===
+
+
+== XDP sustituye a DP como la replicación SVM predeterminada en ONTAP 9.4
+
+A partir de ONTAP 9.4, las relaciones de protección de datos de la SVM se establecen en el modo XDP de manera predeterminada. Las relaciones de protección de datos de SVM siguen siendo las predeterminadas para el modo DP en ONTAP 9.3 y versiones anteriores.
+
+Las relaciones existentes no se ven afectadas por el nuevo valor predeterminado. Si una relación ya es del tipo DP, seguirá siendo del tipo DP. La siguiente tabla muestra el comportamiento que puede esperar.
+
+[cols="3*"]
+|===
+
+
+| Si especifica... | El tipo es... | La política predeterminada (si no se especifica una política) es... 
+
+
+ a| 
+PROTECCIÓN DE DATOS
+ a| 
+XDP
+ a| 
+MirrorAllSnapshots (recuperación ante desastres de SnapMirror)
+
+
+
+ a| 
+Nada
+ a| 
+XDP
+ a| 
+MirrorAllSnapshots (recuperación ante desastres de SnapMirror)
+
+
+
+ a| 
+XDP
+ a| 
+XDP
+ a| 
+MirrorAndVault (replicación unificada)
+
+|===
+Puede encontrar más información sobre los cambios en el valor predeterminado aquí: link:version-flexible-snapmirror-default-concept.html["XDP sustituye a DP como la opción predeterminada de SnapMirror"].
+
+[NOTE]
+====
+La independencia de la versión no se admite para la replicación de SVM. En una configuración de recuperación ante desastres de SVM, la SVM de destino debe estar en un clúster que ejecute la misma versión de ONTAP que el clúster de SVM de origen para admitir operaciones de conmutación al nodo de respaldo y de conmutación al nodo de respaldo.
+
+====
+link:compatible-ontap-versions-snapmirror-concept.html["Versiones de ONTAP compatibles para relaciones de SnapMirror"]
+
+
+
+== Cómo se replican las configuraciones de SVM
+
+El contenido de una relación de replicación de SVM se determina por la interacción de los siguientes campos:
+
+* La `-identity-preserve true` opción de `snapmirror create` El comando replica toda la configuración de SVM.
++
+La `-identity-preserve false` La opción replica solamente los volúmenes y las configuraciones de autenticación y autorización de la SVM, así como los ajustes del protocolo y del servicio de nombres indicados en link:snapmirror-svm-replication-concept.html#configurations-replicated-in-svm-dr-relationships["Configuraciones replicadas en relaciones de recuperación ante desastres de SVM"].
+
+* La `-discard-configs network` opción de `snapmirror policy create` El comando excluye las LIF y la configuración de red relacionada desde la replicación de SVM, para su uso en casos en los que las SVM de origen y destino se encuentran en subredes distintas.
+* La `-vserver-dr-protection unprotected` opción de `volume modify` El comando excluye el volumen especificado de la replicación de SVM.
+
+
+De lo contrario, la replicación de SVM es casi idéntica a la replicación de volúmenes. Puede utilizar prácticamente el mismo flujo de trabajo para la replicación de SVM que el que utiliza para la replicación de volúmenes.
+
+
+
+== Detalles de soporte
+
+La siguiente tabla muestra detalles de soporte para la replicación de SVM de SnapMirror.
+
+[cols="2*"]
+|===
+
+
+| Recurso o característica | Detalles de soporte 
+
+
+ a| 
+Tipos de relación
+ a| 
+* Recuperación ante desastres de SnapMirror
+* A partir de ONTAP 9.2, la replicación unificada de SnapMirror
+
+
+
+
+ a| 
+Alcance de replicación
+ a| 
+Solo interconexión de clústeres. No puede replicar SVM en el mismo clúster.
+
+
+
+ a| 
+Independencia de versiones
+ a| 
+No admitido.
+
+
+
+ a| 
+Tipos de implementación
+ a| 
+* Origen único en destino único
+* A partir de ONTAP 9.4, punto de salida. Solo puede fan-out a dos destinos.
++
+De forma predeterminada, solo se permite una relación de conservación de identidad real por SVM de origen.
+
+
+
+
+
+ a| 
+Protección autónoma de ransomware
+ a| 
+* Compatible a partir de ONTAP 9.12.1. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/anti-ransomware/index.html["Protección autónoma de ransomware"]
+
+
+
+
+ a| 
+Cifrado de volúmenes
+ a| 
+* Los volúmenes cifrados en el origen se cifran en el destino.
+* Los servidores incorporados de Key Manager o KMIP deben configurarse en el destino.
+* En el destino se generan nuevas claves de cifrado.
+* Si el destino no contiene un nodo compatible con el cifrado de volúmenes ., la replicación se realiza correctamente, pero los volúmenes de destino no están cifrados.
+
+
+
+
+ a| 
+FabricPool
+ a| 
+A partir de ONTAP 9.6, la replicación de SVM de SnapMirror es compatible con FabricPool.
+
+
+
+ a| 
+MetroCluster
+ a| 
+A partir de ONTAP 9.11.1, ambos lados de una relación de recuperación ante desastres de SVM dentro de una configuración de MetroCluster pueden actuar como origen de configuraciones de recuperación ante desastres de SVM adicionales.
+
+A partir de ONTAP 9.5, la replicación de SVM de SnapMirror es compatible con las configuraciones de MetroCluster.
+
+* Una configuración de MetroCluster no puede ser el destino de una relación de recuperación ante desastres de SVM.
+* Solo una SVM activa en una configuración de MetroCluster puede ser el origen de una relación de recuperación ante desastres de SVM.
++
+Un origen puede ser una SVM sincronizada en origen antes de realizar una conmutación de sitios o una SVM sincronizada en destino después de efectuar una conmutación de sitios.
+
+* Cuando una configuración de MetroCluster tiene un estado estable, la SVM sincronizada en destino de MetroCluster no puede ser el origen de una relación de recuperación ante desastres de SVM, ya que los volúmenes no están en línea.
+* Cuando la SVM sincronizada en origen es el origen de una relación de recuperación ante desastres de SVM, la información de las relaciones de recuperación ante desastres de la SVM de origen se replica en el partner de MetroCluster.
+* Durante los procesos de conmutación de sitios y conmutación de estado, la replicación al destino de recuperación ante desastres de SVM puede fallar.
++
+No obstante, una vez que finalice el proceso de conmutación de sitios o conmutación de estado, las próximas actualizaciones programadas para la recuperación ante desastres de SVM serán las mejores.
+
+
+
+
+
+ a| 
+SnapMirror síncrono
+ a| 
+No compatible con la recuperación ante desastres de SVM.
+
+|===
+
+
+== Configuraciones replicadas en relaciones de recuperación ante desastres de SVM
+
+La siguiente tabla muestra la interacción del `snapmirror create `-identity-preserve` y la `snapmirror policy create` opción -descartar configuraciones de red':
+
+[cols="5*"]
+|===
+
+
+2+| Configuración replicada 2+| `*‑identity‑preserve true*` | `*‑identity‑preserve false*` 
+
+
+|  |  | *Política sin `-discard-configs network` set* | *Política con `-discard-configs network` set* |  
+
+
+ a| 
+Red
+ a| 
+LIF NAS
+ a| 
+Sí
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Configuración de Kerberos para LIF
+ a| 
+Sí
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+LIF SAN
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Directivas de firewall
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Rutas
+ a| 
+Sí
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Dominio de retransmisión
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Subred
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Espacio IP
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+SMB
+ a| 
+Servidor SMB
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Grupos locales y usuario local
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Privilegio
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Copia oculta
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+BranchCache
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Opciones del servidor
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Seguridad del servidor
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Directorio inicial, compartir
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Enlace simbólico
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Política de Fpolicy, política de FSecurity y NTFS de FSecurity
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Asignación de nombres y asignación de grupos
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Información de auditoría
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+NFS
+ a| 
+Políticas de exportación
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Reglas de la política de exportación
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Servidor NFS
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+RBAC
+ a| 
+Certificados de seguridad
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Inicio de sesión de usuario, clave pública, función y configuración de funciones
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+SSL
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Servicios de nombres
+ a| 
+Hosts DNS y DNS
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Usuario UNIX y grupo UNIX
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Kerberos Reino y bloques de claves Kerberos
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Cliente LDAP y LDAP
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Grupo de red
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+NIS
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Acceso Web y Web
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+
+
+ a| 
+Volumen
+ a| 
+Objeto
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Copias Snapshot, políticas de Snapshot y políticas de eliminación automática
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Política de eficiencia
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Regla de política de cuotas y de política de cuotas
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Cola de recuperación
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Volumen raíz
+ a| 
+Espacio de nombres
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Datos de usuarios
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Qtrees
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Cuotas
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Calidad de servicio en el nivel de los archivos
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Atributos: estado del volumen raíz, garantía de espacio, tamaño, tamaño automático y número total de archivos
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Calidad de servicio del almacenamiento
+ a| 
+Grupo de políticas de calidad de servicio
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+Fibre Channel (FC)
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+ISCSI
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+LUN
+ a| 
+Objeto
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+Sí
+
+
+
+ a| 
+grupos de iniciadores
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+conjuntos de puertos
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+Números de serie
+ a| 
+No
+ a| 
+No
+ a| 
+No
+
+
+
+ a| 
+SNMP
+ a| 
+usuarios v3
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+No
+
+|===
+
+
+== Límites de almacenamiento de recuperación ante desastres de SVM
+
+En la siguiente tabla, se muestra la cantidad máxima recomendada de volúmenes y relaciones de recuperación ante desastres de SVM compatibles por objeto de almacenamiento. Debe ser consciente de que los límites dependen a menudo de la plataforma. Consulte la link:https://hwu.netapp.com/["Hardware Universe"^] para conocer los límites de su configuración específica.
+
+[cols="2*"]
+|===
+
+
+| Objeto de almacenamiento | Límite 
+
+
+ a| 
+SVM
+ a| 
+300 volúmenes flexibles
+
+
+
+ a| 
+Pareja de HA
+ a| 
+1,000 volúmenes flexibles
+
+
+
+ a| 
+Clúster
+ a| 
+128 relaciones de recuperación ante desastres de SVM
+
+|===

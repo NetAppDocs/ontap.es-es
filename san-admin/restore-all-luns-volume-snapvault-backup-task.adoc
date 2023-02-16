@@ -1,0 +1,118 @@
+---
+permalink: san-admin/restore-all-luns-volume-snapvault-backup-task.html 
+sidebar: sidebar 
+keywords: ontap 9.2, restore, luns, in a volume, snapvault, backup 
+summary: Si necesita restaurar uno o varios LUN de un volumen desde un backup de SnapVault, puede restaurar el volumen completo. La restauración del volumen afecta a todos los LUN del volumen. 
+---
+= Restaurar todos los LUN de un volumen a partir de un backup de SnapVault
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si necesita restaurar uno o varios LUN de un volumen desde un backup de SnapVault, puede restaurar el volumen completo. La restauración del volumen afecta a todos los LUN del volumen.
+
+.Lo que necesitará
+Debe inicializarse la relación de SnapVault, y el volumen secundario de SnapVault debe contener una copia Snapshot adecuada para restaurar.
+
+.Acerca de esta tarea
+Si se restaura un volumen completo, este volverá al estado que tenía cuando se hizo la copia Snapshot. Si se agregó una LUN al volumen después de la copia Snapshot, esa LUN se elimina durante el proceso de restauración.
+
+Después de restaurar el volumen, las LUN siguen asignadas a los iGroups a los que se asignaron justo antes de la restauración. La asignación de LUN puede ser diferente del mapa en el momento de la copia Snapshot. Se conservan las reservas persistentes en los LUN de clústeres de hosts.
+
+.Pasos
+. Detenga las operaciones de I/o en todos los LUN del volumen.
+. Ejecute el `snapmirror show` Comando para verificar el volumen secundario que contiene el volumen secundario de SnapVault.
++
+[listing]
+----
+cluster::> snapmirror show
+
+Source         Dest     Mirror  Relation  Total             Last
+Path     Type  Path     State   Status    Progress  Healthy Updated
+-------- ---- --------- ------- --------- --------- ------- -------
+vserverA:srcvolA
+         XDP  vserverB:dstvolB
+                        Snapmirrored
+                                Idle       -         true    -
+----
+. Ejecute el `volume snapshot show` Comando para identificar la copia Snapshot desde la que desea restaurar.
++
+[listing]
+----
+cluster::> volume snapshot show
+
+Vserver  Volume  Snapshot               State Size   Total% Used%
+-------- ------- ---------------------- ----- ------ ------ -----
+vserverB
+         dstvolB
+                 snap2.2013-02-10_0010  valid  124KB     0%    0%
+                 snap1.2013-02-10_0015 valid  112KB     0%    0%
+                 snap2.2013-02-11_0010  valid  164KB     0%    0%
+----
+. Ejecute el `snapmirror restore` y especifique el `-source-snapshot` Opción para especificar la copia Snapshot que se usará.
++
+El destino que se especifica para la restauración es el volumen original al que se va a restaurar.
+
++
+[listing]
+----
+cluster::> snapmirror restore -destination-path vserverA:srcvolA
+  -source-path vserverB:dstvolB -source-snapshot daily.2013-02-10_0010
+
+Warning: All data newer than Snapshot copy hourly.2013-02-11_1205 on
+volume vserverA:src_volA will be deleted.
+Do you want to continue? {y|n}: y
+[Job 98] Job is queued: snapmirror restore from source
+"vserverB:dstvolB" for the snapshot daily.2013-02-10_0010.
+----
+. Si va a compartir LUN en un clúster de hosts, restaure las reservas persistentes en los LUN de los hosts afectados.
+
+
+
+
+== Restaurar un volumen a partir de un backup de SnapVault
+
+En el siguiente ejemplo, la LUN llamada lun_D se agregó al volumen después de crear la copia Snapshot. Después de restaurar todo el volumen a partir de la copia Snapshot, lun_D ya no aparece.
+
+En la `lun show` Resultado del comando, puede ver las LUN en el srcvolA del volumen primario y las copias de solo lectura de esas LUN en el volumen secundario de SnapVault dstvolB. No hay copia de lun_D en el backup de SnapVault.
+
+[listing]
+----
+cluster::> lun show
+Vserver   Path                State   Mapped   Type          Size
+--------- ------------------  ------- -------- --------      -------
+vserverA  /vol/srcvolA/lun_A  online  mapped   windows  300.0GB
+vserverA  /vol/srcvolA/lun_B  online  mapped   windows  300.0GB
+vserverA  /vol/srcvolA/lun_C  online  mapped   windows  300.0GB
+vserverA  /vol/srcvolA/lun_D  online  mapped   windows  250.0GB
+vserverB  /vol/dstvolB/lun_A  online  unmapped windows  300.0GB
+vserverB  /vol/dstvolB/lun_B  online  unmapped windows  300.0GB
+vserverB  /vol/dstvolB/lun_C  online  unmapped windows  300.0GB
+
+7 entries were displayed.
+
+cluster::>snapmirror restore -destination-path vserverA:srcvolA
+  -source-path vserverB:dstvolB
+  -source-snapshot daily.2013-02-10_0010
+
+Warning: All data newer than Snapshot copy hourly.2013-02-11_1205
+on volume vserverA:src_volA will be deleted.
+Do you want to continue? {y|n}: y
+[Job 98] Job is queued: snapmirror restore from source
+"vserverB:dstvolB" for the snapshot daily.2013-02-10_0010.
+
+cluster::> lun show
+Vserver   Path                State   Mapped   Type          Size
+--------- ------------------  ------- -------- --------      -------
+vserverA  /vol/srcvolA/lun_A  online  mapped   windows  300.0GB
+vserverA  /vol/srcvolA/lun_B  online  mapped   windows  300.0GB
+vserverA  /vol/srcvolA/lun_C  online  mapped   windows  300.0GB
+vserverB  /vol/dstvolB/lun_A  online  unmapped windows  300.0GB
+vserverB  /vol/dstvolB/lun_B  online  unmapped windows  300.0GB
+vserverB  /vol/dstvolB/lun_C  online  unmapped windows  300.0GB
+
+6 entries were displayed.
+----
+Una vez que se restaura el volumen secundario del SnapVault, el volumen de origen ya no contiene lun_D. No es necesario volver a asignar las LUN en el volumen de origen después de la restauración porque estas se siguen asignando.

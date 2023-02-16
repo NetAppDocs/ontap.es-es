@@ -1,0 +1,267 @@
+---
+permalink: disks-aggregates/add-disks-local-tier-aggr-task.html 
+sidebar: sidebar 
+keywords: add, expand, aggregate, add drives, add disks, add capacity, local tier, add disks to local tier, add disks to aggregate, increase storage, increase aggregate size, local tier, capacity, disk, expand storage, add drives, add disks, add capacity 
+summary: 'Puede añadir discos a un nivel local (agregado) para que pueda proporcionar más almacenamiento a sus volúmenes asociados.' 
+---
+= Añada capacidad a un nivel local (añada discos a un agregado)
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+:toc-position: content
+
+
+[role="lead"]
+Puede añadir discos a un nivel local (agregado) para que pueda proporcionar más almacenamiento a sus volúmenes asociados.
+
+[role="tabbed-block"]
+====
+.System Manager (ONTAP 9.8 y posterior)
+--
+*Utilice el Administrador del sistema para agregar capacidad (ONTAP 9.8 y posterior)*
+
+Puede añadir capacidad a un nivel local con la adición de discos de capacidad.
+
+
+NOTE: A partir de ONTAP 9.12.1, se puede usar System Manager para ver la capacidad comprometida de un nivel local con el fin de determinar si se requiere capacidad adicional para el nivel local. Consulte link:../concept_capacity_measurements_in_sm.html["Supervise la capacidad en System Manager"].
+
+.Acerca de esta tarea
+Realice esta tarea solo si ha instalado ONTAP 9.8 o una versión posterior. Si instaló una versión anterior de ONTAP, consulte <<increase-cap-97-earlier,Use System Manager para añadir capacidad (ONTAP 9.7 o anterior)>>.
+
+.Pasos
+. Haga clic en *almacenamiento > niveles*.
+. Haga clic en image:icon_kabob.gif["icono de kebab"] junto al nombre del nivel local al que se desea añadir capacidad.
+. Haga clic en *Añadir capacidad*.
++
+
+NOTE: Si no hay discos de repuesto que pueda agregar, no se muestra la opción *Añadir capacidad* y no puede aumentar la capacidad del nivel local.
+
+. Realice los pasos siguientes, según la versión de ONTAP que esté instalada:
++
+[cols="30,70"]
+|===
+
+
+| Si esta versión de ONTAP está instalada... | Realice estos pasos... 
+
+
+ a| 
+ONTAP 9.8, 9.9 o 9.10.1
+ a| 
+.. Si el nodo contiene varios niveles de almacenamiento, seleccione el número de discos que desea añadir al nivel local. De lo contrario, si el nodo contiene solo un nivel de almacenamiento único, la capacidad añadida se estima automáticamente.
+.. Haga clic en *Agregar*.
+
+
+
+
+ a| 
+A partir de ONTAP 9.11.1
+ a| 
+.. Seleccione el tipo de disco y el número de discos.
+.. Si desea añadir discos a un nuevo grupo RAID, active la casilla de comprobación. Aparece la asignación de RAID.
+.. Haga clic en *Guardar*.
+
+
+|===
+. (Opcional) el proceso tarda un poco en completarse. Si desea ejecutar el proceso en segundo plano, seleccione *Ejecutar en fondo*.
+. Una vez completado el proceso, puede ver la cantidad de capacidad aumentada en la información de nivel local en *almacenamiento > niveles*.
+
+
+--
+.System Manager (ONTAP 9.7 y versiones anteriores)
+--
+*Utilice el Administrador del sistema para agregar capacidad (ONTAP 9.7 y versiones anteriores)*
+
+Puede añadir capacidad a un nivel local (agregado) mediante la adición de discos de capacidad.
+
+.Acerca de esta tarea
+Esta tarea debe realizarse solo si ha instalado ONTAP 9.7 o una versión anterior. Si ha instalado ONTAP 9.8 o posterior, consulte <<increase-cap-98-later,Use System Manager para añadir capacidad (ONTAP 9.8 o posterior)>>.
+
+.Pasos
+. (Sólo para ONTAP 9.7) haga clic en *(Volver a la versión clásica)*.
+. Haga clic en *hardware y diagnósticos > agregados*.
+. Seleccione el agregado al que desea agregar discos de capacidad y, a continuación, haga clic en *acciones > Añadir capacidad*.
++
+
+NOTE: Debe añadir discos con el mismo tamaño que los demás discos del agregado.
+
+. (Sólo para ONTAP 9.7) haga clic en *Cambiar a la nueva experiencia*.
+. Haga clic en *almacenamiento > niveles* para comprobar el tamaño del nuevo agregado.
+
+
+--
+.CLI
+--
+*Utilice la CLI para agregar capacidad*
+
+El procedimiento para añadir discos con particiones a un agregado es similar al procedimiento para añadir discos sin particiones.
+
+.Lo que necesitará
+Debe saber a qué tamaño del grupo RAID corresponde el agregado al que va a añadir el almacenamiento.
+
+.Acerca de esta tarea
+Al expandir un agregado, debe saber si va a agregar partición o discos sin particiones al agregado. Cuando se añaden unidades sin particiones a un agregado existente, el tamaño de los grupos RAID existentes se hereda por el nuevo grupo RAID, que puede afectar al número de discos de paridad requeridos. Si se agrega un disco sin particiones a un grupo RAID compuesto por discos con particiones, se crea una partición del nuevo disco, dejando una partición de repuesto sin utilizar.
+
+Cuando aprovisiona particiones, debe asegurarse de no dejar el nodo sin una unidad con ambas particiones como repuesto. Si lo hace y el nodo experimenta una interrupción en la controladora, es posible que no haya disponible información valiosa sobre el problema (el archivo de núcleo) para proporcionarla al soporte técnico.
+
+
+NOTE: No utilice la `disklist` comando para expandir los agregados. Esto puede provocar una alineación incorrecta de las particiones.
+
+.Pasos
+. Muestre el almacenamiento de reserva disponible en el sistema que posee el agregado:
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
+
++
+Puede utilizar el `-is-disk-shared` parámetro para mostrar solo unidades con particiones o solo unidades sin particiones.
+
++
+[listing]
+----
+cl1-s2::> storage aggregate show-spare-disks -original-owner cl1-s2 -is-disk-shared true
+
+Original Owner: cl1-s2
+ Pool0
+  Shared HDD Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size Status
+ --------------------------- ----- ------ -------------- -------- -------- -------- --------
+ 1.0.1                       BSAS    7200 block           753.8GB  73.89GB  828.0GB zeroed
+ 1.0.2                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.3                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.4                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.8                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.9                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.10                      BSAS    7200 block                0B  73.89GB  828.0GB zeroed
+2 entries were displayed.
+----
+. Muestra los grupos RAID actuales del agregado:
++
+`storage aggregate show-status _aggr_name_`
+
++
+[listing]
+----
+cl1-s2::> storage aggregate show-status -aggregate data_1
+
+Owner Node: cl1-s2
+ Aggregate: data_1 (online, raid_dp) (block checksums)
+  Plex: /data_1/plex0 (online, normal, active, pool0)
+   RAID Group /data_1/plex0/rg0 (normal, block checksums)
+                                              Usable Physical
+     Position Disk        Pool Type     RPM     Size     Size Status
+     -------- ----------- ---- ----- ------ -------- -------- ----------
+     shared   1.0.10        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.5         0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.6         0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.11        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.0         0   BSAS    7200  753.8GB  828.0GB (normal)
+5 entries were displayed.
+----
+. Simule la adición del almacenamiento al agregado:
++
+`storage aggregate add-disks -aggregate _aggr_name_ -diskcount _number_of_disks_or_partitions_ -simulate true`
+
++
+Puede ver el resultado de la adición del almacenamiento sin realmente aprovisionar ningún almacenamiento. Si se muestra alguna advertencia desde el comando simulado, puede ajustar el comando y repetir la simulación.
+
++
+[listing]
+----
+cl1-s2::> storage aggregate add-disks -aggregate aggr_test -diskcount 5 -simulate true
+
+Disks would be added to aggregate "aggr_test" on node "cl1-s2" in the
+following manner:
+
+First Plex
+
+  RAID Group rg0, 5 disks (block checksum, raid_dp)
+                                                      Usable Physical
+    Position   Disk                      Type           Size     Size
+    ---------- ------------------------- ---------- -------- --------
+    shared     1.11.4                    SSD         415.8GB  415.8GB
+    shared     1.11.18                   SSD         415.8GB  415.8GB
+    shared     1.11.19                   SSD         415.8GB  415.8GB
+    shared     1.11.20                   SSD         415.8GB  415.8GB
+    shared     1.11.21                   SSD         415.8GB  415.8GB
+
+Aggregate capacity available for volume use would be increased by 1.83TB.
+----
+. Añada el almacenamiento al agregado:
++
+`storage aggregate add-disks -aggregate _aggr_name_ -raidgroup new -diskcount _number_of_disks_or_partitions_`
+
++
+Cuando se crea un agregado de Flash Pool, debe utilizar la si se añaden discos con una suma de comprobación diferente a la del agregado, o si se añaden discos a un agregado de suma de comprobación mixto `-checksumstyle` parámetro.
+
++
+Si va a añadir discos a un agregado de Flash Pool, debe usar el `-disktype` parámetro para especificar el tipo de disco.
+
++
+Puede utilizar el `-disksize` parámetro para especificar el tamaño de los discos que se van a añadir. Solo se seleccionan discos con el tamaño aproximadamente especificado para agregarlos.
+
++
+[listing]
+----
+cl1-s2::> storage aggregate add-disks -aggregate data_1 -raidgroup new -diskcount 5
+----
+. Compruebe que el almacenamiento se ha añadido correctamente:
++
+`storage aggregate show-status -aggregate _aggr_name_`
+
++
+[listing]
+----
+cl1-s2::> storage aggregate show-status -aggregate data_1
+
+Owner Node: cl1-s2
+ Aggregate: data_1 (online, raid_dp) (block checksums)
+  Plex: /data_1/plex0 (online, normal, active, pool0)
+   RAID Group /data_1/plex0/rg0 (normal, block checksums)
+                                                              Usable Physical
+     Position Disk                        Pool Type     RPM     Size     Size Status
+     -------- --------------------------- ---- ----- ------ -------- -------- ----------
+     shared   1.0.10                       0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.5                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.6                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.11                       0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.0                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.2                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.3                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.4                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.8                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.9                        0   BSAS    7200  753.8GB  828.0GB (normal)
+10 entries were displayed.
+----
+. Compruebe que el nodo sigue teniendo al menos una unidad con la partición raíz y la partición de datos como repuesto:
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
+
++
+[listing]
+----
+cl1-s2::> storage aggregate show-spare-disks -original-owner cl1-s2 -is-disk-shared true
+
+Original Owner: cl1-s2
+ Pool0
+  Shared HDD Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size Status
+ --------------------------- ----- ------ -------------- -------- -------- -------- --------
+ 1.0.1                       BSAS    7200 block           753.8GB  73.89GB  828.0GB zeroed
+ 1.0.10                      BSAS    7200 block                0B  73.89GB  828.0GB zeroed
+2 entries were displayed.
+----
+
+
+--
+====

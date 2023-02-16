@@ -1,0 +1,61 @@
+---
+permalink: nfs-config/load-local-unix-groups-uri-task.html 
+sidebar: sidebar 
+keywords: load, local, unix, groups, uri 
+summary: 'Como alternativa a la creación manual de grupos UNIX locales individuales, puede cargar una lista de grupos UNIX locales en SVM desde un identificador de recursos (URI) uniforme mediante el comando vserver Services NAME-service unix-group load-from-uri.' 
+---
+= Cargar grupos UNIX locales desde un URI
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Como alternativa a la creación manual de grupos UNIX locales individuales, puede cargar una lista de grupos UNIX locales en SVM desde un identificador de recurso (URI) uniforme mediante el `vserver services name-service unix-group load-from-uri` comando.
+
+.Pasos
+. Cree un archivo que contenga la lista de grupos UNIX locales que desee cargar.
++
+El archivo debe contener información de grupo en UNIX `/etc/group` formato:
+
++
+`_group_name: password: group_ID: comma_separated_list_of_users_`
+
++
+El comando descarta el valor de `_password_` campo.
+
++
+El tamaño máximo de archivo admitido es de 1 MB.
+
++
+La longitud máxima de cada línea del archivo de grupo es de 32,768 caracteres.
+
+. Compruebe que la lista no contiene ninguna información duplicada.
++
+La lista no debe contener entradas duplicadas o, de lo contrario, se producirá un error al cargar la lista. Si ya hay entradas en la SVM, debe establecer el `-overwrite` parámetro a. `true` para sobrescribir todas las entradas existentes con el nuevo archivo o asegurarse de que el nuevo archivo no contenga ninguna entrada que duplique las entradas existentes.
+
+. Copie el archivo en un servidor.
++
+El sistema de almacenamiento debe acceder al servidor a través de HTTP, HTTPS, FTP o FTPS.
+
+. Determine cuál es el URI del archivo.
++
+El URI es la dirección que se proporciona al sistema de almacenamiento para indicar dónde se encuentra el archivo.
+
+. Cargue el archivo que contiene la lista de grupos UNIX locales en la SVM desde el URI:
++
+`vserver services name-service unix-group load-from-uri -vserver _vserver_name_ -uri {ftp|http|ftps|https}://_uri_ -overwrite {true|false}`
+
++
+`-overwrite`  `true` `false`} especifica si se sobrescribirán las entradas. El valor predeterminado es `false`. Si especifica este parámetro como `true`, ONTAP reemplaza toda la base de datos de grupos UNIX locales existente de la SVM especificada por las entradas del archivo que se está cargando.
+
+
+
+.Ejemplo
+El siguiente comando carga una lista de grupos UNIX locales del URI `+ftp://ftp.example.com/group+` En la SVM denominada vs1. Los grupos existentes de la SVM no se sobrescriben por información del URI.
+
+[listing]
+----
+vs1::> vserver services name-service unix-group load-from-uri -vserver vs1
+-uri ftp://ftp.example.com/group -overwrite false
+----

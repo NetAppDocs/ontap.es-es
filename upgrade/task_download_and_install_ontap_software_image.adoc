@@ -1,0 +1,176 @@
+---
+permalink: upgrade/task_download_and_install_ontap_software_image.html 
+sidebar: sidebar 
+keywords: ontap, software, image, download, downloading, install, installing 
+summary: 'En primer lugar, debe descargar el software ONTAP del sitio de soporte de NetApp; puede instalarlo con la actualización automática no disruptiva (ANDU) o con el proceso de actualización manual.' 
+---
+= Descargue e instale la imagen del software de ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En primer lugar, debe descargar el software ONTAP del sitio de soporte de NetApp; puede instalarlo con la actualización automática no disruptiva (ANDU) o con el proceso de actualización manual.
+
+
+
+== Descargue la imagen del software
+
+Según la versión de ONTAP, puede copiar la imagen del software ONTAP del sitio de soporte de NetApp en una de las siguientes ubicaciones: Un servidor HTTP, HTTPS o FTP de la red o una carpeta local.
+
+Debe tener en cuenta la siguiente información importante:
+
+* Las imágenes de software son específicas para los modelos de la plataforma.
++
+Debe obtener la imagen correcta para su clúster. Las imágenes de software, la información de versión de firmware y el firmware más reciente para el modelo de su plataforma están disponibles en el sitio de soporte de NetApp.
+
+* Las imágenes de software incluyen la versión más reciente del firmware del sistema disponible cuando se publicó una versión concreta de ONTAP.
+* Si actualiza un sistema con el cifrado de volúmenes de NetApp a ONTAP 9.5 o una versión posterior, debe descargar la imagen del software ONTAP para países no restringidos, que incluye el cifrado de volúmenes de NetApp.
++
+Si utiliza la imagen del software de ONTAP para países restringidos a fin de actualizar un sistema con el cifrado de volúmenes de NetApp, el sistema produce una alarma y perderá el acceso a los volúmenes.
+
+* Si va a actualizar de ONTAP 9.5 a 9.9.1, debe copiar la imagen de software de ONTAP 9.7 y 9.9.1.
+* Si va a actualizar de ONTAP 9.3 a 9.7, debe copiar la imagen de software de ONTAP 9.5 y 9.7.
+
+
+.Pasos
+. Busque el software ONTAP de destino en la link:http://mysupport.netapp.com/NOW/cgi-bin/software["Descargas de software"] Del sitio de soporte de NetApp.
++
+Para una actualización de ONTAP Select, seleccione *actualización de nodo de ONTAP Select*.
+
+. Copie la imagen del software (por ejemplo, 97_q_image.tgz) en la ubicación adecuada.
++
+Según la versión de ONTAP, la ubicación será un directorio desde el que se servirá la imagen al sistema local o a una carpeta local del sistema de almacenamiento.
+
++
+[cols="2"]
+|===
+| Puede copiar la imagen en esta ubicación... | Si ejecuta estas versiones de ONTAP... 
+
+
+| Un servidor HTTP o FTP | ONTAP 9.0 y posteriores 
+
+
+| Una carpeta local | ONTAP 9.4 y posteriores 
+
+
+| Se debe instalar un servidor HTTPS + el certificado de CA del servidor en el sistema local. | ONTAP 9.6 y posteriores 
+|===
+
+
+
+
+== Instale la imagen del software
+
+Debe instalar la imagen de software de destino en los nodos del clúster.
+
+* Si actualiza un sistema con el cifrado de volúmenes de NetApp a ONTAP 9.5 o una versión posterior, debe haber descargado la imagen del software ONTAP para países no restringidos, que incluye el cifrado de volúmenes de NetApp.
++
+Si utiliza la imagen del software de ONTAP para países restringidos a fin de actualizar un sistema con el cifrado de volúmenes de NetApp, el sistema produce una alarma y perderá el acceso a los volúmenes.
+
+* Si va a actualizar desde ONTAP 9.5 directamente a 9.9.1, debe descargar la imagen de software para ONTAP 9.7 y 9.9.1. Si va a actualizar desde ONTAP 9.3 directamente a 9.7, debe descargar la imagen de software de ONTAP 9.5 y 9.7.
++
+El proceso de actualización automatizado utiliza ambas imágenes en segundo plano para completar la actualización.
+
+
+
+
+
+=== Para la actualización automática no disruptiva (ANDU)
+
+. Compruebe el repositorio de imágenes y elimine las imágenes anteriores.
++
+`cluster image package show-repository`
+
++
+[listing]
+----
+cluster image package show-repository\
+<<name_of_vsim|There are no packages in the repository.\r\n
+----
+. Descargue la imagen.
++
+`cluster image package get -url url_to_image_on_nss`
+
++
+.Ejemplo
+`cluster image package get -url http://10.60.132.98/x/eng/rlse/DOT/9.7P13X2/promo/9.7P13X2/x86_64.optimize/image.tgz`
+
+. Compruebe que el paquete se ha descargado.
++
+`cluster image package show-repository`
+
++
+.Ejemplo
+[listing]
+----
+cluster image package show-repository -fields download-ver\
+<<name_of_vsim| download-verX;X\r\n
+<<name_of_vsim| Downloaded VersionX;X\r\n
+<<name_of_vsim| ONTAP 9.10.1.X;X\r\n
+----
+
+
+
+
+=== Para actualizaciones manuales
+
+. Establezca el nivel de privilegio en avanzado, introduzca *y* cuando se le solicite continuar: `set -privilege advanced`
++
+El aviso avanzado (`*>`) aparece.
+
+. Descargue la imagen.
++
+.. Si desea actualizar un clúster sin una configuración MetroCluster o una configuración MetroCluster de dos nodos, utilice el siguiente comando para descargar la imagen:
++
+`system node image update -node * -package _location_ -replace-package true -setdefault true -background true`
+
++
+_Location_ puede ser un servidor Web o una carpeta local, según la versión de ONTAP. Consulte `system node image update` manual para más detalles.
+
++
+Este comando descarga e instala la imagen de software en todos los nodos al mismo tiempo. Para descargar e instalar la imagen en cada nodo de uno en uno, no especifique el `-background` parámetro.
+
+.. Si va a actualizar una configuración de MetroCluster de cuatro u ocho nodos, debe utilizar el siguiente comando en ambos clústeres:
++
+`system node image update -node * -package location -replace-package true -background true -setdefault false`
+
++
+Este comando utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como la imagen alternativa en cada nodo.
+
+
+
+. Introduzca `y` para continuar cuando se le solicite.
+. Compruebe que la imagen de software se haya descargado e instalado en cada nodo.
++
+`system node image show-update-progress -node *`
+
++
+Este comando muestra el estado actual de la descarga e instalación de la imagen de software. Debe continuar ejecutando este comando hasta que todos los nodos informen un *Estado de ejecución* de *salido*, y un *Estado de salida* de *éxito*.
+
++
+El comando de actualización de imagen del nodo del sistema puede fallar y mostrar mensajes de error o advertencia. Después de resolver errores o advertencias, puede volver a ejecutar el comando.
+
++
+Este ejemplo muestra un clúster de dos nodos en el cual la imagen de software se descarga y se instala correctamente en ambos nodos:
+
++
+[listing]
+----
+cluster1::*> system node image show-update-progress -node *
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node0.
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
+2 entries were acted on.
+----
+

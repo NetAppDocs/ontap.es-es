@@ -1,0 +1,49 @@
+---
+permalink: smb-admin/enable-client-access-unix-symbolic-links-concept.html 
+sidebar: sidebar 
+keywords: smybol, link, file, create, unix, environment, reference, directory, client, access, redirect, target, absolute, widelinks, local, file, system, how ontap enables you to provide smb client access to unix symbolic links 
+summary: 'Un enlace simbólico es un archivo creado en un entorno UNIX que contiene una referencia a otro archivo o directorio. Si un cliente accede a un enlace simbólico, se redirige al cliente al archivo o directorio de destino al que hace referencia el enlace simbólico. ONTAP soporta enlaces simbólicos relativos y absolutos, incluyendo enlaces de widelinks (enlaces absolutos con destinos fuera del sistema de archivos local).' 
+---
+= Cómo ONTAP le permite proporcionar acceso de clientes SMB a enlaces simbólicos UNIX
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un enlace simbólico es un archivo creado en un entorno UNIX que contiene una referencia a otro archivo o directorio. Si un cliente accede a un enlace simbólico, se redirige al cliente al archivo o directorio de destino al que hace referencia el enlace simbólico. ONTAP soporta enlaces simbólicos relativos y absolutos, incluyendo enlaces de widelinks (enlaces absolutos con destinos fuera del sistema de archivos local).
+
+ONTAP proporciona a los clientes SMB la capacidad de seguir enlaces simbólicos UNIX configurados en la SVM. Esta función es opcional y puede configurarla por recurso compartido mediante la `-symlink-properties` opción de `vserver cifs share create` comando, con una de las siguientes opciones de configuración:
+
+* Habilitada con acceso de lectura/escritura
+* Habilitado con acceso de solo lectura
+* Desactivado mediante la ocultación de enlaces simbólicos de clientes SMB
+* Deshabilitado sin acceso a enlaces simbólicos de clientes SMB
+
+
+Si habilita enlaces simbólicos en un recurso compartido, los enlaces simbólicos relativos funcionan sin más configuración.
+
+Si activa enlaces simbólicos en un recurso compartido, los enlaces simbólicos absolutos no funcionan de inmediato. Primero debe crear una asignación entre la ruta UNIX del enlace simbólico a la ruta SMB de destino. Al crear asignaciones de vínculos simbólicos absolutos, puede especificar si se trata de un enlace local o de un _widelink_; las widelinks pueden ser enlaces a sistemas de archivos en otros dispositivos de almacenamiento o vínculos a sistemas de archivos alojados en SVM independientes en el mismo sistema ONTAP. Al crear un windelink, debe incluir la información que debe seguir el cliente; es decir, cree un punto de reanálisis para que el cliente detecte el punto de unión del directorio. Si crea un vínculo simbólico absoluto a un archivo o directorio fuera del recurso compartido local pero establece la localidad en local, ONTAP no permite el acceso al destino.
+
+[NOTE]
+====
+Si un cliente intenta eliminar un enlace simbólico local (absoluto o relativo), sólo se eliminará el enlace simbólico, no el archivo o directorio de destino. Sin embargo, si un cliente intenta eliminar un widelink, podría eliminar el archivo de destino real o el directorio al que hace referencia el widelink. ONTAP no tiene control sobre esto, ya que el cliente puede abrir de forma explícita el archivo o directorio de destino fuera de la SVM y eliminarlo.
+
+====
+* *Puntos de análisis y servicios del sistema de archivos ONTAP*
++
+Un _reanálisis point_ es un objeto del sistema de archivos NTFS que se puede almacenar opcionalmente en volúmenes junto con un archivo. Los puntos de análisis proporcionan a los clientes SMB la capacidad de recibir servicios del sistema de archivos mejorados o ampliados al trabajar con volúmenes de estilo NTFS. Los puntos de reanálisis constan de etiquetas estándar que identifican el tipo de punto de reanálisis y el contenido del punto de reanálisis que pueden recuperar los clientes SMB para un procesamiento posterior por parte del cliente. De los tipos de objeto disponibles para la funcionalidad ampliada del sistema de archivos, ONTAP implementa la compatibilidad con enlaces simbólicos NTFS y puntos de unión de directorios mediante etiquetas de punto de reanálisis. Los clientes SMB que no pueden comprender el contenido de un punto de análisis simplemente lo ignoran y no proporcionan el servicio de sistema de archivos ampliado que podría habilitar el punto de análisis.
+
+* *Puntos de unión de directorios y soporte de ONTAP para enlaces simbólicos*
++
+Los puntos de unión de directorios son ubicaciones dentro de una estructura de directorios del sistema de archivos que pueden hacer referencia a ubicaciones alternativas en las que se almacenan los archivos, ya sea en una ruta de acceso diferente (enlaces simbólicos) o en un dispositivo de almacenamiento independiente (widelinks). Los servidores SMB de ONTAP exponen los puntos de unión de directorios a los clientes de Windows como puntos de análisis, lo que permite a los clientes con capacidad obtener contenidos de punto de análisis de ONTAP cuando se pasa un punto de unión de directorios. De este modo, pueden navegar y conectarse a diferentes rutas o dispositivos de almacenamiento, como si formaran parte del mismo sistema de archivos.
+
+* *Activación de la compatibilidad con el uso de las opciones de punto de reanálisis*
++
+La `-is-use-junctions-as-reparse-points-enabled` De forma predeterminada, la opción está habilitada en ONTAP 9. No todos los clientes de SMB admiten widelinks, por lo que la opción de activar la información se puede configurar de acuerdo con la versión del protocolo, lo que permite a los administradores acomodar clientes de SMB admitidos y no compatibles. En ONTAP 9.2 y versiones posteriores, debe habilitar la opción `-widelink-as-reparse-point-versions` Para cada protocolo de cliente que accede al recurso compartido mediante widelinks; el valor predeterminado es SMB1. En versiones anteriores, sólo se notificaron enlaces de cableado a los que se accedía mediante SMB1 predeterminado, y los sistemas que utilizaban SMB2 o SMB3 no podían acceder a los enlaces de cableado.
+
+
+
+Para obtener más información, consulte la documentación NTFS de Microsoft.
+
+https://docs.microsoft.com/en-us/windows/win32/fileio/reparse-points["Documentación de Microsoft: Puntos de análisis"]

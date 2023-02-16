@@ -1,0 +1,71 @@
+---
+permalink: volumes/resizing-concept.html 
+sidebar: sidebar 
+keywords: when to, use, resizing 
+summary: Puesto que el cambio de tamaño de la cuota es más rápido que la inicialización de la cuota, debe utilizar el cambio de tamaño siempre que sea posible. Sin embargo, el cambio de tamaño sólo funciona para ciertos tipos de cambios de cuota. 
+---
+= Cuando se puede utilizar el cambio de tamaño
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puesto que el cambio de tamaño de la cuota es más rápido que la inicialización de la cuota, debe utilizar el cambio de tamaño siempre que sea posible. Sin embargo, el cambio de tamaño sólo funciona para ciertos tipos de cambios de cuota.
+
+Puede cambiar el tamaño de las cuotas al realizar los siguientes tipos de cambios en las reglas de cuota:
+
+* Cambiar una cuota existente.
++
+Por ejemplo, cambiar los límites de una cuota existente.
+
+* Agregar una cuota para un destino de cuota para el que existe una cuota predeterminada o una cuota de seguimiento predeterminada.
+* Eliminación de una cuota para la que se especifica una entrada de cuota predeterminada o de cuota de seguimiento predeterminada.
+* Combinar cuotas de usuario separadas en una cuota para varios usuarios.
+
+
+[NOTE]
+====
+Después de realizar cambios extensos de cuotas, debe realizar una reinicialización completa para garantizar que todos los cambios surtan efecto.
+
+====
+[NOTE]
+====
+Si intenta cambiar el tamaño y no todos los cambios de cuota se pueden incorporar mediante una operación de cambio de tamaño, ONTAP emitirá una advertencia. Puede determinar a partir del informe de cuotas si su sistema de almacenamiento está realizando un seguimiento del uso del disco para un usuario, grupo o qtree concreto. Si ve una cuota en el informe de cuotas, significa que el sistema de almacenamiento está realizando un seguimiento del espacio en disco y del número de archivos que pertenecen al destino de cuota.
+
+====
+.Ejemplo de cambios en las cuotas que se pueden hacer efectivos mediante el cambio de tamaño
+Algunos cambios en las reglas de cuota se pueden hacer efectivos mediante el cambio de tamaño. Considere las siguientes cuotas:
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   15K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+kbuck         user@/vol/vol2/  100M   75K
+----
+Supongamos que realiza los siguientes cambios:
+
+* Aumente el número de archivos para el destino de usuario predeterminado.
+* Agregue una nueva cuota de usuario para un nuevo usuario, boris, que necesita más límite de disco que la cuota de usuario predeterminada.
+* Eliminar la entrada explícita de cuota del usuario kbuck; el nuevo usuario necesita ahora sólo los límites de cuota predeterminados.
+
+
+Estos cambios tienen como resultado las siguientes cuotas:
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   25K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+boris         user@/vol/vol2/  100M   75K
+----
+El cambio de tamaño activa todos estos cambios; no es necesaria una reinicialización completa de la cuota.

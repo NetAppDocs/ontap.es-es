@@ -1,0 +1,76 @@
+---
+permalink: volumes/reinitialize-quotas-after-changes-task.html 
+sidebar: sidebar 
+keywords: reinitialize, quotas, after making, extensive, changes 
+summary: Cuando se realizan cambios extensos en las cuotas existentes; por ejemplo, al agregar o eliminar cuotas para los destinos que no tienen cuotas forzadas, se deben realizar los cambios y volver a inicializar cuotas en todos los volúmenes afectados. 
+---
+= Reinicializar las cuotas después de realizar cambios extensos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando se realizan cambios extensos en las cuotas existentes; por ejemplo, al agregar o eliminar cuotas para los destinos que no tienen cuotas forzadas, se deben realizar los cambios y volver a inicializar cuotas en todos los volúmenes afectados.
+
+.Acerca de esta tarea
+Tiene una máquina virtual de almacenamiento (SVM) con cuotas forzadas y desea realizar cambios que requieran una reinicialización completa de las cuotas.
+
+.Pasos
+. Utilice la `vserver show` con el `-instance` El parámetro para determinar el nombre de la política actualmente asignada a la SVM.
+. Modifique las reglas de cuota realizando cualquiera de las siguientes acciones:
++
+[cols="2*"]
+|===
+| Si desea... | Realice lo siguiente... 
+
+
+ a| 
+Crear nuevas reglas de cuota
+ a| 
+Utilice la `volume quota policy rule create` comando
+
+
+
+ a| 
+Modifique la configuración de las reglas de cuota existentes
+ a| 
+Utilice la `volume quota policy rule modify` comando
+
+
+
+ a| 
+Eliminar reglas de cuota existentes
+ a| 
+Utilice la `volume quota policy rule delete` comando
+
+|===
+. Utilice la `volume quota policy rule show` comando para comprobar que las reglas de cuota están configuradas correctamente.
+. Vuelva a inicializar las cuotas en cada volumen en el que haya modificado las cuotas desactivando las cuotas y, a continuación, activando las cuotas para dichos volúmenes.
++
+.. Utilice la `volume quota off` comando en cada volumen afectado para desactivar las cuotas de ese volumen.
+.. Utilice la `volume quota on` comando en cada volumen afectado para activar cuotas en ese volumen.
++
+[NOTE]
+====
+Debe asegurarse de esperar unos cinco minutos antes de volver a activar las cuotas en cada volumen afectado, ya que intenta activarlos casi inmediatamente después de ejecutar el `volume quota off` el comando puede generar errores.
+
+Como alternativa, es posible ejecutar los comandos para volver a inicializar las cuotas de un volumen desde el nodo que contiene el volumen en particular.
+
+====
++
+Puede supervisar el proceso de inicialización de cualquiera de las siguientes maneras:
+
++
+*** Cuando utilice la `volume quota on` puede agregar el `-foreground` parámetro para ejecutar la cuota en el trabajo en primer plano. (De forma predeterminada, el trabajo se ejecuta en segundo plano).
++
+Cuando el trabajo se ejecuta en segundo plano, puede supervisar su progreso mediante el `job show` comando.
+
+*** Puede utilizar el `volume quota show` comando para supervisar el estado de inicialización de la cuota.
+
+
+
+
+. Utilice la `volume quota show -instance` comando para comprobar si hay errores de inicialización, como reglas de cuota que no se han podido inicializar.
+. Utilice la `volume quota report` comando para mostrar un informe de cuotas de forma que pueda garantizar que las cuotas forzadas se ajustan a sus expectativas.
+

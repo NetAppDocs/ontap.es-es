@@ -1,0 +1,62 @@
+---
+permalink: smb-hyper-v-sql/remote-vss-considerations-concept.html 
+sidebar: sidebar 
+keywords: remote, vss, consideration, hyper, v, smb, configuration, backup, solution, automatic, recovery, shadow, copy 
+summary: Al utilizar soluciones de backup habilitadas para VSS remoto para configuraciones de Hyper-V en SMB, debe tener en cuenta determinadas consideraciones. 
+---
+= Consideraciones de VSS remotas para configuraciones de Hyper-V mediante SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Al utilizar soluciones de backup habilitadas para VSS remoto para configuraciones de Hyper-V en SMB, debe tener en cuenta determinadas consideraciones.
+
+
+
+== Consideraciones generales sobre VSS remoto
+
+* Se puede configurar un máximo de 64 recursos compartidos por servidor de aplicaciones de Microsoft.
++
+La operación de copia de sombra falla si hay más de 64 recursos compartidos en un conjunto de instantáneas. Este es un requisito de Microsoft.
+
+* Solo se permite un conjunto de copias redundantes por servidor CIFS.
++
+Se producirá un error en las operaciones de copia de sombra si hay una operación de copia de sombra en curso en el mismo servidor CIFS. Este es un requisito de Microsoft.
+
+* No se permiten uniones dentro de la estructura de directorios en la que VSS remoto crea una copia oculta.
++
+** En el caso de recuperación automática, se producirá un error en la creación de instantáneas si se encuentra una unión mientras se recorre el recurso compartido.
+** En el caso de recuperación no automática, la creación de instantáneas no falla, pero la unión no apunta a nada.
+
+
+
+
+
+
+== Consideraciones de VSS remotas que sólo son aplicables a las instantáneas con recuperación automática
+
+Ciertos límites solo se aplican a las instantáneas con recuperación automática.
+
+* Se permite una profundidad máxima de directorio de cinco subdirectorios para la creación de instantáneas.
++
+Esta es la profundidad de directorio sobre la que el servicio de instantáneas crea un conjunto de copia de seguridad de instantánea. La creación de instantáneas falla si los directorios que contienen archivos de máquina virtual están anidados más de cinco niveles. Con esto se pretende limitar el cruce de directorios al clonar el recurso compartido. La profundidad máxima de directorio puede cambiarse con una opción de servidor CIFS.
+
+* La cantidad de espacio disponible en el volumen debe ser adecuada.
++
+El espacio disponible debe ser al menos tan grande como el espacio combinado utilizado por todos los archivos, directorios y subdirectorios contenidos en los recursos compartidos incluidos en el conjunto de copia de seguridad de instantánea.
+
+* No se permiten vínculos ni archivos no regulares dentro de la estructura de directorios en la que Remote VSS crea una copia de sombra.
++
+La creación de instantáneas falla si hay vínculos o archivos no regulares en el recurso compartido a la instantánea. El proceso de clonación no es compatible con ellos.
+
+* No se permiten ACL de NFSv4 en directorios.
++
+Aunque la creación de copias redundantes mantiene las ACL de NFSv4 en los archivos, se pierden las ACL de NFSv4 en los directorios.
+
+* Se permite un máximo de 60 segundos para crear un conjunto de instantáneas.
++
+Las especificaciones de Microsoft permiten un máximo de 60 segundos para crear el conjunto de instantáneas. Si el cliente VSS no puede crear el conjunto de instantáneas en este momento, la operación de copia oculta falla; por lo tanto, esto limita el número de archivos en un conjunto de instantáneas. El número real de archivos o máquinas virtuales que se pueden incluir en un conjunto de backups varía. Este número depende de muchos factores y se debe determinar en cada entorno del cliente.
+
+

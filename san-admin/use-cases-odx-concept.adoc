@@ -1,0 +1,82 @@
+---
+permalink: san-admin/use-cases-odx-concept.html 
+sidebar: sidebar 
+keywords: odx, use cases 
+summary: Debe conocer los casos de uso de ODX en SVM para poder determinar en qué circunstancias le proporciona ventajas en rendimiento. 
+---
+= Casos de uso para ODX
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe conocer los casos de uso de ODX en SVM para poder determinar en qué circunstancias le proporciona ventajas en rendimiento.
+
+Los servidores y los clientes de Windows que admiten ODX utilizan la descarga de copias como forma predeterminada de copiar datos en servidores remotos. Si el cliente o el servidor Windows no son compatibles con ODX o se produce un error en cualquier momento, la operación de copia o movimiento vuelve a las lecturas y escrituras tradicionales para la operación de copia o movimiento.
+
+Los siguientes casos de uso admiten el uso de copias y movimientos ODX:
+
+* Volumen interno
++
+Los archivos o LUN de origen y destino están dentro del mismo volumen.
+
+* Entre volúmenes, mismo nodo, misma SVM
++
+Los archivos de origen y de destino o las LUN se encuentran en distintos volúmenes ubicados en el mismo nodo. Los datos son propiedad de la misma SVM.
+
+* Entre volúmenes, distintos nodos, misma SVM
++
+Los archivos de origen y de destino o las LUN se encuentran en volúmenes distintos que se encuentran en nodos diferentes. Los datos son propiedad de la misma SVM.
+
+* Entre SVM, mismo nodo
++
+El archivo de origen y los LUN de destino se encuentran en distintos volúmenes ubicados en el mismo nodo. Los datos son propiedad de diferentes SVM.
+
+* Entre SVM, diferentes nodos
++
+El archivo o las LUN de origen y destino se encuentran en distintos volúmenes ubicados en nodos diferentes. Los datos son propiedad de diferentes SVM.
+
+* Entre clústeres
++
+Las LUN de origen y de destino se encuentran en distintos volúmenes ubicados en distintos nodos en varios clústeres. Solo se admite en SAN y no funciona para SMB.
+
+
+
+Existen algunos casos de uso especiales adicionales:
+
+* Con la implementación de ODX de ONTAP, se puede utilizar ODX para copiar archivos entre recursos compartidos de SMB y unidades virtuales asociadas a FC o iSCSI.
++
+Puede utilizar el Explorador de Windows, la CLI de Windows o PowerShell, Hyper-V u otras aplicaciones que admiten ODX para copiar o mover archivos sin problemas mediante la descarga de la copia ODX entre recursos compartidos de SMB y LUN conectados, siempre y cuando los recursos compartidos y las LUN del SMB estén en el mismo clúster.
+
+* Hyper-V proporciona algunos casos de uso adicionales para la descarga de copias ODX:
++
+** Se puede utilizar la transferencia de la copia ODX mediante Hyper-V para copiar datos dentro o a través de archivos de disco duro virtual (VHD), o bien copiar datos entre recursos compartidos de SMB asignados y LUN iSCSI conectados dentro del mismo clúster.
++
+Esto permite que las copias de sistemas operativos invitados pasen al almacenamiento subyacente.
+
+** Al crear discos duros virtuales de tamaño fijo, ODX se utiliza para inicializar el disco con ceros, empleando un token de cero conocido.
+** La descarga de copias ODX se utiliza para la migración de almacenamiento de máquinas virtuales si el almacenamiento de origen y destino está en el mismo clúster.
+
+
++
+[NOTE]
+====
+Para aprovechar los casos de uso de un paso a través de la descarga de copias ODX mediante Hyper-V, el sistema operativo invitado debe ser compatible con ODX, mientras que los discos del sistema operativo invitado deben ser discos SCSI respaldados por almacenamiento (tanto SMB COMO SAN) que sean compatibles con ODX. Los discos IDE del sistema operativo invitado no admiten el paso a través de ODX.
+
+====
+
+
+
+
+== Requisitos especiales de archivo del sistema
+
+Es posible eliminar los archivos ODX que se encuentran en qtrees. No debe quitar ni modificar ningún otro archivo del sistema ODX a menos que el soporte técnico le indique que lo haga.
+
+Cuando se usa la función ODX, existen archivos del sistema ODX en todos los volúmenes del sistema. Estos archivos permiten una representación puntual de los datos utilizados durante la transferencia ODX. Los siguientes archivos del sistema se encuentran en el nivel raíz de cada volumen que contiene LUN o archivos en los que se ha descargado datos:
+
+* `.copy-offload` (un directorio oculto)
+* `.tokens` (archivo debajo del oculto `.copy-offload` directorio)
+
+
+Puede utilizar el `copy-offload delete-tokens -path dir_path -node _node_name_` Comando para eliminar un qtree que contiene un archivo ODX.

@@ -1,0 +1,221 @@
+---
+permalink: data-protection/create-replication-relationship-task.html 
+sidebar: sidebar 
+keywords: create, replication, relationship 
+summary: La relación entre el volumen de origen en el almacenamiento primario y el volumen de destino en el almacenamiento secundario se denomina relación de protección de datos. Puede usar el comando snapmirror create para crear relaciones de protección de datos de SnapMirror, recuperación ante desastres, SnapVault o replicación unificada. 
+---
+= Cree una relación de replicación
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La relación entre el volumen de origen del almacenamiento principal y el volumen de destino del almacenamiento secundario se denomina _relación de protección de datos._ puede usar la `snapmirror create` Comando para crear relaciones de protección de datos de recuperación ante desastres, SnapVault o replicación unificada de SnapMirror.
+
+.Lo que necesitará
+* Las SVM y los clústeres de origen y destino deben tener una relación entre iguales.
++
+https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html["Relaciones entre iguales de clústeres y SVM"]
+
+* El idioma del volumen de destino debe ser el mismo que el del volumen de origen.
+
+
+.Acerca de esta tarea
+Hasta ONTAP 9.3, SnapMirror invocado en modo DP y SnapMirror invocado en modo XDP utilizaba distintos motores de replicación, con distintos enfoques respecto a la dependencia de versión:
+
+* SnapMirror que se invoca en el modo DP utilizaba un motor de replicación _version-dependent_ en el que la versión de ONTAP debía ser la misma en el almacenamiento primario y secundario:
++
+[listing]
+----
+cluster_dst::>  snapmirror create -type DP -source-path ... -destination-path ...
+----
+* SnapMirror, al que se invocó en el modo XDP, utilizó un motor de replicación de _version-flexible_ que admitía diferentes versiones de ONTAP en el almacenamiento primario y secundario:
++
+[listing]
+----
+cluster_dst::>  snapmirror create -type XDP -source-path ... -destination-path ...
+----
+
+
+Las importantes ventajas de SnapMirror, que ofrece una versión flexible, superan la ligera ventaja del rendimiento de la replicación obtenido con el modo basado en la versión. Por este motivo, a partir de ONTAP 9.3, se ha creado el modo XDP como nuevo valor predeterminado, y cualquier invocación del modo DP en la línea de comandos o en scripts nuevos o existentes se convierte automáticamente al modo XDP.
+
+Las relaciones existentes no se ven afectadas. Si una relación ya es del tipo DP, seguirá siendo del tipo DP. La siguiente tabla muestra el comportamiento que puede esperar.
+
+[cols="25,25,50"]
+|===
+
+
+| Si especifica... | El tipo es... | La política predeterminada (si no se especifica una política) es... 
+
+
+ a| 
+PROTECCIÓN DE DATOS
+ a| 
+XDP
+ a| 
+MirrorAllSnapshots (recuperación ante desastres de SnapMirror)
+
+
+
+ a| 
+Nada
+ a| 
+XDP
+ a| 
+MirrorAllSnapshots (recuperación ante desastres de SnapMirror)
+
+
+
+ a| 
+XDP
+ a| 
+XDP
+ a| 
+XDPDefault (SnapVault)
+
+|===
+Consulte también los ejemplos del procedimiento siguiente.
+
+Las únicas excepciones a la conversión son las siguientes:
+
+* Las relaciones de protección de datos de SVM siguen siendo las predeterminadas en el modo DP.
++
+Especifique XDP explícitamente para obtener el modo XDP con el valor predeterminado `MirrorAllSnapshots` política.
+
+* Las relaciones de protección de datos con uso compartido de carga siguen siendo las predeterminadas en el modo DP.
+* Las relaciones de protección de datos de SnapLock siguen siendo las predeterminadas en el modo DP.
+* Las invocaciones explícitas de DP siguen en el modo DP de forma predeterminada si establece la siguiente opción para todo el clúster:
++
+[listing]
+----
+options replication.create_data_protection_rels.enable on
+----
++
+Esta opción se ignora si no invoca explícitamente DP.
+
+
+
+En ONTAP 9.3 y versiones anteriores, los volúmenes de destino pueden contener hasta 251 copias Snapshot. A partir de la versión 9.4 de ONTAP, un volumen de destino puede contener hasta 1019 copias snapshot.
+
+A partir de ONTAP 9.5, se admiten las relaciones de SnapMirror síncrono.
+
+.Paso
+. En el clúster de destino, cree una relación de replicación:
++
+`snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -type DP|XDP -schedule _schedule_ -policy _policy_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+La `schedule` No aplica el parámetro cuando se crean relaciones de SnapMirror síncrono.
+
+====
++
+En el siguiente ejemplo se crea una relación de recuperación ante desastres de SnapMirror con los valores predeterminados `MirrorLatest` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorLatest
+----
++
+En el siguiente ejemplo se crea una relación de SnapVault con los valores predeterminados `XDPDefault` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy XDPDefault
+----
++
+En el ejemplo siguiente se crea una relación de replicación unificada con la opción predeterminada `MirrorAndVault` política:
+
++
+[listing]
+----
+cluster_dst:> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorAndVault
+----
++
+En el siguiente ejemplo se crea una relación de replicación unificada mediante el método personalizado `my_unified` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy my_unified
+----
++
+En el siguiente ejemplo se crea una relación de SnapMirror Synchronous con el valor predeterminado `Sync` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -policy Sync
+----
++
+En el siguiente ejemplo se crea una relación de SnapMirror Synchronous con el valor predeterminado `StrictSync` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -policy StrictSync
+----
++
+En el siguiente ejemplo se crea una relación de recuperación ante desastres de SnapMirror. Con el tipo de DP convertido automáticamente a XDP y sin ninguna directiva especificada, la política predeterminada es la `MirrorAllSnapshots` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type DP -schedule my_daily
+----
++
+En el siguiente ejemplo se crea una relación de recuperación ante desastres de SnapMirror. Si no se especifica ningún tipo o política, la directiva se establece de forma predeterminada en `MirrorAllSnapshots` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -schedule my_daily
+----
++
+En el siguiente ejemplo se crea una relación de recuperación ante desastres de SnapMirror. Sin ninguna directiva especificada, la directiva se establece de forma predeterminada en `XDPDefault` política:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily
+----
++
+En el siguiente ejemplo se crea una relación de SnapMirror Synchronous con la política predefinida `SnapCenterSync`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -policy SnapCenterSync
+----
++
+[NOTE]
+====
+La política predefinida `SnapCenterSync` es de tipo `Sync`. Esta normativa replica cualquier copia snapshot que se cree con el `snapmirror-label` de "coherente con la aplicación".
+
+====
+
+
+.Después de terminar
+Utilice la `snapmirror show` Comando para verificar que la relación de SnapMirror se ha creado. Para obtener una sintaxis de comando completa, consulte la página man.
+
+
+
+== Otras maneras de hacerlo en ONTAP
+
+[cols="2"]
+|===
+| Para ejecutar estas tareas con... | Ver este contenido... 
+
+
+| System Manager rediseñado (disponible con ONTAP 9.7 y versiones posteriores) | link:https://docs.netapp.com/us-en/ontap/task_dp_configure_mirror.html["Configure los reflejos y almacenes"^] 
+
+
+| System Manager Classic (disponible con ONTAP 9.7 y versiones anteriores) | link:https://docs.netapp.com/us-en/ontap-sm-classic/volume-backup-snapvault/index.html["Información general sobre backup de volúmenes mediante SnapVault"^] 
+|===

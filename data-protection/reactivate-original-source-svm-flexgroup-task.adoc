@@ -1,0 +1,258 @@
+---
+permalink: data-protection/reactivate-original-source-svm-flexgroup-task.html 
+sidebar: sidebar 
+keywords: reactivate, original, source, svm 
+summary: Puede restablecer la relación original de protección de datos entre la SVM de origen y la de destino cuando ya no necesite servir datos desde el destino. Para reactivar la SVM de origen original cuando usa volúmenes de FlexGroup, debe realizar algunos pasos adicionales, como la eliminación de la relación de recuperación ante desastres de SVM original y la liberación de la relación original antes de revertir la relación. También debe liberar la relación inversa y volver a crear la relación original antes de detener las transferencias programadas. 
+---
+= Reactivar la SVM de origen original (solo volúmenes de FlexGroup)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede restablecer la relación original de protección de datos entre la SVM de origen y la de destino cuando ya no necesite servir datos desde el destino. Para reactivar la SVM de origen original cuando usa volúmenes de FlexGroup, debe realizar algunos pasos adicionales, como la eliminación de la relación de recuperación ante desastres de SVM original y la liberación de la relación original antes de revertir la relación. También debe liberar la relación inversa y volver a crear la relación original antes de detener las transferencias programadas.
+
+.Pasos
+. De la SVM de destino original o del clúster de destino original, elimine la relación de recuperación ante desastres de SVM original:
++
+`snapmirror delete -source-path SVM: -destination-path SVM:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo, se elimina la relación original entre la SVM de origen, svm1 y la SVM de destino original, `svm_backup`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror delete -source-path svm1: -destination-path svm_backup:
+----
+. A partir de la SVM de origen original o del clúster de origen original, libere la relación original mientras mantiene las copias Snapshot intactas:
++
+`snapmirror release -source-path SVM: -destination-path SVM: -relationship-info-only true`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo, se libera la relación original entre la SVM de origen, svm1 y la SVM de destino original, `svm_backup`.
+
++
+[listing]
+----
+cluster_src::> snapmirror release -source-path svm1: -destination-path svm_backup: -relationship-info-only true
+----
+. A partir de la SVM de origen original o del clúster de origen original, cree una relación de recuperación ante desastres de SVM inversa con la misma configuración, política y conservación de identidad que la relación de recuperación ante desastres de SVM original:
++
+`snapmirror create -source-path SVM: -destination-path SVM:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo se crea una relación entre la SVM desde la cual se proporcionan datos, `svm_backup`Y la SVM de origen original, `svm1`:
+
++
+[listing]
+----
+cluster_src::> snapmirror create -source-path svm_backup: -destination-path svm1:
+----
+. Desde la SVM de origen original o el clúster de origen original, ejecute el siguiente comando para invertir la relación de protección de datos:
++
+`snapmirror resync -source-path _SVM_: -destination-path _SVM_:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+Aunque la resincronización no requiere una transferencia básica, puede requerir mucho tiempo. Puede que desee ejecutar la resincronización en horas de menor actividad.
+
++
+[NOTE]
+====
+El comando genera errores si no existe una copia Snapshot común en el origen y el destino. Uso `snapmirror initialize` para reiniciar la relación.
+
+====
++
+En el siguiente ejemplo se revierte la relación entre la SVM de origen original, `svm1`, Y la SVM desde la que se proporcionan datos, `svm_backup`:
+
++
+[listing]
+----
+cluster_src::> snapmirror resync -source-path svm_backup: -destination-path svm1:
+----
+. Cuando esté listo para restablecer el acceso a los datos a la SVM de origen original, detenga la SVM de destino original para desconectar los clientes que actualmente estén conectados a la SVM de destino original.
++
+`vserver stop -vserver _SVM_`
+
++
+En el ejemplo siguiente se detiene la SVM de destino original, que actualmente proporciona datos:
+
++
+[listing]
+----
+cluster_dst::> vserver stop svm_backup
+----
+. Compruebe que la SVM de destino original esté en estado detenido con el `vserver show` comando.
++
+[listing]
+----
+cluster_dst::> vserver show
+                                  Admin      Operational Root
+Vserver        Type    Subtype    State      State       Volume     Aggregate
+--------       ------- ---------- ---------- ----------- ---------- ----------
+svm_backup     data    default    stopped    stopped     rv         aggr1
+----
+. A partir de la SVM de origen original o del clúster de origen original, ejecute el siguiente comando para realizar la actualización final de la relación inversa para transferir todos los cambios de la SVM de destino original a la SVM de origen original:
++
+`snapmirror update -source-path _SVM_: -destination-path _SVM_:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el ejemplo siguiente se actualiza la relación entre la SVM de destino original a partir de la cual se proporcionan datos,`svm_backup`Y la SVM de origen original, `svm1`:
+
++
+[listing]
+----
+cluster_src::> snapmirror update -source-path svm_backup: -destination-path svm1:
+----
+. Desde la SVM de origen original o el clúster de origen original, ejecute el siguiente comando para detener las transferencias programadas para la relación inversa:
++
+`snapmirror quiesce -source-path _SVM_: -destination-path _SVM_:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el ejemplo siguiente se detienen las transferencias programadas entre la SVM desde la que se proporcionan datos: `svm_backup`Y la SVM original, `svm1`:
+
++
+[listing]
+----
+cluster_src::> snapmirror quiesce -source-path svm_backup: -destination-path svm1:
+----
+. Cuando la actualización final se completa y la relación indica "Quiesced" para el estado de la relación, ejecute el siguiente comando desde la SVM de origen original o el clúster de origen original para romper la relación inversa:
++
+`snapmirror break -source-path _SVM_: -destination-path _SVM_:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo, se rompe la relación entre la SVM de destino original, en la que se estaban sirviendo datos. `svm_backup`Y la SVM de origen original, `svm1`:
+
++
+[listing]
+----
+cluster_src::> snapmirror break -source-path svm_backup: -destination-path svm1:
+----
+. Si la SVM de origen se había detenido anteriormente, desde el clúster de origen original, inicie la SVM de origen original:
++
+`vserver start -vserver _SVM_`
+
++
+En el ejemplo siguiente se inicia la SVM de origen original:
+
++
+[listing]
+----
+cluster_src::> vserver start svm1
+----
+. En la SVM de origen original o en el clúster de origen, elimine la relación de recuperación ante desastres de SVM inversa:
++
+`snapmirror delete -source-path SVM: -destination-path SVM:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo, se elimina la relación inversa entre la SVM de destino original, svm_backup y la SVM de origen original, `svm1`:
+
++
+[listing]
+----
+cluster_src::> snapmirror delete -source-path svm_backup: -destination-path svm1:
+----
+. Desde la SVM de destino original o el clúster de destino original, libere la relación inversa mientras mantiene las copias Snapshot intactas:
++
+`snapmirror release -source-path SVM: -destination-path SVM: -relationship-info-only true`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo, se libera la relación inversa entre la SVM de destino original, svm_backup y la SVM de origen original, svm1:
+
++
+[listing]
+----
+cluster_dst::> snapmirror release -source-path svm_backup: -destination-path svm1: -relationship-info-only true
+----
+. Desde la SVM de destino original o el clúster de destino original, vuelva a crear la relación original. Utilice la misma configuración, política y conservación de identidad que la relación de recuperación ante desastres original de la SVM:
++
+`snapmirror create -source-path SVM: -destination-path SVM:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo, se crea una relación entre la SVM de origen original, `svm1`Y la SVM de destino original, `svm_backup`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup:
+----
+. A partir de la SVM de destino original o del clúster de destino original, restablezca la relación de protección de datos original:
++
+`snapmirror resync -source-path _SVM_: -destination-path _SVM_:`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea el ejemplo siguiente.
+
+====
++
+En el siguiente ejemplo, se vuelve a establecer la relación entre la SVM de origen original, `svm1`Y la SVM de destino original, `svm_backup`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror resync -source-path svm1: -destination-path svm_backup:
+----
+

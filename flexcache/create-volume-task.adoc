@@ -1,0 +1,138 @@
+---
+permalink: flexcache/create-volume-task.html 
+sidebar: sidebar 
+keywords: creating, flexcache, volume, flex cache, performance, remote cluster, data access, tls encryption, peer permission, 
+summary: Puede crear un volumen de FlexCache en el mismo clúster para mejorar el rendimiento al acceder a un objeto activo. Si tiene centros de datos en diferentes ubicaciones, puede crear volúmenes de FlexCache en clústeres remotos para acelerar el acceso a los datos. 
+---
+= Cree un volumen de FlexCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede crear un volumen de FlexCache en el mismo clúster para mejorar el rendimiento al acceder a un objeto activo. Si tiene centros de datos en diferentes ubicaciones, puede crear volúmenes de FlexCache en clústeres remotos para acelerar el acceso a los datos.
+
+.Acerca de esta tarea
+El volumen de FlexCache siempre es un volumen de FlexGroup, no un volumen de FlexVol.
+
+A partir de la versión 9.7 de ONTAP, los volúmenes FlexGroup también son compatibles con el origen de la relación de FlexCache.
+
+.Pasos
+. Si el volumen de FlexCache que se va a crear se encuentra en otro clúster, cree una relación de paridad de clústeres:
++
+.. En el clúster de destino, cree una relación entre iguales con el clúster de origen de protección de datos: +
+`cluster peer create -generate-passphrase -offer-expiration MM/DD/YYYY HH:MM:SS|1...7days|1...168hours -peer-addrs _peer_LIF_IPs_ -initial-allowed-vserver-peers _svm_name_,..|* -ipspace _ipspace_name_`
++
+A partir de ONTAP 9.6, el cifrado TLS se habilita de forma predeterminada al crear una relación de paridad de clústeres. El cifrado TLS es compatible con la comunicación entre clústeres entre los volúmenes de origen y FlexCache. También puede deshabilitar el cifrado TLS para la relación de paridad de clústeres, si es necesario.
+
++
+[listing]
+----
+cluster02::> cluster peer create -generate-passphrase -offer-expiration 2days -initial-allowed-vserver-peers *
+
+                     Passphrase: UCa+6lRVICXeL/gq1WrK7ShR
+                Expiration Time: 6/7/2017 08:16:10 EST
+  Initial Allowed Vserver Peers: *
+            Intercluster LIF IP: 192.140.112.101
+              Peer Cluster Name: Clus_7ShR (temporary generated)
+
+Warning: make a note of the passphrase - it cannot be displayed again.
+----
+.. En el clúster de origen, autentique el clúster de origen en el clúster de destino: +
+`cluster peer create -peer-addrs _peer_LIF_IPs_ -ipspace _ipspace_`
++
+[listing]
+----
+cluster01::> cluster peer create -peer-addrs 192.140.112.101,192.140.112.102
+
+Notice: Use a generated passphrase or choose a passphrase of 8 or more characters.
+        To ensure the authenticity of the peering relationship, use a phrase or sequence of characters that would be hard to guess.
+
+Enter the passphrase:
+Confirm the passphrase:
+
+Clusters cluster02 and cluster01 are peered.
+----
+
+
+. Si el volumen de FlexCache está en una SVM diferente a la del volumen de origen, cree una relación entre iguales de SVM con `flexcache` como aplicación:
++
+.. Si la SVM está en un clúster diferente, cree un permiso de SVM para las SVM de paridad: +
+`vserver peer permission create -peer-cluster _cluster_name_ -vserver _svm-name_ -applications flexcache`
++
+En el siguiente ejemplo, se muestra cómo crear un permiso de paridad de SVM que se aplica a todas las SVM locales:
+
++
+[listing]
+----
+cluster1::> vserver peer permission create -peer-cluster cluster2 -vserver "*" -applications flexcache
+
+Warning: This Vserver peer permission applies to all local Vservers. After that no explict
+"vserver peer accept" command required for Vserver peer relationship creation request
+from peer cluster "cluster2" with any of the local Vservers. Do you want to continue? {y|n}: y
+----
+.. Cree la relación entre iguales de SVM: +
+`vserver peer create -vserver local_SVM -peer-vserver _remote_SVM_ -peer-cluster _cluster_name_ -applications flexcache`
+
+
+. Cree un volumen de FlexCache:
++
+`volume flexcache create -vserver _cache_svm_ -volume _cache_vol_name_ -auto-provision-as flexgroup -size _vol_size_ -origin-vserver _origin_svm_ -origin-volume _origin_vol_name_`
+
++
+En el ejemplo siguiente se crea un volumen de FlexCache y se seleccionan automáticamente los agregados existentes para el aprovisionamiento:
+
++
+[listing]
+----
+cluster1::> volume flexcache create -vserver vs_1 -volume fc1 -auto-provision-as flexgroup -origin-volume vol_1 -size 160MB -origin-vserver vs_1
+[Job 443] Job succeeded: Successful
+----
++
+En el siguiente ejemplo se crea un volumen FlexCache y se establece la ruta de unión:
+
++
+[listing]
+----
+cluster1::> flexcache create -vserver vs34 -volume fc4 -aggr-list aggr34,aggr43 -origin-volume origin1 -size 400m -junction-path /fc4
+[Job 903] Job succeeded: Successful
+----
+. Verifique la relación de FlexCache desde el volumen de FlexCache y el volumen de origen.
++
+.. Vea la relación de FlexCache en el clúster: +
+`volume flexcache show`
++
+[listing]
+----
+cluster1::> volume flexcache show
+Vserver Volume      Size       Origin-Vserver Origin-Volume Origin-Cluster
+------- ----------- ---------- -------------- ------------- --------------
+vs_1    fc1         160MB      vs_1           vol_1           cluster1
+----
+.. Vea todas las relaciones de FlexCache en el clúster de origen: +
+`volume flexcache origin show-caches`
++
+[listing]
+----
+cluster::> volume flexcache origin show-caches
+Origin-Vserver Origin-Volume   Cache-Vserver    Cache-Volume   Cache-Cluster
+-------------- --------------- ---------------  -------------- ---------------
+vs0            ovol1           vs1              cfg1           clusA
+vs0            ovol1           vs2              cfg2           clusB
+vs_1           vol_1           vs_1             fc1            cluster1
+----
+
+
+
+
+
+
+== Resultado
+
+El volumen FlexCache se ha creado correctamente. Los clientes pueden montar el volumen con la ruta de unión del volumen FlexCache.
+
+.Información relacionada
+link:../peering/index.html["Relaciones entre iguales de clústeres y SVM"]
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Comandos de ONTAP 9"^]

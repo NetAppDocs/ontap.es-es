@@ -1,0 +1,66 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_how_hardware-assisted_takeover_works.html 
+keywords: ontap, high, availability, hardware-assisted, hardware, assisted, takeovers 
+summary: 'Habilitada de forma predeterminada, la función de toma de control asistida por hardware puede acelerar el proceso de toma de control utilizando el dispositivo de gestión remota de un nodo (Service Processor).' 
+---
+= Cómo funciona la toma de control asistida por hardware
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Habilitada de forma predeterminada, la función de toma de control asistida por hardware puede acelerar el proceso de toma de control utilizando el dispositivo de gestión remota de un nodo (Service Processor).
+
+Cuando el dispositivo de gestión remota detecta un fallo, inicia rápidamente la toma de control en lugar de esperar a que ONTAP reconozca que el latido del partner se ha detenido. Si se produce un fallo sin esta función habilitada, el partner espera hasta que se dé cuenta de que el nodo ya no está dando un latido de corazón, confirma la pérdida del latido del corazón e inicia la toma de control.
+
+La función de toma de control asistida por hardware utiliza el siguiente proceso para evitar que se espere:
+
+. El dispositivo de administración remota supervisa el sistema local para detectar ciertos tipos de errores.
+. Si se detecta un fallo, el dispositivo de gestión remota envía inmediatamente una alerta al nodo asociado.
+. Al recibir la alerta, el partner inicia la toma de control.
+
+
+
+
+== Eventos del sistema que activan la toma de control asistida por hardware
+
+El nodo asociado puede generar una toma de control en función del tipo de alerta que reciba del dispositivo de gestión remota (Service Processor).
+
+[cols="30,20,50"]
+|===
+
+
+| Alerta | ¿Toma de control iniciada al recibirse? | Descripción 
+
+
+| reboot_anormal | No | Se produjo un reinicio anormal del nodo. 
+
+
+| l2_watchdog_reset | Sí | El hardware del guardián del sistema ha detectado un restablecimiento L2. El dispositivo de administración remota detectó una falta de respuesta de la CPU del sistema y reinició el sistema. 
+
+
+| pérdida_de_latido | No | El dispositivo de gestión remota ya no recibe el mensaje de latido del nodo. Esta alerta no hace referencia a los mensajes de latido entre los nodos del par de alta disponibilidad; hace referencia al latido entre el nodo y su dispositivo de gestión remota local. 
+
+
+| mensaje_periódico | No | Se envía un mensaje periódico durante una operación normal de toma de control asistida por hardware. 
+
+
+| power_cycle_via_sp | Sí | El dispositivo de gestión remota apague y encienda el sistema. 
+
+
+| pérdida_potencia | Sí | Se produjo una pérdida de alimentación en el nodo. El dispositivo de gestión remota tiene una fuente de alimentación que mantiene la alimentación durante un corto período después de una pérdida de alimentación, lo que le permite informar de la pérdida de alimentación al partner. 
+
+
+| power_off_via_sp | Sí | El dispositivo de gestión remota apagó el sistema. 
+
+
+| reset_via_sp | Sí | El dispositivo de administración remota restablece el sistema. 
+
+
+| prueba | No | Se envía un mensaje de prueba para verificar una operación de toma de control asistida por hardware. 
+|===

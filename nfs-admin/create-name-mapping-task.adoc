@@ -1,0 +1,56 @@
+---
+permalink: nfs-admin/create-name-mapping-task.html 
+sidebar: sidebar 
+keywords: create, name, mapping 
+summary: Puede utilizar el comando vserver NAME-mapping create para crear una asignación de nombres. Se usan asignaciones de nombres para habilitar a los usuarios de Windows a fin de acceder a los volúmenes de estilo de seguridad de UNIX y al revés. 
+---
+= Cree una asignación de nombres
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `vserver name-mapping create` comando para crear una asignación de nombres. Se usan asignaciones de nombres para habilitar a los usuarios de Windows a fin de acceder a los volúmenes de estilo de seguridad de UNIX y al revés.
+
+.Acerca de esta tarea
+Con cada SVM, ONTAP admite hasta 12,500 asignaciones de nombres para cada dirección.
+
+.Paso
+. Crear una asignación de nombres:
++
+`vserver name-mapping create -vserver vserver_name -direction {krb-unix|win-unix|unix-win} -position integer -pattern text -replacement text`
+
++
+[NOTE]
+====
+La `-pattern` y.. `-replacement` las declaraciones se pueden formular como expresiones regulares. También puede utilizar el `-replacement` instrucción para denegar explícitamente una asignación al usuario mediante la cadena de reemplazo nula `" "` (el carácter de espacio). Consulte `vserver name-mapping create` manual para más detalles.
+
+====
++
+Cuando se crean las asignaciones de Windows a UNIX, todos los clientes de SMB que tengan conexiones abiertas al sistema ONTAP en el momento en el que se creen las nuevas asignaciones deben cerrar e iniciar sesión para ver las nuevas asignaciones.
+
+
+
+.Ejemplos
+El siguiente comando crea un mapa de nombre en la SVM llamada vs1. La asignación es una asignación de UNIX a Windows en la posición 1 de la lista de prioridades. La asignación asigna el usuario UNIX johnd al usuario de Windows ENG\JohnDoe.
+
+[listing]
+----
+vs1::> vserver name-mapping create -vserver vs1 -direction unix-win -position 1 -pattern johnd
+-replacement "ENG\\JohnDoe"
+----
+El siguiente comando crea otra asignación de nombre en la SVM llamada vs1. La asignación es una asignación de Windows a UNIX en la posición 1 de la lista de prioridades. Aquí el patrón y reemplazo incluyen expresiones regulares. La asignación asigna cada usuario CIFS del dominio ENG a los usuarios del dominio LDAP asociado con la SVM.
+
+[listing]
+----
+vs1::> vserver name-mapping create -vserver vs1 -direction win-unix -position 1 -pattern "ENG\\(.+)"
+-replacement "\1"
+----
+El siguiente comando crea otra asignación de nombre en la SVM llamada vs1. Aquí el patrón incluye "'$" como elemento del nombre de usuario de Windows que debe escaparse. La asignación asigna al usuario de Windows ENG\ john$OPS al usuario UNIX john_OPS.
+
+[listing]
+----
+vs1::> vserver name-mapping create -direction win-unix -position 1 -pattern ENG\\john\$ops
+-replacement john_ops
+----

@@ -1,0 +1,70 @@
+---
+permalink: smb-config/create-volume-task.html 
+sidebar: sidebar 
+keywords: create, volume, junction, point, properties, property, command, create a volume 
+summary: Puede crear un volumen y especificar su punto de unión y otras propiedades mediante el comando volume create. 
+---
+= Cree un volumen
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede crear un volumen y especificar su punto de unión y otras propiedades mediante la `volume create` comando.
+
+.Antes de empezar
+El estilo de seguridad de la SVM debe ser NTFS y el SMB debe configurarse y ejecutarse.
+
+.Acerca de esta tarea
+Un volumen debe incluir una _ruta de unión_ para que sus datos estén disponibles para los clientes. Puede especificar la ruta de unión cuando cree un nuevo volumen. Si crea un volumen sin especificar una ruta de unión, debe _Mount_ el volumen en el espacio de nombres de la SVM mediante el `volume mount` comando.
+
+.Pasos
+. Cree el volumen con un punto de unión: `volume create -vserver vserver_name -volume volume_name -aggregate aggregate_name -size {integer[KB|MB|GB|TB|PB]} -security-style ntfs -junction-path junction_path]`
++
+Las opciones para `-junction-path` son las siguientes:
+
++
+** Directamente bajo la raíz, por ejemplo, `/new_vol`
++
+Puede crear un nuevo volumen y especificar que se monte directamente en el volumen raíz de SVM.
+
+** En un directorio existente, por ejemplo, `/existing_dir/new_vol`
++
+Puede crear un nuevo volumen y especificar que se monte en un volumen existente (en una jerarquía existente), expresado como un directorio.
+
+
+
++
+Si desea crear un volumen en un nuevo directorio (en una nueva jerarquía debajo de un nuevo volumen), por ejemplo, `/new_dir/new_vol`, Entonces debe crear primero un nuevo volumen principal que se junte al volumen raíz de la SVM. A continuación, creará el nuevo volumen secundario en la ruta de unión del nuevo volumen principal (nuevo directorio).
+
+. Compruebe que el volumen se ha creado con el punto de unión deseado: `volume show -vserver vserver_name -volume volume_name -junction`
+
+
+.Ejemplos
+El siguiente comando crea un nuevo volumen denominado user1 en la SVM vs1.example.com y el agregado aggr1. El nuevo volumen está disponible en `/users`. El tamaño del volumen es de 750 GB y su garantía de volumen es del tipo volumen (de forma predeterminada).
+
+[listing]
+----
+cluster1::> volume create -vserver vs1.example.com -volume users -aggregate aggr1 -size 750g -junction-path /users
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1.example.com -volume users -junction
+                          Junction                 Junction
+Vserver           Volume  Active   Junction Path   Path Source
+----------------- ------- -------- --------------- -----------
+vs1.example.com   users1  true     /users          RW_volume
+----
+El siguiente comando crea un nuevo volumen denominado «'home4'» en la SVM»'vs1.example.com`" y el agregado «'aggr1'». El directorio `/eng/` Ya existe en el espacio de nombres para el SVM vs1 y el nuevo volumen estará disponible en `/eng/home`, que se convierte en el directorio principal de `/eng/` espacio de nombres. El volumen tiene un tamaño de 750 GB y su garantía de volumen es de tipo `volume` (de forma predeterminada).
+
+[listing]
+----
+cluster1::> volume create -vserver vs1.example.com -volume home4 -aggregate aggr1 -size 750g -junction-path /eng/home
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1.example.com -volume home4 -junction
+                         Junction                 Junction
+Vserver          Volume  Active   Junction Path   Path Source
+---------------- ------- -------- --------------- -----------
+vs1.example.com  home4   true     /eng/home       RW_volume
+----

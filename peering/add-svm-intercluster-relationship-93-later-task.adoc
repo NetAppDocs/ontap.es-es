@@ -1,0 +1,114 @@
+---
+permalink: peering/add-svm-intercluster-relationship-93-later-task.html 
+sidebar: sidebar 
+keywords: add, intercluster, svm, peer, vserver peer create 
+summary: Si crea una SVM después de configurar una relación de paridad de clústeres, deberá añadir una relación de paridad para la SVM manualmente. Puede usar el comando vserver peer create para crear una relación entre iguales. Una vez creada la relación de paridad, puede ejecutar Vserver peer accept en el clúster remoto para autorizar la relación de paridad. 
+---
+= Añada una relación entre iguales de SVM de interconexión de clústeres
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si crea una SVM después de configurar una relación de paridad de clústeres, deberá añadir una relación de paridad para la SVM manualmente. Puede utilizar el `vserver peer create` Comando para crear una relación entre iguales entre SVM. Una vez creada la relación de paridad, puede ejecutarse `vserver peer accept` en el clúster remoto para autorizar la relación de paridad.
+
+.Antes de empezar
+Los clústeres de origen y destino deben tener una relación entre iguales.
+
+.Acerca de esta tarea
+Puede crear relaciones entre iguales entre SVM en el mismo clúster para el backup de datos local. Para obtener más información, consulte `vserver peer create` página de manual.
+
+Los administradores utilizan ocasionalmente el `vserver peer reject` Comando para rechazar una relación de paridad de SVM propuesta. Si la relación entre las SVM está en la `rejected` estado, debe eliminar la relación antes de poder crear una nueva. Para obtener más información, consulte `vserver peer delete` página de manual.
+
+.Pasos
+. En el clúster de origen de protección de datos, cree una relación entre iguales con una SVM en el clúster de destino de protección de datos:
++
+`vserver peer create -vserver _local_SVM_ -peer-vserver _remote_SVM_ -applications snapmirror|file-copy|lun-copy -peer-cluster _remote_cluster_`
+
++
+En el siguiente ejemplo se crea una relación entre iguales entre la SVM local``pvs1`` Y la SVM remota``vs1``
+
++
+[listing]
+----
+cluster01::> vserver peer create -vserver pvs1 -peer-vserver vs1 -applications snapmirror -peer-cluster cluster02
+----
++
+Si las SVM locales y remotas tienen los mismos nombres, debe usar un _local name_ para crear la relación entre iguales de SVM:
+
++
+[listing]
+----
+cluster01::> vserver peer create -vserver vs1 -peer-vserver
+vs1 -applications snapmirror -peer-cluster cluster01
+-local-name cluster1vs1LocallyUniqueName
+----
+. En el clúster de origen de protección de datos, compruebe que se ha iniciado la relación de paridad:
++
+`vserver peer show-all`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se muestra la relación entre iguales entre SVM``pvs1`` Y SVM``vs1`` se ha iniciado:
+
++
+[listing]
+----
+cluster01::> vserver peer show-all
+            Peer        Peer                      Peering
+Vserver     Vserver     State      Peer Cluster   Applications
+--------    --------    ---------  -------------  ------------
+pvs1        vs1         initiated   Cluster02       snapmirror
+----
+. En el clúster de destino de la protección de datos, muestre la relación entre iguales de SVM pendiente:
++
+`vserver peer show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se enumeran las relaciones entre iguales pendientes para `cluster02`:
+
++
+[listing]
+----
+cluster02::> vserver peer show
+
+                   Peer               Peer
+Vserver            Vserver            State
+-----------        -----------        ------------
+vs1                pvs1               pending
+----
+. En el clúster de destino de la protección de datos, autorice la relación entre iguales pendiente:
++
+`vserver peer accept -vserver _local_SVM_ -peer-vserver _remote_SVM_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se autoriza la relación entre iguales entre la SVM local `vs1` Y la SVM remota `pvs1`:
+
++
+[listing]
+----
+cluster02::> vserver peer accept -vserver vs1 -peer-vserver pvs1
+----
+. Compruebe las relaciones entre iguales de SVM:
++
+`vserver peer show`
+
++
+[listing]
+----
+cluster01::> vserver peer show
+            Peer        Peer                           Peering        Remote
+Vserver     Vserver     State        Peer Cluster      Applications   Vserver
+----------- ----------- ------------ ----------------- -------------- ---------
+pvs1        vs1         peered       cluster02         snapmirror     vs1
+----
+

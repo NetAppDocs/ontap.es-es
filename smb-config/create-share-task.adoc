@@ -1,0 +1,46 @@
+---
+permalink: smb-config/create-share-task.html 
+sidebar: sidebar 
+keywords: create, smb, share, data, server, client, properties, home, directory, designate, designating, customize, configure, configuring, optional, setting, create an smb share 
+summary: Debe crear un recurso compartido de SMB para poder compartir datos desde un servidor SMB con clientes SMB. Cuando se crea un recurso compartido, se pueden establecer propiedades de recurso compartido, como designar el recurso compartido como un directorio inicial. También puede personalizar el recurso compartido configurando ajustes opcionales. 
+---
+= Cree un recurso compartido de SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe crear un recurso compartido de SMB para poder compartir datos desde un servidor SMB con clientes SMB. Cuando se crea un recurso compartido, se pueden establecer propiedades de recurso compartido, como designar el recurso compartido como un directorio inicial. También puede personalizar el recurso compartido configurando ajustes opcionales.
+
+.Antes de empezar
+La ruta de directorio del volumen o qtree debe existir en el espacio de nombres de la SVM antes de crear el recurso compartido.
+
+.Acerca de esta tarea
+Al crear un recurso compartido, la ACL de recurso compartido predeterminada (permisos de uso compartido predeterminados) es `Everyone / Full Control`. Después de probar el acceso al recurso compartido, debe quitar la ACL de recurso compartido predeterminada y reemplazarla por una alternativa más segura.
+
+.Pasos
+. Si es necesario, cree la estructura de ruta de acceso de directorio para el recurso compartido.
++
+La `vserver cifs share create` el comando comprueba la ruta especificada en el `-path` opcional durante la creación del recurso compartido. Si la ruta especificada no existe, el comando falla.
+
+. Cree un recurso compartido de SMB asociado con la SVM especificada: `+vserver cifs share create -vserver vserver_name -share-name share_name -path path [-share-properties share_properties,...] [other_attributes] [-comment text]+`
+. Compruebe que se ha creado el recurso compartido:``vserver cifs share show -share-name share_name``
+
+
+.Ejemplos
+El siguiente comando crea un recurso compartido SMB denominado «SHARE1» en la SVM `vs1.example.com`. Su ruta de acceso de directorio es `/users`, y se crea con propiedades predeterminadas.
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1.example.com -share-name SHARE1 -path /users
+
+cluster1::> vserver cifs share show -share-name SHARE1
+
+Vserver          Share    Path     Properties Comment  ACL
+---------------  -------- -------- ---------- -------- -----------
+vs1.example.com  SHARE1   /users   oplocks    -        Everyone / Full Control
+                                   browsable
+                                   changenotify
+                                   show-previous-versions
+----

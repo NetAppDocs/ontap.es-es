@@ -1,0 +1,174 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_manual_giveback.html 
+keywords: ontap, high, availability, ha, pair, manual, giveback, interrupted, vetoed, veto, commands, performing, perform 
+summary: Puede realizar una devolución normal, una devolución del nodo en la que termina los procesos en el nodo asociado o una devolución forzada. 
+---
+= Comandos de devolución manual
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Puede realizar una devolución normal, una devolución del nodo en la que termina los procesos en el nodo asociado o una devolución forzada.
+
+
+NOTE: Antes de realizar una devolución del control, debe quitar las unidades con errores en el sistema tomado-encima como se describe en link:../disks-aggregates/index.html["Gestión de discos y agregados"].
+
+
+
+== Si se interrumpe la devolución
+
+Si el nodo de toma de control experimenta un fallo o una interrupción del servicio de alimentación durante el proceso de devolución, este proceso se detiene y el nodo de toma de control regresa al modo de toma de control hasta que se repara el error o se restaura la alimentación.
+
+Sin embargo, esto depende de la etapa de devolución en la que se haya producido el fallo. Si el nodo encontró un fallo o una interrupción del servicio de alimentación durante el estado de devolución parcial (después de haber devuelto el agregado raíz), no regresará al modo de toma de control. En su lugar, el nodo vuelve al modo de devolución parcial. Si esto ocurre, complete el proceso repitiendo la operación de devolución.
+
+
+
+== Si el retorno se ha vetado
+
+Si se ha vetado la devolución, debe comprobar los mensajes EMS para determinar la causa. Dependiendo de la razón o de las razones, puede decidir si puede anular de forma segura los vetos.
+
+La `storage failover show-giveback` el comando muestra el progreso de la devolución y muestra qué subsistema vetó la devolución, si la hubiera. Los vetos blandos pueden ser anulados, mientras que los vetos duros no pueden ser, incluso si son forzados. En las siguientes tablas se resumen los vetos suaves que no deben anularse, junto con las soluciones recomendadas.
+
+Puede consultar los detalles de EMS de cualquier vetoo de devolución utilizando el siguiente comando:
+
+`event log show -node * -event gb*`
+
+
+
+== Devolución del agregado raíz
+
+Estos vetos no se aplican a las operaciones de reubicación de agregados:
+
+[cols="35,65"]
+|===
+
+
+| Vetoque módulo subsistema | Solución alternativa 
+
+
+ a| 
+nivel_bajo_vfiler
+ a| 
+Finalice las sesiones SMB que causan el veto o apague la aplicación SMB que estableció las sesiones abiertas.
+
+Reemplazar este veto puede provocar que la aplicación que utiliza SMB se desconecte abruptamente y pierda datos.
+
+
+
+ a| 
+Comprobación del disco
+ a| 
+Todos los discos fallidos o omitidos se deben eliminar antes de intentar realizar la devolución. Si se están saneando los discos, debería esperar hasta que finalice la operación.
+
+Si se anula este veto, se podría producir una interrupción del servicio provocada por agregados o volúmenes que se desconectarán debido a conflictos de reserva o discos inaccesibles.
+
+|===
+
+
+== Recuperación de los agregados SFO
+
+Estos vetos no se aplican a las operaciones de reubicación de agregados:
+
+[cols="35,65"]
+|===
+
+
+| Vetoque módulo subsistema | Solución alternativa 
+
+
+ a| 
+Gestor de bloqueos
+ a| 
+Apague con dignidad las aplicaciones SMB que tienen archivos abiertos o mueva esos volúmenes a un agregado diferente.
+
+Sobrescribir este veto produce una pérdida de estado de bloqueo de SMB, lo que provoca interrupciones y pérdida de datos.
+
+
+
+ a| 
+Bloquear OPERACIONES NO DISRUPTIVAS
+ a| 
+Espere hasta que los bloqueos estén reflejados.
+
+Anular este veto provoca interrupciones en las máquinas virtuales de Microsoft Hyper-V.
+
+
+
+| RAID  a| 
+Compruebe los mensajes EMS para determinar la causa del veto:
+
+Si el veto se debe a nvfile, coloque los volúmenes y los agregados offline en línea.
+
+Si las operaciones de adición de discos o de reasignación de la propiedad de discos están en curso, espere hasta que hayan finalizado.
+
+Si el veto se debe a un conflicto de nombre de agregado o UUID, solucione y resuelva el problema.
+
+Si el veto se debe a una resincronización de espejo, verificación de espejo o discos sin conexión, el veto puede anularse y la operación se reinicia después de la devolución.
+
+
+
+| Inventario de discos  a| 
+Solucione problemas para identificar y resolver la causa del problema.
+
+Es posible que el nodo de destino no pueda ver discos que pertenecen a un agregado que se está migrando.
+
+Los discos inaccesibles pueden provocar agregados o volúmenes inaccesibles.
+
+
+
+| Operación de movimiento de volumen  a| 
+Solucione problemas para identificar y resolver la causa del problema.
+
+Este veto impide que la operación de desplazamiento de volumen se aborte durante la fase de transposición importante. Si el trabajo se cancela durante la transición, es posible que el volumen no se pueda acceder a él.
+
+|===
+
+
+=== Comandos para realizar una devolución del control manual
+
+Puede iniciar manualmente una devolución en un nodo en una pareja de ha para devolver el almacenamiento al propietario original después de completar el mantenimiento o resolver cualquier problema que haya provocado la toma de control.
+
+|===
+
+
+| Si desea... | Se usa este comando... 
+
+
+ a| 
+Conceda de nuevo almacenamiento a un nodo asociado
+| `storage failover giveback ‑ofnode _nodename_` 
+
+
+ a| 
+Recupere el almacenamiento aunque el partner no esté en el modo de devolución
+ a| 
+`storage failover giveback ‑ofnode _nodename_`
+`‑require‑partner‑waiting false`
+
+No utilice esta opción a menos que se acepte una interrupción del cliente más larga.
+
+
+
+| Devolver el almacenamiento aunque los procesos veten la operación de devolución (forzar la devolución)  a| 
+`storage failover giveback ‑ofnode _nodename_`
+`‑override‑vetoes true`
+
+El uso de esta opción puede provocar una interrupción del servicio del cliente mayor o agregados y volúmenes que no se conecten tras esta devolución.
+
+
+
+| Proporcione solo los agregados CFO (el agregado raíz).  a| 
+`storage failover giveback ‑ofnode _nodename_`
+
+`‑only‑cfo‑aggregates true`
+
+
+
+| Supervise el progreso de la devolución después de emitir el comando retorno | `storage failover show‑giveback` 
+|===

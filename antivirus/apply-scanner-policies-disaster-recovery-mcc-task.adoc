@@ -1,0 +1,87 @@
+---
+permalink: antivirus/apply-scanner-policies-disaster-recovery-mcc-task.html 
+sidebar: sidebar 
+keywords: apply, scanner policies, metrocluster, configurations 
+summary: Una directiva de escáner determina si un grupo de escáneres está activo. Debe aplicar una política de escáner a los pools de análisis principal y secundario de cada clúster de una configuración de MetroCluster. 
+---
+= Aplicar directivas de escáner en las configuraciones de MetroCluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Una directiva de escáner determina si un grupo de escáneres está activo. Debe aplicar una política de escáner a los pools de análisis principal y secundario de cada clúster de una configuración de MetroCluster.
+
+.Acerca de esta tarea
+* Sólo puede aplicar una directiva de escáner a un grupo de escáneres.
+* Si ha creado un pool de análisis para todas las SVM de un clúster, debe aplicar una política de análisis en cada SVM de forma individual.
+
+
+.Pasos
+. Aplicar una política de escáner:
++
+`vserver vscan scanner-pool apply-policy -vserver _data_SVM_ -scanner-pool _scanner_pool_ -scanner-policy primary|secondary|idle -cluster _cluster_to_apply_policy_on_`
+
++
+Una directiva de escáner puede tener uno de los siguientes valores:
+
++
+** `Primary` especifica que el grupo de escáneres está activo.
+** `Secondary` Especifica que el grupo de escáneres está activo sólo si no hay ninguno de los servidores Vscan del grupo de escáneres primario conectado.
+** `Idle` especifica que el grupo de escáneres está inactivo.
+
+
++
+[NOTE]
+====
+Debe aplicar todas las políticas de análisis del clúster que contiene la SVM principal.
+
+====
++
+Los siguientes comandos aplican políticas de análisis a los pools de análisis principal y secundario de cada clúster en una configuración de MetroCluster:
+
++
+[listing]
+----
+cluster1::>vserver vscan scanner-pool apply-policy -vserver cifssvm1
+-scanner-pool pool1_for_site1 -scanner-policy primary -cluster cluster1
+
+cluster1::>vserver vscan scanner-pool apply-policy -vserver cifssvm1
+-scanner-pool pool2_for_site1 -scanner-policy secondary -cluster cluster1
+
+cluster1::>vserver vscan scanner-pool apply-policy -vserver cifssvm1
+-scanner-pool pool1_for_site2 -scanner-policy primary -cluster cluster2
+
+cluster1::>vserver vscan scanner-pool apply-policy -vserver cifssvm1
+-scanner-pool pool2_for_site2 -scanner-policy secondary -cluster cluster2
+----
+. Compruebe que el grupo de escáneres está activo:
++
+`vserver vscan scanner-pool show -vserver data_SVM|cluster_admin_SVM -scanner-pool scanner_pool`
+
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los detalles del grupo de escáneres `pool1`:
+
++
+[listing]
+----
+cluster1::> vserver vscan scanner-pool show -vserver cifssvm1 -scanner-pool pool1_for_site1
+
+                                    Vserver: cifssvm1
+                               Scanner Pool: pool1_for_site1
+                             Applied Policy: primary
+                             Current Status: on
+         Cluster on Which Policy Is Applied: cluster1
+                  Scanner Pool Config Owner: vserver
+       List of IPs of Allowed Vscan Servers:
+List of Host Names of Allowed Vscan Servers: scan1
+                   List of Privileged Users: cifs\u1,cifs\u2
+----
++
+Puede utilizar el `vserver vscan scanner-pool show-active` Comando para ver los pools de análisis activos en una SVM. Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
+

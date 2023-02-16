@@ -1,0 +1,55 @@
+---
+permalink: nfs-config/create-nis-domain-config-task.html 
+sidebar: sidebar 
+keywords: create, nis, domain, configuration, configure 
+summary: 'Si se utiliza un Servicio de información de red (NIS) en el entorno para servicios de nombre, debe crear una configuración de dominio NIS para la SVM mediante el comando vserver Services NAME-service nis-domain create.' 
+---
+= Cree una configuración de dominio NIS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si se utiliza un Servicio de información de red (NIS) en el entorno para servicios de nombres, debe crear una configuración de dominio NIS para la SVM mediante el `vserver services name-service nis-domain create` comando.
+
+.Lo que necesitará
+Todos los servidores NIS configurados deben estar disponibles y accesibles antes de configurar el dominio NIS en la SVM.
+
+Si tiene previsto utilizar NIS para búsquedas en directorios, los mapas de sus servidores NIS no pueden tener más de 1,024 caracteres para cada entrada. No especifique el servidor NIS que no cumpla con este límite. De lo contrario, es posible que se produzca un error en el acceso del cliente que depende de las entradas NIS.
+
+.Acerca de esta tarea
+Puede crear varios dominios NIS. Sin embargo, sólo puede utilizar una que esté establecida en `active`.
+
+Si la base de datos NIS contiene un `netgroup.byhost` Map, ONTAP puede utilizarlo para realizar búsquedas más rápidas. La `netgroup.byhost` y.. `netgroup` los mapas del directorio deben mantenerse sincronizados en todo momento para evitar problemas de acceso de los clientes. A partir de ONTAP 9.7, NIS `netgroup.byhost` las entradas se pueden almacenar en caché mediante `vserver services name-service nis-domain netgroup-database` comandos.
+
+No se admite el uso de NIS para la resolución del nombre de host.
+
+.Pasos
+. Cree una configuración de dominio NIS:
++
+`vserver services name-service nis-domain create -vserver vs1 -domain _domain_name_ -active true _-servers IP_addresses_`
+
++
+Puede especificar hasta 10 servidores NIS.
+
++
+[NOTE]
+====
+A partir de ONTAP 9.2, el campo `-nis-servers` reemplaza el campo `-servers`. Este nuevo campo puede tomar un nombre de host o una dirección IP para el servidor NIS.
+
+====
+. Compruebe que se ha creado el dominio:
++
+`vserver services name-service nis-domain show`
+
+
+
+.Ejemplo
+El siguiente comando crea y realiza una configuración de dominio NIS activa para un dominio NIS llamado nisdomain en la SVM denominada vs1 con un servidor NIS en la dirección IP 192.0.2.180:
+
+[listing]
+----
+vs1::> vserver services name-service nis-domain create -vserver vs1
+-domain nisdomain -active true -nis-servers 192.0.2.180
+----

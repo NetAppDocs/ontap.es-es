@@ -1,0 +1,90 @@
+---
+permalink: flexgroup/fast-directory-delete-asynchronous-task.html 
+sidebar: sidebar 
+keywords: perform, directory, delete, files, asynchronous, share, flexvol, flex vol, flexgroup, flex group, cancel 
+summary: A partir de ONTAP 9.8, se puede usar el comando volume file asíncrono-delete para eliminar archivos y directorios de recursos compartidos de clientes Linux y Windows en segundo plano. Es posible realizar la eliminación asíncrona tanto en volúmenes de FlexVol como de FlexGroup. 
+---
+= Elimine directorios rápidamente en el clúster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.8, puede utilizar la funcionalidad _FAST-directory delete_ de baja latencia para eliminar directorios de recursos compartidos de clientes de Linux y Windows de forma asíncrona (es decir, en segundo plano). Los administradores de clústeres y SVM pueden realizar operaciones de eliminación asíncrona tanto en volúmenes FlexVol como en volúmenes FlexGroup.
+
+Si utiliza una versión de ONTAP anterior a ONTAP 9.11.1, debe ser un administrador de clústeres o un administrador de SVM con el modo de privilegios avanzado.
+
+A partir de ONTAP 9.11.1, un administrador de almacenamiento puede otorgar derechos en un volumen para que los clientes NFS y SMB puedan realizar operaciones de eliminación asíncrona. Para obtener más información, consulte link:manage-client-async-dir-delete-task.html["Gestione los derechos de cliente para eliminar directorios rápidamente"].
+
+A partir de ONTAP 9.8, puede utilizar la funcionalidad de eliminación rápida de directorios mediante la interfaz de línea de comandos de ONTAP. A partir de ONTAP 9.9.1, se puede usar esta funcionalidad con System Manager. Para obtener más información acerca de este proceso, consulte https://docs.netapp.com/us-en/ontap/task_nas_file_system_analytics_take_corrective_action.html["Adopte medidas correctivas basadas en análisis"].
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Para obtener más información, consulte https://docs.netapp.com/us-en/ontap/task_nas_file_system_analytics_take_corrective_action.html["Adopte medidas correctivas basadas en análisis"].
+
+--
+.CLI
+--
+*Utilice la CLI para realizar una eliminación rápida de directorios*
+
+. Entre en el modo de privilegio avanzado:
++
+`-privilege advance`
+
+. Elimine los archivos o directorios de un volumen de FlexVol o FlexGroup:
++
+`volume file async-delete start -vserver vserver_name -volume volume_name -path file_path -throttle throttle`
+
++
+El valor mínimo del acelerador es 10, el máximo es 100,000 y el valor predeterminado es 5000.
+
++
+En el ejemplo siguiente se elimina el directorio denominado d2, que se encuentra en el directorio denominado d1.
+
++
+....
+cluster::*>volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
+....
+. Compruebe que el directorio se ha eliminado:
++
+`event log show`
+
++
+En el siguiente ejemplo se muestra el resultado del registro de eventos cuando el directorio se elimina correctamente.
+
++
+....
+cluster-cli::*> event log show
+Time                 Node             Severity      Event
+-------------------  ---------------- ------------- --------------------
+MM/DD/YYYY 00:11:11  cluster-vsim     INFORMATIONAL asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed.
+....
+
+
+*Cancelar un trabajo de eliminación de directorio*
+
+. Entre en el modo de privilegio avanzado:
++
+`set -privilege advanced`
+
+. Compruebe que la eliminación del directorio está en curso:
++
+`volume file async-delete show`
+
++
+Si se muestra la SVM, el volumen, el JobID y la ruta de acceso del directorio, puede cancelarla.
+
+. Cancelar el directorio de eliminación:
++
+`volume file async-delete cancel -vserver _SVM_name_ -volume _volume_name_ -jobid _job_id_`
+
+
+
+--
+--
+
+--
+====

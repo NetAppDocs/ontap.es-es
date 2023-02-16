@@ -1,0 +1,69 @@
+---
+permalink: smb-hyper-v-sql/create-continuously-available-shares-task.html 
+sidebar: sidebar 
+keywords: create, continuous, smb, available, share, sql, database, file, server, hyper, v, virtual, machine 
+summary: Después de crear los volúmenes de datos, puede crear los recursos compartidos disponibles de forma continua que los servidores de aplicaciones utilizan para acceder a los archivos de configuración y de la máquina virtual Hyper-V y los archivos de la base de datos de SQL Server. Debe utilizar la hoja de datos de configuración del recurso compartido a medida que crea los recursos compartidos de SMB. 
+---
+= Crear recursos compartidos de SMB disponibles de forma continua
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Después de crear los volúmenes de datos, puede crear los recursos compartidos disponibles de forma continua que los servidores de aplicaciones utilizan para acceder a los archivos de configuración y de la máquina virtual Hyper-V y los archivos de la base de datos de SQL Server. Debe utilizar la hoja de datos de configuración del recurso compartido a medida que crea los recursos compartidos de SMB.
+
+.Pasos
+. Muestre información sobre los volúmenes de datos existentes y sus rutas de unión:
++
+`*volume show -vserver _vserver_name_ -junction*`
+
+. Crear un recurso compartido de SMB disponible de forma continua:
++
+`*vserver cifs share create -vserver _vserver_name_ -share-name _share_name_ -path _path_ -share-properties oplocks,continuously-available -symlink "" [-comment text]*`
+
++
+** Opcionalmente, puede añadir un comentario a la configuración del recurso compartido.
+** De forma predeterminada, la propiedad de recurso compartido de archivos sin conexión está configurada en el recurso compartido y se establece en `manual`.
+** ONTAP crea el recurso compartido con el permiso de recurso compartido predeterminado de Windows `Everyone` / `Full Control`.
+
+
+. Repita el paso anterior para todos los recursos compartidos de la hoja de datos de configuración del recurso compartido.
+. Compruebe que la configuración es correcta mediante el `vserver cifs share show` comando.
+. Configure los permisos de archivo NTFS en los recursos compartidos disponibles continuamente asignando una unidad a cada recurso compartido y configurando los permisos de archivo mediante la ventana *Propiedades de Windows*.
+
+
+.Ejemplo
+Los siguientes comandos crean un recurso compartido disponible de forma continua llamado «data2» en la máquina virtual de almacenamiento (SVM, antes denominada Vserver) vs1. Los enlaces simbólicos se desactivan mediante la configuración de `-symlink` parámetro a. `""`:
+
+[listing]
+----
+cluster1::> volume show -vserver vs1 -junction
+                      Junction                  Junction
+Vserver   Volume      Active   Junction Path    Path Source
+--------- ----------- -------- ---------------- ------------
+vs1       data        true     /data            RW_volume
+vs1       data1       true     /data/data1      RW_volume
+vs1       data2       true     /data/data2      RW_volume
+vs1       vs1_root    -        /                -
+
+cluster1::> vserver cifs share create -vserver vs1 -share-name data2 -path /data/data2 -share-properties oplocks,continuously-available -symlink ""
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data/data2
+             Share Properties: oplocks
+                               continuously-available
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----

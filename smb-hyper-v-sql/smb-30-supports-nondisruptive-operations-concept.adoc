@@ -1,0 +1,20 @@
+---
+permalink: smb-hyper-v-sql/smb-30-supports-nondisruptive-operations-concept.html 
+sidebar: sidebar 
+keywords: smb, functionality, support, nondisruptive, operations, shares, clients, hyper, v, sql, server 
+summary: SMB 3.0 proporciona una funcionalidad crucial que permite admitir operaciones no disruptivas para Hyper-V y SQL Server en recursos compartidos SMB. Esto incluye la propiedad de recursos compartidos disponible de forma continua y un tipo de gestión de archivos conocido como identificador persistente que permite a los clientes de SMB recuperar el estado abierto de los archivos y restablecer las conexiones SMB de forma transparente. 
+---
+= Cómo la funcionalidad SMB 3.0 admite operaciones no disruptivas en recursos compartidos de SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+SMB 3.0 proporciona una funcionalidad crucial que permite admitir operaciones no disruptivas para Hyper-V y SQL Server en recursos compartidos SMB. Esto incluye la `continuously-available` Propiedad Share y un tipo de manejador de archivo conocido como _persistent handle_ que permite a los clientes SMB reclamar el estado de apertura de archivo y restablecer de forma transparente las conexiones SMB.
+
+Los identificadores persistentes se pueden otorgar a clientes compatibles con SMB 3.0 que se conectan a un recurso compartido con el conjunto de propiedades compartidas disponibles continuamente. Si la sesión SMB está desconectada, el servidor CIFS conserva información sobre el estado de gestión persistente. El servidor CIFS bloquea las solicitudes de otros clientes durante el periodo de 60 segundos en el que se permite al cliente reconectar, permitiendo al cliente con la gestión persistente recuperar el controlador tras una desconexión de red. Los clientes con controladores persistentes pueden volver a conectarse utilizando uno de los LIF de datos de la máquina virtual de almacenamiento (SVM), ya sea reconectando a través del mismo LIF o a través de un LIF diferente.
+
+La reubicación, la toma de control y el retorno al nodo primario de los agregados se producen entre los pares de SFO. Para gestionar sin problemas la desconexión y reconexión de sesiones con archivos que tienen controladores persistentes, el nodo del partner mantiene una copia de toda la información del bloqueo del controlador persistente. Tanto si el evento está planificado como no planificado, el partner de SFO puede gestionar de forma no disruptiva el reconecta del controlador persistente. Con esta nueva funcionalidad, las conexiones SMB 3.0 al servidor CIFS pueden conmutar por error de forma transparente y sin interrupciones a otra LIF de datos asignada a la SVM en lo que tradicionalmente ha sido un evento disruptivo.
+
+Aunque el uso de identificadores persistentes permite al servidor CIFS conmutar al respaldo de forma transparente en las conexiones de SMB 3.0, si un fallo provoca que la aplicación de Hyper-V conmute a otro nodo del clúster de Windows Server, el cliente no tiene forma de recuperar los controladores de archivos de estos controladores desconectados. En esta situación, los controladores de archivos en estado desconectado pueden bloquear potencialmente el acceso de la aplicación Hyper-V si se reinicia en un nodo diferente. "'clúster de conmutación por error'" es una parte de SMB 3.0 que aborda este escenario proporcionando un mecanismo para invalidar controladores obsoletos y en conflicto. Con este mecanismo, un clúster de Hyper-V se puede recuperar rápidamente cuando fallan los nodos del clúster de Hyper-V.

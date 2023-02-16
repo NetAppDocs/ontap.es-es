@@ -1,0 +1,190 @@
+---
+permalink: nas-audit/plan-fpolicy-policy-config-concept.html 
+sidebar: sidebar 
+keywords: plan, fpolicy, policy, configuration 
+summary: Antes de configurar la política de FPolicy, debe comprender qué parámetros son necesarios para crear la política y por qué quizás desee configurar determinados parámetros opcionales. Esta información le ayuda a determinar qué valores se deben establecer para cada parámetro. 
+---
+= Planifique la información general de configuración de directivas de FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de configurar la política de FPolicy, debe comprender qué parámetros son necesarios para crear la política y por qué quizás desee configurar determinados parámetros opcionales. Esta información le ayuda a determinar qué valores se deben establecer para cada parámetro.
+
+Al crear una política de FPolicy, debe asociar la política a lo siguiente:
+
+* La máquina virtual de almacenamiento (SVM)
+* Uno o más eventos de FPolicy
+* Un motor externo de FPolicy
+
+
+También puede configurar varias opciones de configuración de directivas.
+
+
+
+== Lo que contiene la configuración de la política de FPolicy
+
+Puede usar la siguiente lista de políticas de FPolicy disponibles y parámetros opcionales para ayudar a planificar la configuración:
+
+[cols="40,20,20,20"]
+|===
+
+
+| Tipo de información | Opción | Obligatorio | Predeterminado 
+
+
+ a| 
+_SVM name_
+
+Especifica el nombre de la SVM en la que desea crear una política de FPolicy.
+ a| 
+`-vserver` `vserver_name`
+ a| 
+Sí
+ a| 
+Ninguno
+
+
+
+ a| 
+_Nombre de directiva_
+
+Especifica el nombre de la política de FPolicy.
+
+El nombre puede tener hasta 256 caracteres.
+
+[NOTE]
+====
+El nombre debe tener hasta 200 caracteres si se configura la política en una configuración de recuperación ante desastres de MetroCluster o SVM.
+
+====
+El nombre puede contener cualquier combinación de los siguientes caracteres de intervalo ASCII:
+
+* `a` por `z`
+* `A` por `Z`
+* `0` por `9`
+* "'_", "'-`", and "`.'"
+
+ a| 
+`-policy-name` `policy_name`
+ a| 
+Sí
+ a| 
+Ninguno
+
+
+
+ a| 
+_Nombres de eventos_
+
+Especifica una lista de eventos delimitada por comas para asociarlos a la directiva de FPolicy.
+
+* Puede asociar más de un evento a una directiva.
+* Un evento es específico de un protocolo.
+* Puede utilizar una única directiva para supervisar los eventos de acceso a archivos de más de un protocolo creando un evento para cada protocolo que desee supervisar la directiva y asociando los eventos a la directiva.
+* Los eventos deben existir previamente.
+
+ a| 
+`-events` `event_name`, ...
+ a| 
+Sí
+ a| 
+Ninguno
+
+
+
+ a| 
+_Nombre externo del motor_
+
+Especifica el nombre del motor externo que se va a asociar a la directiva de FPolicy.
+
+* Un motor externo contiene información que el nodo necesita para enviar notificaciones a un servidor FPolicy.
+* Es posible configurar FPolicy para usar el motor externo nativo de ONTAP para bloquear archivos fácilmente o para usar un motor externo que esté configurado para utilizar servidores de FPolicy externos (servidores FPolicy) a fin de ofrecer un bloqueo de archivos y una gestión de archivos más sofisticados.
+* Si desea usar el motor externo nativo, puede no especificar un valor para este parámetro o bien puede especificar `native` como valor.
+* Si desea utilizar servidores FPolicy, la configuración del motor externo ya debe existir.
+
+ a| 
+`-engine` `engine_name`
+ a| 
+Sí (a menos que la política utilice el motor nativo de ONTAP interno)
+ a| 
+`native`
+
+
+
+ a| 
+_Es obligatoria la selección requerida_
+
+Especifica si es necesario realizar un análisis de acceso a archivos obligatorio.
+
+* La configuración de tramado obligatoria determina qué acción se realiza en un evento de acceso a archivos en un caso en que todos los servidores principales y secundarios están inactivos o no se recibe respuesta de los servidores FPolicy dentro de un período de tiempo de espera determinado.
+* Cuando se establece en `true`, se deniegan los eventos de acceso a archivos.
+* Cuando se establece en `false`, se permiten eventos de acceso a archivos.
+
+ a| 
+`-is-mandatory` {`true`|`false`}
+ a| 
+No
+ a| 
+`true`
+
+
+
+ a| 
+_Permitir acceso privilegiado_
+
+Especifica si desea que el servidor FPolicy tenga acceso privilegiado a los archivos y carpetas supervisados mediante una conexión de datos con privilegios.
+
+Si se configura, los servidores FPolicy pueden acceder a archivos desde la raíz de la SVM que contiene los datos supervisados mediante la conexión de datos con privilegios.
+
+Para obtener un acceso a datos con privilegios, debe tener una licencia para SMB en el clúster y todas las LIF de datos utilizadas para conectarse con los servidores de FPolicy se deben configurar para que tengan `cifs` como uno de los protocolos permitidos.
+
+Si desea configurar la directiva para permitir el acceso con privilegios, también debe especificar el nombre de usuario de la cuenta que desea que el servidor FPolicy utilice para obtener acceso con privilegios.
+ a| 
+`-allow-privileged-access` {`yes`|`no`}
+ a| 
+No (a menos que la lectura directa esté habilitada)
+ a| 
+`no`
+
+
+
+ a| 
+_Nombre de usuario privilegiado_
+
+Especifica el nombre de usuario de la cuenta que utilizan los servidores FPolicy para el acceso a datos con privilegios.
+
+* El valor de este parámetro debe utilizar el formato "dain\user name".
+* Si `-allow-privileged-access` se establece en `no`, cualquier valor establecido para este parámetro se omite.
+
+ a| 
+`-privileged-user-name` `user_name`
+ a| 
+No (a menos que el acceso con privilegios esté activado)
+ a| 
+Ninguno
+
+
+
+ a| 
+_Permitir passThrough-read_
+
+Especifica si los servidores FPolicy pueden proporcionar servicios de lectura de paso a través para los archivos que los servidores FPolicy han archivado en almacenamiento secundario (archivos sin conexión):
+
+* La lectura mediante paso es una forma de leer datos de archivos sin conexión sin restaurar los datos en el almacenamiento primario.
++
+La lectura tras paso reduce las latencias de respuesta, ya que no es necesario recuperar los archivos en el almacenamiento principal antes de responder a la solicitud de lectura. Además, la lectura tras paso optimiza la eficiencia del almacenamiento, ya que elimina la necesidad de consumir espacio de almacenamiento primario con archivos que se recuperan únicamente para satisfacer las solicitudes de lectura.
+
+* Cuando se habilita, los servidores FPolicy proporcionan los datos para el archivo a través de un canal de datos privilegiado independiente abierto específicamente para lecturas de paso a través.
+* Si desea configurar passthrough-read, la directiva también debe configurarse para permitir el acceso privilegiado.
+
+ a| 
+`-is-passthrough-read-enabled` {`true`|`false`}
+ a| 
+No
+ a| 
+`false`
+
+|===

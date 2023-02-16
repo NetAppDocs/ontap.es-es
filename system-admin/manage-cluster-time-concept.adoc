@@ -1,0 +1,54 @@
+---
+permalink: system-admin/manage-cluster-time-concept.html 
+sidebar: sidebar 
+keywords: manage, cluster, time, administrator, ntp, network, time, protocol, zone 
+summary: 'Los problemas pueden surgir cuando la hora del clúster no es precisa. Aunque ONTAP le permite establecer manualmente la zona horaria, la fecha y la hora del clúster, debe configurar los servidores de protocolo de hora de red (NTP) para sincronizar la hora del clúster.' 
+---
+= Gestionar la hora del clúster (solo administradores de clúster)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Los problemas pueden surgir cuando la hora del clúster no es precisa. Aunque ONTAP le permite establecer manualmente la zona horaria, la fecha y la hora del clúster, debe configurar los servidores de protocolo de hora de red (NTP) para sincronizar la hora del clúster.
+
+A partir de ONTAP 9.5, puede configurar el servidor NTP con autenticación simétrica.
+
+NTP está siempre habilitado. Sin embargo, sigue siendo necesaria la configuración para que el clúster se sincronice con un origen de tiempo externo. ONTAP permite gestionar la configuración de NTP del clúster de las siguientes maneras:
+
+* Es posible asociar un máximo de 10 servidores NTP externos al clúster (`cluster time-service ntp server create`).
++
+** Para la redundancia y la calidad del servicio de tiempo, debe asociar al menos tres servidores NTP externos al clúster.
+** Es posible especificar un servidor NTP con su dirección IPv4 o IPv6, o bien un nombre de host completo.
+** Puede especificar manualmente la versión de NTP (v3 o v4) que desee usar.
++
+De forma predeterminada, ONTAP selecciona automáticamente la versión de NTP que se admite para un servidor NTP externo determinado.
+
++
+Si la versión de NTP especificada no es compatible con el servidor NTP, no se puede realizar el intercambio de hora.
+
+** En el nivel de privilegio avanzado, puede especificar un servidor NTP externo que esté asociado con el clúster para que sea el origen de hora principal para corregir y ajustar la hora del clúster.
+
+
+* Puede mostrar los servidores NTP asociados con el clúster (`cluster time-service ntp server show`).
+* Es posible modificar la configuración de NTP del clúster (`cluster time-service ntp server modify`).
+* Es posible desasociar el clúster de un servidor NTP externo (`cluster time-service ntp server delete`).
+* En el nivel de privilegio avanzado, puede restablecer la configuración borrando la asociación de todos los servidores NTP externos con el clúster (`cluster time-service ntp server reset`).
+
+
+Un nodo que se une a un clúster adopta automáticamente la configuración de NTP del clúster.
+
+Además de usar NTP, ONTAP también le permite gestionar manualmente la hora del clúster. Esta funcionalidad resulta útil cuando es necesario corregir una hora incorrecta (por ejemplo, la hora de un nodo se ha vuelto significativamente incorrecta después de un reinicio). En ese caso, puede especificar una hora aproximada para el clúster hasta que NTP pueda sincronizar con un servidor de tiempo externo. El tiempo que establece manualmente surte efecto en todos los nodos del clúster.
+
+Puede gestionar manualmente la hora del clúster de las siguientes maneras:
+
+* Puede configurar o modificar la zona horaria, la fecha y la hora del clúster (`cluster date modify`).
+* Puede mostrar la configuración actual de la zona horaria, la fecha y la hora del clúster (`cluster date show`).
+
+
+[NOTE]
+====
+Las programaciones de trabajos no se ajustan a los cambios de fecha y hora del clúster manuales. Estos trabajos se programan para que se ejecuten en función de la hora actual del clúster cuando se creó el trabajo o cuando se ejecutó el trabajo más recientemente. Por lo tanto, si cambia manualmente la fecha o la hora del clúster, debe usar el `job show` y.. `job history show` comandos para verificar que todos los trabajos programados se ponen en cola y se completan de acuerdo con los requisitos que haya.
+
+====

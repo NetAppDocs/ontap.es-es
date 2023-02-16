@@ -1,0 +1,95 @@
+---
+permalink: nfs-config/using-ldap-concept.html 
+sidebar: sidebar 
+keywords: use, ldap 
+summary: Si se utiliza LDAP en su entorno para servicios de nombre, debe trabajar con el administrador de LDAP para determinar los requisitos y las configuraciones del sistema de almacenamiento adecuadas, habilitar la SVM como cliente LDAP. 
+---
+= Información general sobre cómo usar LDAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si se utiliza LDAP en su entorno para servicios de nombre, debe trabajar con el administrador de LDAP para determinar los requisitos y las configuraciones del sistema de almacenamiento adecuadas, habilitar la SVM como cliente LDAP.
+
+A partir de ONTAP 9.10.1, el enlace de canal LDAP se admite de forma predeterminada tanto para las conexiones LDAP de los servicios de nombres como de Active Directory. ONTAP intentará establecer la vinculación de canal con las conexiones LDAP solo si Start-TLS o LDAPS está habilitado junto con la seguridad de la sesión establecida en Sign o Seal. Para deshabilitar o volver a habilitar el enlace de canal LDAP con servidores de nombres, utilice `-try-channel-binding` con el `ldap client modify` comando.
+
+Para obtener más información, consultelink:https://support.microsoft.com/en-us/topic/2020-ldap-channel-binding-and-ldap-signing-requirements-for-windows-ef185fb8-00f7-167d-744c-f299a66fc00a["2020 requisitos de enlace de canal LDAP y firma LDAP para Windows"^].
+
+* Antes de configurar LDAP para ONTAP, debe verificar que la implementación del sitio cumple las prácticas recomendadas para la configuración del cliente y el servidor LDAP. En particular, deben cumplirse las siguientes condiciones:
++
+** El nombre de dominio del servidor LDAP debe coincidir con la entrada del cliente LDAP.
+** Los tipos hash de contraseña de usuario LDAP compatibles con el servidor LDAP deben incluir los compatibles con ONTAP:
++
+*** CRIPTA (todos los tipos) y SHA-1 (SHA, SSHA).
+*** A partir de los valores hash de ONTAP 9.8, SHA-2 (SHA-256, SSH-384, SHA-512, SSHA-256, También se admiten SSHA-384 y SSHA-512).
+
+
+** Si el servidor LDAP requiere medidas de seguridad de la sesión, debe configurarlas en el cliente LDAP.
++
+Están disponibles las siguientes opciones de seguridad de la sesión:
+
++
+*** La firma LDAP (proporciona comprobación de la integridad de los datos) y la firma y el sellado LDAP (proporciona cifrado y comprobación de la integridad de los datos).
+*** INICIE TLS
+*** LDAPS (LDAP sobre TLS o SSL)
+
+
+** Para habilitar consultas LDAP firmadas y selladas, se deben configurar los siguientes servicios:
++
+*** Los servidores LDAP deben ser compatibles con el mecanismo SASL GSSAPI (Kerberos).
+*** Los servidores LDAP deben tener registros DNS A/AAAA, así como registros PTR configurados en el servidor DNS.
+*** Los servidores Kerberos deben tener registros SRV presentes en el servidor DNS.
+
+
+** Para habilitar el INICIO de TLS o LDAPS, se deben tener en cuenta los siguientes puntos.
++
+*** Se trata de una práctica recomendada de NetApp para usar Start TLS en lugar de LDAPS.
+*** Si se usa LDAPS, el servidor LDAP debe habilitar para TLS o SSL en ONTAP 9.5 y versiones posteriores. SSL no es compatible con ONTAP 9.0-9.4.
+*** Ya debe configurarse un servidor de certificados en el dominio.
+
+
+** Para habilitar la búsqueda de referencias LDAP (en ONTAP 9.5 y posterior), se deben cumplir las siguientes condiciones:
++
+*** Ambos dominios deben configurarse con una de las siguientes relaciones de confianza:
++
+**** Bidireccional
+**** Unidireccional, donde la primaria confía en el dominio de referencia
+**** Padre-hijo
+
+
+*** El DNS debe configurarse de modo que resuelva todos los nombres de servidor a los que se hace referencia.
+*** Las contraseñas de dominio deben coincidir para autenticarse cuando --bind-as-cifs-Server se establece en true.
+
+
+
+
++
+[NOTE]
+====
+Las siguientes configuraciones no son compatibles con la búsqueda de referencias LDAP.
+
+** Para todas las versiones de ONTAP:
++
+*** Clientes LDAP en una SVM de administrador
+
+
+** Para ONTAP 9.8 y versiones anteriores (se admiten en la versión 9.9.1 y posteriores):
++
+*** Firma y sellado LDAP (la `-session-security` opción)
+*** Conexiones TLS cifradas (la `-use-start-tls` opción)
+*** Comunicaciones por puerto LDAPS 636 (el `-use-ldaps-for-ad-ldap` opción)
+
+
+
+
+====
+* Debe introducir un esquema de LDAP al configurar el cliente LDAP en la SVM.
++
+En la mayoría de los casos, uno de los esquemas ONTAP predeterminados será apropiado. Sin embargo, si el esquema LDAP del entorno difiere de éste, debe crear un nuevo esquema de cliente LDAP para ONTAP antes de crear el cliente LDAP. Consulte a su administrador LDAP sobre los requisitos de su entorno.
+
+* No se admite el uso de LDAP para la resolución de nombres de host.
+
+
+Para obtener más información, consulte https://www.netapp.com/pdf.html?item=/media/19423-tr-4835.pdf["Informe técnico de NetApp 4835: Cómo configurar LDAP en ONTAP"].

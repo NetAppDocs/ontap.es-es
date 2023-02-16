@@ -1,0 +1,79 @@
+---
+permalink: san-config/calculate-queue-depth-task.html 
+sidebar: sidebar 
+keywords: calculate, queue depth 
+summary: Es posible que deba ajustar la profundidad de la cola FC en el host para obtener los valores máximos de ITN por nodo y de «fan-in» de puertos FC. El número máximo de LUN y el número de HBA que pueden conectarse a un puerto de FC están limitados por la profundidad de cola disponible en los puertos de destino FC. 
+---
+= Visión general de profundidad de cola
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible que deba ajustar la profundidad de la cola FC en el host para obtener los valores máximos de ITN por nodo y de «fan-in» de puertos FC. El número máximo de LUN y el número de HBA que pueden conectarse a un puerto de FC están limitados por la profundidad de cola disponible en los puertos de destino FC.
+
+.Acerca de esta tarea
+La profundidad de cola es el número de solicitudes de I/o (comandos SCSI) que se pueden poner en cola a la vez en una controladora de almacenamiento. Cada solicitud de I/o del HBA del iniciador del host al adaptador de destino de la controladora de almacenamiento consume una entrada de cola. Normalmente, una mayor profundidad de cola equivale a un mejor rendimiento. Sin embargo, si se alcanza la profundidad máxima de cola del controlador de almacenamiento, ese controlador de almacenamiento rechaza los comandos entrantes devolviendo una respuesta QFULL a ellos. Si un gran número de hosts acceden a un controlador de almacenamiento, debe planificar cuidadosamente para evitar las condiciones de QFULL, lo que reduce significativamente el rendimiento del sistema y puede provocar errores en algunos sistemas.
+
+En una configuración con varios iniciadores (hosts), todos los hosts deben tener profundidades de cola similares. Debido a la desigualdad en la profundidad de cola entre los hosts conectados a la controladora de almacenamiento a través del mismo puerto objetivo, los hosts con profundidades de cola más pequeñas se ven privados del acceso a los recursos por parte de hosts con profundidades de cola más grandes.
+
+Se pueden hacer las siguientes recomendaciones generales sobre las profundidades de cola de "'tuning'":
+
+* Para sistemas pequeños y medianos, use una profundidad de cola HBA de 32.
+* Para sistemas grandes, utilice una profundidad de cola de HBA de 128.
+* Para casos excepcionales o pruebas de rendimiento, utilice una profundidad de cola de 256 para evitar posibles problemas de cola.
+* Todos los hosts deben tener las profundidades de cola establecidas en valores similares para proporcionar un acceso igual a todos los hosts.
+* Para evitar pérdidas de rendimiento o errores, no se debe exceder la profundidad de cola de puertos FC de destino de la controladora de almacenamiento.
+
+
+.Pasos
+. Cuente el número total de iniciadores de FC de todos los hosts que se conectan a un puerto de destino de FC.
+. Multiplique por 128.
++
+** Si el resultado es inferior a 2,048, establezca la profundidad de cola de todos los iniciadores en 128. Hay 15 hosts con un iniciador conectado a cada uno de los dos puertos de destino de la controladora de almacenamiento. 15 × 128 = 1,920. Como 1,920 es menor que el límite total de profundidad de cola de 2,048, puede establecer la profundidad de cola de todos los iniciadores en 128.
+** Si el resultado es superior a 2,048, vaya al paso 3. Hay 30 hosts con un iniciador conectado a cada uno de los dos puertos de destino de la controladora de almacenamiento. 30 × 128 = 3,840. Dado que 3,840 es mayor que el límite total de profundidad de cola de 2,048, debe elegir una de las opciones del paso 3 para la corrección.
+
+
+. Seleccione una de las siguientes opciones para añadir más hosts a la controladora de almacenamiento.
++
+** Opción 1:
++
+... Añada más puertos de destino FC.
+... Redistribuya los iniciadores de FC.
+... Repita los pasos 1 y 2. + la profundidad de cola deseada de 3,840 excede la profundidad de cola disponible por puerto. Para solucionarlo, puede añadir un adaptador de destino FC de dos puertos a cada controladora y volver a dividir los switches de FC de modo que 15 de sus 30 hosts se conecten a un conjunto de puertos y los 15 hosts restantes se conecten a un segundo conjunto de puertos. La profundidad de cola por puerto se reduce a 15 × 128 = 1,920.
+
+
+** Opción 2:
++
+... Designar a cada huésped como «grande» o «centro comercial» basándose en su necesidad prevista de I/O.
+... Multiplique el número de iniciadores grandes por 128.
+... Multiplique el número de iniciadores pequeños por 32.
+... Añada los dos resultados juntos.
+... Si el resultado es inferior a 2,048, establezca la profundidad de cola de los hosts grandes en 128 y la profundidad de cola de los hosts pequeños en 32.
+... Si el resultado es aún mayor que 2,048 por puerto, reduzca la profundidad de cola por iniciador hasta que la profundidad total de la cola sea inferior o igual a 2,048.
++
+[NOTE]
+====
+Para estimar la profundidad de cola necesaria para obtener un determinado rendimiento de I/o por segundo, utilice esta fórmula:
+
+Profundidad de cola necesaria = (número de operaciones de I/o por segundo) × (tiempo de respuesta)
+
+Por ejemplo, si necesita 40,000 E/S por segundo con un tiempo de respuesta de 3 milisegundos, la profundidad de cola necesaria = 40,000 × (.003) = 120.
+
+====
+
+
+
+
+
+
+El número máximo de hosts que se pueden conectar a un puerto de destino es 64 si decide limitar la profundidad de cola a la recomendación básica de 32. Sin embargo, si decide tener una profundidad de cola de 128, puede haber un máximo de 16 hosts conectados a un puerto de destino. Cuanto mayor sea la profundidad de la cola, menos hosts serán compatibles con un único puerto de destino. Si su requisito es tal que no pueda comprometer la profundidad de cola, debería obtener más puertos de destino.
+
+La profundidad de cola deseada de 3,840 excede la profundidad de cola disponible por puerto. Cuenta con 10 hosts «grandes» que tienen unas necesidades elevadas de I/o de almacenamiento y 20 hosts «de centros comerciales» con necesidades bajas de I/O. Configure la profundidad de la cola del iniciador en los hosts grandes en 128 y la profundidad de la cola del iniciador en los hosts pequeños en 32.
+
+La profundidad total de la cola resultante es de (10 × 128) + (20 × 32) = 1,920.
+
+Puede distribuir la profundidad de cola disponible de forma equitativa entre cada iniciador.
+
+La profundidad de cola resultante por iniciador es de 2,048 ÷ 30 = 68.

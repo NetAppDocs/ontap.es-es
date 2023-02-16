@@ -1,0 +1,170 @@
+---
+permalink: smb-admin/configure-character-mappings-file-name-translation-task.html 
+sidebar: sidebar 
+keywords: nfs, client, create, file, name, character, valid, smb, windows, application, configure, map, translation, configure character mapping for smb file name translation on volumes 
+summary: Los clientes NFS pueden crear nombres de archivo que contengan caracteres que no son válidos para los clientes SMB y ciertas aplicaciones Windows. Puede configurar la asignación de caracteres para la traducción de nombres de archivo en volúmenes para permitir que los clientes SMB accedan a archivos con nombres NFS que, de lo contrario, no serían válidos. 
+---
+= Configurar la asignación de caracteres para la traducción de nombres de archivo SMB en volúmenes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Los clientes NFS pueden crear nombres de archivo que contengan caracteres que no son válidos para los clientes SMB y ciertas aplicaciones Windows. Puede configurar la asignación de caracteres para la traducción de nombres de archivo en volúmenes para permitir que los clientes SMB accedan a archivos con nombres NFS que, de lo contrario, no serían válidos.
+
+.Acerca de esta tarea
+Cuando los clientes SMB acceden a los archivos creados por los clientes NFS, ONTAP observa el nombre del archivo. Si el nombre no es un nombre de archivo SMB válido (por ejemplo, si tiene un carácter "':'" incrustado en dos puntos), ONTAP devuelve el nombre de archivo 8.3 que se mantiene para cada archivo. Sin embargo, esto causa problemas para las aplicaciones que codifican información importante en nombres de archivos largos.
+
+Por lo tanto, si comparte un archivo entre clientes en diferentes sistemas operativos, debe utilizar caracteres en los nombres de archivo válidos en ambos sistemas operativos.
+
+Sin embargo, si tiene clientes NFS que crean nombres de archivo que contienen caracteres que no son nombres de archivo válidos para clientes SMB, puede definir un mapa que convierte los caracteres NFS no válidos en caracteres Unicode que tanto SMB como determinadas aplicaciones Windows aceptan. Por ejemplo, esta funcionalidad admite las aplicaciones CATIA MCAD y Mathematica, así como otras aplicaciones que tienen este requisito.
+
+Puede configurar la asignación de caracteres de volumen a volumen.
+
+Debe tener en cuenta lo siguiente al configurar la asignación de caracteres en un volumen:
+
+* La asignación de caracteres no se aplica a través de puntos de unión.
++
+Debe configurar explícitamente la asignación de caracteres para cada volumen de unión.
+
+* Debe asegurarse de que los caracteres Unicode que se utilizan para representar caracteres no válidos o ilegales son caracteres que normalmente no aparecen en los nombres de archivo; de lo contrario, se producen asignaciones no deseadas.
++
+Por ejemplo, si intenta asignar dos puntos (:) a un guión (-) pero el guión (-) se utilizó correctamente en el nombre del archivo, un cliente de Windows que intente acceder a un archivo denominado «'a-b'» tendría su solicitud asignada al nombre NFS de «'a:b'» (no al resultado deseado).
+
+* Después de aplicar la asignación de caracteres, si la asignación aún contiene un carácter de Windows no válido, ONTAP vuelve a los nombres de archivo de Windows 8.3.
+* En las notificaciones de FPolicy, los registros de auditoría de NAS y los mensajes de seguimiento de seguridad, se muestran los nombres de archivos asignados.
+* Cuando se crea una relación de SnapMirror del tipo DP, la asignación de caracteres del volumen de origen no se replica en el volumen de DP de destino.
+* Distinción entre mayúsculas y minúsculas: Debido a que los nombres de Windows asignados se convierten en nombres NFS, la búsqueda de los nombres sigue a la semántica NFS. Esto incluye el hecho de que las búsquedas de NFS distinguen mayúsculas de minúsculas. Esto significa que las aplicaciones que acceden a recursos compartidos asignados no deben depender de un comportamiento que no distingue mayúsculas y minúsculas de Windows. Sin embargo, el nombre 8.3 está disponible y no distingue mayúsculas y minúsculas.
+* Asignaciones parciales o no válidas: Tras asignar un nombre para devolver a los clientes que realizan enumeración de directorios ("dir"), se comprueba la validez de Windows en el nombre Unicode resultante. Si ese nombre sigue teniendo caracteres no válidos, o si no es válido para Windows (p. ej., finaliza en "". o en blanco) se devuelve el nombre 8.3 en lugar del nombre no válido.
+
+
+.Paso
+. Configurar asignación de caracteres: +
+
+
+`vserver cifs character-mapping create -vserver _vserver_name_ -volume _volume_name_ -mapping _mapping_text_, ...` +
+
+El mapeo consta de una lista de pares de caracteres fuente-objetivo separados por "':'". Los caracteres son caracteres Unicode introducidos mediante dígitos hexadecimales. Por ejemplo: 3C:E03C. +
+
+El primer valor de cada uno `mapping_text` El par separado por dos puntos es el valor hexadecimal del carácter NFS que desea traducir y el segundo valor es el valor Unicode que utiliza SMB. Las parejas de asignación deben ser únicas (debe existir una asignación uno a uno).
+
+* Asignación de fuentes +
+
+
+La siguiente tabla muestra el conjunto de caracteres Unicode permisible para la asignación de origen:
+
++
+
+|===
+| Carácter Unicode | Carácter impreso | Descripción 
+
+
+ a| 
+0x01-0x19
+ a| 
+No aplicable
+ a| 
+Caracteres de control que no se imprimen
+
+
+
+ a| 
+0x5c
+ a| 
+ a| 
+Barra invertida
+
+
+
+ a| 
+0x3A
+ a| 
+:
+ a| 
+Dos puntos
+
+
+
+ a| 
+0x2A
+ a| 
+*
+ a| 
+Asterisco
+
+
+
+ a| 
+0x3f
+ a| 
+?
+ a| 
+Signo de interrogación
+
+
+
+ a| 
+0x22
+ a| 
+"
+ a| 
+Entre comillas
+
+
+
+ a| 
+0x3C
+ a| 
+<
+ a| 
+Menor que
+
+
+
+ a| 
+0x3E
+ a| 
+>
+ a| 
+Mayor que
+
+
+
+ a| 
+0x7C
+ a| 
+|
+ a| 
+Línea vertical
+
+
+
+ a| 
+0xB1
+ a| 
+±
+ a| 
+Signo más-menos
+
+|===
+* Asignación de objetivos
++
+Puede especificar caracteres de destino en el "'Área de uso privado'" de Unicode en el siguiente intervalo: U+E0000...U+F8FF.
+
+
+
+.Ejemplo
+El siguiente comando crea una asignación de caracteres para un volumen denominado «data» en la máquina virtual de almacenamiento (SVM) vs1:
+
+[listing]
+----
+cluster1::> vserver cifs character-mapping create -volume data -mapping 3c:e17c,3e:f17d,2a:f745
+cluster1::> vserver cifs character-mapping show
+
+Vserver         Volume Name  Character Mapping
+--------------  -----------  ------------------------------------------
+vs1             data         3c:e17c, 3e:f17d, 2a:f745
+----
+.Información relacionada
+xref:create-manage-data-volumes-nas-namespaces-concept.adoc[Crear y gestionar volúmenes de datos en espacios de nombres NAS]

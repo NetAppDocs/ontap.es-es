@@ -1,0 +1,30 @@
+---
+permalink: system-admin/quorum-epsilon-concept.html 
+sidebar: sidebar 
+keywords: understand, quorum, epsilon, cluster, health, potential, communications, connectivity, challenges 
+summary: El quórum y el épsilon son medidas importantes para el estado y la función de los clusters, que, en su conjunto, indican cómo abordan los clusters los desafíos potenciales de comunicaciones y conectividad. 
+---
+= Acerca del quórum y del épsilon
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El quórum y el épsilon son medidas importantes para el estado y la función de los clusters, que, en su conjunto, indican cómo abordan los clusters los desafíos potenciales de comunicaciones y conectividad.
+
+_Quórum_ es una condición previa para un clúster en pleno funcionamiento. Cuando un clúster se encuentra en quórum, una mayoría simple de nodos está en buen estado y puede comunicarse entre sí. Cuando se pierde quorum, el clúster pierde la capacidad de realizar las operaciones normales del clúster. Sólo una colección de nodos puede tener quórum a la vez porque todos los nodos comparten colectivamente una única vista de los datos. Por lo tanto, si dos nodos sin comunicación tienen permiso para modificar los datos de maneras divergentes, ya no es posible reconciliar los datos en una única vista de datos.
+
+Cada nodo del cluster participa en un protocolo de votación que selecciona un nodo _master_; cada nodo restante es un _secundario_. El nodo maestro es responsable de sincronizar la información en todo el clúster. Cuando se forma el quórum, se mantiene mediante una votación continua. Si el nodo maestro se desconecta y el clúster aún se mantiene quórum, los nodos que permanecen en línea eligen un nuevo maestro.
+
+Dado que en un cluster existe la posibilidad de empate con un número par de nodos, uno de ellos tiene un peso adicional fraccionario al votar llamado _épsilon_. Si falla la conectividad entre dos partes iguales de un clúster de gran tamaño, el grupo de nodos que contienen épsilon mantendrá el quórum, suponiendo que todos los nodos estén en buen estado. Por ejemplo, en la siguiente ilustración se muestra un clúster de cuatro nodos en el que dos de los nodos fallan. Sin embargo, dado que uno de los nodos supervivientes tiene épsilon, el cluster permanece en quórum aunque no hay una mayoría simple de nodos sanos.
+
+image::../media/epsilon-preserving-quorum.gif[Esta imagen se explica por el texto circundante.]
+
+Cuando se crea el clúster, se asigna automáticamente al primer nodo épsilon. Si el nodo que contiene épsilon se queda poco saludable, supera a su partner de alta disponibilidad o lo hace su partner de alta disponibilidad, se asignará el valor épsilon automáticamente a un nodo sano en una pareja de alta disponibilidad diferente.
+
+Desconectar un nodo puede afectar a la capacidad del clúster para permanecer de quórum. Por lo tanto, ONTAP emite un mensaje de advertencia si se intenta una operación que impide que el clúster se quorum o si se elimina una interrupción del servicio de una pérdida de quórum. Puede deshabilitar los mensajes de advertencia de quórum mediante el `cluster quorum-service options modify` comando en el nivel de privilegio avanzado.
+
+En general, suponiendo que haya una conectividad fiable entre los nodos del clúster, un clúster más grande es más estable que un clúster más pequeño. En un cluster de 24 nodos es más fácil mantener el requisito de quórum de la mayoría simple de la mitad de los nodos más con épsilon que en un cluster de dos nodos.
+
+Un clúster de dos nodos presenta algunos retos únicos para mantener el quórum. Los clústeres de dos nodos utilizan _cluster ha_, en los que ninguno de los nodos está configurado con épsilon; en su lugar, se sondean ambos nodos continuamente para garantizar que, si uno de ellos falla, el otro tenga acceso completo de lectura/escritura a los datos, así como acceso a interfaces lógicas y funciones de gestión.

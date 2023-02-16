@@ -1,0 +1,110 @@
+---
+permalink: smb-hyper-v-sql/configure-smb-multichannel-performance-task.html 
+sidebar: sidebar 
+keywords: configure, smb, multichannel, performance, redundancy, session, fault, tolerance, hyper, v, sql 
+summary: A partir de ONTAP 9.4, puede configurar SMB MultiChannel para proporcionar varias conexiones entre ONTAP y clientes en una sola sesión SMB. Al hacerlo, mejora el rendimiento y la tolerancia a fallos para Hyper-V y SQL Server en configuraciones SMB. 
+---
+= Configure multicanal de SMB para un mayor rendimiento y redundancia
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.4, puede configurar SMB MultiChannel para proporcionar varias conexiones entre ONTAP y clientes en una sola sesión SMB. Al hacerlo, mejora el rendimiento y la tolerancia a fallos para Hyper-V y SQL Server en configuraciones SMB.
+
+.Lo que necesitará
+Solo se puede utilizar la funcionalidad multicanal de SMB cuando los clientes negocian en SMB 3.0 o versiones posteriores. De forma predeterminada, SMB 3.0 y las versiones posteriores se encuentran habilitadas en el servidor SMB de ONTAP.
+
+.Acerca de esta tarea
+Los clientes de SMB detectan y utilizan automáticamente varias conexiones de red si se identifica una configuración adecuada en el clúster de ONTAP.
+
+El número de conexiones simultáneas en una sesión SMB depende de las NIC que haya implementado:
+
+* *1G NIC en el cluster ONTAP y cliente*
++
+El cliente establece una conexión por NIC y enlaza la sesión a todas las conexiones.
+
+* *NIC 10G y mayor capacidad en cluster ONTAP* y cliente
++
+El cliente establece hasta cuatro conexiones por NIC y enlaza la sesión a todas las conexiones. El cliente puede establecer conexiones en varias NIC de 10 G y de mayor capacidad.
+
+
+
+También puede modificar los siguientes parámetros (privilegios avanzados):
+
+* *`-max-connections-per-session`*
++
+El número máximo de conexiones permitidas por sesión multicanal. El valor predeterminado es 32 conexiones.
+
++
+Si desea habilitar más conexiones que las predeterminadas, debe realizar ajustes comparables a la configuración del cliente, que también tiene un valor predeterminado de 32 conexiones.
+
+* *`-max-lifs-per-session`*
++
+Número máximo de interfaces de red anunciadas por sesión multicanal. El valor predeterminado es 256 interfaces de red.
+
+
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+`*set -privilege advanced*`
+
+. Habilite multicanal de SMB en el servidor SMB:
++
+`*vserver cifs options modify -vserver _vserver_name_ -is-multichannel-enabled true*`
+
+. Compruebe que ONTAP informa de sesiones multicanal de SMB:
++
+`*vserver cifs session show options*`
+
+. Vuelva al nivel de privilegio de administrador:
++
+`*set -privilege admin*`
+
+
+
+.Ejemplo
+En el siguiente ejemplo, se muestra información sobre todas las sesiones SMB, donde se muestran varias conexiones para una sola sesión:
+
+[listing]
+----
+cluster1::> vserver cifs session show
+Node:    node1
+Vserver: vs1
+Connection Session                                        Open            Idle
+IDs        ID      Workstation      Windows User         Files            Time
+---------- ------- ---------------- ---------------- --------- ---------------
+138683,
+138684,
+138685     1       10.1.1.1         DOMAIN\                   0              4s
+                                    Administrator
+----
+En el siguiente ejemplo, se muestra información detallada sobre una sesión SMB con el ID de sesión 1:
+
+[listing]
+----
+cluster1::> vserver cifs session show -session-id 1 -instance
+
+Vserver: vs1
+                           Node: node1
+                     Session ID: 1
+                 Connection IDs: 138683,138684,138685
+               Connection Count: 3
+   Incoming Data LIF IP Address: 192.1.1.1
+         Workstation IP Address: 10.1.1.1
+       Authentication Mechanism: NTLMv1
+          User Authenticated as: domain-user
+                   Windows User: DOMAIN\administrator
+                      UNIX User: root
+                    Open Shares: 2
+                     Open Files: 5
+                     Open Other: 0
+                 Connected Time: 5s
+                      Idle Time: 5s
+               Protocol Version: SMB3
+         Continuously Available: No
+              Is Session Signed: false
+                   NetBIOS Name: -
+----

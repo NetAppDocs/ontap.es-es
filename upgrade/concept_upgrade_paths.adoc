@@ -1,0 +1,574 @@
+---
+permalink: upgrade/concept_upgrade_paths.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, paths 
+summary: La versión de ONTAP a la que se puede actualizar varía en función de su plataforma de hardware y la versión del ONTAP que se ejecuta actualmente en los nodos del clúster. 
+---
+= ¿A qué versión de ONTAP puedo actualizar?
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La versión de ONTAP a la que se puede actualizar varía en función de su plataforma de hardware y la versión del ONTAP que se ejecuta actualmente en los nodos del clúster. Consulte https://hwu.netapp.com["Hardware Universe de NetApp"^] para verificar que su plataforma es compatible con la versión de actualización de destino.
+
+Puede usar estas directrices para actualizar ONTAP y ONTAP Select en las instalaciones. Para obtener más información sobre ONTAP Select, consulte el procedimiento general para link:https://docs.netapp.com/us-en/ontap-select/concept_adm_upgrading_nodes.html#general-procedure["Actualizar los nodos ONTAP Select"]. Para obtener información sobre la actualización de ONTAP en el cloud, consulte https://docs.netapp.com/us-en/occm/task_updating_ontap_cloud.html["Actualizar el software Cloud Volumes ONTAP"^].
+
+Para determinar su versión actual de ONTAP:
+
+* En System Manager, haga clic en *clúster > Descripción general*.
+* Desde la interfaz de línea de comandos (CLI), utilice `cluster image show` comando. + también puede utilizar el `system node image show` comando en el nivel de privilegio avanzado para mostrar detalles.
+
+
+
+
+== Tipos de rutas de actualización
+
+Siempre que sea posible, se recomiendan las actualizaciones automatizadas no disruptivas (ANDU). Dependiendo de sus versiones actuales y de destino, su ruta de actualización será _Direct_, _direct multi-hop_ o _multi-stage_. A menos que se indique lo contrario, estas rutas se aplican a todos link:concept_upgrade_methods.html["métodos de actualización"]; no disruptivo, disruptiva, automatizada o manual.
+
+* _Direct_ + siempre puede actualizar directamente a la siguiente familia de versiones adyacentes de ONTAP utilizando una sola imagen de software. En la mayoría de las versiones, también se puede instalar una imagen de software que permite actualizar directamente a versiones que sean dos versiones superiores a la versión en ejecución.
++
+Por ejemplo, puede utilizar la ruta de actualización directa de 9.8 a 9.9.1, o de 9.8 a 9.10.1.
+
++
+*Nota:* comenzando con ONTAP 9.11.1, las imágenes de software admiten la actualización directa a versiones que son tres versiones superiores a la versión en ejecución. Por ejemplo, puede usar la ruta de actualización directa de 9.8 a 9.11.1.
+
+* _Direct multi-hop_ + para algunas actualizaciones automatizadas no disruptivas (ANDU) a versiones no adyacentes, puede instalar la imagen de software para una versión intermedia, así como la versión de destino. El proceso de actualización automatizado utiliza la imagen intermedia en segundo plano para completar la actualización a la versión de destino.
++
+Por ejemplo, si el clúster ejecuta 9.3 y desea actualizar a 9.7, deberá cargar los paquetes de instalación de ONTAP para 9.5 y 9.7, a continuación, iniciar ANDU en 9.7. ONTAP luego actualiza automáticamente el clúster primero a 9.5 y después a 9.7. Debe esperar varias operaciones de toma de control/devolución y reinicios relacionados durante el proceso.
+
+* _Multi-stage_ + Si una ruta de varios saltos directa o directa no está disponible para su lanzamiento de destino no adyacente, primero debe actualizar a una versión intermedia compatible y, a continuación, actualizar a la versión de destino.
++
+Por ejemplo, si está ejecutando 9.6 y desea actualizar a 9.11.1, debe completar una actualización en varias etapas: Primero de 9.6 a 9.8 y después de 9.8 a 9.11.1. Las actualizaciones desde versiones anteriores pueden requerir tres o más etapas, con varias actualizaciones intermedias.
+
++
+*Nota:* antes de comenzar las actualizaciones multietapa, asegúrese de que su versión de destino es compatible con su plataforma de hardware.
+
+
+
+Se recomienda actualizar primero a la versión más reciente de la misma familia de versiones de ONTAP y, posteriormente, actualizar a la siguiente versión principal admitida. Esto garantiza que se resuelvan los problemas en la versión actual de ONTAP antes de la actualización.
+
+Por ejemplo, si el sistema está ejecutando ONTAP 9.3P9 y está planeando actualizar a 9.11.1, primero debe actualizar a la versión de revisión 9.3 más reciente, luego siga la ruta de actualización de 9.3 a 9.11.1.
+
+Descubra https://kb.netapp.com/Support_Bulletins/Customer_Bulletins/SU2["Versiones de ONTAP mínimas recomendadas en el sitio de soporte de NetApp"^].
+
+
+
+== Rutas de actualización admitidas
+
+Existen rutas de actualización detalladas disponibles en las siguientes situaciones:
+
+* Actualizaciones automatizadas no disruptivas (ANDU) dentro de la familia de versiones ONTAP 9 (recomendado).
+* Actualizaciones manuales sin interrupciones y sin interrupciones dentro de la familia de la versión 9 de ONTAP.
+* Actualizaciones de Data ONTAP 8.* a versiones de ONTAP 9.
+
+
+Las imágenes de actualización de algunas versiones anteriores ya no están disponibles.
+
+[role="tabbed-block"]
+====
+.ANDU Paths, ONTAP 9
+--
+[cols="25,25,50"]
+|===
+| Si su versión actual de ONTAP es… | Y su versión ONTAP de destino es… | La ruta DE actualización DE ANDU es… 
+
+
+| 9.11.1 | 9.12.1 | directo 
+
+
+.2+| 9.10.1 | 9.12.1 | directo 
+
+
+| 9.11.1 | directo 
+
+
+.3+| 9.9.1 | 9.12.1 | directo 
+
+
+| 9.11.1 | directo 
+
+
+| 9.10.1 | directo 
+
+
+.4+| 9.8 | 9.12.1 | directo 
+
+
+| 9.11.1 | directo 
+
+
+| 9.10.1  a| 
+directo
+
+*Atención configuraciones de MetroCluster*: Si está actualizando una configuración IP de MetroCluster de 9.8 a 9.10.1 en cualquiera de las siguientes plataformas, debe actualizar a 9.9.1 antes de actualizar a 9.10.1.
+
+* FAS2750
+* FAS500f
+* AFF A220
+* AFF A250
+
+
+Las configuraciones IP de MetroCluster en estas plataformas no se pueden actualizar de 9.8 directamente a 9.10.1.
+
+
+
+| 9.9.1 | directo 
+
+
+.5+| 9.7 | 9.12.1 | multisalto directo (requiere imágenes para 9.8 y 9.12.1) 
+
+
+| 9.11.1 | multisalto directo (requiere imágenes para 9.8 y 9.11.1) 
+
+
+| 9.10.1 | Direct multi-hop (requiere imágenes para la versión P 9.8 y 9.10.1P1 o posterior) 
+
+
+| 9.9.1 | directo 
+
+
+| 9.8 | directo 
+
+
+.6+| 9.6 | 9.12.1 | multi-etapa - 9.6 -> 9.8 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.6 -> 9.8 - 9.8 -> 9.11.1 
+
+
+| 9.10.1 | Direct multi-hop (requiere imágenes para la versión P 9.8 y 9.10.1P1 o posterior) 
+
+
+| 9.9.1 | multifase - 9.6 -> 9.8 - 9.8 -> 9.9.1 
+
+
+| 9.8 | directo 
+
+
+| 9.7 | directo 
+
+
+.7+| 9.5 | 9.12.1 | multietapa - 9.5 -> 9.9.1 (multisalto directo, requiere imágenes para 9.7 y 9.9.1) - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multietapa - 9.5 -> 9.9.1 (multisalto directo, requiere imágenes para 9.7 y 9.9.1) - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multietapa - 9.5 -> 9.9.1 (multisalto directo, requiere imágenes para 9.7 y 9.9.1) - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multisalto directo (requiere imágenes para 9.7 y 9.9.1) 
+
+
+| 9.8 | multifase - 9.5 -> 9.7 - 9.7 -> 9.8 
+
+
+| 9.7 | directo 
+
+
+| 9.6 | directo 
+
+
+.8+| 9.4 | 9.12.1 | multietapa - 9.4 -> 9.5 - 9.5 -> 9.9.1 (multisalto directo, requiere imágenes para 9.7 y 9.9.1) - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multietapa - 9.4 -> 9.5 - 9.5 -> 9.9.1 (multisalto directo, requiere imágenes para 9.7 y 9.9.1) - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multietapa - 9.4 -> 9.5 - 9.5 -> 9.9.1 (multisalto directo, requiere imágenes para 9.7 y 9.9.1) - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.4 -> 9.5 - 9.5 -> 9.9.1 (multisalto directo, requiere imágenes para 9.7 y 9.9.1) 
+
+
+| 9.8 | multifase - 9.4 -> 9.5 - 9.5 -> 9.8 (multisalto directo, requiere imágenes para 9.7 y 9.8) 
+
+
+| 9.7 | multifase - 9.4 -> 9.5 - 9.5 -> 9.7 
+
+
+| 9.6 | multifase - 9.4 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | directo 
+
+
+.9+| 9.3 | 9.12.1 | multi-fase - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multi-fase - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.10.1 (multisalto directo, requiere imágenes para 9.8 y 9.10.1) 
+
+
+| 9.9.1 | multietapa - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 
+
+
+| 9.8 | multietapa - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.8 
+
+
+| 9.7 | multisalto directo (requiere imágenes para 9.5 y 9.7) 
+
+
+| 9.6 | multifase - 9.3 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | directo 
+
+
+| 9.4 | no disponible 
+
+
+.10+| 9.2 | 9.12.1 | multi-fase - 9.2 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 (multisalto directo, requiere imágenes para 9.8 y 9.9.1) - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multi-fase - 9.2 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 (multisalto directo, requiere imágenes para 9.8 y 9.9.1) - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.2 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.10.1 (multisalto directo, requiere imágenes para 9.8 y 9.10.1) 
+
+
+| 9.9.1 | multi-fase - 9.2 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 
+
+
+| 9.8 | multi-fase - 9.2 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.2 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) 
+
+
+| 9.6 | multifase - 9.2 -> 9.3 - 9.3 -> 9.6 (multisalto directo, requiere imágenes para 9.5 y 9.6) 
+
+
+| 9.5 | multifase - 9.3 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.4 | no disponible 
+
+
+| 9.3 | directo 
+
+
+.11+| 9.1 | 9.12.1 | multi-fase - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multi-fase - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.10.1 (multisalto directo, requiere imágenes para 9.8 y 9.10.1) 
+
+
+| 9.9.1 | multi-fase - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 
+
+
+| 9.8 | multi-fase - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) 
+
+
+| 9.6 | multifase - 9.1 -> 9.3 - 9.3 -> 9.6 (multisalto directo, requiere imágenes para 9.5 y 9.6) 
+
+
+| 9.5 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 
+
+
+| 9.4 | no disponible 
+
+
+| 9.3 | directo 
+
+
+| 9.2 | no disponible 
+
+
+.12+| 9.0 | 9.12.1 | multi-fase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multi-fase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.10.1 (multisalto directo, requiere imágenes para 9.8 y 9.10.1) 
+
+
+| 9.9.1 | multi-fase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.9.1 
+
+
+| 9.8 | multi-fase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.7 (multisalto directo, requiere imágenes para 9.5 y 9.7) 
+
+
+| 9.6 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 
+
+
+| 9.4 | no disponible 
+
+
+| 9.3 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 
+
+
+| 9.2 | no disponible 
+
+
+| 9.1 | directo 
+|===
+--
+.Rutas manuales, ONTAP 9
+--
+[cols="25,25,50"]
+|===
+| Si su versión actual de ONTAP es… | Y su versión ONTAP de destino es… | La ruta de actualización manual es… 
+
+
+.2+| 9.10.1 | 9.12.1 | directo 
+
+
+| 9.11.1 | directo 
+
+
+.3+| 9.9.1 | 9.12.1 | directo 
+
+
+| 9.11.1 | directo 
+
+
+| 9.10.1 | directo 
+
+
+.4+| 9.8 | 9.12.1 | directo 
+
+
+| 9.11.1 | directo 
+
+
+| 9.10.1 | directo 
+
+
+| 9.9.1 | directo 
+
+
+.5+| 9.7 | 9.12.1 | multifase - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.7 -> 9.9.1 - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | directo 
+
+
+| 9.8 | directo 
+
+
+.6+| 9.6 | 9.12.1 | multifase - 9.6 -> 9.8 - 9.8 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.6 -> 9.8 - 9.8 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.6 -> 9.8 - 9.8 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.6 -> 9.8 - 9.8 -> 9.9.1 
+
+
+| 9.8 | directo 
+
+
+| 9.7 | directo 
+
+
+.7+| 9.5 | 9.12.1 | multifase - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.5 -> 9.7 - 9.7 -> 9.9.1 
+
+
+| 9.8 | multifase - 9.5 -> 9.7 - 9.7 -> 9.8 
+
+
+| 9.7 | directo 
+
+
+| 9.6 | directo 
+
+
+.8+| 9.4 | 9.12.1 | multifase - 9.4 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.4 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.4 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.4 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 
+
+
+| 9.8 | multifase - 9.4 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.4 -> 9.5 - 9.5 -> 9.7 
+
+
+| 9.6 | multifase - 9.4 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | directo 
+
+
+.9+| 9.3 | 9.12.1 | multifase - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 
+
+
+| 9.8 | multifase - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.3 -> 9.5 - 9.5 -> 9.7 
+
+
+| 9.6 | multifase - 9.3 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | directo 
+
+
+| 9.4 | no disponible 
+
+
+.10+| 9.2 | 9.12.1 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 
+
+
+| 9.8 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 
+
+
+| 9.6 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | multifase - 9.2 -> 9.3 - 9.3 -> 9.5 
+
+
+| 9.4 | no disponible 
+
+
+| 9.3 | directo 
+
+
+.11+| 9.1 | 9.12.1 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 
+
+
+| 9.8 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 
+
+
+| 9.6 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | multifase - 9.1 -> 9.3 - 9.3 -> 9.5 
+
+
+| 9.4 | no disponible 
+
+
+| 9.3 | directo 
+
+
+| 9.2 | no disponible 
+
+
+.12+| 9.0 | 9.12.1 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 -> 9.5 -> 9.7 -> 9.7 -> 9.9.1 - 9.9.1 -> 9.12.1 
+
+
+| 9.11.1 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 -> 9.5 -> 9.7 -> 9.7 -> 9.9.1 - 9.9.1 -> 9.11.1 
+
+
+| 9.10.1 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 -> 9.5 -> 9.7 -> 9.7 -> 9.9.1 - 9.9.1 -> 9.10.1 
+
+
+| 9.9.1 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.9.1 
+
+
+| 9.8 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 - 9.7 -> 9.8 
+
+
+| 9.7 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.7 
+
+
+| 9.6 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 - 9.5 -> 9.6 
+
+
+| 9.5 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 - 9.3 -> 9.5 
+
+
+| 9.4 | no disponible 
+
+
+| 9.3 | multifase - 9.0 -> 9.1 - 9.1 -> 9.3 
+
+
+| 9.2 | no disponible 
+
+
+| 9.1 | directo 
+|===
+--
+.Rutas de actualización, Data ONTAP 8
+--
+Asegúrese de verificar que su plataforma puede ejecutar la versión de ONTAP de destino mediante el https://hwu.netapp.com["Hardware Universe de NetApp"^].
+
+*Nota:* la Guía de actualización de Data ONTAP 8.3 indica erróneamente que en un clúster de cuatro nodos, debe planificar la actualización del nodo que tenga el valor épsilon en último lugar. Esto ya no es un requisito para las actualizaciones a partir de Data ONTAP 8.2.3. Para obtener más información, consulte https://mysupport.netapp.com/site/bugs-online/product/ONTAP/BURT/805277["ID de error de NetApp Bugs Online: 805277"^].
+
+Desde Data ONTAP 8.3.x:: Puede actualizar directamente a ONTAP 9.1 y, posteriormente, actualizar a versiones posteriores.
+De versiones de Data ONTAP anteriores a 8.3.x, incluidas 8.2.x.:: Primero es necesario actualizar a Data ONTAP 8.3.x y, después, actualizar a ONTAP 9.1 y, posteriormente, actualizar a versiones posteriores.
+
+
+--
+====

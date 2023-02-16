@@ -1,0 +1,69 @@
+---
+permalink: antivirus/create-scanner-pool-single-cluster-task.html 
+sidebar: sidebar 
+keywords: create, scanner pool, single cluster 
+summary: Un grupo de escáneres define los servidores Vscan y los usuarios con privilegios que pueden conectarse a las SVM. Puede crear un pool de escáner para una SVM individual o para todas las SVM de un clúster. 
+---
+= Cree un pool de escáneres en un único clúster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un grupo de escáneres define los servidores Vscan y los usuarios con privilegios que pueden conectarse a las SVM. Puede crear un pool de escáner para una SVM individual o para todas las SVM de un clúster.
+
+.Lo que necesitará
+* Los SVM y los servidores Vscan deben estar en el mismo dominio o en dominios de confianza.
+* Para los pools de análisis definidos para una SVM individual, debe haber configurado el conector antivirus ONTAP con la LIF de gestión de SVM o la LIF de datos de SVM.
+* Para los pools de análisis definidos para todas las SVM de un clúster, debe haber configurado el conector antivirus de ONTAP con la LIF de gestión del clúster.
+
+
+.Acerca de esta tarea
+La lista de usuarios con privilegios debe incluir la cuenta de usuario de dominio que el servidor Vscan utiliza para conectarse a la SVM.
+
+.Pasos
+. Crear un grupo de escáneres:
++
+`vserver vscan scanner-pool create -vserver data_SVM|cluster_admin_SVM -scanner-pool scanner_pool -hostnames Vscan_server_hostnames -privileged-users privileged_users`
+
++
+** Especifique una SVM de datos para un pool definido para una SVM individual y especifique una SVM de administrador de clúster para un pool definido para todas las SVM de un clúster.
+** Especifique una dirección IP o FQDN para cada nombre de host del servidor Vscan.
+** Especifique el dominio y el nombre de usuario de cada usuario con privilegios. Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
+
++
+El siguiente comando crea un grupo de escáneres denominado `SP` en la ``vs1``SVM:
+
++
+[listing]
+----
+cluster1::> vserver vscan scanner-pool create -vserver vs1 -scanner-pool SP -hostnames 1.1.1.1,vmwin204-27.fsct.nb -privileged-users cifs\u1,cifs\u2
+----
+. Compruebe que se ha creado el grupo de escáneres: `vserver vscan scanner-pool show -vserver _data_SVM|cluster_admin_SVM_ -scanner-pool _scanner_pool_`
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los detalles de `SP` grupo de escáneres:
+
++
+[listing]
+----
+cluster1::> vserver vscan scanner-pool show -vserver vs1 -scanner-pool SP
+
+                                    Vserver: vs1
+                               Scanner Pool: SP
+                             Applied Policy: idle
+                             Current Status: off
+         Cluster on Which Policy Is Applied: -
+                  Scanner Pool Config Owner: vserver
+       List of IPs of Allowed Vscan Servers: 1.1.1.1, 10.72.204.27
+List of Host Names of Allowed Vscan Servers: 1.1.1.1, vmwin204-27.fsct.nb
+                   List of Privileged Users: cifs\u1, cifs\u2
+----
++
+También puede utilizar el `vserver vscan scanner-pool show` Comando para ver todos los pools de análisis de una SVM. Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
+

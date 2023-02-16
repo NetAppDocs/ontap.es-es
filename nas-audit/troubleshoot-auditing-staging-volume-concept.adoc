@@ -1,0 +1,81 @@
+---
+permalink: nas-audit/troubleshoot-auditing-staging-volume-concept.html 
+sidebar: sidebar 
+keywords: troubleshoot, audit, stage, volume space, issues 
+summary: Los problemas pueden surgir cuando no hay espacio suficiente en los volúmenes de almacenamiento provisional o en el volumen que contiene los registros de eventos de auditoría. Si no hay espacio suficiente, no se podrán crear nuevos registros de auditoría, lo que impide que los clientes accedan a los datos y las solicitudes de acceso fallen. Se debe saber cómo solucionar los problemas de espacio de estos volúmenes. 
+---
+= Solucionar problemas de auditoría y almacenamiento provisional de los problemas de espacio de volumen
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Los problemas pueden surgir cuando no hay espacio suficiente en los volúmenes de almacenamiento provisional o en el volumen que contiene los registros de eventos de auditoría. Si no hay espacio suficiente, no se podrán crear nuevos registros de auditoría, lo que impide que los clientes accedan a los datos y las solicitudes de acceso fallen. Se debe saber cómo solucionar los problemas de espacio de estos volúmenes.
+
+
+
+== Solucione problemas de espacio relacionados con los volúmenes de registro de eventos
+
+Si los volúmenes que contienen archivos de registro de eventos se quedan sin espacio, la auditoría no puede convertir los registros de registro en archivos de registro. Esto provoca errores de acceso de los clientes. Debe saber cómo solucionar problemas de espacio relacionados con los volúmenes de registro de eventos.
+
+* Los administradores de máquinas virtuales de almacenamiento (SVM) y clústeres pueden determinar si no hay espacio en los volúmenes suficiente mostrando información sobre el uso y la configuración de los volúmenes y agregados.
+* Si no hay espacio suficiente en los volúmenes que contienen registros de eventos, los administradores de SVM y clúster pueden resolver problemas de espacio eliminando algunos de los archivos de registro de eventos o aumentando el tamaño del volumen.
++
+[NOTE]
+====
+Si se llena el agregado que contiene el volumen del registro de eventos, se debe aumentar el tamaño del agregado para poder aumentar el tamaño del volumen. Solo un administrador de clúster puede aumentar el tamaño de un agregado.
+
+====
+* La ruta de destino de los archivos de registro de eventos se puede cambiar a un directorio de otro volumen modificando la configuración de auditoría.
++
+[NOTE]
+====
+En los siguientes casos se deniega el acceso a los datos:
+
+** Si se elimina el directorio de destino.
+** Si el límite de archivos de un volumen, que aloja el directorio de destino, alcanza su nivel máximo.
+
+
+====
+
+
+Más información sobre:
+
+* link:../volumes/index.html["Cómo ver información sobre los volúmenes y aumentar el tamaño del volumen"].
+* link:../disks-aggregates/index.html["Cómo ver información sobre los agregados y la gestión de los agregados"].
+
+
+
+
+== Solucionar problemas de espacio relacionados con los volúmenes de almacenamiento provisional
+
+Si alguno de los volúmenes que contienen archivos staging de la máquina virtual de almacenamiento (SVM) se queda sin espacio, la auditoría no puede escribir registros de registro en archivos staging. Esto provoca errores de acceso de los clientes. Para solucionar este problema, debe determinar si alguno de los volúmenes de almacenamiento provisional utilizados en la SVM está completo mostrando información sobre el uso del volumen.
+
+Si el volumen que contiene los archivos del registro de eventos consolidados tiene espacio suficiente pero siguen existiendo errores de acceso de los clientes debido a que el espacio no es suficiente, es posible que los volúmenes provisional no tengan espacio. El administrador de SVM debe ponerse en contacto con usted para determinar si los volúmenes de almacenamiento provisional que contienen archivos de almacenamiento provisional para la SVM tienen un espacio insuficiente. El subsistema de auditoría genera un evento EMS si no se pueden generar eventos de auditoría debido a la falta de espacio en un volumen provisional. Se muestra el siguiente mensaje: `No space left on device`. Solo puede ver información sobre la configuración provisional de volúmenes; los administradores de SVM no.
+
+Todos los nombres de volúmenes de almacenamiento provisional comienzan por `MDV_aud_` Seguido del UUID del agregado que contiene ese volumen de almacenamiento provisional. El siguiente ejemplo muestra cuatro volúmenes de sistema en la SVM de administrador, que se crearon automáticamente cuando se creó una configuración de auditoría de servicios de archivos para una SVM de datos en el clúster:
+
+[listing]
+----
+cluster1::> volume show -vserver cluster1
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+cluster1  MDV_aud_1d0131843d4811e296fc123478563412
+                       aggr0        online     RW          2GB     1.90GB    5%
+cluster1  MDV_aud_8be27f813d7311e296fc123478563412
+                       root_vs0     online     RW          2GB     1.90GB    5%
+cluster1  MDV_aud_9dc4ad503d7311e296fc123478563412
+                       aggr1        online     RW          2GB     1.90GB    5%
+cluster1  MDV_aud_a4b887ac3d7311e296fc123478563412
+                       aggr2        online     RW          2GB     1.90GB    5%
+4 entries were displayed.
+----
+Si hay espacio insuficiente en los volúmenes de almacenamiento provisional, se pueden resolver los problemas de espacio aumentando el tamaño del volumen.
+
+[NOTE]
+====
+Si el agregado que contiene el volumen provisional está lleno, se debe aumentar el tamaño del agregado antes de poder aumentar el tamaño del volumen. Solo puede aumentar el tamaño de un agregado, pero los administradores de SVM no.
+
+====
+Si uno o varios agregados tienen un espacio disponible de menos de 2 GB, se produce un error en la creación de la auditoría de SVM. Cuando se produce un error en la creación de la auditoría de SVM, se eliminan los volúmenes de almacenamiento provisional que se crearon.

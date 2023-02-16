@@ -1,0 +1,75 @@
+---
+sidebar: sidebar 
+permalink: networking/configure_failover_settings_on_a_lif.html 
+keywords: configure, configuring, configuration, setup, set, up, failover, fail, over, group, policy, lif, configure failover settings on a lif, broadcast-domain-wide, system-defined, local-only, sfo-partner-only, disabled, network interface modify -vserver <vserver_name> -lif <lif_name> -failover-policy <failover_policy> -failover-group <failover_group>, examples of configuring failover settings and disabling failover 
+summary: Configure una LIF para que conmute al nodo de respaldo de un grupo específico de puertos de red 
+---
+= Configure los ajustes de recuperación tras fallos en un LIF
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Puede configurar una LIF para que conmute por error a un grupo específico de puertos de red aplicando una política de conmutación por error y un grupo de conmutación por error a la LIF. También puede deshabilitar un LIF para no conmutar por error a otro puerto.
+
+.Acerca de esta tarea
+* Cuando se crea una LIF, la conmutación por error de LIF se habilita de forma predeterminada y la lista de puertos de destino disponibles está determinada por el grupo de conmutación por error y la política de recuperación tras fallos predeterminados según el tipo de LIF y la política de servicio.
++
+A partir de 9.5, puede especificar una política de servicio para la LIF que define qué servicios de red pueden utilizar la LIF. Algunos servicios de red imponen restricciones de conmutación por error en una LIF.
+
++
+
+NOTE: Si se cambia la política de servicio de un LIF de una forma que restringe aún más la conmutación por error, el sistema actualiza automáticamente la política de conmutación por error de LIF.
+
+* Puede modificar el comportamiento de la conmutación por error de las LIF especificando valores para los parámetros -failover-group y -failover-policy en el comando network interface modify.
+* La modificación de una LIF que hace que la LIF no tenga ningún destino de conmutación por error válido da como resultado un mensaje de advertencia.
++
+Si una LIF que no tiene un destino de conmutación por error válido intenta conmutar al respaldo, se podría producir una interrupción del servicio.
+
+* A partir de ONTAP 9.11.1, en las plataformas de cabinas All SAN (ASA), la conmutación por error de LIF iSCSI se habilita automáticamente en los LIF iSCSI recién creados en equipos virtuales de almacenamiento recién creados.
++
+Además, puede habilitar manualmente la conmutación por error de LIF iSCSI en LIF iSCSI preexistentes, es decir, LIF que se crearon antes de la actualización a ONTAP 9.11.1 o posterior.link:../san-admin/asa-iscsi-lif-fo-task.html["Conmutación por error de LIF de iSCSI para plataformas ASA"]
+
+* En la lista siguiente se describe cómo la configuración -failover-policy afecta a los puertos de destino seleccionados del grupo de conmutación por error:
+
+
+
+NOTE: Para la conmutación por error de LIF iSCSI, solo las políticas de conmutación por error `local-only`, `sfo-partner-only` y.. `disabled` sean compatibles.
+
+* `broadcast-domain-wide` se aplica a todos los puertos de todos los nodos del grupo de conmutación por error.
+* `system-defined` Se aplica solo a esos puertos del nodo principal de la LIF y a otro nodo del clúster, normalmente un partner distinto de SFO, si existe.
+* `local-only` Se aplica solo a los puertos en el nodo principal de la LIF.
+* `sfo-partner-only` Se aplica solo a esos puertos del nodo principal de la LIF y a su partner SFO.
+* `disabled` Indica que el LIF no está configurado para la conmutación al nodo de respaldo.
+
+
+.Paso
+Configurar la conmutación por error para una interfaz existente:
+
+....
+network interface modify -vserver <vserver_name> -lif <lif_name> -failover-policy <failover_policy> -failover-group <failover_group>
+....
+
+
+== Ejemplos de configuración de la conmutación por error y desactivación de la conmutación por error
+
+El siguiente comando establece la política de conmutación por error en todo el dominio de difusión y utiliza los puertos del grupo de conmutación por error fg3 como destinos de conmutación por error para los datos de LIF 1 en SVM vs3:
+
+....
+network interface modify -vserver vs3 -lif data1 failover-policy broadcast-domain-wide - failover-group fg3
+
+network interface show -vserver vs3 -lif * -fields failover-group,failover-policy
+
+vserver lif             failover-policy       failover-group
+------- -------------- ---------------        --------------
+vs3     data1          broadcast-domain-wide  fg3
+....
+El siguiente comando deshabilita la recuperación tras fallos para los datos LIF 1 en SVM vs3:
+
+....
+network interface modify -vserver vs3 -lif data1 failover-policy disabled
+....

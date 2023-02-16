@@ -1,0 +1,71 @@
+---
+permalink: volumes/move-volume-task.html 
+sidebar: sidebar 
+keywords: move, volume 
+summary: 'Es posible mover un volumen de FlexVol a otro agregado, nodo o ambos dentro de la misma máquina virtual de almacenamiento (SVM) para equilibrar la capacidad de almacenamiento después de determinar que hay un desequilibrio de capacidad de almacenamiento.' 
+---
+= Mover un volumen
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible mover un volumen de FlexVol a otro agregado, nodo o ambos dentro de la misma máquina virtual de almacenamiento (SVM) para equilibrar la capacidad de almacenamiento después de determinar que hay un desequilibrio de capacidad de almacenamiento.
+
+.Acerca de esta tarea
+De forma predeterminada, si la operación de transposición no puede completarse en un plazo de 30 segundos, volverá a intentarlo. Puede ajustar el comportamiento predeterminado mediante la `-cutover-window` y.. `-cutover-action` parámetros, ambos requieren acceso avanzado a nivel de privilegios. Para obtener más detalles, consulte `volume move start` página de manual.
+
+.Pasos
+. Si mueve un reflejo de protección de datos y no ha inicializado la relación de reflejo, inicialice la relación de reflejo con el `snapmirror initialize` comando.
++
+Es necesario inicializar las relaciones de mirroring de protección de datos para poder mover uno de los volúmenes.
+
+. Determine un agregado al que puede mover el volumen mediante el `volume move target-aggr show` comando.
++
+El agregado que seleccione debe tener espacio suficiente para el volumen; es decir, el tamaño disponible es mayor que el volumen que se está moviendo.
+
++
+El siguiente ejemplo muestra que el volumen vs2 se puede mover a cualquiera de los agregados enumerados:
+
++
+[listing]
+----
+cluster1::> volume move target-aggr show -vserver vs2 -volume user_max
+Aggregate Name   Available Size   Storage Type
+--------------   --------------   ------------
+aggr2            467.9GB          hdd
+node12a_aggr3    10.34GB          hdd
+node12a_aggr2    10.36GB          hdd
+node12a_aggr1    10.36GB          hdd
+node12a_aggr4    10.36GB          hdd
+5 entries were displayed.
+----
+. Compruebe que el volumen se puede mover al agregado previsto mediante la `volume move start -perform-validation-only` para ejecutar una comprobación de validación.
+. Mueva el volumen mediante la `volume move start` comando.
++
+El siguiente comando mueve el volumen user_max de la SVM vs2 al agregado node12a_aggr3. El movimiento se ejecuta como un proceso en segundo plano.
+
++
+[listing]
+----
+cluster1::> volume move start -vserver vs2 -volume user_max
+-destination-aggregate node12a_aggr3
+----
+. Determine el estado de la operación de movimiento de volumen mediante el `volume move show` comando.
++
+El siguiente ejemplo muestra el estado de un movimiento de volumen que completó la fase de replicación y se encuentra en la fase de transposición:
+
++
+[listing]
+----
+
+cluster1::> volume move show
+Vserver   Volume     State    Move Phase  Percent-Complete Time-To-Complete
+--------- ---------- -------- ----------  ---------------- ----------------
+vs2       user_max   healthy  cutover     -                -
+----
++
+El movimiento de volumen se completa cuando ya no aparece en la `volume move show` resultado del comando.
+
+

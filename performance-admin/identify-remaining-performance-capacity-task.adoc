@@ -1,0 +1,99 @@
+---
+permalink: performance-admin/identify-remaining-performance-capacity-task.html 
+sidebar: sidebar 
+keywords: identify, remaining, performance, capacity 
+summary: La capacidad de rendimiento, o margen adicional, mide la cantidad de trabajo que puede colocar en un nodo o un agregado antes de que el rendimiento de las cargas de trabajo del recurso comience a verse afectado por la latencia. Saber que la capacidad de rendimiento disponible en el clúster le ayuda a aprovisionar y equilibrar las cargas de trabajo. 
+---
+= Identifique la capacidad de rendimiento restante
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La capacidad de rendimiento, o _margen adicional_, mide la cantidad de trabajo que se puede realizar en un nodo o en un agregado antes de que el rendimiento de las cargas de trabajo del recurso comience a verse afectado por la latencia. Saber que la capacidad de rendimiento disponible en el clúster le ayuda a aprovisionar y equilibrar las cargas de trabajo.
+
+.Lo que necesitará
+Para esta tarea, se requieren comandos de nivel de privilegio avanzado.
+
+.Acerca de esta tarea
+Puede usar los siguientes valores para el `-object` opción de recopilar y mostrar estadísticas de margen adicional:
+
+* Para CPU, `resource_headroom_cpu`.
+* Para agregados, `resource_headroom_aggr`.
+
+
+También puede completar esta tarea mediante System Manager y Active IQ Unified Manager.
+
+.Pasos
+. Cambie al nivel de privilegio avanzado:
++
+`set -privilege advanced`
+
+. Inicie la recopilación de estadísticas de margen en tiempo real:
++
+`statistics start –object resource_headroom_cpu|aggr`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
+. Mostrar información de estadísticas de margen adicional en tiempo real:
++
+`statistics show -object resource_headroom_cpu|aggr`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
+. Devolver al privilegio administrativo:
++
+`set -privilege admin`
+
+
+
+.Ejemplo
+En el siguiente ejemplo, se muestran las estadísticas de margen adicional medio por hora para los nodos del clúster.
+
+Puede calcular la capacidad de rendimiento disponible para un nodo restando el `current_utilization` en el contador de `optimal_point_utilization` contador. En este ejemplo, la capacidad de utilización para `CPU_sti2520-213` Es de -14% (72%-86%), lo que sugiere que la CPU ha sido sobreutilizada de media durante la última hora.
+
+Podría haber especificado `ewma_daily`, `ewma_weekly`, o. `ewma_monthly` obtener la misma información promediada en períodos de tiempo más largos.
+
+[listing]
+----
+sti2520-2131454963690::*> statistics show -object resource_headroom_cpu -raw -counter ewma_hourly
+  (statistics show)
+
+Object: resource_headroom_cpu
+Instance: CPU_sti2520-213
+Start-time: 2/9/2016 16:06:27
+End-time: 2/9/2016 16:06:27
+Scope: sti2520-213
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    ewma_hourly                                                     -
+                         current_ops                             4376
+                     current_latency                            37719
+                 current_utilization                               86
+                   optimal_point_ops                             2573
+               optimal_point_latency                             3589
+           optimal_point_utilization                               72
+     optimal_point_confidence_factor                                1
+
+Object: resource_headroom_cpu
+Instance: CPU_sti2520-214
+Start-time: 2/9/2016 16:06:27
+End-time: 2/9/2016 16:06:27
+Scope: sti2520-214
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    ewma_hourly                                                     -
+                         current_ops                                0
+                     current_latency                                0
+                 current_utilization                                0
+                   optimal_point_ops                                0
+               optimal_point_latency                                0
+           optimal_point_utilization                               71
+     optimal_point_confidence_factor                                1
+2 entries were displayed.
+----

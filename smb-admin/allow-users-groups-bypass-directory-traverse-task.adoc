@@ -1,0 +1,46 @@
+---
+permalink: smb-admin/allow-users-groups-bypass-directory-traverse-task.html 
+sidebar: sidebar 
+keywords: traverse, directories, directory, path, file, permission, sechangenotifyprivilege, privilege, local, smb, user, svm, bypass, traverse, check, allow users or groups to bypass directory traverse checking 
+summary: 'Si desea que un usuario pueda recorrer todos los directorios de la ruta de acceso a un archivo aunque el usuario no tenga permisos en un directorio de recorrido, puede agregar el privilegio SeChangeNotifyPrivilege a usuarios de SMB o grupos locales en máquinas virtuales de almacenamiento (SVM). De forma predeterminada, los usuarios pueden omitir la comprobación de recorrido del directorio.' 
+---
+= Permitir a los usuarios o grupos omitir la comprobación de recorrido del directorio
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si desea que un usuario pueda recorrer todos los directorios de la ruta de acceso a un archivo incluso si el usuario no tiene permisos en un directorio atravesado, puede agregar el `SeChangeNotifyPrivilege` Privilegios para los usuarios o grupos de SMB locales en máquinas virtuales de almacenamiento (SVM). De forma predeterminada, los usuarios pueden omitir la comprobación de recorrido del directorio.
+
+.Antes de empezar
+* Debe haber un servidor SMB en la SVM.
+* Debe habilitarse la opción del servidor SMB para los usuarios locales y los grupos.
+* El usuario o el grupo local o de dominio al que se va `SeChangeNotifyPrivilege` el privilegio se añadirá debe existir.
+
+
+.Acerca de esta tarea
+Al agregar privilegios a un usuario o grupo de dominio, ONTAP puede validar el usuario o grupo de dominio poniéndose en contacto con el controlador de dominio. Es posible que se produzca un error en el comando si ONTAP no puede comunicarse con la controladora de dominio.
+
+.Pasos
+. Active la comprobación de recorrido de derivación agregando el `SeChangeNotifyPrivilege` privilegio para un usuario o grupo local o de dominio: `vserver cifs users-and-groups privilege add-privilege -vserver _vserver_name_ -user-or-group-name _name_ -privileges SeChangeNotifyPrivilege`
++
+El valor de `-user-or-group-name` parámetro es un usuario o grupo local, o un usuario o grupo de dominio.
+
+. Compruebe que el usuario o grupo especificado tiene activada la comprobación de recorrido de derivación: `vserver cifs users-and-groups privilege show -vserver _vserver_name_ ‑user-or-group-name _name_`
+
+
+.Ejemplo
+El siguiente comando permite a los usuarios que pertenecen al grupo "'EXAMPLE\eng'" omitir la comprobación de recorrido del directorio agregando el `SeChangeNotifyPrivilege` privilegio para el grupo:
+
+[listing]
+----
+cluster1::> vserver cifs users-and-groups privilege add-privilege -vserver vs1 -user-or-group-name EXAMPLE\eng -privileges SeChangeNotifyPrivilege
+
+cluster1::> vserver cifs users-and-groups privilege show -vserver vs1
+Vserver   User or Group Name    Privileges
+--------- --------------------- ---------------
+vs1       EXAMPLE\eng           SeChangeNotifyPrivilege
+----
+.Información relacionada
+xref:disallow-users-groups-bypass-directory-traverse-task.adoc[No permitir que usuarios o grupos pasen por alto la comprobación de recorrido del directorio]

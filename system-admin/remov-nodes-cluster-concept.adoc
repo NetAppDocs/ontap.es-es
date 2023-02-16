@@ -1,0 +1,133 @@
+---
+permalink: system-admin/remov-nodes-cluster-concept.html 
+sidebar: sidebar 
+keywords: remove, node, cluster, failover, partner, erase, inaccessible 
+summary: Es posible eliminar nodos no deseados de un clúster, de uno en uno. Después de quitar un nodo, también debe quitar su compañero de conmutación al nodo de respaldo. Si va a quitar un nodo, sus datos se vuelven inaccesibles o se borran. 
+---
+= Quite los nodos del clúster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible eliminar nodos no deseados de un clúster, de uno en uno. Después de quitar un nodo, también debe quitar su compañero de conmutación al nodo de respaldo. Si va a quitar un nodo, sus datos se vuelven inaccesibles o se borran.
+
+.Antes de empezar
+Debe cumplir las siguientes condiciones antes de quitar nodos del clúster:
+
+* Más de la mitad de los nodos del clúster deben estar en buen estado.
+* Debe haberse evacuado todos los datos del nodo que desea quitar.
++
+** Esto podría incluir link:../encryption-at-rest/secure-purge-data-encrypted-volume-concept.html["purgado de datos desde un volumen cifrado"].
+
+
+* Todos los volúmenes ya existen link:../volumes/move-volume-task.html["movido"] o. link:../volumes/delete-flexvol-task.html["eliminado"] desde agregados que pertenecen al nodo.
+* Todos los agregados se han hecho link:../disks-aggregates/commands-manage-aggregates-reference.html["eliminado"] desde el nodo.
+* Si el nodo tiene discos de estándar de procesamiento de información federal (FIPS) o discos de cifrado automático (SED), link:../encryption-at-rest/return-seds-unprotected-mode-task.html["se ha eliminado el cifrado del disco"] volviendo a poner los discos en modo sin protección.
++
+** Puede que también desee link:../encryption-at-rest/sanitize-fips-drive-sed-task.html["Desinfecte unidades FIPS o SED"].
+
+
+* LIF de datos han sido link:../networking/delete_a_lif.html["eliminado"] o. link:../networking/migrate_a_lif.html["reubicado"] desde el nodo.
+* Se han realizado las LIF de gestión del clúster link:../networking/migrate_a_lif.html["reubicado"] desde el nodo y los puertos de inicio se han cambiado.
+* Todas las LIF de interconexión de clústeres se han establecido link:../networking/delete_a_lif.html["quitada"].
++
+** Cuando elimina las LIF de interconexión de clústeres, se muestra una advertencia que puede ignorarse.
+
+
+* La recuperación tras fallos del almacenamiento ha sido link:../high-availability/ha_commands_for_enabling_and_disabling_storage_failover.html["deshabilitado"] para el nodo.
+* Todas las reglas de recuperación tras fallos de LIF han sido link:../networking/commands_for_managing_failover_groups_and_policies.html["modificado"] para quitar los puertos del nodo.
+* Todas las VLAN del nodo han sido link:../networking/configure_vlans_over_physical_ports.html#delete-a-vlan["eliminado"].
+* Si tiene LUN en el nodo que se va a quitar, debería link:https://docs.netapp.com/us-en/ontap/san-admin/modify-slm-reporting-nodes-task.html["Modifique la lista nodos de generación de informes de asignación de LUN selectiva (SLM)"] antes de quitar el nodo.
++
+Si no elimina el nodo y su partner de alta disponibilidad de la lista Reporting-Nodes de SLM, se puede perder el acceso a las LUN que anteriormente existían en el nodo aunque los volúmenes que contenían dichas LUN se hayan movido a otro nodo.
+
+
+
+Se recomienda emitir un mensaje de AutoSupport para notificar al soporte técnico de NetApp que se está realizando la eliminación de nodos.
+
+*Nota:* no debe realizar operaciones como `cluster remove-node`, `cluster unjoin`, y. `node rename` Cuando hay una actualización automática de ONTAP en curso.
+
+.Acerca de esta tarea
+Si ejecuta un clúster de versión mixta, puede eliminar el último nodo de versión baja con uno de los comandos de privilegio avanzados desde ONTAP 9.3:
+
+* ONTAP 9.3: `cluster unjoin -skip-last-low-version-node-check`
+* ONTAP 9.4 y posteriores: `cluster remove-node -skip-last-low-version-node-check`
+
+
+*Nota:* todos los datos del sistema y del usuario, desde todos los discos conectados al nodo, deben ser inaccesibles para los usuarios antes de quitar un nodo del clúster. Si un nodo se desunió incorrectamente desde un clúster, póngase en contacto con el soporte de NetApp para obtener ayuda con las opciones de recuperación.
+
+.Pasos
+. Cambie el nivel de privilegio a avanzado:
++
+`*set -privilege advanced*`
+
+. Si el nodo que desea quitar es el nodo maestro actual, habilite otro nodo del clúster para que se elija como nodo maestro cambiando la idoneidad del clúster del nodo maestro `false`:
++
+`*cluster modify –eligibility false*`
+
++
+El nodo principal es el nodo que contiene procesos como «mgmt», «vldb», «vifmgr», «bcomd» y «crs». La `cluster ring show` el comando advanced muestra el nodo maestro actual.
+
++
+[listing]
+----
+cluster::*> cluster modify -node node1 -eligibility false
+----
+. Inicie sesión en la LIF de gestión de nodos remotos o en la LIF de gestión de clústeres en un nodo que no sea el que se está quitando.
+. Quite el nodo del clúster:
++
+|===
+| Para esta versión de ONTAP... | Se usa este comando... 
+
+
+ a| 
+ONTAP 9.3
+ a| 
+`*cluster unjoin*`
+
+
+
+ a| 
+ONTAP 9.4 y posteriores
+ a| 
+`*cluster remove-node*`
+
+|===
++
+Si tiene un clúster de versiones mixtas y va a eliminar el último nodo de la versión inferior, use el `-skip-last-low-version-node-check` parámetro con estos comandos.
+
++
+El sistema le informa de lo siguiente:
+
++
+** También debe quitar del clúster el compañero de conmutación al nodo de respaldo.
+** Una vez que se ha eliminado el nodo y antes de poder volver a unirse a un clúster, debe utilizar la opción del menú de arranque (4) limpiar la configuración e inicializar todos los discos u opción (9) Configurar la partición avanzada de unidades para borrar la configuración del nodo e inicializar todos los discos.
++
+Se genera un mensaje de fallo si tiene condiciones que debe abordar antes de quitar el nodo. Por ejemplo, el mensaje podría indicar que el nodo tiene recursos compartidos que debe quitar o que el nodo está en una configuración de alta disponibilidad de clúster o en una configuración de recuperación tras fallos de almacenamiento que debe deshabilitar.
+
++
+Si el nodo es el maestro de quórum, el clúster perderá brevemente y volverá al quórum. Esta pérdida de quórum es temporal y no afecta a ninguna operación de datos.
+
+
+
+. Si un mensaje de fallo indica condiciones de error, solucione esas condiciones y vuelva a ejecutar el `cluster remove-node` o. `cluster unjoin` comando.
++
+El nodo se reinicia automáticamente después de que se quita correctamente del clúster.
+
+. Si va a reutilizar el nodo, borre la configuración del nodo e inicialice todos los discos:
++
+.. Durante el proceso de inicio, pulse Ctrl-C para mostrar el menú de inicio cuando se le solicite.
+.. Seleccione la opción del menú de inicio *(4) limpiar la configuración e inicializar todos los discos*.
+
+
+. Volver al nivel de privilegio de administrador:
++
+`*set -privilege admin*`
+
+. Repita los pasos anteriores para eliminar el partner de conmutación por error del clúster.
+
+
+.Después de terminar
+Si ha quitado nodos para tener un clúster de un solo nodo, debe modificar los puertos de clúster para que proporcionen tráfico de datos. Para ello, modifique los puertos de clúster que son puertos de datos y cree LIF de datos en los puertos de datos.

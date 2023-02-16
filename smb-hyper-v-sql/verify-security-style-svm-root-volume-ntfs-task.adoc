@@ -1,0 +1,52 @@
+---
+permalink: smb-hyper-v-sql/verify-security-style-svm-root-volume-ntfs-task.html 
+sidebar: sidebar 
+keywords: verify, security, style, svm, root, volume, ntfs, storage, virtual, machine 
+summary: 'Para garantizar que las operaciones no disruptivas de Hyper-V y SQL Server sobre SMB se realicen correctamente, los volúmenes se deben crear con un estilo de seguridad NTFS. Dado que el estilo de seguridad del volumen raíz se aplica de forma predeterminada a los volúmenes creados en la máquina virtual de almacenamiento (SVM), el estilo de seguridad del volumen raíz debe establecerse en NTFS.' 
+---
+= Compruebe que el estilo de seguridad del volumen raíz de SVM se haya establecido en NTFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para garantizar que las operaciones no disruptivas de Hyper-V y SQL Server sobre SMB se realicen correctamente, los volúmenes se deben crear con un estilo de seguridad NTFS. Dado que el estilo de seguridad del volumen raíz se aplica de manera predeterminada a los volúmenes creados en la máquina virtual de almacenamiento (SVM), el estilo de seguridad del volumen raíz se debe establecer en NTFS.
+
+.Acerca de esta tarea
+* Puede especificar el estilo de seguridad del volumen raíz en el momento de crear la SVM.
+* Si la SVM no se crea con el volumen raíz establecido en estilo de seguridad NTFS, puede cambiar el estilo de seguridad más adelante mediante el `volume modify` comando.
+
+
+.Pasos
+. Determine el estilo de seguridad actual del volumen raíz de la SVM:
++
+`*volume show -vserver _vserver_name_ -fields vserver,volume,security-style*`
+
+. Si el volumen raíz no es un volumen con estilo de seguridad NTFS, cambie el estilo de seguridad a NTFS:
++
+`*volume modify -vserver _vserver_name_ -volume root_volume_name -security-style ntfs*`
+
+. Compruebe que el volumen raíz de la SVM esté establecido en el estilo de seguridad NTFS:
++
+`*volume show -vserver _vserver_name_ -fields vserver,volume,security-style*`
+
+
+
+.Ejemplo
+Los siguientes comandos verifican que el estilo de seguridad del volumen raíz es NTFS en la SVM vs1:
+
+[listing]
+----
+cluster1::> volume show -vserver vs1 -fields vserver,volume,security-style
+vserver  volume     security-style
+-------- ---------- --------------
+vs1      vs1_root   unix
+
+cluster1::> volume modify -vserver vs1 -volume vs1_root -security-style ntfs
+
+cluster1::> volume show -vserver vs1 -fields vserver,volume,security-style
+vserver  volume     security-style
+-------- ---------- --------------
+vs1      vs1_root   ntfs
+----

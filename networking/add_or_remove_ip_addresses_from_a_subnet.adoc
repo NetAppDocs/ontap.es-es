@@ -1,0 +1,91 @@
+---
+sidebar: sidebar 
+permalink: networking/add_or_remove_ip_addresses_from_a_subnet.html 
+keywords: adding, add, create, creating, remove, removing, delete, deleting, ip, internet, protocol, address, addresses, subnet, add or remove ip addresses from a subnet, force update lif associations, network subnet add ranges, network subnet remove ranges 
+summary: Agregar direcciones IP al crear una subred o agregar o quitar direcciones IP a una subred que sale 
+---
+= Añada o quite direcciones IP de una subred
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Puede añadir direcciones IP al crear inicialmente una subred, o bien añadir direcciones IP a una subred que ya exista. También es posible quitar direcciones IP de una subred existente. Esto le permite asignar solo las direcciones IP necesarias para las SVM.
+
+El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*A partir de ONTAP 9.12.0, puede utilizar System Manager para agregar o quitar direcciones IP a o desde una subred*
+
+.Pasos
+. Seleccione *Red > Descripción general > subredes*.
+. Seleccione image:icon_kabob.gif["icono de kebob"] *> Editar* junto a la subred que desea cambiar.
+. Añadir o quitar direcciones IP.
+. Guarde los cambios.
++
+.. Si la dirección IP o el rango introducido ya están en uso por una interfaz, se muestra el siguiente mensaje:
+`An IP address in this range is already in use by a LIF. Associate the LIF with this subnet?`
+.. Al hacer clic en *Aceptar*, la LIF existente se asociará a la subred.
+
+
+
+
+--
+.CLI
+--
+*Utilice la CLI para agregar o quitar direcciones IP a o desde una subred*
+
+.Acerca de esta tarea
+Al añadir direcciones IP, recibirá un error si alguna interfaz de red o procesador de servicios utiliza las direcciones IP del rango que se va a añadir. Si desea asociar cualquier interfaz de dirección manual con la subred actual, puede establecer la `-force-update-lif-associations` opción a. `true`.
+
+Al quitar direcciones IP, recibirá un error si alguna interfaz de red o procesador de servicios utiliza las direcciones IP que se están quitando. Si desea que las interfaces sigan usando las direcciones IP una vez que se hayan eliminado de la subred, puede configurar el `-force-update-lif-associations` opción a. `true`.
+
+.Paso
+Añada o quite direcciones IP de una subred:
+
+[cols="30,70"]
+|===
+
+
+| Si desea... | Se usa este comando... 
+
+
+ a| 
+Añada direcciones IP a una subred
+ a| 
+intervalos adicionales de subred de red
+
+
+
+ a| 
+Quite las direcciones IP de una subred
+ a| 
+intervalos de eliminación de subred de red
+
+|===
+Para obtener más información sobre estos comandos, consulte las páginas man.
+
+El siguiente comando agrega las direcciones IP 192.0.2.82 a 192.0.2.85 a la subred sub1:
+
+....
+network subnet add-ranges -subnet-name <sub1> -ip-ranges <192.0.2.82-192.0.2.85>
+....
+El siguiente comando elimina la dirección IP 198.51.100.9 de la subred sub3:
+
+....
+network subnet remove-ranges -subnet-name <sub3> -ip-ranges <198.51.100.9>
+....
+Si el rango actual incluye de 1 a 10 y de 20 a 40, y desea agregar de 11 a 19 y de 41 a 50 (básicamente permitiendo de 1 a 50), puede superponer el rango existente de direcciones utilizando el comando siguiente. Este comando añade solo las direcciones nuevas y no afecta a las direcciones existentes:
+
+....
+network subnet add-ranges -subnet-name <sub3> -ip-ranges <198.51.10.1-198.51.10.50>
+....
+--
+====

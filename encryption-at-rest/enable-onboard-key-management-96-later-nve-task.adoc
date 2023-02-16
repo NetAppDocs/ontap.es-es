@@ -1,0 +1,150 @@
+---
+permalink: encryption-at-rest/enable-onboard-key-management-96-later-nve-task.html 
+sidebar: sidebar 
+keywords: enabling, onboard key management, ontap 9.6, later, nve 
+summary: Puede usar el administrador de claves incorporado para proteger las claves que el clúster utiliza para acceder a los datos cifrados. Debe habilitar el gestor de claves incorporado en cada clúster que acceda a un volumen cifrado o un disco de autocifrado. 
+---
+= Habilitar la gestión de claves incorporada en ONTAP 9.6 y versiones posteriores (NVE)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede usar el administrador de claves incorporado para proteger las claves que el clúster utiliza para acceder a los datos cifrados. Debe habilitar el gestor de claves incorporado en cada clúster que acceda a un volumen cifrado o un disco de autocifrado.
+
+.Lo que necesitará
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* Debe configurar el entorno de MetroCluster antes de configurar un gestor de claves externo.
+
+
+.Acerca de esta tarea
+Debe ejecutar el `security key-manager onboard sync` cada vez que añada un nodo al clúster.
+
+Si tiene una configuración MetroCluster, debe ejecutar `security key-manager onboard enable` en el clúster local primero y después ejecute `security key-manager onboard sync` en el clúster remoto, utilizando la misma clave de acceso en cada uno.
+
+De forma predeterminada, no es necesario introducir la clave de acceso del administrador de claves cuando se reinicia un nodo. Puede utilizar el `cc-mode-enabled=yes` opción para solicitar que los usuarios introduzcan la frase de contraseña después de un reinicio.
+
+Para NVE, si estableció `cc-mode-enabled=yes`, volúmenes creados con `volume create` y.. `volume move start` los comandos se cifran automáticamente. Para `volume create`, no es necesario especificar `-encrypt true`. Para `volume move start`, no es necesario especificar `-encrypt-destination true`.
+
+Al configurar el cifrado de datos de ONTAP en reposo, para cumplir los requisitos de las soluciones comerciales para la clasificación (CSfC), debe usar NSE con NVE y asegurarse de que el gestor de claves incorporado esté habilitado en modo de criterios comunes. Consulte la link:https://assets.netapp.com/m/128a1e9f4b5d663/original/Commercial-Solutions-for-Classified.pdf["Breve descripción de la solución CSfC"^] Para obtener más información sobre CSfC.
+
+[NOTE]
+====
+Cuando el gestor de claves incorporado se habilita en el modo de criterios comunes (`cc-mode-enabled=yes`), el comportamiento del sistema se cambia de las siguientes formas:
+
+* El sistema supervisa los intentos fallidos consecutivos de acceso al clúster cuando funciona en modo de criterios comunes.
++
+Si no puede introducir la clave de acceso del clúster correcta en el arranque, los volúmenes cifrados no se montan. Para corregir esto, debe reiniciar el nodo e introducir la clave de acceso del clúster correcta. Una vez arrancado, el sistema permite 5 introducir correctamente la clave de acceso del clúster en un periodo de 24 horas para cualquier comando que requiera la clave de acceso del clúster como parámetro. Si se alcanza el límite (por ejemplo, no ha podido introducir correctamente la clave de acceso del clúster 5 veces en una fila), debe esperar al tiempo de espera de 24 horas o reiniciar el nodo para restablecer el límite.
+
+* Las actualizaciones de imágenes del sistema utilizan el certificado de firma de código RSA-3072 de NetApp junto con los resúmenes firmados con código SHA-384 para comprobar la integridad de la imagen en lugar del certificado de firma de código RSA-2048 de NetApp habitual y los resúmenes firmados con código SHA-256.
++
+El comando upgrade verifica que el contenido de la imagen no se ha alterado o dañado comprobando varias firmas digitales. El proceso de actualización de imágenes continúa con el paso siguiente si la validación se realiza correctamente; de lo contrario, la actualización de la imagen falla. Consulte la página del manual «'cluster image'» para obtener información sobre las actualizaciones del sistema.
+
+
+
+====
+[NOTE]
+====
+El gestor de claves incorporado almacena claves en la memoria volátil. El contenido de la memoria volátil se borra al reiniciar o detener el sistema. En condiciones normales de funcionamiento, el contenido de la memoria volátil se borrará en un plazo de 30 segundos cuando se pare un sistema.
+
+====
+.Pasos
+. Inicie la configuración del gestor de claves:
++
+`security key-manager onboard enable -cc-mode-enabled yes|no`
+
++
+[NOTE]
+====
+Configurado `cc-mode-enabled=yes` para solicitar que los usuarios introduzcan la frase de acceso del administrador de claves después de un reinicio. Para NVE, si estableció `cc-mode-enabled=yes`, volúmenes creados con `volume create` y.. `volume move start` los comandos se cifran automáticamente. La `- cc-mode-enabled` La opción no es compatible con las configuraciones de MetroCluster. La `security key-manager onboard enable` el comando sustituye al `security key-manager setup` comando.
+
+====
++
+En el siguiente ejemplo, se inicia el comando key Manager setup en cluster1 sin necesidad de introducir la frase de contraseña después de cada reinicio:
+
++
+[listing]
+----
+cluster1::> security key-manager onboard enable
+
+Enter the cluster-wide passphrase for onboard key management in Vserver "cluster1"::    <32..256 ASCII characters long text>
+Reenter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+----
+. En el indicador de frase de contraseña, introduzca una frase de paso entre 32 y 256 caracteres, o bien, para "'cc-mode'", una frase de paso entre 64 y 256 caracteres.
++
+[NOTE]
+====
+Si la frase de paso "'cc-mode'" especificada es menor de 64 caracteres, hay un retraso de cinco segundos antes de que la operación de configuración del gestor de claves vuelva a mostrar la indicación de contraseña.
+
+====
+. En la solicitud de confirmación de contraseña, vuelva a introducir la frase de contraseña.
+. Compruebe que se han creado las claves de autenticación:
++
+`security key-manager key query -key-type NSE-AK`
+
++
+[NOTE]
+====
+La `security key-manager key query` el comando sustituye al `security key-manager query key` comando. Para obtener una sintaxis de comando completa, consulte la página man.
+
+====
++
+El ejemplo siguiente verifica para qué se han creado claves de autenticación `cluster1`:
+
++
+[listing]
+----
+cluster1::> security key-manager key query -key-type NSE-AK
+       Vserver: cluster1
+   Key Manager: onboard
+          Node: node1
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+
+       Vserver: svm1
+   Key Manager: onboard
+          Node: node1
+    Key Server: keyserver.svm1.com:5965
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
+    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
+9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
+    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+
+       Vserver: cluster1
+   Key Manager: onboard
+          Node: node2
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+
+       Vserver: svm1
+   Key Manager: onboard
+          Node: node2
+    Key Server: keyserver.svm1.com:5965
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
+    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
+9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
+    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+----
+
+
+.Después de terminar
+Copie la clave de acceso en una ubicación segura fuera del sistema de almacenamiento para usarla en el futuro.
+
+Se realiza automáticamente un backup de toda la información de gestión de claves en la base de datos replicada (RDB) del clúster. También es necesario realizar una copia de seguridad de la información manualmente para su uso en caso de desastre.

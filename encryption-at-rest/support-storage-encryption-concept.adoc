@@ -1,0 +1,114 @@
+---
+permalink: encryption-at-rest/support-storage-encryption-concept.html 
+sidebar: sidebar 
+keywords: configuring, netapp, hardware-based, encryption 
+summary: 'El cifrado basado en hardware de NetApp admite el cifrado de disco completo (FDE) de los datos mientras se escriben. No se pueden leer los datos sin una clave de cifrado almacenada en el firmware. La clave de cifrado, a su vez, sólo es accesible a un nodo autenticado.' 
+---
+= Información general sobre el cifrado basado en hardware de NetApp
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El cifrado basado en hardware de NetApp admite el cifrado de disco completo (FDE) de los datos mientras se escriben. No se pueden leer los datos sin una clave de cifrado almacenada en el firmware. La clave de cifrado, a su vez, sólo es accesible a un nodo autenticado.
+
+
+
+== Cifrado basado en hardware de NetApp
+
+Un nodo se autentica a una unidad de autocifrado mediante una clave de autenticación recuperada de un servidor de gestión de claves externo o Onboard Key Manager:
+
+* El servidor de gestión de claves externo es un sistema de terceros en el entorno de almacenamiento que proporciona claves a los nodos mediante el protocolo de interoperabilidad de gestión de claves (KMIP). Se recomienda configurar servidores de gestión de claves externos a partir de sus datos en un sistema de almacenamiento diferente.
+* El gestor de claves incorporado es una herramienta integrada que proporciona claves de autenticación a nodos del mismo sistema de almacenamiento que los datos.
+
+
+Puede utilizar el cifrado de volúmenes de NetApp con cifrado basado en hardware para «cifrar doble» los datos de unidades con autocifrado.
+
+Los sistemas AFF A220, AFF A800, FAS2720, FAS2750 y posteriores almacenan volcados principales en su dispositivo de arranque. Cuando se habilitan las unidades de autocifrado en estos sistemas, el volcado de memoria también se cifra.
+
+
+NOTE: Si una pareja de alta disponibilidad utiliza unidades SAS o NVMe cifradas (SED, NSE, FIPS), debe seguir las instrucciones del tema xref:return-seds-unprotected-mode-task.html[Devolver una unidad FIPS o SED al modo sin protección] Para todas las unidades dentro de la pareja de ha antes de inicializar el sistema (opciones de arranque 4 o 9). Si las unidades se reasignan, es posible que no se produzcan pérdidas de datos futuras.
+
+
+
+== Tipos de unidades de autocifrado compatibles
+
+Se admiten dos tipos de unidades de autocifrado:
+
+* Las unidades SAS o NVMe con certificación FIPS de autocifrado son compatibles con todos los sistemas FAS y AFF. Estas unidades, denominadas _unidades FIPS, cumplen con los requisitos del nivel 2 de la publicación estándar de procesamiento de información federal 140-2. Las capacidades certificadas ofrecen protecciones además del cifrado, como la prevención de ataques de denegación de servicio en la unidad. Las unidades FIPS no pueden combinarse con otros tipos de unidades en el mismo nodo o en la pareja de alta disponibilidad.
+* A partir de ONTAP 9.6, las unidades NVMe de autocifrado que no se han sometido a pruebas FIPS son compatibles con los sistemas AFF A800, A320 y posteriores. Estas unidades, denominadas _SED_, ofrecen las mismas funcionalidades de cifrado que las unidades FIPS, pero se pueden combinar con unidades sin cifrado en el mismo nodo o par de alta disponibilidad.
+* Todas las unidades validadas con FIPS utilizan un módulo criptográfico de firmware que se ha realizado mediante la validación FIPS. El módulo criptográfico de la unidad FIPS no utiliza ninguna clave generada fuera de la unidad (el módulo criptográfico del firmware de la unidad utiliza la frase de acceso de autenticación que se introduce en la unidad para obtener una clave de cifrado).
+
+
+
+NOTE: Las unidades sin cifrado son unidades que no están de SED o FIPS.
+
+
+
+== Cuándo utilizar la gestión de claves externas
+
+Aunque resulta menos caro y, por lo general, más práctico, utilizar el gestor de claves incorporado, se debe utilizar la gestión de claves externa si se da alguna de las siguientes situaciones:
+
+* La política de su organización requiere una solución de gestión de claves que utilice un módulo criptográfico FIPS 140-2 de nivel 2 (o superior).
+* Necesita una solución de varios clústeres con gestión centralizada de las claves de cifrado.
+* Su empresa requiere una seguridad añadida para almacenar claves de autenticación en un sistema o en una ubicación distinta de los datos.
+
+
+
+
+== Detalles de soporte
+
+En la siguiente tabla se muestran detalles importantes de compatibilidad con el cifrado de hardware. Consulte la matriz de interoperabilidad para obtener la información más reciente sobre servidores KMIP, sistemas de almacenamiento y bandejas de discos compatibles.
+
+[cols="30,70"]
+|===
+
+
+| Recurso o característica | Detalles de soporte 
+
+
+ a| 
+Conjuntos de discos no homogéneos
+ a| 
+* Las unidades FIPS no pueden combinarse con otros tipos de unidades en el mismo nodo o en la pareja de alta disponibilidad. Las parejas de alta disponibilidad conformes pueden coexistir con parejas de alta disponibilidad no conformes en el mismo clúster.
+* SEDS puede combinarse con unidades sin cifrado en el mismo nodo o en la pareja de alta disponibilidad.
+
+
+
+
+ a| 
+Tipo de unidad
+ a| 
+* Las unidades FIPS pueden ser SAS o NVMe.
+* SEDS debe ser unidades NVMe.
+
+
+
+
+ a| 
+Interfaces de red de 10 GB
+ a| 
+A partir de ONTAP 9.3, las configuraciones de gestión de claves KMIP admiten interfaces de red de 10 GB para las comunicaciones con servidores de gestión de claves externos.
+
+
+
+ a| 
+Puertos para la comunicación con el servidor de gestión de claves
+ a| 
+A partir de ONTAP 9.3, es posible usar cualquier puerto de la controladora de almacenamiento para la comunicación con el servidor de gestión de claves. De lo contrario, debe utilizar el puerto e0M para la comunicación con los servidores de gestión de claves. Según el modelo de controladora de almacenamiento, es posible que ciertas interfaces de red no estén disponibles durante el proceso de arranque para establecer la comunicación con los servidores de gestión de claves.
+
+
+
+ a| 
+MetroCluster (MCC) (en inglés)
+ a| 
+* Las unidades NVMe admiten MCC.
+* Las unidades SAS no son compatibles con MCC.
+
+
+|===
+.Información relacionada
+* link:https://hwu.netapp.com/["Hardware Universe de NetApp"^]
+* link:https://www.netapp.com/pdf.html?item=/media/17070-ds-3899.pdf["Cifrado de volúmenes de NetApp y cifrado de agregados de NetApp"^]
+

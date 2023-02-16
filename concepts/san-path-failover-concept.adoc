@@ -1,0 +1,34 @@
+---
+permalink: concepts/san-path-failover-concept.html 
+sidebar: sidebar 
+keywords: san path failover 
+summary: 'Un host SAN utiliza ALUA (acceso asimétrico de unidad lógica) y MPIO (I/o multivía) para redirigir el tráfico a un LIF superviviente tras un error de enlace. Las rutas predefinidas determinan las posibles rutas a la LUN servida por la SVM.' 
+---
+= Recuperación tras fallos de rutas SAN
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un host SAN utiliza ALUA (acceso asimétrico de unidad lógica) y MPIO (I/o multivía) para redirigir el tráfico a un LIF superviviente tras un error de enlace. Las rutas predefinidas determinan las posibles rutas a la LUN servida por la SVM.
+
+En un entorno SAN, los hosts se consideran _initiators_ of Requests de LUN _Targets. MPIO permite varias rutas desde iniciadores a destinos. ALUA identifica las rutas más directas, denominadas _rutas optimizadas._
+
+Normalmente, configura varias rutas optimizadas a los LIF en el nodo propietario de la LUN y varias rutas no optimizadas a los LIF en su partner de alta disponibilidad. Si un puerto falla en el nodo propietario, el host enruta el tráfico a los puertos supervivientes. Si todos los puertos fallan, el host enruta el tráfico a través de las rutas no optimizadas.
+
+La asignación de LUN selectiva (SLM) de ONTAP limita el número de rutas del host a una LUN de forma predeterminada. Solo se puede acceder a una LUN creada recientemente a través de las rutas al nodo que posee la LUN o su compañero de alta disponibilidad. También puede limitar el acceso a una LUN mediante la configuración de LIF en un _Port set_ para el iniciador.
+
+image::../media/san-host-rerouting.gif[nueva ruta de host san]
+
+|===
+
+
+ a| 
+*_mover volúmenes en entornos SAN_*
+
+De forma predeterminada, ONTAP _selectivo de asignación de LUN (SLM)_ limita el número de rutas a un LUN desde un host SAN. Solo es posible acceder a una LUN creada a través de las rutas al nodo propietario de la LUN o de su compañero de alta disponibilidad, el _reporting Nodes_ de la LUN.
+
+Esto significa que cuando mueve un volumen a un nodo en otro par de alta disponibilidad, debe añadir nodos de generación de informes para el par de alta disponibilidad de destino a la asignación de LUN. A continuación, puede especificar las nuevas rutas en la configuración de MPIO. Una vez completado el movimiento de volúmenes, es posible eliminar los nodos de generación de informes para la pareja de alta disponibilidad de origen de la asignación.
+
+|===

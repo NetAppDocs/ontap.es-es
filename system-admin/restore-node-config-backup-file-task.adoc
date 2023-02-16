@@ -1,0 +1,64 @@
+---
+permalink: system-admin/restore-node-config-backup-file-task.html 
+sidebar: sidebar 
+keywords: restore, node, configuration, backup, file, recovering 
+summary: Se restaura la configuración del nodo con el archivo de backup de configuración que se identificó y se puso a disposición del nodo en recuperación. 
+---
+= Restaure la configuración de nodo mediante un archivo de backup de configuración
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Se restaura la configuración del nodo con el archivo de backup de configuración que se identificó y se puso a disposición del nodo en recuperación.
+
+.Acerca de esta tarea
+Solo debe realizar esta tarea para recuperar el sistema tras un desastre que provocó la pérdida de los archivos de configuración local del nodo.
+
+.Pasos
+. Cambie al nivel de privilegio avanzado:
++
+`set -privilege advanced`
+
+. Si el estado del nodo es correcto, utilice el para el nivel de privilegio avanzado de un nodo diferente `cluster modify` con el `-node` y.. `-eligibility` parámetros para marcarlo como no apto y aislarlo del clúster.
++
+Si el nodo no está en buen estado, debe omitir este paso.
+
++
+En este ejemplo, se modifica el nodo 2 para que no sea apto para participar en el clúster para poder restaurar su configuración:
+
++
+[listing]
+----
+cluster1::*> cluster modify -node node2 -eligibility false
+----
+. Utilice la `system configuration recovery node restore` comando en el nivel de privilegio avanzado para restaurar la configuración del nodo desde un archivo de backup de configuración.
++
+Si el nodo perdió su identidad, incluido su nombre, debe usar el `-nodename-in-backup` parámetro para especificar el nombre del nodo en el archivo de copia de seguridad de configuración.
+
++
+En este ejemplo se restaura la configuración del nodo mediante uno de los archivos de backup de configuración almacenados en el nodo:
+
++
+[listing]
+----
+cluster1::*> system configuration recovery node restore -backup cluster1.8hour.2011-02-22.18_15_00.7z
+
+Warning: This command overwrites local configuration files with
+         files contained in the specified backup file. Use this
+         command only to recover from a disaster that resulted
+         in the loss of the local configuration files.
+         The node will reboot after restoring the local configuration.
+Do you want to continue? {y|n}: y
+----
++
+Se restaura la configuración y el nodo se reinicia.
+
+. Si marcó el nodo no apto, utilice el `system configuration recovery cluster sync` comando para marcar el nodo como elegible y sincronizarlo con el clúster.
+. Si está trabajando en un entorno SAN, utilice el `system node reboot` Para reiniciar el nodo y restablecer el quórum DE SAN.
+
+
+.Después de terminar
+Si anteriormente volvió a crear el clúster y si va a restaurar la configuración de nodo mediante un archivo de backup de configuración que se creó antes de volver a crear el clúster, debe volver a crear el clúster.

@@ -1,0 +1,61 @@
+---
+permalink: consistency-groups/modify-task.html 
+sidebar: sidebar 
+keywords: consistency groups, consistency group protection, shrink, expand, add volumes, remove volumes 
+summary: Los grupos de consistencia admiten la adición y sustracción de volúmenes a partir de ONTAP 9.12.1 
+---
+= Modificar un grupo de consistencia
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.12.1, es posible modificar un grupo de coherencia en System Manager. Para ello, quite volúmenes o añada volúmenes existentes (se amplía el grupo de coherencia).
+
+
+
+== Añadir volúmenes a un grupo de coherencia
+
+.Consideraciones
+* No es posible añadir volúmenes asociados con otro grupo de coherencia.
+* Los grupos de consistencia admiten los protocolos NAS, SAN y NVMe. Para obtener más información sobre los grupos de consistencia, consulte xref:index.html[Información general sobre los grupos de consistencia].
+* Puede añadir hasta 16 volúmenes de forma simultánea a un grupo de coherencia, siempre que los ajustes se realicen en general xref:index.html#consistency-group-object-limits[límites del grupo de consistencia].
+* No se pueden añadir volúmenes a un grupo de coherencia en una relación de continuidad de negocio de SnapMirror (SM-BC). Primero debe romper la relación SM-BC para modificar el grupo de coherencia.
+* La API DE REST de ONTAP admite la adición de volúmenes nuevos_ o existentes a un grupo de coherencia. Para obtener más información sobre la API de REST de ONTAP, consulte link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation["Documentación de referencia de la API DE REST de ONTAP"^].
+* Al expandir un grupo de consistencia, las copias Snapshot del grupo de consistencia capturado antes de la operación de ampliación se considerarán parciales. Cualquier operación de restauración basada en esa copia Snapshot reflejará el grupo de coherencia en el momento específico de la Snapshot.
+* Si utiliza ONTAP 9.10.1 a 9.11.1, no puede modificar un grupo de consistencia. Para cambiar la configuración de un grupo de coherencia en ONTAP 9.10.1 o 9.11.1, debe eliminar el grupo de coherencia y, a continuación, crear un nuevo grupo de coherencia con los volúmenes que desea incluir.
+
+
+.Pasos
+. Seleccione *almacenamiento > grupos de consistencia*.
+. Seleccione el grupo de coherencia que desea modificar.
+. Si va a modificar un solo grupo de consistencia, en la parte superior del menú *Volumes*, seleccione *más* y, a continuación, *ampliar* para añadir un volumen.
++
+Si va a modificar un grupo de consistencia secundario, identifique el grupo de consistencia primario que desea modificar. Seleccione el botón *>* para ver los grupos de consistencia hijo y, a continuación, seleccione image:../media/icon_kabob.gif["tres puntos apilados verticalmente"] junto al nombre del grupo de consistencia secundario que desea modificar. En ese menú, seleccione *ampliar*.
+
+. Seleccione hasta 16 volúmenes para añadir al grupo de coherencia.
+. Seleccione *Guardar*. Una vez completada la operación, puede ver los volúmenes recién agregados en el menú *Volumes* del grupo de consistencia.
+
+
+
+
+== Quite volúmenes de un grupo de coherencia
+
+Los volúmenes que se quitan de un grupo de coherencia ya no existen en el grupo de coherencia, pero no se eliminarán; seguirán existiendo en el clúster.
+
+.Consideraciones
+* No se pueden quitar volúmenes de un grupo de coherencia en una relación de continuidad de negocio de SnapMirror (SM-BC). Primero debe romper la relación SM-BC para modificar el grupo de coherencia.
+* Si un grupo de coherencia no tiene volúmenes en él después de la operación de eliminación, se eliminará el grupo de coherencia.
+* Cuando se elimina un volumen de un grupo de coherencia, las snapshots existentes del grupo de coherencia permanecen, pero no son válidas y no se pueden utilizar para restaurar el contenido del grupo de coherencia. Siguen siendo válidas las copias Snapshot granulares en volúmenes.
+* Si elimina un volumen del clúster, se elimina automáticamente del grupo de coherencia.
+* Si utiliza ONTAP 9.10.1 o 9.11.1, solo puede quitar volúmenes de un grupo de coherencia si elimina el volumen del clúster. Para cambiar la configuración de un grupo de coherencia en ONTAP 9.10.1 o 9.11.1, debe eliminar el grupo de coherencia y, a continuación, crear un grupo de coherencia nuevo con los volúmenes miembro deseados.
+
+
+.Pasos
+. Seleccione *almacenamiento > grupos de consistencia*.
+. Seleccione el grupo de consistencia único o secundario que desea modificar.
+. En el menú *volúmenes*, seleccione las casillas de verificación junto a los volúmenes individuales que desea quitar del grupo de consistencia.
+. Seleccione *Eliminar volúmenes del grupo de coherencia*.
+. Confirmar que comprende la eliminación de los volúmenes hará que todas las copias snapshot del grupo de consistencia no sean válidas y seleccione *Quitar*.
+

@@ -1,0 +1,57 @@
+---
+permalink: snaplock/create-snaplock-aggregate-task.html 
+sidebar: sidebar 
+keywords: create, snaplock, aggregate, compliance, enterprise, mode, volumes 
+summary: 'Se utiliza el volumen `-snaplock-type` Opción para especificar un tipo de volumen Compliance o Enterprise SnapLock. Para las versiones anteriores a ONTAP 9.10.1, se debe crear un agregado de SnapLock independiente. A partir de ONTAP 9.10.1, los volúmenes de SnapLock y otros de SnapLock pueden existir en el mismo agregado; por lo tanto, ya no es necesario crear un agregado de SnapLock separado si se utiliza ONTAP 9.10.1.' 
+---
+= Cree un agregado de SnapLock
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Se utiliza el volumen `-snaplock-type` Opción para especificar un tipo de volumen Compliance o Enterprise SnapLock. Para las versiones anteriores a ONTAP 9.10.1, se debe crear un agregado de SnapLock independiente. A partir de ONTAP 9.10.1, los volúmenes de SnapLock y otros de SnapLock pueden existir en el mismo agregado; por lo tanto, ya no es necesario crear un agregado de SnapLock separado si se utiliza ONTAP 9.10.1.
+
+.Lo que necesitará
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* La licencia de SnapLock debe instalarse en el nodo.
+* La instancia de ComplianceClock del nodo se debe inicializar.
+* Si ha particionado los discos como «'root'», «dn1» y «atado2», deberá asegurarse de que los discos de repuesto están disponibles.
+
+
+.Consideraciones de renovación
+Al actualizar a ONTAP 9.10.1, los agregados existentes de SnapLock y otros componentes de SnapLock se actualizan para admitir la existencia de volúmenes SnapLock y distintos de SnapLock; sin embargo, los atributos de volumen de SnapLock existentes no se actualizan automáticamente. Por ejemplo, los campos de compactación de datos, deduplicación entre volúmenes y deduplicación entre volúmenes en segundo plano siguen sin cambios. Los nuevos volúmenes SnapLock creados en agregados existentes tienen los mismos valores predeterminados que los volúmenes que no son de SnapLock, y los valores predeterminados de los nuevos volúmenes y agregados dependen de la plataforma.
+
+.Consideraciones sobre la reversión
+Si necesita volver a una versión de ONTAP anterior a la 9.10.1, debe mover todos los volúmenes de SnapLock Compliance, SnapLock Enterprise y SnapLock a sus propios agregados de SnapLock.
+
+.Acerca de esta tarea
+* No se pueden crear agregados de cumplimiento para las LUN de FlexArray, pero los agregados de SnapLock Compliance son compatibles con las LUN de FlexArray.
+* No se pueden crear agregados de cumplimiento con la opción SyncMirror.
+* Solo se pueden crear agregados de cumplimiento reflejado en una configuración de MetroCluster si el agregado se utiliza para alojar volúmenes de registro de auditoría de SnapLock.
++
+[NOTE]
+====
+En una configuración MetroCluster, es compatible con SnapLock Enterprise con los agregados reflejados y no reflejados. SnapLock Compliance solo se admite en agregados no reflejados.
+
+====
+
+
+.Pasos
+. Cree un agregado de SnapLock:
++
+`*storage aggregate create -aggregate _aggregate_name_ -node _node_name_ -diskcount _number_of_disks_ -snaplock-type compliance|enterprise*`
+
++
+La página man del comando contiene una lista completa de opciones.
+
++
+El siguiente comando crea una SnapLock `Compliance` agregado con nombre `aggr1` con tres discos activados `node1`:
+
++
+[listing]
+----
+cluster1::> storage aggregate create -aggregate aggr1 -node node1 -diskcount 3 -snaplock-type compliance
+----
+

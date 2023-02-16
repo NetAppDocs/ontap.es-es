@@ -1,0 +1,93 @@
+---
+permalink: smb-admin/enable-branchcache-existing-share-task.html 
+sidebar: sidebar 
+keywords: enable, branchcache, exist, smb, share, add, share, property, exist, list, enable branchcache on an existing smb share 
+summary: Puede habilitar BranchCache en un recurso compartido de SMB existente agregando la propiedad recurso compartido de branchcache a la lista existente de propiedades de recurso compartido. 
+---
+= Habilite BranchCache en un recurso compartido de SMB existente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede habilitar BranchCache en un recurso compartido de SMB existente agregando el `branchcache` compartir propiedad a la lista existente de propiedades de recursos compartidos.
+
+.Acerca de esta tarea
+* Si se habilita BranchCache en el recurso compartido de SMB, el recurso compartido debe tener la configuración de los archivos sin conexión establecida en el almacenamiento manual en caché.
++
+Si la opción de archivos sin conexión del recurso compartido existente no está establecida en almacenamiento en caché manual, debe configurarlo modificando el recurso compartido.
+
+* Puede ajustar la `branchcache` Propiedad en un recurso compartido incluso si BranchCache no está configurado y habilitado en la máquina virtual de almacenamiento (SVM).
++
+Sin embargo, si desea que el recurso compartido ofrezca contenido en caché, debe configurar y habilitar BranchCache en la SVM.
+
+* Al agregar el `branchcache` se conserva la propiedad share (compartir) al recurso compartido, la configuración de recursos compartidos existente y las propiedades de recursos compartidos.
++
+La propiedad share de BranchCache se agrega a la lista existente de propiedades compartidas. Para obtener más información acerca del uso de `vserver cifs share properties add` consulte las páginas de manual.
+
+
+
+.Pasos
+. Si es necesario, configure el parámetro de recursos compartidos de archivos sin conexión para el almacenamiento en caché manual:
++
+.. Determine cuál es la configuración del recurso compartido de archivos sin conexión mediante `vserver cifs share show` comando.
+.. Si la configuración del recurso compartido de archivos sin conexión no está establecida en manual, cámbiela al valor necesario: `vserver cifs share modify -vserver vserver_name -share-name share_name -offline-files manual`
+
+
+. Habilite BranchCache en un recurso compartido de SMB existente: `vserver cifs share properties add -vserver vserver_name -share-name share_name -share-properties branchcache`
+. Compruebe que la propiedad share de BranchCache se haya establecido en el recurso compartido de SMB: `vserver cifs share show -vserver vserver_name -share-name share_name`
+
+
+.Ejemplo
+El siguiente comando habilita BranchCache en un recurso compartido SMB existente llamado «data2» con una ruta de `/data2` En SVM vs1:
+
+[listing]
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data2
+             Share Properties: oplocks
+                               browsable
+                               changenotify
+                               showsnapshot
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+
+cluster1::> vserver cifs share properties add  -vserver vs1 -share-name data2 -share-properties branchcache
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data2
+             Share Properties: oplocks
+                               browsable
+                               showsnapshot
+                               changenotify
+                               branchcache
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+.Información relacionada
+xref:add-remove-share-properties-eexisting-share-task.adoc[Agregar o quitar propiedades de recursos compartidos en un recurso compartido SMB existente]
+
+xref:disable-branchcache-single-share-task.adoc[Deshabilitar BranchCache en un único recurso compartido de SMB]

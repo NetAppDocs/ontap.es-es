@@ -1,0 +1,123 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/enable-task.html 
+keywords: anti-ransomware overview, ransomware, security, introduce, autotonomous, protection, arp, detection, threat, attack, suspect, what ontap anti-ransomware detects, entropy, abnormal volume activity, extension conformity, how to recover data in after a ransomware attack, ransomware protection strategy 
+summary: 'La protección de ransomware autónoma (ARP) puede habilitarse en volúmenes nuevos o existentes. Primero se habilita ARP en el modo de aprendizaje, en el cual el sistema analiza la carga de trabajo para caracterizar el comportamiento normal y, a continuación, se cambia al modo activo en el que se Marca la actividad anormal para la evaluación.' 
+---
+= Habilite la protección de ransomware autónoma
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+A partir de ONTAP 9.10.1, la protección de ransomware autónoma (ARP) puede habilitarse en volúmenes nuevos o existentes. Primero se habilita ARP en el modo de aprendizaje, en el cual el sistema analiza la carga de trabajo para caracterizar el comportamiento normal y, a continuación, se cambia al modo activo en el que se Marca la actividad anormal para la evaluación.
+
+.Lo que necesitará
+* Una máquina virtual de almacenamiento habilitada para NFS o SMB (o ambos).
+* Se instala la licencia correcta para la versión de ONTAP.
++
+[cols="2*"]
+|===
+| Lanzamientos de ONTAP | Licencia 
+
+
+ a| 
+ONTAP 9.8-9.10.1
+ a| 
+MT_EK_MGMT (gestión de claves multi-tenant)
+
+
+
+ a| 
+ONTAP 9.11.1 y posteriores
+ a| 
+Antiransomware
+
+|===
+* Una carga de trabajo NAS con clientes configurados.
+* El volumen que se va a proteger debe tener una ruta de unión activa.
+* Opcional pero recomendado: El sistema EMS está configurado para enviar notificaciones por correo electrónico, que incluirán avisos de actividad ARP. Para obtener más información, consulte link:../error-messages/configure-ems-events-send-email-task.html["Configure eventos de EMS para que envíen notificaciones por correo electrónico"].
+
+
+.Acerca de esta tarea
+ARP de NetApp incluye un periodo de aprendizaje inicial (también conocido como «ejecución seca»), en el que un sistema ONTAP aprende qué extensiones de archivo son válidas y utiliza los datos analizados para desarrollar perfiles de alerta. Después de ejecutar ARP en el modo de aprendizaje durante el tiempo suficiente para evaluar las características de la carga de trabajo, puede cambiar al modo activo y empezar a proteger los datos. El anti-ransomware sigue recopilando y analizando datos para refinar los perfiles de alerta.
+
+Durante el periodo de aprendizaje, el sistema aprende automáticamente las características de la carga de trabajo de un volumen configurado, realizando observaciones especiales y analizando patrones.
+
+Se recomienda un período de aprendizaje de 30 días. Aunque puede pasar del modo de aprendizaje al modo activo en cualquier momento, el cambio temprano puede provocar demasiados falsos positivos.
+
+En la CLI de ONTAP, puede usar el `security anti-ransomware volume workload-behavior show` comando para mostrar las extensiones de archivo detectadas hasta la fecha. Sin embargo, se recomienda no utilizar esta herramienta para acortar el período de aprendizaje.
+
+Puede habilitar ARP en un volumen existente, o bien crear un volumen nuevo y habilitar ARP desde el principio.
+
+
+NOTE: En los volúmenes existentes, los modos de aprendizaje y activo solo se aplican a datos recién escritos, no a datos que ya existan en el volumen. Los datos existentes no se analizan y analizan, ya que se asumen las características del tráfico de datos normal anterior según los nuevos datos una vez habilitado para ARP el volumen.
+
+En la CLI de ONTAP, se ha introducido una nueva familia de comandos para gestionar esta función: `security anti-ransomware volume`. También puede utilizar el `volume modify` con el `-anti-ransomware` parámetro para gestionar la función.
+
+.Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Haga clic en *almacenamiento > volúmenes* y seleccione el volumen que desea proteger.
+. En la ficha *Seguridad* de la descripción general *Volumes*, haga clic en *Estado* para cambiar de Desactivado a Activado en modo de aprendizaje en el cuadro *Anti-ransomware*.
+. Cuando finalice el período de aprendizaje, cambie ARP al modo activo.
++
+.. Haga clic en *almacenamiento > volúmenes* y, a continuación, seleccione el volumen que está listo para el modo activo.
+.. En la ficha *Seguridad* de la descripción general *Volumes*, haga clic en *Cambiar* al modo activo en el cuadro Antiransomware.
+
+
+. Siempre puede verificar el estado ARP del volumen en el cuadro *Anti-ransomware*. Para mostrar el estado ARP de todos los volúmenes: En el panel *Volumes*, haga clic en *Mostrar/Ocultar* y, a continuación, asegúrese de que el estado *Anti-ransomware* está activado.
+
+
+--
+.CLI
+--
+. Modifique un volumen existente para habilitar la protección contra ransomware en el modo de aprendizaje:
++
+`security anti-ransomware volume dry-run -volume _vol_name_ -vserver _svm_name_`
+
++
+También puede habilitar el ransomware con el `volume modify` comando:
+
++
+`volume modify -volume _vol_name_ -vserver _svm_name_ -anti-ransomware-state dry-run`
+
++
+En la interfaz de línea de comandos, también puede crear un volumen nuevo con protección contra ransomware habilitada antes de aprovisionar los datos.
+
++
+`volume create -volume _vol_name_ -vserver _svm_name_  -aggregate _aggr_name_ -size _nn_ -anti-ransomware-state dry-run -junction-path /_path_name_`
+
++
+
+NOTE: Siempre debe habilitar ARP inicialmente en el estado de ejecución en seco. Comenzando con el estado activo puede conducir a informes falsos positivos excesivos.
+
+. Cuando finalice el período de aprendizaje, modifique el volumen protegido para cambiar al modo activo:
++
+`security anti-ransomware volume enable -volume _vol_name_ -vserver _svm_name_`
+
++
+También se puede cambiar al modo activo con el comando modify volume:
+
++
+`volume modify -volume _vol_name_ -vserver _svm_name_ -anti-ransomware-state active`
+
+. Verifique el estado ARP del volumen.
++
+`security anti-ransomware volume show`
+
+
+
+--
+====

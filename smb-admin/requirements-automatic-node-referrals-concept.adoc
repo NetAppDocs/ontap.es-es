@@ -1,0 +1,99 @@
+---
+permalink: smb-admin/requirements-automatic-node-referrals-concept.html 
+sidebar: sidebar 
+keywords: smb, automatic, node, referral, autolocation, aware, requirement, version, ontap, feature, support, guideline, requirement, requirements and guidelines for using automatic node referrals 
+summary: Antes de poder utilizar las referencias de nodos automáticas SMB, también conocido como ubicación automática, debe tener en cuenta ciertos requisitos, incluidas las versiones de ONTAP que admiten esta función. También debe saber acerca de las versiones del protocolo SMB compatibles y otras directrices especiales. 
+---
+= Requisitos y directrices para el uso de referencias automáticas al nodo
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de poder utilizar las referencias automáticas de nodos SMB, también conocido como _autoubicación_, debe tener en cuenta ciertos requisitos, como las versiones de ONTAP que admiten esta función. También debe saber acerca de las versiones del protocolo SMB compatibles y otras directrices especiales.
+
+
+
+== Requisitos de versión y licencia de ONTAP
+
+* Todos los nodos del clúster deben ejecutar una versión de ONTAP que admita las referencias automáticas al nodo.
+* Los widgets deben estar habilitados en un recurso compartido SMB para utilizar la autolocalización.
+* CIFS debe tener una licencia y el servidor SMB debe existir en las SVM.
+
+
+
+
+== Requisitos de la versión del protocolo SMB
+
+* Para SVM, ONTAP admite referencias de nodos automáticas en todas las versiones de SMB.
+
+
+
+
+== Requisitos del cliente de SMB
+
+Todos los clientes de Microsoft compatibles con ONTAP son compatibles con las referencias de nodo automáticas SMB.
+
+La matriz de interoperabilidad contiene la información más reciente sobre los clientes Windows que admite ONTAP.
+
+link:http://mysupport.netapp.com/matrix["Herramienta de matriz de interoperabilidad de NetApp"^]
+
+
+
+== Requisitos de LIF de datos
+
+Si desea utilizar una LIF de datos como referencia potencial para los clientes de SMB, debe crear LIF de datos con NFS y CIFS habilitados.
+
+Las referencias automáticas de nodos pueden fallar si el nodo de destino contiene LIF de datos que están habilitadas solo para el protocolo NFS o solo para el protocolo SMB.
+
+Si no se cumple este requisito, el acceso a los datos no se verá afectado. El cliente de SMB asigna el recurso compartido mediante la LIF original que utilizó el cliente para conectarse a la SVM.
+
+
+
+== Requisitos de autenticación NTLM al realizar una conexión SMB a la que se hace referencia
+
+Se debe permitir la autenticación NTLM en el dominio que contiene el servidor CIFS y en los dominios que contienen clientes que desean utilizar referencias automáticas a nodos.
+
+Al realizar una referencia, el servidor SMB hace referencia a una dirección IP al cliente Windows. Dado que la autenticación NTLM se utiliza al realizar una conexión mediante una dirección IP, la autenticación Kerberos no se realiza para conexiones a las que se hace referencia.
+
+Esto sucede porque el cliente de Windows no puede diseñar el nombre principal de servicio utilizado por Kerberos (que es del formulario `service/NetBIOS name` y.. `service/FQDN`), lo que significa que el cliente no puede solicitar un billete Kerberos al servicio.
+
+
+
+== Instrucciones para el uso de referencias automáticas de nodos con la función de directorio inicial
+
+Cuando los recursos compartidos se configuran con la propiedad del recurso compartido del directorio principal activada, puede haber una o varias rutas de búsqueda del directorio principal configuradas para una configuración de directorio principal. Las rutas de búsqueda pueden apuntar a los volúmenes contenidos en cada nodo que contiene volúmenes de SVM. Los clientes reciben una referencia y, si hay una LIF de datos local activa disponible, se conectan a través de una LIF de referencia que sea local al directorio raíz del usuario doméstico.
+
+Existen directrices para que los clientes de SMB 1.0 accedan a directorios iniciales dinámicos con referencias de nodos automáticas habilitadas. Esto se debe a que los clientes de SMB 1.0 necesitan la referencia automática al nodo antes de que se hayan autenticado, lo que es antes de que el servidor SMB tenga el nombre del usuario. Sin embargo, el acceso al directorio raíz SMB funciona correctamente para los clientes SMB 1.0 si se cumplen las siguientes afirmaciones:
+
+* Los directorios iniciales de SMB están configurados para usar nombres simples, como "'%w'" (nombre de usuario de Windows) o "'%u'" (nombre de usuario UNIX asignado), y no nombres de estilo de nombre de dominio, como "'%d\%w '" (nombre de dominio\nombre de usuario).
+* Al crear recursos compartidos de directorios iniciales, los nombres de los recursos compartidos de directorios iniciales CIFS se configuran con variables ("'%w'" o "'%u'"), y no con nombres estáticos, como «'HOME».
+
+
+Para los clientes SMB 2.x y SMB 3.0, no hay directrices especiales al acceder a directorios iniciales con referencias automáticas a nodos.
+
+
+
+== Directrices para deshabilitar las referencias automáticas de nodos en servidores CIFS con conexiones existentes referidas
+
+Si deshabilita las referencias automáticas a nodos después de habilitar la opción, los clientes que están actualmente conectados a una LIF conocida mantienen la conexión referida. Dado que ONTAP utiliza referencias DFS como mecanismo para las referencias automáticas de nodo SMB, los clientes pueden incluso volver a conectarse a la LIF mencionada después de deshabilitar la opción hasta que se agote el tiempo de espera de la referencia de DFS en caché del cliente para la conexión mencionada. Esto es cierto incluso si se revierte a una versión de ONTAP que no admite referencias automáticas a los nodos. Los clientes continúan utilizando referencias hasta que se agote el tiempo de espera de la referencia DFS desde la memoria caché del cliente.
+
+La ubicación automática utiliza las referencias de nodos automáticos de SMB para aumentar el rendimiento del cliente de SMB al remitir a los clientes a la LIF en el nodo propietario del volumen de datos de una SVM. Cuando un cliente SMB se conecta a un recurso compartido SMB alojado en una SVM, puede conectarse mediante una LIF en un nodo que no posea los datos solicitados y utilice una red de interconexión de clúster para recuperar los datos. El cliente puede experimentar tiempos de respuesta más rápidos si la conexión SMB utiliza una LIF ubicada en el nodo que contiene los datos solicitados.
+
+ONTAP proporciona esta funcionalidad al utilizar referencias del sistema de archivos distribuidos (DFS) de Microsoft para informar a los clientes SMB de que un archivo o una carpeta solicitados en el espacio de nombres se alojan en otro lugar. Un nodo hace una referencia cuando determina que hay una LIF de SVM en el nodo que contiene los datos. Las referencias se realizan en función de la ubicación de la raíz del recurso compartido a través del cual está conectado el cliente.
+
+La referencia se produce durante la negociación SMB. La referencia se realiza antes de establecer la conexión. Una vez que ONTAP hace referencia al cliente SMB al nodo de destino, se establece la conexión y el cliente accede a los datos a través de la ruta LIF referida desde ese punto de encendido. Esto permite a los clientes acceder con más rapidez a los datos y evita la comunicación adicional del clúster.
+
+
+
+== Instrucciones para el uso de referencias automáticas a nodos con clientes Mac OS
+
+Los clientes de Mac OS X no admiten referencias automáticas de nodos SMB, aunque Mac OS sea compatible con Microsoft Distributed File System (DFS). Los clientes de Windows realizan una solicitud de referencia DFS antes de conectarse a un recurso compartido SMB. ONTAP proporciona una referencia a una LIF de datos que se encuentra en el mismo nodo que aloja los datos solicitados, lo cual mejora los tiempos de respuesta de los clientes. Aunque Mac OS admite DFS, los clientes de Mac OS no se comportan exactamente igual que los clientes de Windows en esta área.
+
+.Información relacionada
+xref:dynamic-home-directories-concept.html[Cómo habilita ONTAP los directorios iniciales dinámicos]
+
+link:../networking/index.html["Gestión de redes"]
+
+https://mysupport.netapp.com/NOW/products/interoperability["Herramienta de matriz de interoperabilidad de NetApp"^]

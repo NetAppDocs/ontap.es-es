@@ -1,0 +1,148 @@
+---
+permalink: nas-audit/create-security-trace-filters-task.html 
+sidebar: sidebar 
+keywords: create, security trace filters 
+summary: 'Es posible crear filtros de seguimiento de seguridad que detecten operaciones de cliente SMB y NFS en máquinas virtuales de almacenamiento (SVM) y realizar un seguimiento de todas las comprobaciones de acceso que coincidan con el filtro. Puede utilizar los resultados de los seguimientos de seguridad para validar la configuración o solucionar problemas de acceso.' 
+---
+= Cree filtros de seguimiento de seguridad
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible crear filtros de seguimiento de seguridad que detecten operaciones de cliente SMB y NFS en máquinas virtuales de almacenamiento (SVM) y realizar un seguimiento de todas las comprobaciones de acceso que coincidan con el filtro. Puede utilizar los resultados de los seguimientos de seguridad para validar la configuración o solucionar problemas de acceso.
+
+.Acerca de esta tarea
+Hay dos parámetros necesarios para el comando vserver Security trace filter create:
+
+[cols="35,65"]
+|===
+
+
+| Parámetros necesarios | Descripción 
+
+
+ a| 
+`-vserver` `vserver_name`
+ a| 
+_SVM name_
+
+El nombre de la SVM que contiene los archivos o las carpetas en los que se desea aplicar el filtro de seguimiento de seguridad.
+
+
+
+ a| 
+`-index` `index_number`
+ a| 
+_Número de índice de filtro_
+
+El número de índice que desea aplicar al filtro. Está limitado a un máximo de 10 filtros de seguimiento por SVM. Los valores permitidos para este parámetro son de 1 a 10.
+
+|===
+Varios parámetros de filtro opcionales le permiten personalizar el filtro de seguimiento de seguridad para limitar los resultados generados por el seguimiento de seguridad:
+
+[cols="35,65"]
+|===
+
+
+| Parámetro de filtro | Descripción 
+
+
+ a| 
+`-client-ip` `IP_Address`
+ a| 
+Este filtro especifica la dirección IP desde la cual el usuario accede a la SVM.
+
+
+
+ a| 
+`-path` `path`
+ a| 
+Este filtro especifica la ruta en la que se aplicará el filtro de seguimiento de permisos. Valor para `-path` puede utilizar cualquiera de los siguientes formatos:
+
+* La ruta de acceso completa, que comienza desde la raíz del recurso compartido o la exportación
+* Una ruta parcial, relativa a la raíz del recurso compartido
+
+
+Debe usar los separadores de directorios de estilo UNIX del directorio de estilo NFS en el valor de la ruta.
+
+
+
+ a| 
+`-windows-name` `win_user_name` o. `-unix-name``unix_user_name`
+ a| 
+Puede especificar el nombre de usuario de Windows o el nombre de usuario de UNIX cuyas solicitudes de acceso desea rastrear. La variable de nombre de usuario no distingue mayúsculas y minúsculas. No puede especificar tanto un nombre de usuario de Windows como un nombre de usuario de UNIX en el mismo filtro.
+
+[NOTE]
+====
+Aunque se pueden realizar el seguimiento de eventos de acceso SMB y NFS, es posible que se utilicen el usuario UNIX asignado y los grupos de usuarios UNIX asignados al realizar comprobaciones de acceso a datos de estilo de seguridad mixtos o UNIX.
+
+====
+
+
+ a| 
+`-trace-allow` {`yes`|`no`}
+ a| 
+El seguimiento de los eventos Denegar siempre está habilitado para un filtro de seguimiento de seguridad. Opcionalmente, es posible realizar el seguimiento de los eventos de permitir. Para realizar el seguimiento de los eventos de permitir, este parámetro se debe establecer en `yes`.
+
+
+
+ a| 
+`-enabled` {`enabled`|`disabled`}
+ a| 
+Es posible habilitar o deshabilitar el filtro de seguimiento de seguridad. De manera predeterminada, el filtro de seguimiento de seguridad está habilitado.
+
+
+
+ a| 
+`-time-enabled` `integer`
+ a| 
+Puede especificar un tiempo de espera para el filtro, después del cual se deshabilita.
+
+|===
+.Pasos
+. Cree un filtro de seguimiento de seguridad:
++
+`vserver security trace filter create -vserver vserver_name -index index_numberfilter_parameters`
+
++
+`filter_parameters` es una lista de parámetros de filtro opcionales.
+
++
+Para obtener más información, consulte las páginas de manual del comando.
+
+. Compruebe la entrada del filtro de seguimiento de seguridad:
++
+`vserver security trace filter show -vserver vserver_name -index index_number`
+
+
+
+.Ejemplos
+El siguiente comando crea un filtro de seguimiento de seguridad para cualquier usuario que acceda a un archivo con una ruta de acceso compartida `\\server\share1\dir1\dir2\file.txt` Desde la dirección IP 10.10.10.7. El filtro utiliza una ruta completa para el `-path` opción. La dirección IP del cliente utilizada para acceder a los datos es 10.10.10.7. El filtro se agota el tiempo de espera después de 30 minutos:
+
+[listing]
+----
+cluster1::> vserver security trace filter create -vserver vs1 -index 1 -path /dir1/dir2/file.txt -time-enabled 30 -client-ip 10.10.10.7
+cluster1::> vserver security trace filter show -index 1
+Vserver  Index   Client-IP            Path            Trace-Allow  Windows-Name
+-------- -----  -----------  ----------------------   -----------  -------------
+vs1        1    10.10.10.7   /dir1/dir2/file.txt          no       -
+----
+El siguiente comando crea un filtro de seguimiento de seguridad mediante una ruta relativa para `-path` opción. El filtro rastrea el acceso de un usuario de Windows llamado "'joe'". Joe está accediendo a un archivo con una ruta de acceso compartido `\\server\share1\dir1\dir2\file.txt`. Los seguimientos de filtro permiten y niegan eventos:
+
+[listing]
+----
+cluster1::> vserver security trace filter create -vserver vs1 -index 2 -path /dir1/dir2/file.txt -trace-allow yes -windows-name mydomain\joe
+
+cluster1::> vserver security trace filter show -vserver vs1 -index 2
+                                 Vserver: vs1
+                            Filter Index: 2
+              Client IP Address to Match: -
+                                    Path: /dir1/dir2/file.txt
+                       Windows User Name: mydomain\joe
+                          UNIX User Name: -
+                      Trace Allow Events: yes
+                          Filter Enabled: enabled
+               Minutes Filter is Enabled: 60
+----

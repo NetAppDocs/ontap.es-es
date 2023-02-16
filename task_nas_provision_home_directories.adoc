@@ -1,0 +1,92 @@
+---
+sidebar: sidebar 
+permalink: task_nas_provision_home_directories.html 
+keywords: netapp, ontap, provisioning, nas, provision, home, directories, SMB, CIFS, SMB, share name 
+summary: Cree volúmenes para proporcionar almacenamiento para directorios iniciales mediante el protocolo SMB. 
+---
+= Aprovisionar almacenamiento NAS para directorios iniciales
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Cree volúmenes para proporcionar almacenamiento para directorios iniciales mediante el protocolo SMB.
+
+Este procedimiento crea nuevos volúmenes para directorios iniciales en un link:task_nas_enable_windows_smb.html["Máquinas virtuales de almacenamiento habilitadas para SMB existentes"]. Puede aceptar los valores predeterminados del sistema al configurar volúmenes o especificar configuraciones personalizadas.
+
+image:workflow_nas_provision_home_directories.gif["Flujo de trabajo de aprovisionamiento de almacenamiento NAS para directorios iniciales"]
+
+Es posible crear volúmenes FlexVol o, para sistemas de archivos de gran tamaño con requisitos de alto rendimiento, se pueden crear volúmenes FlexGroup. Consulte también link:task_nas_provision_flexgroup.html["Aprovisione almacenamiento NAS para sistemas de archivos de gran tamaño con volúmenes FlexGroup"].
+
+También puede guardar las especificaciones de este volumen en un libro de aplicaciones de Ansible. Para obtener más información, visite link:task_admin_use_ansible_playbooks_add_edit_volumes_luns.html["Utilice libros de aplicaciones Ansible para añadir o editar volúmenes o LUN"].
+
+.Pasos
+. Añadir un volumen nuevo en una máquina virtual de almacenamiento habilitada para SMB.
++
+.. Haga clic en *almacenamiento > volúmenes* y, a continuación, haga clic en *Agregar*.
+.. Introduzca un nombre, seleccione la máquina virtual de almacenamiento e introduzca un tamaño.
++
+Solo se enumeran las máquinas virtuales de almacenamiento configuradas con el protocolo SMB. Si sólo hay disponible un equipo virtual de almacenamiento configurado con el protocolo SMB, no se muestra el campo *Storage VM*.
+
++
+*** Si hace clic en *Guardar* en este momento, System Manager utiliza valores predeterminados del sistema para crear y agregar un volumen FlexVol.
+*** Puede hacer clic en *más opciones* para personalizar la configuración del volumen y activar servicios como autorización, calidad de servicio y protección de datos. Consulte <<Personalice la configuración del volumen>>, a continuación, vuelva aquí para completar los pasos siguientes.
+
+
+
+
+. [[step2,Paso 2 en el flujo de trabajo]] haga clic en *almacenamiento > recursos compartidos*, haga clic en *Agregar* y seleccione *Directorio inicial*.
+. En un cliente Windows, haga lo siguiente para verificar que se puede acceder al recurso compartido.
++
+.. En el Explorador de Windows, asigne una unidad al recurso compartido con el siguiente formato: `+\\_SMB_Server_Name__Share_Name_+`
++
+Si el nombre del recurso compartido se creó con variables (%w, %d o %u), asegúrese de probar el acceso con un nombre resuelto.
+
+.. En la unidad recién creada, cree un archivo de prueba y, a continuación, elimine el archivo.
+
+
+
+
+
+
+== Personalice la configuración del volumen
+
+Se puede personalizar la configuración del volumen cuando se añaden volúmenes en lugar de aceptar los valores predeterminados del sistema.
+
+.Procedimiento
+Después de hacer clic en *más opciones*, seleccione la funcionalidad que necesite e introduzca los valores necesarios.
+
+* Caché para volumen remoto.
+* Nivel de servicio de rendimiento (calidad de servicio, calidad de servicio).
++
+A partir de ONTAP 9.8, puede especificar una política de calidad de servicio personalizada o deshabilitar la calidad de servicio, además de la selección de valor predeterminada.
+
++
+** Para desactivar QoS, seleccione *personalizado*, *existente* y *ninguno*.
+** Si selecciona *personalizado* y especifica un nivel de servicio existente, se seleccionará automáticamente un nivel local.
+** A partir de ONTAP 9.9.1, si decide crear un nivel de servicio de rendimiento personalizado, puede utilizar System Manager para seleccionar manualmente el nivel local (*colocación manual*) en el que desea colocar el volumen que está creando.
++
+Esta opción no está disponible si selecciona las opciones de caché remota o volumen FlexGroup.
+
+
+
+* FlexGroup Volumes (seleccione *distribuir datos de volumen en el clúster*).
++
+Esta opción no está disponible si ha seleccionado previamente *colocación manual* en *nivel de servicio de rendimiento*. De lo contrario, el volumen que va a añadir se convierte en volumen FlexVol de forma predeterminada.
+
+* Permisos de acceso para los protocolos para los que se configuró el volumen.
+* Protección de datos con SnapMirror (local o remoto) y, a continuación, especifique la política de protección y la configuración para el clúster de destino desde las listas desplegables.
+* Haga clic en *Guardar* para crear el volumen y añadirlo al cluster y al equipo virtual de almacenamiento.
+
+
+
+NOTE: Después de guardar el volumen, vuelva a. <<step2>> para completar el aprovisionamiento de directorios iniciales.

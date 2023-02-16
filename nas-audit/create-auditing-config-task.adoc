@@ -1,0 +1,85 @@
+---
+permalink: nas-audit/create-auditing-config-task.html 
+sidebar: sidebar 
+keywords: create, audit, configuration 
+summary: 'Antes de comenzar a auditar los eventos del archivo y el directorio, debe crear una configuración de auditoría en la máquina virtual de almacenamiento (SVM).' 
+---
+= Cree la configuración de auditoría
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La creación de una configuración de auditoría de archivos y directorios en la máquina virtual de almacenamiento (SVM) incluye comprender las opciones de configuración disponibles, planificar la configuración y, a continuación, configurar y habilitar la configuración. A continuación, puede mostrar información sobre la configuración de auditoría para confirmar que la configuración resultante es la configuración deseada.
+
+Antes de comenzar a auditar los eventos del archivo y el directorio, debe crear una configuración de auditoría en la máquina virtual de almacenamiento (SVM).
+
+.Antes de empezar
+Si piensa en crear una configuración de auditoría para la configuración de la política de acceso central, debe haber un servidor SMB en la SVM.
+
+[NOTE]
+====
+* Aunque puede habilitar la configuración de directivas de acceso central en la configuración de auditoría sin habilitar Dynamic Access Control en el servidor SMB, los eventos de configuración de directivas de acceso central sólo se generan si el control de acceso dinámico está habilitado.
++
+El control de acceso dinámico se activa mediante una opción de servidor SMB. No está habilitado de forma predeterminada.
+
+* Si los argumentos de un campo en un comando no son válidos, por ejemplo, entradas no válidas para campos, entradas duplicadas y entradas no existentes, el comando falla antes de la fase de auditoría.
++
+Estos errores no generan un registro de auditoría.
+
+
+
+====
+.Acerca de esta tarea
+Si la SVM es un origen de recuperación ante desastres de SVM, la ruta de destino no puede estar en el volumen raíz.
+
+.Paso
+. Con la información de la hoja de trabajo de planificación, cree la configuración de auditoría para rotar los registros de auditoría según el tamaño del registro o una programación:
++
+[cols="30,70"]
+|===
+
+
+| Si desea rotar registros de auditoría en... | Introduzca... 
+
+
+ a| 
+Tamaño del registro
+ a| 
+`vserver audit create -vserver vserver_name -destination path -events [{file-ops|cifs-logon-logoff|cap-staging|file-share|audit-policy-change|user-account|security-group|authorization-policy-change}] [-format {xml|evtx}] [-rotate-limit integer] [-rotate-size {integer[KB|MB|GB|TB|PB]}]`
+
+
+
+ a| 
+Un programa
+ a| 
+`vserver audit create -vserver vserver_name -destination path -events [{file-ops|cifs-logon-logoff|cap-staging}] [-format {xml|evtx}] [-rotate-limit integer] [-rotate-schedule-month chron_month] [-rotate-schedule-dayofweek chron_dayofweek] [-rotate-schedule-day chron_dayofmonth] [-rotate-schedule-hour chron_hour] -rotate-schedule-minute chron_minute`
+
+[NOTE]
+====
+La `-rotate-schedule-minute` el parámetro es necesario si se configura la rotación del registro de auditoría basado en tiempo.
+
+====
+|===
+
+
+.Ejemplos
+En el ejemplo siguiente se crea una configuración de auditoría que audita las operaciones de archivos y los eventos de inicio y cierre de sesión de SMB (el valor predeterminado) mediante la rotación basada en tamaño. El formato de registro es `EVTX` (el valor predeterminado). Los registros se almacenan en la `/audit_log` directorio. El límite de tamaño del archivo de registro es `200 MB`. Los registros se giran cuando alcanzan los 200 MB de tamaño:
+
+[listing]
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-size 200MB
+----
+En el ejemplo siguiente se crea una configuración de auditoría que audita las operaciones de archivos y los eventos de inicio y cierre de sesión de SMB (el valor predeterminado) mediante la rotación basada en tamaño. El formato de registro es `EVTX` (el valor predeterminado). El límite de tamaño del archivo de registro es `100 MB` (el valor predeterminado), y el límite de rotación del registro es `5`:
+
+[listing]
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-limit 5
+----
+En el ejemplo siguiente se crea una configuración de auditoría que audita las operaciones de archivos, los eventos de inicio y cierre de sesión de CIFS y los eventos de almacenamiento provisional de directivas de acceso central mediante rotación basada en tiempo. El formato de registro es `EVTX` (el valor predeterminado). Los registros de auditoría se rotan mensualmente, a las 12:30 p.m. en todos los días de la semana. El límite de rotación del registro es `5`:
+
+[listing]
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -events file-ops,cifs-logon-logoff,file-share,audit-policy-change,user-account,security-group,authorization-policy-change,cap-staging -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30 -rotate-limit 5
+----

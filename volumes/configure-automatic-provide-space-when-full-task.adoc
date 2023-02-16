@@ -1,0 +1,46 @@
+---
+permalink: volumes/configure-automatic-provide-space-when-full-task.html 
+sidebar: sidebar 
+keywords: configure, volumes, automatically, provide, more, space, when, full 
+summary: Cuando se llena los volúmenes de FlexVol, ONTAP puede usar varios métodos para intentar obtener automáticamente más espacio libre para el volumen. Puede elegir los métodos que puede utilizar ONTAP y el orden en que, en función de los requisitos que imponga su aplicación y arquitectura de almacenamiento. 
+---
+= Configure los volúmenes para que proporcionen automáticamente más espacio cuando se llenen
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando se llena los volúmenes de FlexVol, ONTAP puede usar varios métodos para intentar obtener automáticamente más espacio libre para el volumen. Puede elegir los métodos que puede utilizar ONTAP y el orden en que, en función de los requisitos que imponga su aplicación y arquitectura de almacenamiento.
+
+.Acerca de esta tarea
+ONTAP puede proporcionar automáticamente más espacio libre para un volumen completo mediante uno o ambos métodos:
+
+* Aumente el tamaño del volumen (conocido como _crecimiento automático_).
++
+Este método resulta útil si el agregado que contiene el volumen tiene espacio suficiente para admitir un volumen mayor. Puede configurar ONTAP para establecer un tamaño máximo del volumen. El aumento se activa automáticamente en función de la cantidad de datos que se escriben en el volumen en relación con la cantidad actual de espacio usado y todos los umbrales establecidos.
+
++
+El crecimiento automático no se activa para admitir la creación de copias de Snapshot. Si se intenta crear una copia Snapshot y hay espacio insuficiente, se produce un error en la creación de la copia Snapshot, incluso con el crecimiento automático habilitado.
+
+* Elimine copias snapshot, archivos FlexClone o LUN FlexClone.
++
+Por ejemplo, puede configurar ONTAP para eliminar automáticamente copias Snapshot que no están vinculadas a las copias Snapshot en volúmenes o LUN clonados, o puede definir qué copias Snapshot desea que ONTAP elimine primero, es decir, las copias Snapshot más antiguas o más recientes. También puede determinar cuándo ONTAP debe empezar a eliminar copias Snapshot; por ejemplo, cuando el volumen está casi lleno o cuando la reserva Snapshot del volumen está casi completa.
+
+
+
+Si habilita ambos métodos, puede especificar el método que ONTAP intenta primero cuando un volumen está casi lleno. Si el primer método no proporciona suficiente espacio adicional al volumen, ONTAP intenta el otro método a continuación.
+
+De forma predeterminada, ONTAP intenta aumentar primero el tamaño del volumen. En la mayoría de los casos, es preferible la configuración predeterminada porque cuando se elimina una copia Snapshot, no puede restaurarse. Sin embargo, si necesita evitar aumentar el tamaño de un volumen siempre que sea posible, puede configurar ONTAP para eliminar copias Snapshot antes de aumentar el tamaño del volumen.
+
+.Pasos
+. Si desea que ONTAP intente aumentar el tamaño del volumen al llenarse, habilite la funcionalidad de crecimiento automático del volumen mediante el uso de `volume autosize` comando con `grow` modo.
++
+Recuerde que, cuando el volumen crece, consume más espacio libre de su agregado asociado. Si depende de la capacidad del volumen para crecer cuando sea necesario, debe supervisar el espacio libre en el agregado asociado y agregar más cuando sea necesario.
+
+. Si desea que ONTAP elimine copias Snapshot, archivos FlexClone o LUN FlexClone cuando el volumen se llene, habilite la eliminación automática para esos tipos de objetos.
+. Si se habilitó la funcionalidad de crecimiento automático de volúmenes y una o varias funcionalidades de eliminación automática, seleccione el primer método que debe usar ONTAP para proporcionar espacio libre a un volumen mediante el uso de `volume modify` con el `-space-mgmt-try-first` opción.
++
+Para especificar si desea aumentar el tamaño del volumen primero (la opción predeterminada), utilice `volume_grow`. Para especificar primero la eliminación de copias Snapshot, utilice `snap_delete`.
+
+

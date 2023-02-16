@@ -1,0 +1,78 @@
+---
+permalink: fabricpool/replace-mirror-mcc-task.html 
+sidebar: sidebar 
+keywords: replacing, fabricpool, mirror, metrocluster, configuration 
+summary: Si uno de los almacenes de objetos de un reflejo de FabricPool se destruye o deja de estar disponible en una configuración de MetroCluster, puede hacer que el almacén de objetos del reflejo no sea el reflejo, si ya no se encuentra dañado, retirar el almacén de objetos del reflejo de FabricPool, Y, a continuación, añada un nuevo reflejo de almacén de objetos a la FabricPool. 
+---
+= Reemplazar un reflejo de FabricPool en una configuración MetroCluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si uno de los almacenes de objetos de un reflejo de FabricPool se destruye o deja de estar disponible en una configuración de MetroCluster, puede hacer que el almacén de objetos del reflejo no sea el reflejo, si ya no se encuentra dañado, retirar el almacén de objetos del reflejo de FabricPool, Y, a continuación, añada un nuevo reflejo de almacén de objetos a la FabricPool.
+
+.Pasos
+. Si el almacén de objetos dañados no es el espejo, haga que el objeto almacene el espejo con el `storage aggregate object-store modify` comando.
++
+[listing]
+----
+storage aggregate object-store modify -aggregate -aggregate fp_aggr1_A01 -name mcc1_ostore1 -mirror-type mirror
+----
+. Quite el reflejo del almacén de objetos de la FabricPool mediante el `storage aggregate object-store unmirror` comando.
++
+[listing]
+----
+storage aggregate object-store unmirror -aggregate <aggregate name> -name mcc1_ostore1
+----
+. Puede forzar la reanudación de la organización en niveles en el almacén de datos principal después de eliminar el almacén de datos de mirroring mediante el `storage aggregate object-store modify` con la `-force-tiering-on-metrocluster true` opción.
++
+La ausencia de un reflejo interfiere con los requisitos de replicación de la configuración de MetroCluster.
+
++
+[listing]
+----
+storage aggregate object-store modify -aggregate <aggregate name> -name mcc1_ostore1 -force-tiering-on-metrocluster true
+----
+. Cree un almacén de objetos de reemplazo mediante `storage aggregate object-store config create` comando.
++
+[listing]
+----
+storage aggregate object-store config create -object-store-name mcc1_ostore3 -cluster clusterA -provider-type SGWS -server <SGWS-server-1> -container-name <SGWS-bucket-1> -access-key <key> -secret-password <password> -encrypt <true|false> -provider <provider-type> -is-ssl-enabled <true|false> ipspace <IPSpace>
+----
+. Añada el reflejo del almacén de objetos al reflejo FabricPool mediante el `storage aggregate object-store mirror` comando.
++
+[listing]
+----
+storage aggregate object-store mirror -aggregate aggr1 -name mcc1_ostore3-mc
+----
+. Se muestra la información del almacén de objetos con el `storage aggregate object-store show` comando.
++
+[listing]
+----
+storage aggregate object-store show -fields mirror-type,is-mirror-degraded
+----
++
+[listing]
+----
+aggregate      object-store-name mirror-type     is-mirror-degraded
+-------------- ----------------- ------------- ------------------
+aggr1          mcc1_ostore1-mc    primary           -
+               mcc1_ostore3-mc    mirror          true
+----
+. Supervise el estado de resincronización de mirroring mediante el `storage aggregate object-store show-resync-status` comando.
++
+[listing]
+----
+storage aggregate object-store show-resync-status -aggregate aggr1
+----
++
+[listing]
+----
+                                                  Complete
+      Aggregate    Primary        Mirror          Percentage
+      ---------    -----------    ----------      ----------
+      aggr1        mcc1_ostore1-mc mcc1_ostore3-mc   40%
+----
+

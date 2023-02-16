@@ -1,0 +1,63 @@
+---
+permalink: s3-config/index.html 
+sidebar: sidebar 
+keywords: decide, s3, configuration, client, access, configure, object, bucket, svm 
+summary: 'A partir de ONTAP 9.8, puede habilitar un servidor de almacenamiento de objetos ONTAP simple Storage Service (S3) en un clúster de ONTAP.' 
+---
+= Información general de la configuración de S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.8, puede habilitar un servidor de almacenamiento de objetos ONTAP simple Storage Service (S3) en un clúster de ONTAP.
+
+ONTAP es compatible con dos casos prácticos en las instalaciones para dar servicio al almacenamiento de objetos S3:
+
+* Organización en niveles FabricPool para un bloque en el clúster local (nivel a un bloque local) o clúster remoto (nivel de cloud).
+* Acceso de aplicación de cliente S3 a un bloque del clúster local o de un clúster remoto.
+
+
+A partir de ONTAP 9.12.1, se puede habilitar un servidor de almacenamiento de objetos S3 en una SVM en un agregado no reflejado en una configuración IP de MetroCluster. Para obtener más información sobre las limitaciones de los agregados no reflejados en las configuraciones IP de MetroCluster, consulte link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/considerations_unmirrored_aggrs.html?q=unmirrored+aggregates["Consideraciones sobre los agregados no reflejados"].
+
+Debe usar estos procedimientos si desea configurar el almacenamiento de objetos S3 de la siguiente manera:
+
+* Desea proporcionar almacenamiento de objetos S3 desde un clúster existente que ejecuta ONTAP.
++
+ONTAP S3 es adecuado si se desean funcionalidades de S3 en los clústeres existentes sin necesidad de hardware ni gestión adicionales. Para implementaciones de más de 300 TB, el software StorageGRID de NetApp sigue siendo la solución insignia de NetApp para el almacenamiento de objetos. Para obtener más información, consulte link:https://docs.netapp.com/sgws-114/index.jsp["Documentación de StorageGRID"^].
+
+* Tiene privilegios de administrador de clúster, no de administrador de SVM.
+
+
+
+
+== Configuración de S3 con System Manager y la interfaz de línea de comandos de ONTAP
+
+Puede configurar y gestionar ONTAP S3 con System Manager y la interfaz de línea de comandos de ONTAP. Cuando se habilita S3 y se crean bloques con System Manager, ONTAP selecciona los valores predeterminados de prácticas recomendadas para simplificar la configuración. Si es necesario especificar parámetros de configuración, se recomienda usar la CLI de ONTAP. Si configura el servidor y los bloques de S3 desde la CLI, puede seguir gestionarlos con System Manager si lo desea, o viceversa.
+
+Cuando se crea un bloque de S3 con System Manager, ONTAP configura un nivel de servicio de rendimiento predeterminado que es el más alto disponible en el sistema. Por ejemplo, en un sistema AFF, el valor predeterminado sería *extremo*. Los niveles de servicio de rendimiento son grupos de políticas de calidad de servicio (QoS) adaptativas predefinidos. En lugar de uno de los niveles de servicio predeterminados, puede especificar un grupo de políticas de calidad de servicio personalizado o ningún grupo de políticas.
+
+Los grupos de políticas de calidad de servicio adaptativas predefinidos son:
+
+* *Extreme*: Se utiliza para aplicaciones que esperan la latencia más baja y el rendimiento más alto.
+* *Rendimiento*: Se utiliza para aplicaciones con necesidades de rendimiento y latencia modestos.
+* *Valor*: Se utiliza para aplicaciones para las que el rendimiento y la capacidad son más importantes que la latencia.
+* *Personalizado*: Especifique una política de QoS personalizada o ninguna política de QoS.
+
+
+Si selecciona *usar para clasificación por niveles*, no se seleccionan niveles de servicio de rendimiento y el sistema intenta seleccionar medios de bajo costo con un rendimiento óptimo para los datos organizados por niveles.
+
+Consulte también: link:../performance-admin/adaptive-qos-policy-groups-task.html["Utilice grupos de políticas de calidad de servicio adaptativos"].
+
+ONTAP intenta aprovisionar este bloque en niveles locales que tengan los discos más adecuados para cumplir el nivel de servicio elegido. Sin embargo, si necesita especificar qué discos se incluirán en el bloque, considere la configuración del almacenamiento de objetos S3 desde la CLI especificando los niveles locales (agregado). Si configura el servidor S3 desde la CLI, puede seguir gestionarlo con System Manager si lo desea.
+
+Si desea la capacidad de especificar qué agregados se utilizan para bloques, solo puede hacerlo mediante la CLI.
+
+
+
+== Configuración de bloques de S3 en Cloud Volumes ONTAP
+
+Si desea servir bloques de Cloud Volumes ONTAP, se recomienda encarecidamente seleccionar manualmente los agregados subyacentes para garantizar que solo utilicen un nodo. El uso de agregados de ambos nodos puede afectar al rendimiento, ya que los nodos se encuentran en zonas de disponibilidad separadas geográficamente y, por lo tanto, pueden estar expuestos a problemas de latencia. Por lo tanto, en entornos Cloud Volumes ONTAP, debería hacerlo xref:create-bucket-task.html[Configure cubos de S3 desde la interfaz de línea de comandos].
+
+De lo contrario, los servidores S3 en Cloud Volumes ONTAP están configurados y mantenidos de la misma forma en Cloud Volumes ONTAP que en entornos locales.

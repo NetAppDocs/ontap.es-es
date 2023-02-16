@@ -1,0 +1,76 @@
+---
+permalink: data-protection/manage-storage-efficiency-task.html 
+sidebar: sidebar 
+keywords: manage, storage, efficiency, snapmirror, snap mirror, compression, compress, postporcess, update relationship, volume 
+summary: SnapMirror mantiene la eficiencia del almacenamiento en los volúmenes de origen y destino, con una excepción, cuando se habilita la compresión de datos de postprocesamiento en el destino. En este caso, se pierde toda la eficiencia del almacenamiento en el destino. Para corregir este problema, hay que deshabilitar la compresión de postprocesamiento en el destino, actualizar la relación manualmente y volver a habilitar la eficiencia del almacenamiento. 
+---
+= Gestión de la eficiencia del almacenamiento
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+SnapMirror mantiene la eficiencia del almacenamiento en los volúmenes de origen y destino, con una excepción, cuando se habilita la compresión de datos de postprocesamiento en el destino. En este caso, se pierde toda la eficiencia del almacenamiento en el destino. Para corregir este problema, hay que deshabilitar la compresión de postprocesamiento en el destino, actualizar la relación manualmente y volver a habilitar la eficiencia del almacenamiento.
+
+.Lo que necesitará
+* Las SVM y los clústeres de origen y destino deben tener una relación entre iguales.
++
+https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html["Relaciones entre iguales de clústeres y SVM"]
+
+* Debe deshabilitar la compresión de postprocesamiento en el destino.
+
+
+.Acerca de esta tarea
+Puede utilizar el `volume efficiency show` comando para determinar si la eficiencia está habilitada en un volumen. Para obtener más información, consulte las páginas de manual.
+
+Puede comprobar si SnapMirror mantiene la eficiencia del almacenamiento consultando los registros de auditoría de SnapMirror y buscando la descripción de la transferencia. Si aparece la descripción de la transferencia `transfer_desc=Logical Transfer`, SnapMirror no mantiene la eficiencia del almacenamiento. Si aparece la descripción de la transferencia `transfer_desc=Logical Transfer with Storage Efficiency`, SnapMirror mantiene la eficiencia del almacenamiento. Por ejemplo:
+
+[listing]
+----
+Fri May 22 02:13:02 CDT 2020 ScheduledUpdate[May 22 02:12:00]:cc0fbc29-b665-11e5-a626-00a09860c273 Operation-Uuid=39fbcf48-550a-4282-a906-df35632c73a1 Group=none Operation-Cookie=0 action=End source=<sourcepath> destination=<destpath> status=Success bytes_transferred=117080571 network_compression_ratio=1.0:1 transfer_desc=Logical Transfer - Optimized Directory Mode
+----
+Transferencia lógica con almacenamiento
+
+A partir de ONTAP 9.3, ya no se requiere la actualización manual para volver a habilitar la eficiencia del almacenamiento. Si SnapMirror detecta que la compresión de postprocesamiento se ha deshabilitado, vuelve a habilitar automáticamente la eficiencia del almacenamiento en la siguiente actualización programada. Tanto el origen como el destino deben ejecutar ONTAP 9.3.
+
+A partir de ONTAP 9.3, los sistemas AFF gestionan las configuraciones de eficiencia del almacenamiento de forma diferente a las de los sistemas FAS después de crear su escritura en un volumen de destino:
+
+* Después de hacer que un volumen de destino pueda ser modificable mediante el `snapmirror break` la política de almacenamiento en caché del volumen se establece automáticamente en "'auto'" (valor predeterminado).
++
+[NOTE]
+====
+Este comportamiento se aplica solo a volúmenes FlexVol, y no se aplica a volúmenes FlexGroup.
+
+====
+* En la resincronización, la política de almacenamiento en caché se establece automáticamente en «'none» y la deduplicación y la compresión en línea se deshabilitan automáticamente, independientemente de la configuración original. Debe modificar los ajustes manualmente según sea necesario.
+
+
+[NOTE]
+====
+Las actualizaciones manuales con eficiencia del almacenamiento, que pueden ser laboriosas. Se recomienda ejecutar la operación en horas de menor actividad.
+
+====
+.Paso
+. Actualice una relación de replicación y vuelva a habilitar la eficiencia del almacenamiento:
++
+`snapmirror update -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -enable-storage-efficiency true`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+Se debe ejecutar este comando desde la SVM de destino o el clúster de destino. El comando genera errores si no existe una copia Snapshot común en el origen y el destino. Uso `snapmirror initialize` para volver a inicializar la relación.
+
+====
++
+En el ejemplo siguiente se actualiza la relación entre el volumen de origen `volA` encendido `svm1` y el volumen de destino `volA_dst` encendido `svm_backup`y reactivación de la eficacia de almacenamiento:
+
++
+[listing]
+----
+cluster_dst::> snapmirror update -source-path svm1:volA -destination-path svm_backup:volA_dst -enable-storage-efficiency true
+----
+

@@ -1,0 +1,159 @@
+---
+permalink: performance-admin/set-throughput-ceiling-qos-task.html 
+sidebar: sidebar 
+keywords: setting, throughput, ceiling, qos 
+summary: 'Puede usar el campo max-rendimiento para un grupo de políticas a fin de definir un techo de rendimiento para las cargas de trabajo de objetos de almacenamiento (QoS máx.). Puede aplicar el grupo de políticas cuando crea o modifica el objeto de almacenamiento.' 
+---
+= Establezca el límite máximo de rendimiento con calidad de servicio
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `max-throughput` Campo para un grupo de políticas a fin de definir un techo de rendimiento para las cargas de trabajo de objetos de almacenamiento (QoS máx.). Puede aplicar el grupo de políticas cuando crea o modifica el objeto de almacenamiento.
+
+.Lo que necesitará
+* Para crear un grupo de políticas, debe ser un administrador de clústeres.
+* Para aplicar un grupo de políticas a una SVM, debe ser un administrador de clústeres.
+
+
+.Acerca de esta tarea
+* A partir de ONTAP 9.4, puede usar un grupo de políticas _no compartido_ QoS para especificar que el techo de rendimiento definido se aplique a la carga de trabajo de cada miembro de forma individual. De lo contrario, el grupo de políticas es _shared:_ el rendimiento total de las cargas de trabajo asignadas al grupo de políticas no puede superar el límite máximo especificado.
++
+Configurado `-is-shared=false` para la `qos policy-group create` comando para especificar un grupo de políticas no compartido.
+
+* Puede especificar el límite de rendimiento para el límite máximo en IOPS, MB/s o IOPS, MB/s. Si especifica tanto IOPS como MB/s, se aplicará el límite alcanzado primero.
++
+[NOTE]
+====
+Si establece un techo y un piso para la misma carga de trabajo, puede especificar el límite de rendimiento para el techo solo en IOPS.
+
+====
+* Un objeto de almacenamiento sujeto a un límite de calidad de servicio debe ser contenido por la SVM a la que pertenece el grupo de políticas. Pueden pertenecer varios grupos de políticas a la misma SVM.
+* No puede asignar un objeto de almacenamiento a un grupo de políticas si su objeto que contiene o sus objetos secundarios pertenecen al grupo de políticas.
+* Es una práctica recomendada de la calidad de servicio aplicar un grupo de políticas al mismo tipo de objetos de almacenamiento.
+
+
+.Pasos
+. Cree un grupo de políticas:
++
+`qos policy-group create -policy-group _policy_group_ -vserver _SVM_ -max-throughput _number_of_iops_|Mb/S|iops,Mb/S -is-shared true|false`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man. Puede utilizar el `qos policy-group modify` comando para ajustar los techos de rendimiento.
+
++
+El siguiente comando crea el grupo de políticas compartidas `pg-vs1` Con un rendimiento máximo de 5,000 IOPS:
+
++
+[listing]
+----
+cluster1::> qos policy-group create -policy-group pg-vs1 -vserver vs1 -max-throughput 5000iops -is-shared true
+----
++
+El siguiente comando crea el grupo de políticas no compartido `pg-vs3` Con un rendimiento máximo de 100 000 IOPS y 400 Kb/s:
+
++
+[listing]
+----
+cluster1::> qos policy-group create -policy-group pg-vs3 -vserver vs3 -max-throughput 100iops,400KB/s -is-shared false
+----
++
+El siguiente comando crea el grupo de políticas no compartido `pg-vs4` sin límite de rendimiento:
+
++
+[listing]
+----
+cluster1::> qos policy-group create -policy-group pg-vs4 -vserver vs4 -is-shared false
+----
+. Aplique un grupo de políticas a una SVM, un archivo, un volumen o una LUN:
++
+`_storage_object_ create -vserver _SVM_ -qos-policy-group _policy_group_`
+
++
+Para obtener una sintaxis de comando completa, consulte las páginas man. Puede utilizar el `_storage_object_ modify` comando para aplicar un grupo de políticas diferente al objeto de almacenamiento.
+
++
+El siguiente comando aplica un grupo de políticas `pg-vs1` A SVM `vs1`:
+
++
+[listing]
+----
+cluster1::> vserver create -vserver vs1 -qos-policy-group pg-vs1
+----
++
+Los siguientes comandos aplican grupo de políticas `pg-app` a los volúmenes `app1` y.. `app2`:
+
++
+[listing]
+----
+cluster1::> volume create -vserver vs2 -volume app1 -aggregate aggr1 -qos-policy-group pg-app
+----
++
+[listing]
+----
+cluster1::> volume create -vserver vs2 -volume app2 -aggregate aggr1 -qos-policy-group pg-app
+----
+. Supervise el rendimiento del grupo de políticas:
++
+`qos statistics performance show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+Supervise el rendimiento desde el clúster. No utilice una herramienta en el host para supervisar el rendimiento.
+
+====
++
+El siguiente comando muestra el rendimiento del grupo de políticas:
+
++
+[listing]
+----
+cluster1::> qos statistics performance show
+Policy Group           IOPS      Throughput   Latency
+-------------------- -------- --------------- ----------
+-total-                 12316       47.76MB/s  1264.00us
+pg_vs1                   5008       19.56MB/s     2.45ms
+_System-Best-Effort        62       13.36KB/s     4.13ms
+_System-Background         30           0KB/s        0ms
+----
+. Supervisar el rendimiento de la carga de trabajo:
++
+`qos statistics workload performance show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+Supervise el rendimiento desde el clúster. No utilice una herramienta en el host para supervisar el rendimiento.
+
+====
++
+El siguiente comando muestra el rendimiento de la carga de trabajo:
+
++
+[listing]
+----
+cluster1::> qos statistics workload performance show
+Workload          ID     IOPS      Throughput    Latency
+--------------- ------ -------- ---------------- ----------
+-total-              -    12320        47.84MB/s  1215.00us
+app1-wid7967      7967     7219        28.20MB/s   319.00us
+vs1-wid12279     12279     5026        19.63MB/s     2.52ms
+_USERSPACE_APPS     14       55        10.92KB/s   236.00us
+_Scan_Backgro..   5688       20            0KB/s        0ms
+----
++
+[NOTE]
+====
+Puede utilizar el `qos statistics workload latency show` Comando para ver estadísticas detalladas de latencia de las cargas de trabajo de calidad de servicio.
+
+====
+

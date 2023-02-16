@@ -1,0 +1,107 @@
+---
+permalink: concepts/encryption-concept.html 
+sidebar: sidebar 
+keywords: encryption 
+summary: ONTAP ofrece tecnologías de cifrado basadas en software y hardware para garantizar que los datos en reposo no se puedan leer en caso de reasignación, devolución, pérdida o robo del medio de almacenamiento. 
+---
+= Cifrado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP ofrece tecnologías de cifrado basadas en software y hardware para garantizar que los datos en reposo no se puedan leer en caso de reasignación, devolución, pérdida o robo del medio de almacenamiento.
+
+ONTAP cumple con los estándares de procesamiento de información federal (FIPS) 140-2 para todas las conexiones SSL. Puede utilizar las siguientes soluciones de cifrado:
+
+* Soluciones de hardware:
++
+** Cifrado en almacenamiento de NetApp (NSE)
++
+NSe es una solución de hardware que utiliza unidades de cifrado automático (SED).
+
+** SED de NVMe
++
+ONTAP proporciona cifrado de disco completo para NVMe SED que no tienen la certificación FIPS 140-2-2.
+
+
+
+* Soluciones de software:
++
+** Cifrado de agregados de NetApp (NAE)
++
+NAE es una solución de software que permite el cifrado de cualquier volumen de datos en cualquier tipo de unidad en la que se habilita con claves únicas para cada agregado.
+
+** Cifrado de volúmenes de NetApp (NVE)
++
+NVE es una solución de software que permite el cifrado de cualquier volumen de datos en cualquier tipo de unidad donde se habilita con una clave única para cada volumen.
+
+
+
+
+
+Use ambas soluciones de cifrado de software (NAE o NVE) y hardware (NSE o NVMe SED) para obtener el doble cifrado en reposo. La eficiencia del almacenamiento no se ve afectada por el cifrado NAE o NVE.
+
+
+
+== Cifrado del almacenamiento de NetApp
+
+NetApp Storage Encryption (NSE, cifrado del almacenamiento de NetApp) es compatible con SED a medida que se escriben. Los datos no se pueden leer sin una clave de cifrado almacenada en el disco. La clave de cifrado, a su vez, sólo es accesible a un nodo autenticado.
+
+En una solicitud de I/o, un nodo se autentica a sí mismo en una SED mediante una clave de autenticación recuperada de un servidor de gestión de claves externo o el gestor de claves incorporado:
+
+* El servidor de gestión de claves externo es un sistema de terceros en el entorno de almacenamiento que ofrece claves de autenticación a nodos mediante el protocolo de interoperabilidad de gestión de claves (KMIP).
+* El gestor de claves incorporado es una herramienta integrada que proporciona claves de autenticación a nodos del mismo sistema de almacenamiento que los datos.
+
+
+NSe es compatible con unidades de disco duro y SSD de autocifrado. Puede usar el cifrado de volúmenes de NetApp con NSE para cifrar datos por duplicado en unidades NSE.
+
+
+
+== Unidades de autocifrado NVMe
+
+Sin embargo, SED de NVMe no tienen la certificación FIPS 140-2-2, estos discos utilizan el cifrado de disco transparente AES de 256 bits para proteger los datos en reposo.
+
+Las operaciones de cifrado de datos, como la generación de una clave de autenticación, se realizan internamente. La clave de autenticación se genera la primera vez que el sistema de almacenamiento accede al disco. Después de eso, los discos protegen los datos en reposo al requerir la autenticación del sistema de almacenamiento cada vez que se solicitan las operaciones de datos.
+
+
+
+== Cifrado de agregados de NetApp
+
+El cifrado de agregados de NetApp (NAE) es una tecnología basada en software para cifrar todos los datos en un agregado. Una ventaja de NAE es que se incluyen los volúmenes en la deduplicación a nivel agregado, mientras que se excluyen los volúmenes NVE.
+
+Con la NAE habilitada, los volúmenes del agregado se pueden cifrar con claves de agregado.
+
+A partir de ONTAP 9.7, los agregados y los volúmenes recién creados se cifran de forma predeterminada cuando tiene la licencia de NVE y la gestión de claves incorporada o externa.
+
+
+
+== Cifrado de volúmenes de NetApp
+
+El cifrado de volúmenes de NetApp (NVE) es una tecnología basada en software para cifrar datos en reposo un volumen por vez. Una clave de cifrado que solo puede acceder el sistema de almacenamiento garantiza que los datos de volumen no se puedan leer si el dispositivo subyacente está separado del sistema.
+
+Ambos datos, incluidas las copias Snapshot, y los metadatos están cifrados. El acceso a los datos se proporciona mediante una clave XTS-AES-256 exclusiva, una por volumen. Un gestor de claves incorporado protege las claves en el mismo sistema con los datos.
+
+Es posible utilizar el NVE en cualquier tipo de agregado (HDD, SSD, híbrido, LUN de cabina), con cualquier tipo de RAID y en cualquier implementación de ONTAP compatible, incluido ONTAP Select. También puede utilizar NVE con el cifrado de almacenamiento de NetApp (NSE) para cifrar doble los datos en unidades NSE.
+
+|===
+
+
+ a| 
+*_Cuándo usar servidores KMIP_* aunque es menos costoso y, por lo general, más conveniente utilizar el Administrador de claves incorporado, debe configurar servidores KMIP si se cumple alguna de las siguientes condiciones:
+
+* Su solución de gestión de claves de cifrado debe cumplir con el estándar de procesamiento de información federal (FIPS) 140-2 o el estándar KMIP DE OASIS.
+* Necesita una solución multiclúster. Los servidores KMIP admiten múltiples clústeres con una gestión centralizada de las claves de cifrado.
++
+Los servidores KMIP admiten múltiples clústeres con una gestión centralizada de las claves de cifrado.
+
+* Su empresa requiere una seguridad añadida para almacenar claves de autenticación en un sistema o en una ubicación distinta de los datos.
++
+Los servidores KMIP almacenan claves de autenticación por separado de los datos.
+
+
+
+|===
+.Información relacionada
+link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/FAQ%3A_NetApp_Volume_Encryption_and_NetApp_Aggregate_Encryption["Preguntas más frecuentes: Cifrado de volúmenes de NetApp y cifrado de agregados de NetApp"^]

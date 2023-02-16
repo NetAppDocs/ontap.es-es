@@ -1,0 +1,62 @@
+---
+permalink: encryption-at-rest/change-encryption-key-volume-92-earlier-task.html 
+sidebar: sidebar 
+keywords: changing, encryption key, volume, volume move start, command 
+summary: Es una práctica recomendada para cambiar la clave de cifrado de un volumen periódicamente. Puede usar el comando volume move start para cambiar la clave de cifrado. Debe usar movimiento de volúmenes a partir de ONTAP 9.2 y versiones anteriores. El volumen movido puede residir en el mismo agregado o en otra diferente. 
+---
+= Cambie la clave de cifrado de un volumen con el comando volume move start
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es una práctica recomendada para cambiar la clave de cifrado de un volumen periódicamente. Puede utilizar el `volume move start` para cambiar la clave de cifrado. Debe usar `volume move start` En ONTAP 9.2 y anteriores. El volumen movido puede residir en el mismo agregado o en otra diferente.
+
+.Lo que necesitará
+Debe ser un administrador de clústeres para realizar esta tarea o un administrador de SVM a quien el administrador de clúster haya delegado esta autoridad.
+
+link:delegate-volume-encryption-svm-administrator-task.html["Delegar la autoridad para ejecutar el comando volume move"]
+
+.Acerca de esta tarea
+No puede utilizar `volume move start` Para volver a introducir los datos en un volumen SnapLock o FlexGroup.
+
+.Pasos
+. Mueva un volumen existente y cambie la clave de cifrado:
++
+`volume move start -vserver SVM_name -volume volume_name -destination-aggregate aggregate_name -generate-destination-key true`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+El siguiente comando mueve un volumen existente llamado `*vol1*` al agregado de destino `*aggr2*` y cambia la clave de cifrado:
+
++
+[listing]
+----
+cluster1::> volume move start -vserver vs1 -volume vol1 -destination-aggregate aggr2 -generate-destination-key true
+----
++
+Se crea una nueva clave de cifrado para el volumen. Los datos del volumen permanecen cifrados.
+
+. Compruebe que el volumen esté habilitado para el cifrado:
++
+`volume show -is-encrypted true`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los volúmenes cifrados en `cluster1`:
+
++
+[listing]
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+

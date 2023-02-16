@@ -1,0 +1,33 @@
+---
+permalink: smb-admin/disable-reenable-branchcache-server-concept.html 
+sidebar: sidebar 
+keywords: previous, configure, branchcache, branch, office, client, cache, content, disable, what happens when you disable or reenable branchcache on the cifs server 
+summary: Si anteriormente configuró BranchCache pero no desea que los clientes de la sucursal utilicen contenido almacenado en caché, puede deshabilitar el almacenamiento en caché en el servidor CIFS. Debe tener en cuenta lo que sucede al deshabilitar BranchCache. 
+---
+= Qué sucede cuando se deshabilita o se vuelve a habilitar BranchCache en el servidor CIFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si anteriormente configuró BranchCache pero no desea que los clientes de la sucursal utilicen contenido almacenado en caché, puede deshabilitar el almacenamiento en caché en el servidor CIFS. Debe tener en cuenta lo que sucede al deshabilitar BranchCache.
+
+Cuando deshabilita BranchCache, ONTAP ya no calcula los hash ni envía los metadatos al cliente solicitante. Sin embargo, no se interrumpe el acceso a los archivos. A partir de entonces, cuando los clientes habilitados para BranchCache solicitan información de metadatos sobre el contenido al que desean acceder, ONTAP responde con un error definido por Microsoft, lo que hace que el cliente envíe una segunda solicitud al contenido real. En respuesta a la solicitud de contenido, el servidor CIFS envía el contenido real almacenado en la máquina virtual de almacenamiento (SVM).
+
+Una vez que se deshabilita BranchCache en el servidor CIFS, los recursos compartidos de SMB no anuncian las funcionalidades de BranchCache. Para acceder a los datos de nuevas conexiones SMB, los clientes realizan solicitudes de lectura SMB normales.
+
+Puede volver a habilitar BranchCache en el servidor CIFS en cualquier momento.
+
+* Dado que el almacén hash no se elimina cuando deshabilita BranchCache, ONTAP puede usar los hash almacenados al responder a las solicitudes hash una vez que vuelva a habilitar BranchCache, siempre y cuando el hash solicitado siga siendo válido.
+* Todos los clientes que hayan establecido conexiones SMB a recursos compartidos habilitados con BranchCache durante el momento en el que se deshabilitó BranchCache no obtienen compatibilidad con BranchCache si se vuelve a habilitar BranchCache después.
++
+Esto se debe a que ONTAP anuncia el soporte de BranchCache para un recurso compartido en el momento de la configuración de la sesión del SMB. Los clientes que establecieron sesiones con recursos compartidos habilitados para BranchCache mientras BranchCache estaba deshabilitado necesitan desconectar y volver a conectarse para usar el contenido en caché para este recurso compartido.
+
+
+
+[NOTE]
+====
+Si no desea guardar el almacén hash después de deshabilitar BranchCache en un servidor CIFS, puede eliminarlo en forma manual. Si vuelve a habilitar BranchCache, debe asegurarse de que exista el directorio de almacén hash. Una vez que se vuelve a habilitar BranchCache, los recursos compartidos con BranchCache habilitados anuncian las funcionalidades de BranchCache. ONTAP crea nuevos hash a medida que las nuevas solicitudes las realizan los clientes habilitados para BranchCache.
+
+====

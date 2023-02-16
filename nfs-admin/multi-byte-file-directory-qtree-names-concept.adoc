@@ -1,0 +1,59 @@
+---
+permalink: nfs-admin/multi-byte-file-directory-qtree-names-concept.html 
+sidebar: sidebar 
+keywords: ontap, multi byte, file, directory, qtree, name 
+summary: 'A partir de ONTAP 9.5, la compatibilidad con nombres codificados UTF-8 de 4 bytes permite la creación y visualización de nombres de archivos, directorios y árboles que incluyen caracteres complementarios Unicode fuera del plano multilingüe básico (BMP). En las versiones anteriores, estos caracteres complementarios no se mostraba correctamente en entornos multiprotocolo.' 
+---
+= Cómo maneja ONTAP los nombres de archivos, directorios y qtrees de varios bytes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.5, la compatibilidad con nombres codificados UTF-8 de 4 bytes permite la creación y visualización de nombres de archivos, directorios y árboles que incluyen caracteres complementarios Unicode fuera del plano multilingüe básico (BMP). En las versiones anteriores, estos caracteres complementarios no se mostraba correctamente en entornos multiprotocolo.
+
+Para habilitar la compatibilidad con nombres codificados UTF-8 de 4 bytes, hay disponible un nuevo código de idioma _utf8mb4_ para `vserver` y.. `volume` familias de comando.
+
+* Debe crear un nuevo volumen de una de las siguientes maneras:
+* Configuración del volumen `-language` opción explícitamente:
++
+`volume create -language utf8mb4 {…}`
+
+* Heredar el volumen `-language` Opción de una SVM que se ha creado con la opción o que se ha modificado para ella:
++
+`vserver [create|modify] -language utf8mb4 {…}``volume create {…}`
+
+* No se pueden modificar los volúmenes existentes para la compatibilidad con utf8mb4; debe crear un nuevo volumen listo para utf8mb4 y, a continuación, migrar los datos mediante herramientas de copia basadas en cliente.
++
+Puede actualizar las SVM para que admitan utf8mb4, pero los volúmenes existentes conservan sus códigos de idioma originales.
+
++
+[NOTE]
+====
+Los nombres de las LUN con caracteres UTF-8 de 4 bytes no se admiten actualmente.
+
+====
+* Los datos de caracteres Unicode se suelen representar en aplicaciones de sistemas de archivos Windows que utilizan el formato de transformación Unicode de 16 bits (UTF-16) y en sistemas de archivos NFS que utilizan el formato de transformación Unicode de 8 bits (UTF-8).
++
+En las versiones anteriores a ONTAP 9.5, los nombres incluidos los caracteres complementarios UTF-16 creados por los clientes de Windows se mostraban correctamente a otros clientes de Windows pero no se tradujeron correctamente a UTF-8 para los clientes NFS. Del mismo modo, los nombres con caracteres complementarios UTF-8 de los clientes NFS creados no se tradujeron correctamente a UTF-16 para los clientes Windows.
+
+* Cuando se crean nombres de archivo en sistemas que ejecutan ONTAP 9.4 o una versión anterior que contienen caracteres complementarios válidos o no válidos, ONTAP rechaza el nombre de archivo y devuelve un error de nombre de archivo no válido.
++
+Para evitar este problema, utilice sólo los caracteres BMP en los nombres de archivo y evite utilizar caracteres complementarios, o actualice a ONTAP 9.5 o posterior.
+
+
+
+Se permiten caracteres Unicode en nombres de qtree.
+
+* Puede utilizar cualquiera de los dos `volume qtree` Familia de comandos o System Manager para establecer o modificar los nombres de qtree.
+* Los nombres de qtree pueden incluir caracteres de varios bytes en formato Unicode, como los caracteres japoneses y chinos.
+* En versiones anteriores a ONTAP 9.5, sólo se admiten los caracteres BMP (es decir, los que podrían representarse en 3 bytes).
++
+[NOTE]
+====
+En las versiones anteriores a ONTAP 9.5, la ruta de unión del volumen principal del qtree puede contener nombres de qtree y directorio con caracteres Unicode. La `volume show` El comando muestra estos nombres correctamente cuando el volumen primario tiene una configuración de idioma UTF-8. Sin embargo, si el idioma del volumen principal no es uno de los valores de idioma UTF-8, algunas partes de la ruta de unión se muestran utilizando un nombre NFS alternativo numérico.
+
+====
+* En las versiones 9.5 y posteriores, se admiten caracteres de 4 bytes en nombres de qtree, siempre y cuando el qtree se encuentre en un volumen habilitado para utf8mb4.
+

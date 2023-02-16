@@ -1,0 +1,38 @@
+---
+permalink: smb-admin/gpo-updates-failing-reference.html 
+sidebar: sidebar 
+keywords: circumstance, group, policy, object, gpo, update, windows, domain, controller, fail, visible, central, access, policy, setting, section, output, verserver, cifs, group-policy, show-defined, command, correct, what to do if gpo updates are failing 
+summary: 'En determinadas circunstancias, pueden producirse errores en las actualizaciones de objeto de directiva de grupo (GPO) de controladores de dominio de Windows 2012, lo que provoca que no se vea nada en la sección Configuración de la directiva de acceso central del resultado del comando vserver cifs group-policy show-defined. Si se produce, debe saber cómo corregir este problema.' 
+---
+= Qué hacer si se producen errores en las actualizaciones de GPO
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En algunas circunstancias, las actualizaciones de objeto de directiva de grupo (GPO) de los controladores de dominio de Windows 2012 pueden fallar, lo que provoca que no se vea nada en el `Central Access Policy Settings` de la salida para `vserver cifs group-policy show-defined` comando. Si se produce, debe saber cómo corregir este problema.
+
+|===
+| Causa subyacente | Solución 
+
+
+ a| 
+Cuando ONTAP intenta conectarse al controlador de dominio de Windows 2012 para realizar la actualización de GPO, la conexión podría fallar con el error `error 0xc00000bd (NT STATUS_DUPLICATE_NAME)`.
+
+Este error se produce cuando el nombre de servidor utilizado para establecer la conexión es diferente del nombre NetBIOS del servidor CIFS. Esto podría ocurrir por varias razones, incluido el uso de alias. Además, ONTAP aplica el nombre NetBIOS utilizado al conectarse al controlador de dominio para que la longitud del nombre sea igual a 15 caracteres. Esto puede hacer que parezca que el nombre del servidor CIFS y el nombre NetBIOS son diferentes.
+ a| 
+. Deshabilite la comprobación de nombres NetBIOS en el servidor Windows agregando la siguiente clave del Registro con el valor establecido en `1`:
++
+`"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\LanmanServer\Parameters\DisableStrictNameChecking"`
+
++
+Para obtener más información acerca de esta clave de registro, póngase en contacto con el soporte técnico de Microsoft.
+
++
+http://support.microsoft.com["Soporte técnico de Microsoft"]
+
+. Reinicie el controlador de dominio.
+
+
+|===

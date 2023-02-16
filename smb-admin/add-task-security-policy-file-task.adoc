@@ -1,0 +1,88 @@
+---
+permalink: smb-admin/add-task-security-policy-file-task.html 
+sidebar: sidebar 
+keywords: creating, create, add, policy, task, security, policy, configuring, configure, apply, acl, associate, task, entries, add a task to the security policy 
+summary: Crear y añadir una tarea de política a una política de seguridad es el cuarto paso para configurar y aplicar ACL a archivos o carpetas en SVM. Al crear la tarea de directiva, asocie la tarea a una directiva de seguridad. Puede agregar una o más entradas de tareas a una directiva de seguridad. 
+---
+= Agregar una tarea a la directiva de seguridad
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Crear y añadir una tarea de política a una política de seguridad es el cuarto paso para configurar y aplicar ACL a archivos o carpetas en SVM. Al crear la tarea de directiva, asocie la tarea a una directiva de seguridad. Puede agregar una o más entradas de tareas a una directiva de seguridad.
+
+.Acerca de esta tarea
+La política de seguridad es un contenedor para una tarea. Una tarea hace referencia a una única operación que puede realizar una directiva de seguridad para archivos o carpetas con seguridad NTFS o mixta (o a un objeto de volumen si se configura Storage-Level Access Guard).
+
+Existen dos tipos de tareas:
+
+* Tareas de archivo y directorio
++
+Se utiliza para especificar tareas que aplican descriptores de seguridad a archivos y carpetas especificados. Las ACL aplicadas mediante tareas de archivo y directorio se pueden gestionar con clientes de SMB o con la interfaz de línea de comandos de ONTAP.
+
+* Tareas de protección de acceso al nivel de almacenamiento
++
+Se utiliza para especificar tareas que aplican descriptores de seguridad de Access Guard de nivel de almacenamiento a un volumen especificado. Las ACL aplicadas mediante tareas de protección de acceso al nivel de almacenamiento solo se pueden gestionar a través de la interfaz de línea de comandos de ONTAP.
+
+
+
+Una tarea contiene definiciones para la configuración de seguridad de un archivo (o carpeta) o un conjunto de archivos (o carpetas). Cada tarea de una política se identifica de forma única por la ruta. Sólo puede haber una tarea por ruta dentro de una única política. Una directiva no puede tener entradas de tareas duplicadas.
+
+Directrices para agregar una tarea a una directiva:
+
+* Puede haber un máximo de 10,000 entradas de tareas por directiva.
+* Una política puede contener una o más tareas.
++
+Aunque una directiva puede contener más de una tarea, no puede configurar una directiva para que contenga tareas de directorio de archivos y de protección de acceso a nivel de almacenamiento. Una política debe contener todas las tareas de Storage-Level Access Guard o todas las tareas de directorio de archivos.
+
+* Se utiliza Storage-Level Access Guard para restringir los permisos.
++
+Nunca dará permisos de acceso adicionales.
+
+
+
+Al agregar tareas a las directivas de seguridad, debe especificar los siguientes cuatro parámetros necesarios:
+
+* Nombre de SVM
+* Nombre de la política
+* Ruta
+* Descriptor de seguridad que se asociará a la ruta de acceso
+
+
+Es posible personalizar la configuración del descriptor de seguridad mediante los siguientes parámetros opcionales:
+
+* Tipo de seguridad
+* Modo de propagación
+* Posición de índice
+* Tipo de control de acceso
+
+
+Se ignora el valor de cualquier parámetro opcional para Storage-Level Access Guard. Consulte las páginas de manual para obtener más información.
+
+.Pasos
+. Añada una tarea con un descriptor de seguridad asociado a la directiva de seguridad: `vserver security file-directory policy task add -vserver vserver_name -policy-name policy_name -path path -ntfs-sd SD_nameoptional_parameters`
++
+`file-directory` es el valor predeterminado para `-access-control` parámetro. Es opcional especificar el tipo de control de acceso cuando se configuran las tareas de acceso a archivos y directorios.
+
++
+`vserver security file-directory policy task add -vserver vs1 -policy-name policy1 -path /home/dir1 -security-type ntfs -ntfs-mode propagate -ntfs-sd sd2 -index-num 1 -access-control file-directory`
+
+. Compruebe la configuración de la tarea de directiva: `vserver security file-directory policy task show -vserver vserver_name -policy-name policy_name -path path`
++
+`vserver security file-directory policy task show`
+
++
+[listing]
+----
+
+Vserver: vs1
+Policy: policy1
+
+Index    File/Folder    Access           Security   NTFS       NTFS Security
+         Path           Control          Type       Mode       Descriptor Name
+-----    --------       -----------      --------   ------     ----------------
+1        /home/dir1     file-directory   ntfs       propagate  sd2
+----
+

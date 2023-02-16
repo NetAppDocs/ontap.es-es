@@ -1,0 +1,67 @@
+---
+permalink: tape-backup/dump-backup-concept.html 
+sidebar: sidebar 
+keywords: dump, backup, qtree, file, system, data 
+summary: Una copia de seguridad de volcado escribe los datos del sistema de archivos del disco a la cinta mediante un proceso predefinido. Puede realizar un backup de un volumen, un qtree o un subárbol que no sea ni un volumen completo ni un qtree completo. 
+---
+= Cómo funciona un backup de volcado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Una copia de seguridad de volcado escribe los datos del sistema de archivos del disco a la cinta mediante un proceso predefinido. Puede realizar un backup de un volumen, un qtree o un subárbol que no sea ni un volumen completo ni un qtree completo.
+
+En la siguiente tabla se describe el proceso que ONTAP utiliza para realizar un backup del objeto indicado por la ruta de volcado:
+
+[cols="1,4"]
+|===
+| Etapa | Acción 
+
+
+ a| 
+1
+ a| 
+Para un volumen completo menor que los backups qtree o los backups completos de qtree, ONTAP atraviesa directorios para identificar los archivos en los que se va a realizar el backup. Si va a realizar el backup de un volumen o qtree completo, ONTAP combina esta fase con la fase 2.
+
+
+
+ a| 
+2
+ a| 
+Para un backup de volumen completo o de qtree completo, ONTAP identifica los directorios en los volúmenes o qtrees de los que se va a realizar un backup.
+
+
+
+ a| 
+3
+ a| 
+ONTAP escribe los directorios en la cinta.
+
+
+
+ a| 
+4
+ a| 
+ONTAP escribe los archivos en la cinta.
+
+
+
+ a| 
+5
+ a| 
+ONTAP escribe la información de ACL (si corresponde) en la cinta.
+
+|===
+El backup de volcado utiliza una copia Snapshot de los datos para el backup. Por lo tanto, no es necesario desconectar el volumen antes de iniciar el backup.
+
+El backup de volcado asigna nombres a cada copia Snapshot que crea `snapshot_for_backup.n`, donde `n` es un entero que comienza en 0. Cada vez que el backup volcado crea una copia Snapshot, incrementa el número entero en 1. El entero se restablece a 0 después de reiniciar el sistema de almacenamiento. Una vez completada la operación de copia de seguridad, el motor de volcado elimina esta copia snapshot.
+
+Cuando ONTAP realiza varios backups de volcado de manera simultánea, el motor de volcado crea varias copias Snapshot. Por ejemplo, si ONTAP ejecuta dos backups de volcado de manera simultánea, puede encontrar las siguientes copias Snapshot en los volúmenes desde los cuales se realiza el backup de los datos: `snapshot_for_backup.0` y.. `snapshot_for_backup.1`.
+
+[NOTE]
+====
+Cuando se realiza un backup de una copia Snapshot, el motor de volcado no crea una copia Snapshot adicional.
+
+====

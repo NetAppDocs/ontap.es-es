@@ -1,0 +1,120 @@
+---
+permalink: nfs-config/verify-permissions-kerberos-config-task.html 
+sidebar: sidebar 
+keywords: verify, permissions, kerberos, configuration 
+summary: Kerberos requiere que se establezcan determinados permisos de UNIX para el volumen raíz de la SVM y para los usuarios y grupos locales. 
+---
+= Verifique los permisos para la configuración de Kerberos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Kerberos requiere que se establezcan determinados permisos de UNIX para el volumen raíz de la SVM y para los usuarios y grupos locales.
+
+.Pasos
+. Visualice los permisos relevantes en el volumen raíz de la SVM:
++
+`volume show -volume _root_vol_name_-fields user,group,unix-permissions`
+
++
+El volumen raíz de la SVM debe tener la siguiente configuración:
+
++
+|===
+| Nombre... | Estableciendo... 
+
+
+ a| 
+UID
+ a| 
+Raíz o ID 0
+
+
+
+ a| 
+GID
+ a| 
+Raíz o ID 0
+
+
+
+ a| 
+Permisos UNIX
+ a| 
+755
+
+|===
++
+Si no se muestran estos valores, utilice `volume modify` comando para actualizarlos.
+
+. Mostrar los usuarios UNIX locales:
++
+`vserver services name-service unix-user show -vserver _vserver_name_`
+
++
+La SVM debe tener configurados los siguientes usuarios de UNIX:
+
++
+|===
+| Nombre de usuario | ID de usuario | ID del grupo principal | Comentar 
+
+
+ a| 
+nfs
+ a| 
+500
+ a| 
+0
+ a| 
+Necesario para la fase DE INICIALIZACIÓN de GSS.
+
+El primer componente del SPN de usuario del cliente NFS se utiliza como usuario.
+
+El usuario nfs no es necesario si existe una asignación de nombre Kerberos-UNIX para el SPN del usuario cliente NFS.
+
+
+
+ a| 
+raíz
+ a| 
+0
+ a| 
+0
+ a| 
+Necesario para el montaje.
+
+|===
++
+Si no se muestran estos valores, puede usar `vserver services name-service unix-user modify` comando para actualizarlos.
+
+. Mostrar los grupos UNIX locales:
++
+`vserver services name-service unix-group show -vserver _vserver_ _name`
+
++
+La SVM debe tener configurados los siguientes grupos UNIX:
+
++
+|===
+| Nombre del grupo | ID de grupo 
+
+
+ a| 
+daemon
+ a| 
+1
+
+
+
+ a| 
+raíz
+ a| 
+0
+
+|===
++
+Si no se muestran estos valores, puede usar `vserver services name-service unix-group modify` comando para actualizarlos.
+
+

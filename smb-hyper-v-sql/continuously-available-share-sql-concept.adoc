@@ -1,0 +1,54 @@
+---
+permalink: smb-hyper-v-sql/continuously-available-share-sql-concept.html 
+sidebar: sidebar 
+keywords: continuously, share, requirements, considerations, sql, server, smb, nondisuptive, snapcenter plug-in 
+summary: Debe tener en cuenta ciertos requisitos y consideraciones a la hora de configurar recursos compartidos disponibles de forma continua para configuraciones de SQL Server en SMB que admiten operaciones no disruptivas. 
+---
+= Requisitos de recursos compartidos y consideraciones continuamente disponibles para SQL Server en SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe tener en cuenta ciertos requisitos y consideraciones a la hora de configurar recursos compartidos disponibles de forma continua para configuraciones de SQL Server en SMB que admiten operaciones no disruptivas.
+
+
+
+== Comparta los requisitos
+
+* Los volúmenes utilizados para almacenar archivos de máquinas virtuales se deben crear como volúmenes de estilo de seguridad NTFS.
++
+Para proporcionar operaciones no disruptivas para servidores de aplicaciones mediante conexiones SMB disponibles de forma continua, el volumen que contiene el recurso compartido debe ser un volumen NTFS. Además, siempre debe haber sido un volumen NTFS. No se puede cambiar un volumen de estilo de seguridad mixto o un volumen de estilo de seguridad UNIX por un volumen de estilo de seguridad NTFS y usarlo directamente para operaciones no disruptivas sobre recursos compartidos SMB. Si cambia un volumen de estilo de seguridad mixto por un volumen de estilo de seguridad NTFS y piensa usarlo para operaciones no disruptivas en recursos compartidos de SMB, debe colocar manualmente una ACL en la parte superior del volumen y propagar esa ACL a todos los archivos y carpetas incluidos. De lo contrario, las migraciones de máquinas virtuales o exportaciones de archivos de base de datos e importaciones donde se mueven archivos a otro volumen pueden fallar si los volúmenes de origen o de destino se crearon inicialmente como volúmenes mixtos o de estilo de seguridad UNIX y posteriormente se cambiaron al estilo de seguridad NTFS.
+
+* Los recursos compartidos utilizados por los servidores de aplicaciones deben configurarse con el conjunto de propiedades continuamente disponibles.
++
+Los servidores de aplicaciones que se conectan a recursos compartidos disponibles de forma continua reciben controladores persistentes que les permiten volver a conectarse de forma no disruptiva a recursos compartidos de SMB y reclamar bloqueos de archivos tras eventos disruptivos como la toma de control, el retorno al nodo primario y la reubicación de agregados.
+
+* Aunque el volumen que contiene los archivos de la base de datos puede contener uniones, SQL Server no cruza las uniones al crear la estructura de directorio de la base de datos.
+* Para que las operaciones del plugin de SnapCenter para Microsoft SQL Server se realicen correctamente, es necesario contar con espacio disponible suficiente en el volumen.
++
+El volumen en el que residen los archivos de base de datos de SQL Server debe ser lo suficientemente grande como para contener la estructura de directorio de la base de datos y todos los archivos contenidos que residen en el recurso compartido.
+
+* Las siguientes propiedades compartidas no deben definirse en recursos compartidos disponibles continuamente que utilizan los servidores de aplicaciones:
++
+** Directorio inicial
+** Almacenamiento de atributos en caché
+** BranchCache
+
+
+
+
+
+
+== Comparta consideraciones
+
+* Las cuotas están soportadas por recursos compartidos constantemente disponibles.
+* La siguiente funcionalidad no es compatible con configuraciones de SQL Server en SMB:
++
+** Auditoría
+** FPolicy
+
+
+* La detección de virus no se realiza en recursos compartidos de SMB con el `continuously-availability` propiedad compartida establecida.
+

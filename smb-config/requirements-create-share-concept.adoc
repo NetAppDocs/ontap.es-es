@@ -1,0 +1,57 @@
+---
+permalink: smb-config/requirements-create-share-concept.html 
+sidebar: sidebar 
+keywords: creating, create, smb, share, requirement, path, properties, property, home, directories, directory, requirements and considerations for creating an smb share 
+summary: Antes de crear un recurso compartido SMB, debe comprender los requisitos para las rutas de acceso compartidas y las propiedades compartidas, especialmente para los directorios iniciales. 
+---
+= Requisitos y consideraciones para crear un recurso compartido de SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de crear un recurso compartido SMB, debe comprender los requisitos para las rutas de acceso compartidas y las propiedades compartidas, especialmente para los directorios iniciales.
+
+La creación de un recurso compartido SMB implica especificar una estructura de ruta de acceso de directorio (mediante el `-path` en la `vserver cifs share create` ) a los que accederán los clientes. La ruta de directorio corresponde a la ruta de unión para un volumen o qtree que ha creado en el espacio de nombres de la SVM. Debe haber la ruta de directorio y la ruta de unión correspondiente antes de crear el recurso compartido.
+
+Las rutas de recursos compartidos tienen los siguientes requisitos:
+
+* Un nombre de ruta de acceso de directorio puede tener hasta 255 caracteres.
+* Si hay un espacio en el nombre de la ruta de acceso, toda la cadena debe colocarse entre comillas (por ejemplo, `"/new volume/mount here"`).
+* Si la ruta UNC (`\\servername\sharename\filepath`) Del recurso compartido contiene más de 256 caracteres (excluyendo el inicial "'\\" de la ruta UNC), y la ficha *Seguridad* del cuadro Propiedades de Windows no está disponible.
++
+Se trata de un problema del cliente Windows y no de un problema de ONTAP. Para evitar este problema, no cree recursos compartidos con rutas UNC con más de 256 caracteres.
+
+
+
+Se pueden cambiar los valores predeterminados de las propiedades compartidas:
+
+* Las propiedades iniciales predeterminadas para todos los recursos compartidos son `oplocks`, `browsable`, `changenotify`, y. `show-previous-versions`.
+* Es opcional especificar propiedades de recurso compartido al crear un recurso compartido.
++
+Sin embargo, si especifica propiedades de recurso compartido al crear el recurso compartido, no se utilizan los valores predeterminados. Si utiliza la `-share-properties` parámetro al crear un recurso compartido, debe especificar todas las propiedades de recurso compartido que desea aplicar al recurso compartido mediante una lista delimitada por comas.
+
+* Para designar un recurso compartido de directorio principal, utilice `homedirectory` propiedad.
++
+Esta función permite configurar un recurso compartido que se asigna a directorios diferentes en función del usuario que se conecta a él y un conjunto de variables. En lugar de tener que crear recursos compartidos independientes para cada usuario, puede configurar un solo recurso compartido con varios parámetros del directorio inicial para definir la relación de un usuario entre un punto de entrada (el recurso compartido) y su directorio inicial (un directorio en la SVM).
+
++
+[NOTE]
+====
+No puede agregar ni quitar esta propiedad después de crear el recurso compartido.
+
+====
+
+
+Los recursos compartidos del directorio inicial tienen los siguientes requisitos:
+
+* Antes de crear directorios iniciales SMB, debe agregar al menos una ruta de búsqueda de directorio raíz mediante el `vserver cifs home-directory search-path add` comando.
+* Los recursos compartidos del directorio inicial especificados por el valor de `homedirectory` en la `-share-properties` el parámetro debe incluir la `%w` Variable dinámica (nombre de usuario de Windows) en el nombre del recurso compartido.
++
+El nombre del recurso compartido también puede contener el `%d` (nombre de dominio) variable dinámica (por ejemplo, `%d/%w`) o una parte estática en el nombre del recurso compartido (por ejemplo, `home1_%w`).
+
+* Si los administradores o usuarios utilizan el recurso compartido para conectarse a los directorios de usuarios de otros usuarios (mediante las opciones de `vserver cifs home-directory modify` comando), el patrón de nombre de recurso compartido dinámico debe ir precedido de una tilde (`~`).
+
+
+link:../smb-admin/index.html["Gestión de SMB"] y.. `vserver cifs share` las páginas de manual tienen información adicional.

@@ -1,0 +1,95 @@
+---
+permalink: performance-admin/measure-latency-throughput-nodes-task.html 
+sidebar: sidebar 
+keywords: check, throughput, latency, between, nodes 
+summary: Es posible usar el comando de ruta de prueba de red para identificar los cuellos de botella de red o para precalificar las rutas de red entre los nodos. Se puede ejecutar el comando entre nodos de interconexión de clústeres o nodos dentro del clúster. 
+---
+= Compruebe el rendimiento y la latencia entre los nodos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `network test-path` comando para identificar cuellos de botella de red o para precalificar las rutas de red entre los nodos. Se puede ejecutar el comando entre nodos de interconexión de clústeres o nodos dentro del clúster.
+
+.Lo que necesitará
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* Para esta tarea, se requieren comandos de nivel de privilegio avanzado.
+* En el caso de una ruta de interconexión de clústeres, los clústeres de origen y destino deben tener una relación entre iguales.
+
+
+.Acerca de esta tarea
+En ocasiones, es posible que el rendimiento de red entre nodos no cumpla las expectativas de la configuración de la ruta. Por ejemplo, una tasa de transmisión de 1 Gbps para el tipo de transferencias de datos grandes que se ven en operaciones de replicación de SnapMirror no sería coherente con un enlace de 10 GbE entre los clústeres de origen y destino.
+
+Puede utilizar el `network test-path` comando para medir el rendimiento y la latencia entre nodos. Se puede ejecutar el comando entre nodos de interconexión de clústeres o nodos dentro del clúster.
+
+[NOTE]
+====
+La prueba satura la ruta de red con los datos, de modo que debe ejecutar el comando cuando el sistema no está ocupado y cuando el tráfico de red entre nodos no es excesivo. El tiempo de prueba se agota al cabo de diez segundos. El comando se puede ejecutar solo entre nodos de ONTAP 9.
+
+====
+La `session-type` Option identifica el tipo de operación que se ejecuta en la ruta de red, por ejemplo, "AsyncMirrorRemote" para la replicación de SnapMirror en un destino remoto. El tipo determina la cantidad de datos utilizados en la prueba. En la siguiente tabla se definen los tipos de sesión:
+
+|===
+
+
+| Tipo de sesión | Descripción 
+
+
+ a| 
+AsyncMirrorlocal
+ a| 
+Configuración que utiliza SnapMirror entre nodos del mismo clúster
+
+
+
+ a| 
+AsyncMirrorRemote
+ a| 
+Configuración que utiliza SnapMirror entre nodos de diferentes clústeres (tipo predeterminado)
+
+
+
+ a| 
+RemoteDataTransfer
+ a| 
+La configuración que utiliza ONTAP para acceder de forma remota a datos entre nodos del mismo clúster (por ejemplo, una solicitud NFS a un nodo de un archivo almacenado en un volumen en un nodo diferente)
+
+|===
+.Pasos
+. Cambie al nivel de privilegio avanzado:
++
+`set -privilege advanced`
+
+. Mida el rendimiento y la latencia entre nodos:
++
+`network test-path -source-node _source_nodename_ |local -destination-cluster _destination_clustername_ -destination-node _destination_nodename_ -session-type Default|AsyncMirrorLocal|AsyncMirrorRemote|SyncMirrorRemote|RemoteDataTransfer`
+
++
+El nodo de origen debe estar en el clúster local. El nodo de destino puede estar en el clúster local o en un clúster con una relación entre iguales. Valor "local" para `-source-node` especifica el nodo en el que está ejecutando el comando.
+
++
+El siguiente comando mide el rendimiento y la latencia de las operaciones de replicación del tipo SnapMirror entre `node1` en el clúster local y. `node3` encendido `cluster2`:
+
++
+[listing]
+----
+cluster1::> network test-path -source-node node1 -destination-cluster cluster2 -destination-node node3 -session-type AsyncMirrorRemote
+Test Duration:      10.88 secs
+Send Throughput:    18.23 MB/sec
+Receive Throughput: 18.23 MB/sec
+MB sent:            198.31
+MB received:        198.31
+Avg latency in ms:  2301.47
+Min latency in ms:  61.14
+Max latency in ms:  3056.86
+----
+. Devolver al privilegio administrativo:
++
+`set -privilege admin`
+
+
+
+.Después de terminar
+Si el rendimiento no cumple las expectativas de configuración de la ruta, debe comprobar las estadísticas de rendimiento del nodo, utilizar las herramientas disponibles para aislar el problema en la red, comprobar la configuración del switch, etc.

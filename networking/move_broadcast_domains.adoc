@@ -1,0 +1,50 @@
+---
+sidebar: sidebar 
+permalink: networking/move_broadcast_domains.html 
+keywords: move, moving, broadcast, domain, ipspace, move broadcast domains into ipspaces, move the system created broadcast domains into the ipspaces you created 
+summary: Mueva los dominios de retransmisión que ha creado el sistema a los espacios IP que creó 
+---
+= Mueva los dominios de retransmisión a los espacios IP
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Mueva los dominios de retransmisión que el sistema creó basándose en la capacidad de la capa 2 a los espacios IP que creó.
+
+Antes de mover el dominio de retransmisión, debe comprobar la accesibilidad de los puertos en los dominios de retransmisión.
+
+El análisis automático de puertos puede determinar qué puertos pueden llegar entre sí y colocarlos en el mismo dominio de difusión, pero este análisis no puede determinar el espacio IP adecuado. Si el dominio de retransmisión pertenece a un espacio IP no predeterminado, deberá moverlo manualmente siguiendo los pasos de esta sección.
+
+.Antes de empezar
+Los dominios de retransmisión se configuran automáticamente como parte de las operaciones de creación y unión de clústeres. ONTAP define el dominio de retransmisión "predeterminado" como el conjunto de puertos que tienen conectividad de capa 2 con el puerto de inicio de la interfaz de gestión en el primer nodo creado en el clúster. Si es necesario, se crean otros dominios de difusión y se denominan *default-1*, *default-2*, etc.
+
+Cuando un nodo se une a un clúster existente, sus puertos de red unen automáticamente los dominios de retransmisión existentes en función de su accesibilidad de la capa 2. Si no tienen la posibilidad de recurrir a un dominio de retransmisión existente, los puertos se colocan en uno o varios dominios de retransmisión nuevos.
+
+.Acerca de esta tarea
+* Los puertos de las LIF del clúster se colocan automáticamente en el espacio IP «clúster».
+* Los puertos con accesibilidad al puerto inicial de la LIF de gestión de nodos se colocan en el dominio de retransmisión "predeterminado".
+* ONTAP crea automáticamente otros dominios de retransmisión como parte de la operación de creación o unión del clúster.
+* A medida que se añaden las VLAN y los grupos de interfaces, se colocan automáticamente en el dominio de retransmisión adecuado un minuto después de crearlo.
+
+
+.Pasos
+. Compruebe la accesibilidad de los puertos en los dominios de retransmisión. ONTAP supervisa automáticamente la accesibilidad de la capa 2. Utilice el siguiente comando para comprobar que cada puerto se ha agregado a un dominio de difusión y que tiene la posibilidad de recurrir a "ok".
++
+`network port reachability show -detail`
+
+. Si es necesario, mueva los dominios de retransmisión a otros espacios IP:
++
+`network port broadcast-domain move`
+
++
+Por ejemplo, si desea mover un dominio de difusión de "default" a "ips1":
+
++
+`network port broadcast-domain move -ipspace Default -broadcast-domain Default -to-ipspace ips1`
+
+

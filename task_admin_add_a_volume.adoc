@@ -1,0 +1,141 @@
+---
+sidebar: sidebar 
+permalink: task_admin_add_a_volume.html 
+keywords: system manager, volume, storage, add, increase storage, NFS volume, create, add a volume, create a volume, add to storage VM, Ansible Playbook, manual placement, distribute volume data across cluster, add FlexGroup volume, add FlexVol volume, access permissions, SnapMirror, protection, QoS policy, cache for remote volume, performance service level policy, 
+summary: Puede crear un volumen y añadirlo a una máquina virtual de almacenamiento existente que se configure para el servicio NFS o SMB. 
+---
+= Añadir un volumen
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Puede crear un volumen y añadirlo a una máquina virtual de almacenamiento existente que se configure para el servicio NFS o SMB.
+
+image:workflow_admin_add_a_volume.gif["diagrama de flujo de trabajo para añadir una tarea de volumen"]
+
+.Antes de comenzar
+Debe haber un equipo virtual de almacenamiento configurado para servicio NFS o SMB en el clúster.
+
+.Pasos
+. Vaya a *almacenamiento > volúmenes*.
+. Haga clic en image:icon_add.gif["Icono Agregar"].
+. Especifique un nombre y un tamaño para el volumen.
+. Realice uno de los siguientes pasos:
++
+[cols="35,65"]
+|===
+
+
+| Haga clic en este botón... | Para realizar esta acción... 
+
+
+| *Guardar* | El volumen se crea y se añade con los valores predeterminados del sistema. No se requieren pasos adicionales. 
+
+
+| *Más opciones* | Vaya a. <<step5>> para definir las especificaciones del volumen. 
+|===
+. [[step5,Paso 5]] se muestran el nombre y el tamaño del volumen si los ha especificado previamente. De lo contrario, introduzca el nombre y el tamaño.
+. Seleccione una máquina virtual de almacenamiento de la lista desplegable.
++
+Solo se muestran las máquinas virtuales de almacenamiento configuradas con el protocolo NFS. Si sólo hay disponible un equipo virtual de almacenamiento configurado con el protocolo NFS, no se muestra el campo *Storage VM*.
+
+. Para agregar una memoria caché para el volumen remoto, seleccione *Agregar una memoria caché para el volumen remoto* y especifique los siguientes valores:
++
+** Seleccione un clúster.
+** Seleccione una máquina virtual de almacenamiento.
+** Seleccione el volumen que desea que sea un volumen de caché.
+
+
+. En la sección *almacenamiento y optimización*, especifique los siguientes valores:
++
+.. La capacidad del volumen ya se muestra, pero es posible modificarla.
+.. En el campo *nivel de servicio de rendimiento*, seleccione un nivel de servicio:
++
+[cols="60,40"]
+|===
+
+
+| Al seleccionar este nivel de servicio... | Esto ocurre... 
+
+
+ a| 
+Un nivel de servicio existente, como «extremo», «rendimiento» o «valor».
+
+Solo se muestran los niveles de servicio válidos para la plataforma del sistema (AFF, FAS, etc.).
+| Se seleccionan automáticamente un nivel o niveles locales. Vaya a. <<step9>>. 
+
+
+| Personalizado | Vaya a. <<step8c>> para definir un nuevo nivel de servicio. 
+|===
+.. [[step8c, paso 8c]] a partir de ONTAP 9.9.1, puede usar System Manager para seleccionar manualmente el nivel local en el que desea colocar el volumen que va a crear (si ha seleccionado el nivel de servicio "personalizado").
++
+
+NOTE: Esta opción no está disponible si selecciona *Agregar como caché para un volumen remoto* o *distribuir datos de volumen a través del clúster* (consulte a continuación).
+
++
+|===
+
+
+| Cuando usted hace esta elección... | Realice estos pasos... 
+
+
+| *Colocación manual* | La ubicación manual está activada. La selección *distribuir datos de volumen a través del clúster* está desactivada (véase a continuación). Vaya a. <<step8d>> para completar el proceso. 
+
+
+| Sin selección | La ubicación manual no está activada. El nivel local se selecciona automáticamente. Vaya a. <<step9>>. 
+|===
+.. [[step8d,Step 8d]] Seleccione un nivel local en el menú desplegable.
+.. Seleccione una política de calidad de servicio.
++
+Seleccione "existente" para elegir entre una lista de directivas existentes o seleccione "Nuevo" para introducir las especificaciones de una nueva política.
+
+
+
+. [[paso 9,Paso 9]] en la sección *Opciones de optimización*, determine si desea distribuir los datos de volumen en el clúster:
++
+[cols="40,60"]
+|===
+
+
+| Cuando usted hace esta elección... | Esto ocurre... 
+
+
+| *Distribuya datos de volumen a través del cluster* | El volumen que va a añadir se convierte en volumen FlexGroup. Esta opción no está disponible si ha seleccionado anteriormente *colocación manual*. 
+
+
+| Sin selección | De forma predeterminada, el volumen que va a añadir se convierte en volumen FlexVol. 
+|===
+. En la sección *permisos de acceso*, especifique los permisos de acceso para los protocolos para los que está configurado el volumen.
++
+A partir de ONTAP 9.11.1, el nuevo volumen no se podrá compartir de forma predeterminada. Para especificar los permisos de acceso predeterminados, asegúrese de que se activan las siguientes casillas de verificación:
+
++
+** *Exportar a través de NGS*: Crea el volumen con la política de exportación "predeterminada" que otorga a los usuarios acceso total a los datos.
+** *Compartir a través de SMB/CIFS*: Crea un recurso compartido con un nombre generado automáticamente, que se puede editar. El acceso se concede a «'todos»». También puede especificar el nivel de permiso.
+
+
+. En la sección *Protección*, especifique las protecciones para el volumen.
++
+** *A partir de ONTAP 9.12.1, puede seleccionar *Activar copias Snapshot (local)* y elegir una política de copia Snapshot en lugar de utilizar el valor predeterminado.
+** *Si selecciona *Activar SnapMirror (local o remoto)*, especifique la directiva de protección y la configuración del clúster de destino en las listas desplegables.
+
+
+. Haga clic en *Guardar*.
++
+El volumen se crea y se añade al clúster y a la máquina virtual de almacenamiento.
+
++
+
+NOTE: También puede guardar las especificaciones de este volumen en un libro de aplicaciones de Ansible. Para obtener más información, visite link:https://docs.netapp.com/us-en/ontap/task_use_ansible_playbooks_add_edit_volumes_luns.html["Utilice libros de aplicaciones Ansible para añadir o editar volúmenes o LUN"^].
+
+

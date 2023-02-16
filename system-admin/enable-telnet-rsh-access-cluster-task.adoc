@@ -1,0 +1,33 @@
+---
+permalink: system-admin/enable-telnet-rsh-access-cluster-task.html 
+sidebar: sidebar 
+keywords: enable, telnet, rsh, access, cluster, mgmt, management, firewall, policy 
+summary: 'Como práctica recomendada de seguridad, Telnet y RSH se desactivan en la directiva de firewall de administración (gmt) predefinida. Para permitir que el clúster acepte solicitudes Telnet o RSH, debe crear una nueva política de firewall de administración que tenga habilitada Telnet o RSH y, a continuación, asociar la nueva directiva con la LIF de administración de clústeres.' 
+---
+= Active el acceso Telnet o RSH al clúster
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Como práctica recomendada de seguridad, Telnet y RSH están desactivados en la directiva de firewall de administración predefinida (`mgmt`). Para permitir que el clúster acepte solicitudes Telnet o RSH, debe crear una nueva política de firewall de administración que tenga habilitada Telnet o RSH y, a continuación, asociar la nueva directiva con la LIF de administración de clústeres.
+
+.Acerca de esta tarea
+ONTAP evita el cambio de políticas de firewall predefinidas, pero puede crear una nueva política clonando los predefinidos `mgmt` Política de firewall de administración y, a continuación, habilitar Telnet o RSH bajo la nueva directiva. Sin embargo, Telnet y RSH no son protocolos seguros, por lo que se debe considerar el uso de SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva.
+
+Siga estos pasos para activar el acceso Telnet o RSH a los clústeres:
+
+.Pasos
+. Entre en el modo de privilegio avanzado:
+`*set advanced*`
+. Activar un protocolo de seguridad (RSH o Telnet):
+`*security protocol modify -application _security_protocol_ -enabled true*`
+. Cree una nueva política de firewall de administración basada en `mgmt` política de firewall de gestión:
+`*system services firewall policy clone -policy mgmt -destination-policy _policy-name_*`
+. Active Telnet o RSH en la nueva política de firewall de administración:
+`*system services firewall policy create -policy _policy-name_ -service _security_protocol_ -action allow -ip-list _ip_address/netmask_*`Para permitir todas las direcciones IP, debe especificar `-ip-list 0.0.0.0/0`
+. Asocie la nueva política con la LIF de gestión del clúster:
+`*network interface modify -vserver _cluster_management_LIF_ -lif cluster_mgmt -firewall-policy _policy-name_*`
+

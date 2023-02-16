@@ -1,0 +1,164 @@
+---
+permalink: smb-admin/name-service-switch-config-concept.html 
+sidebar: sidebar 
+keywords: ontap, store, name, service, configuration, information, table, equivalent, unix, system, appropriate, environment, how ontap name service switch configuration works 
+summary: ONTAP almacena la información de configuración del servicio de nombres en una tabla equivalente al archivo /etc/nsswitch.conf en sistemas UNIX. Debe comprender la función de la tabla y cómo la utiliza ONTAP para poder configurarla de forma adecuada para su entorno. 
+---
+= Cómo funciona la configuración de switch de servicio de nombres ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP almacena información de configuración del servicio de nombres en una tabla que equivale a `/etc/nsswitch.conf` Fichero de sistemas UNIX. Debe comprender la función de la tabla y cómo la utiliza ONTAP para poder configurarla de forma adecuada para su entorno.
+
+La tabla de conmutador de servicio de nombres ONTAP determina qué orígenes de servicio de nombres consulta ONTAP para recuperar información de un determinado tipo de información del servicio de nombres. ONTAP mantiene una tabla de switch de servicio de nombres independiente para cada SVM.
+
+
+
+== Tipos de base de datos
+
+La tabla almacena una lista de servicios de nombres independiente para cada uno de los siguientes tipos de base de datos:
+
+|===
+| Tipo de base de datos | Define orígenes de servicio de nombres para... | Los orígenes válidos son... 
+
+
+ a| 
+hosts
+ a| 
+Conversión de nombres de host a direcciones IP
+ a| 
+archivos, dns
+
+
+
+ a| 
+grupo
+ a| 
+Búsqueda de información de grupo de usuarios
+ a| 
+archivos, nis, ldap
+
+
+
+ a| 
+passwd
+ a| 
+Búsqueda de información de usuario
+ a| 
+archivos, nis, ldap
+
+
+
+ a| 
+grupo de red
+ a| 
+Buscando información de netgroup
+ a| 
+archivos, nis, ldap
+
+
+
+ a| 
+mapa de nombres
+ a| 
+Asignando los nombres de usuario
+ a| 
+archivos, ldap
+
+|===
+
+
+== Tipos de origen
+
+Los orígenes especifican el nombre de origen de servicio que se utilizará para recuperar la información adecuada.
+
+|===
+| Especificar tipo de origen... | Para buscar información en... | Administrado por las familias de comandos... 
+
+
+ a| 
+archivos
+ a| 
+Archivos de origen local
+ a| 
+`vserver services name-service unix-user` `vserver services name-service unix-group`
+
+`vserver services name-service netgroup`
+
+`vserver services name-service dns hosts`
+
+
+
+ a| 
+nis
+ a| 
+Servidores NIS externos tal como se especifica en la configuración de dominio NIS de la SVM
+ a| 
+`vserver services name-service nis-domain`
+
+
+
+ a| 
+ldap
+ a| 
+Servidores LDAP externos tal como se especifica en la configuración del cliente LDAP de la SVM
+ a| 
+`vserver services name-service ldap`
+
+
+
+ a| 
+dns
+ a| 
+Servidores DNS externos como se especifica en la configuración de DNS de la SVM
+ a| 
+`vserver services name-service dns`
+
+|===
+Aunque tenga pensado utilizar NIS o LDAP tanto para el acceso a datos como para la autenticación de administración de SVM, debería seguir incluyéndose `files` Y configure los usuarios locales como respaldo en caso de que falle la autenticación de NIS o LDAP.
+
+
+
+== Protocolos utilizados para acceder a fuentes externas
+
+Para acceder a los servidores de fuentes externas, ONTAP utiliza los siguientes protocolos:
+
+|===
+| Fuente externa del servicio de nombres | Protocolo utilizado para acceder 
+
+
+| NIS | UDP 
+
+
+| DNS | UDP 
+
+
+| LDAP | TCP 
+|===
+
+
+== Ejemplo
+
+En el ejemplo siguiente se muestra el nombre de configuración del switch de servicio para la SVM `svm_1`:
+
+[listing]
+----
+cluster1::*> vserver services name-service ns-switch show -vserver svm_1
+                               Source
+Vserver         Database       Order
+--------------- ------------   ---------
+svm_1           hosts          files,
+                               dns
+svm_1           group          files
+svm_1           passwd         files
+svm_1           netgroup       nis,
+                               files
+----
+Para buscar información de usuarios o grupos, ONTAP sólo consulta archivos de fuentes locales. Si la consulta no devuelve ningún resultado, la búsqueda fallará.
+
+Para buscar información de grupos de red, ONTAP consulta primero los servidores NIS externos. Si la consulta no devuelve ningún resultado, el archivo de netgroup local se activa a continuación.
+
+No hay entradas del servicio de nombres para la asignación de nombres en la tabla de la SVM svm svm_1. Por lo tanto, ONTAP sólo consulta archivos de origen local de forma predeterminada.

@@ -1,0 +1,122 @@
+---
+permalink: s3-config/create-modifyi-object-store-server-policy-task.html 
+sidebar: sidebar 
+keywords: create, modify, object, store, server, policy 
+summary: Puede crear políticas que se puedan aplicar a uno o varios bloques de un almacén de objetos. Las políticas de servidores de almacenamiento de objetos pueden conectarse a grupos de usuarios, lo cual simplifica la gestión del acceso a los recursos en varios bloques. 
+---
+= Cree o modifique una política de servidor de almacenes de objetos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede crear políticas que se puedan aplicar a uno o varios bloques de un almacén de objetos. Las políticas de servidores de almacenamiento de objetos pueden conectarse a grupos de usuarios, lo cual simplifica la gestión del acceso a los recursos en varios bloques.
+
+.Antes de empezar
+Debe haber una SVM habilitada para S3 que contenga un servidor S3 y un bloque.
+
+.Acerca de esta tarea
+Puede habilitar las políticas de acceso en el nivel de SVM especificando una política predeterminada o personalizada en un grupo de servidores de almacenamiento de objetos. Las directivas no surten efecto hasta que se especifiquen en la definición del grupo.
+
+
+NOTE: Cuando se utilizan directivas de servidor de almacenamiento de objetos, se especifican los principales (es decir, los usuarios y los grupos) en la definición de grupo, no en la propia directiva.
+
+Hay tres políticas predeterminadas de solo lectura para el acceso a los recursos de ONTAP S3:
+
+* Acceso completo
+* NoS3Access
+* ReadOnlyAccess
+
+
+También puede crear nuevas directivas personalizadas y, a continuación, agregar nuevas sentencias para nuevos usuarios y grupos, o puede modificar los atributos de las sentencias existentes. Para obtener más opciones, consulte `vserver object-store-server policy` link:https://docs.netapp.com/us-en/ontap-cli-9121/index.html["referencia de comandos"^].
+
+A partir de ONTAP 9.9.1 y versiones posteriores, si tiene pensado admitir la funcionalidad de etiquetado de objetos de cliente de AWS con el servidor ONTAP S3, las acciones `GetObjectTagging`, `PutObjectTagging`, y. `DeleteObjectTagging` debe permitirse el uso de las políticas de bloque o grupo.
+
+El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilice System Manager para crear o modificar una directiva de servidor de almacén de objetos*
+
+.Pasos
+. Edite el equipo virtual de almacenamiento: Haga clic en *almacenamiento > equipos virtuales de almacenamiento*, haga clic en el equipo virtual de almacenamiento, seleccione *Configuración* y, a continuación, haga clic en image:icon_pencil.gif["icono de lápiz"] En S3.
+. Agregar un usuario: Haga clic en *Directivas* y, a continuación, haga clic en *Agregar*.
++
+.. Introduzca un nombre de política y selecciónelo de una lista de grupos.
+.. Seleccione una política predeterminada existente o agregue una nueva.
++
+Al agregar o modificar una política de grupo, se pueden especificar los siguientes parámetros:
+
++
+*** Grupo: Los grupos a los que se concede acceso.
+*** Efecto: Permite o deniega el acceso a uno o varios grupos.
+*** Acciones: Acciones permitidas en uno o más cucharones para un grupo determinado.
+*** Recursos: Rutas y nombres de objetos dentro de uno o más segmentos para los que se concede o deniega el acceso. Por ejemplo:
++
+**** *** Concede acceso a todos los bloques del equipo virtual de almacenamiento.
+**** *bucketname* y *bucketname/** conceden acceso a todos los objetos de un bloque específico.
+**** *bucketname/readme.txt* otorga acceso a un objeto en un bloque específico.
+
+
+
+
+.. Si lo desea, agregue sentencias a las directivas existentes.
+
+
+
+
+--
+.CLI
+--
+*Utilice la CLI para crear o modificar una directiva de servidor de almacén de objetos*
+
+.Pasos
+. Cree una política de servidor de almacenamiento de objetos:
++
+`vserver object-store-server policy create -vserver _svm_name_ -policy _policy_name_ [-comment _text_]`
+
+. Crear una instrucción para la directiva:
++
+`vserver object-store-server policy statement create -vserver _svm_name_ -policy _policy_name_ -effect {allow|deny} -action _object_store_actions_ -resource _object_store_resources_ [-sid text]`
+
++
+Los siguientes parámetros definen los permisos de acceso:
+
++
+[cols="2*"]
+|===
+
+
+ a| 
+`-effect`
+ a| 
+La declaración puede permitir o denegar el acceso
+
+
+
+ a| 
+`-action`
+ a| 
+Puede especificar `*` para indicar todas las acciones, o una lista de una o varias de las siguientes: `GetObject, PutObject, DeleteObject, ListBucket,GetBucketAcl, GetObjectAcl, ListAllMyBuckets, ListBucketMultipartUploads,` y.. `ListMultipartUploadParts`.
+
+
+
+ a| 
+`-resource`
+ a| 
+El bloque y cualquier objeto que contenga. Los caracteres comodín `*` y.. `?` se puede utilizar para formar una expresión regular para especificar un recurso.
+
+|===
++
+Opcionalmente, puede especificar una cadena de texto como comentario con el `-sid` opción.
+
++
+De forma predeterminada, las nuevas sentencias se agregan al final de la lista de sentencias, que se procesan en orden. Cuando agregue o modifique sentencias más tarde, tiene la opción de modificar las sentencias `-index` configuración para cambiar la orden de procesamiento.
+
+
+
+--
+====

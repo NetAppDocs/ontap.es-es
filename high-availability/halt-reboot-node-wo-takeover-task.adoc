@@ -1,0 +1,143 @@
+---
+sidebar: sidebar 
+permalink: high-availability/halt-reboot-node-wo-takeover-task.html 
+keywords: high availability pair, hair, inhibit-takeover, reboot, epsilon, HA 
+summary: Detuvo o reiniciar un nodo en un clúster de dos nodos sin iniciar la toma de control cuando realiza determinado mantenimiento de hardware en un nodo o una bandeja y desea limitar el tiempo de inactividad manteniendo el nodo del partner en funcionamiento. o cuando hay problemas que impiden la toma de control manual y desea mantener los agregados del nodo asociado en funcionamiento y sirviendo datos. Además, si el soporte técnico le ayuda a solucionar problemas, es posible que tenga que realizar este procedimiento como parte de dichos esfuerzos. 
+---
+= Detenga o reinicie un nodo sin iniciar la toma de control en un clúster de dos nodos
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Detuvo o reiniciar un nodo en un clúster de dos nodos sin iniciar la toma de control cuando realiza determinado mantenimiento de hardware en un nodo o una bandeja y desea limitar el tiempo de inactividad manteniendo el nodo del partner en funcionamiento. o cuando hay problemas que impiden la toma de control manual y desea mantener los agregados del nodo asociado en funcionamiento y sirviendo datos. Además, si el soporte técnico le ayuda a solucionar problemas, es posible que tenga que realizar este procedimiento como parte de dichos esfuerzos.
+
+.Acerca de esta tarea
+* Antes de inhibir la toma de control (mediante el `-inhibit-takeover true` Parámetro), deshabilita el clúster ha.
+
+
+[CAUTION]
+====
+* En un clúster de dos nodos, el clúster de alta disponibilidad garantiza que se produzca un error en un nodo que no deshabilite el clúster. Sin embargo, si no deshabilita el clúster de alta disponibilidad antes de utilizar el  `-inhibit-takeover true` parámetro, ambos nodos dejan de servir datos.
+* Si intenta detener o reiniciar un nodo antes de deshabilitar la alta disponibilidad del clúster, ONTAP emite una advertencia y le indica que debe deshabilitar la alta disponibilidad del clúster.
+
+
+====
+* Migra LIF (interfaces lógicas) al nodo del partner que desea mantener en línea.
+* Si en el nodo que va a detener o reiniciar hay agregados que desea conservar, los mueve al nodo que desea permanecer en línea.
+
+
+.Pasos
+. Compruebe que ambos nodos estén en buen estado:
+`cluster show`
++
+Para ambos nodos, `true` aparece en la `Health` columna.
+
++
+[listing]
+----
+cluster::> cluster show
+Node         Health  Eligibility
+------------ ------- ------------
+node1        true     true
+node2        true     true
+----
+. Migre todos los LIF del nodo que detendrá o reiniciará al nodo compañero:
+`network interface migrate-all -node _node_name_`
+. Si en el nodo que va a detener o reiniciar hay agregados que desea mantener en línea cuando el nodo está inactivo, reubicarlos al nodo del compañero; de lo contrario, vaya al siguiente paso.
++
+.. Muestre los agregados del nodo que detendrá o reiniciará:
+`storage aggregates show -node _node_name_`
++
+Por ejemplo, el nodo 1 es el nodo que se detuvo o reiniciando:
+
++
+[listing]
+----
+cluster::> storage aggregates show -node node1
+Aggregate  Size  Available  Used%  State  #Vols   Nodes   RAID  Status
+---------  ----  ---------  -----  -----  -----   -----   ----  ------
+aggr0_node_1_0
+           744.9GB   32.68GB   96% online       2 node1    raid_dp,
+                                                                normal
+aggr1       2.91TB    2.62TB   10% online       8 node1    raid_dp,
+                                                                normal
+aggr2
+            4.36TB    3.74TB   14% online      12 node1    raid_dp,
+                                                                normal
+test2_aggr  2.18TB    2.18TB    0% online       7 node1    raid_dp,
+                                                                normal
+4 entries were displayed.
+----
+.. Mueva los agregados al nodo partner:
+`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+Por ejemplo, los agregados aggr1, aggr2 y test2_aggr se están moviendo del nodo 1 al nodo 2:
+
++
+`storage aggregate relocation start -node _node1_ -destination _node2_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
+
+
+
+. Deshabilitar clúster de alta disponibilidad:
+`cluster ha modify -configured false`
++
+La salida de retorno confirma que ha está desactivada: `Notice: HA is disabled`
+
++
+
+NOTE: Esta operación no deshabilita la conmutación al nodo de respaldo del almacenamiento.
+
+. Detenga o reinicie el sistema e impida la toma de control del nodo de destino mediante el uso del comando correspondiente:
++
+** `system node halt -node _node_name_ -inhibit-takeover true`
+** `system node reboot -node _node_name_ -inhibit-takeover true`
++
+
+NOTE: En el resultado del comando, verá una advertencia preguntándole si desea continuar, introduzca `y`.
+
+
+
+. Compruebe que el nodo que sigue estando conectado esté en buen estado (mientras el partner está inactivo):
+`cluster show`
++
+Para el nodo en línea: `true` aparece en la `Health` columna.
+
++
+
+NOTE: En el resultado del comando, verá una advertencia de que alta disponibilidad del clúster no está configurado. Puede ignorar la advertencia en este momento.
+
+. Realice las acciones que le requerían para detener o reiniciar el nodo.
+. Arrancar el nodo desconectar desde el símbolo del sistema DEL CARGADOR:
+`boot_ontap`
+. Compruebe que ambos nodos estén en buen estado:
+`cluster show`
++
+Para ambos nodos, `true` aparece en la `Health` columna.
+
++
+
+NOTE: En el resultado del comando, verá una advertencia de que alta disponibilidad del clúster no está configurado. Puede ignorar la advertencia en este momento.
+
+. Volver a habilitar el clúster de alta disponibilidad:
+`cluster ha modify -configured true`
+. Si anteriormente de este procedimiento reubica los agregados al nodo del partner, moverlos de nuevo a su nodo de origen; de lo contrario, vaya al siguiente paso:
+`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+Por ejemplo, los agregados aggr1, aggr2 y test2_aggr se están moviendo del nodo 2 al nodo 1:
+`storage aggregate relocation start -node _node2_ -destination _node1_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
+
+. Revertir los LIF a sus puertos raíz:
++
+.. Vea los LIF que no están en casa:
+`network interface show -is-home false`
+.. Si hay LIF sin hogar que no se migraron desde el nodo inactivo, compruebe que es seguro moverlas antes de revertir.
+.. Si puede hacerlo con seguridad, revierte el inicio de todos los LIF.
+`network interface revert *`
+
+
+

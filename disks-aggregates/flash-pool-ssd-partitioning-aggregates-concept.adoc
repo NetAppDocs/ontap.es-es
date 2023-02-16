@@ -1,0 +1,28 @@
+---
+permalink: disks-aggregates/flash-pool-ssd-partitioning-aggregates-concept.html 
+sidebar: sidebar 
+keywords: flash pool, ssd partitioning, work, aggregate, storage pool, local tier 
+summary: 'Si va a proporcionar caché en dos o más niveles locales de Flash Pool (agregados), debe usar la partición de la unidad de estado sólido (SSD) de Flash Pool. La creación de particiones de SSD con Flash Pool permite compartir los SSD con todos los niveles locales que usan Flash Pool. Esto permite distribuir el coste de la paridad frente a varios niveles locales, aumenta la flexibilidad de asignación de caché SSD y maximiza el rendimiento de SSD.' 
+---
+= Creación de particiones SSD de Flash Pool para niveles locales de Flash Pool (agregados) mediante pools de almacenamiento
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si va a proporcionar caché en dos o más niveles locales de Flash Pool (agregados), debe usar la partición de la unidad de estado sólido (SSD) de Flash Pool. La creación de particiones de SSD con Flash Pool permite compartir los SSD con todos los niveles locales que usan Flash Pool. Esto permite distribuir el coste de la paridad frente a varios niveles locales, aumenta la flexibilidad de asignación de caché SSD y maximiza el rendimiento de SSD.
+
+Para poder utilizar un SSD en un nivel local de Flash Pool, el SSD se debe colocar en un pool de almacenamiento. No se pueden usar SSD que se particionaran para la partición de datos raíz en un pool de almacenamiento. Después de colocar el SSD en el pool de almacenamiento, el SSD ya no se puede gestionar como un disco independiente y no se puede eliminar del pool de almacenamiento a menos que se destruyan los niveles locales asociados con Flash Pool y se destruya el pool de almacenamiento.
+
+Los pools de almacenamiento SSD se dividen en cuatro unidades de asignación iguales. Las SSD añadidas al pool de almacenamiento se dividen en cuatro particiones y una partición está asignada a cada una de las cuatro unidades de asignación. La misma pareja de ha debe ser la propietaria de los SSD del pool de almacenamiento. De manera predeterminada, se asignan dos unidades de asignación a cada nodo en el par de alta disponibilidad. Las unidades de asignación deben ser propiedad del nodo al que pertenece el nivel local que está sirviendo. Si se necesita más Flash Cache para los niveles locales en uno de los nodos, el número predeterminado de unidades de asignación se puede mover para reducir el número en un nodo y aumentar el número en el nodo asociado.
+
+Solo se puede usar un SSD de repuesto para un pool de almacenamiento. Si el pool de almacenamiento proporciona unidades de asignación a niveles locales de Flash Pool propiedad de ambos nodos del par de alta disponibilidad, cualquiera de los nodos puede tener la propiedad de SSD de repuesto. Sin embargo, si el pool de almacenamiento proporciona unidades de asignación solo a niveles locales de Flash Pool propiedad de uno de los nodos del par de alta disponibilidad, la pieza de repuesto de SSD debe ser propiedad de ese mismo nodo.
+
+En la siguiente ilustración se muestra un ejemplo de creación de particiones SSD de Flash Pool. El pool de almacenamiento de SSD proporciona caché a dos niveles locales de Flash Pool:
+
+image::../media/shared-ssds-overview.gif[Esta imagen se describe con el texto circundante.]
+
+El SP1 del pool de almacenamiento está compuesto por cinco SSD y un SSD de pieza de repuesto. Dos de las unidades de asignación del pool de almacenamiento se asignan a Flash Pool FP1 y dos se asignan a Flash Pool FP2. FP1 tiene un tipo de RAID de caché de RAID4. Por lo tanto, las unidades de asignación proporcionadas a FP1 sólo contienen una partición designada para la paridad. FP2 tiene un tipo de RAID de caché de RAID-DP. Por lo tanto, las unidades de asignación proporcionadas a FP2 incluyen una partición de paridad y una partición de doble paridad.
+
+En este ejemplo, se asignan dos unidades de asignación a cada nivel local de Flash Pool. Sin embargo, si un nivel local de Flash Pool requería una mayor memoria caché, podría asignar tres de las unidades de asignación a ese nivel local de Flash Pool y solo una a la otra.

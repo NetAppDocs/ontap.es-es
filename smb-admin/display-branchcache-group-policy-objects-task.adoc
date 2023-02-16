@@ -1,0 +1,101 @@
+---
+permalink: smb-admin/display-branchcache-group-policy-objects-task.html 
+sidebar: sidebar 
+keywords: display, information, cifs, server, group, policy, object, gpo, configuration, branchcache, define, domain, server, display information about branchcache group policy objects 
+summary: 'Puede mostrar información acerca de la configuración de objeto de directiva de grupo (GPO) del servidor CIFS para determinar si los GPO de BranchCache están definidos para el dominio al que pertenece el servidor CIFS y, si es así, cuáles son las configuraciones permitidas. También puede determinar si la configuración de GPO de BranchCache se aplica al servidor CIFS.' 
+---
+= Muestra información sobre los objetos de directiva de grupo de BranchCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede mostrar información acerca de la configuración de objeto de directiva de grupo (GPO) del servidor CIFS para determinar si se definen GPO de BranchCache para el dominio al que pertenece el servidor CIFS y, si es así, ¿cuáles son las configuraciones permitidas? También puede determinar si la configuración de GPO de BranchCache se aplica al servidor CIFS.
+
+.Acerca de esta tarea
+Aunque se ha definido una configuración de GPO en el dominio al que pertenece el servidor CIFS, no se aplica necesariamente a la unidad organizativa (OU) que contiene la máquina virtual de almacenamiento (SVM) habilitada para CIFS. La configuración de GPO aplicada es el subconjunto de todos los GPO definidos que se aplican a la SVM habilitada para CIFS. La configuración de BranchCache que se aplica a través de los GPO anula la configuración aplicada a través de la CLI.
+
+.Pasos
+. Muestre la configuración de GPO de BranchCache definida para el dominio de Active Directory mediante `vserver cifs group-policy show-defined` comando.
++
+[NOTE]
+====
+Este ejemplo no muestra todos los campos de resultado disponibles para el comando. La salida está truncada.
+
+====
++
+[listing]
+----
+cluster1::> vserver cifs group-policy show-defined -vserver vs1
+
+Vserver: vs1
+-----------------------------
+       GPO Name: Default Domain Policy
+       Level: Domain
+      Status: enabled
+  Advanced Audit Settings:
+      Object Access:
+          Central Access Policy Staging: failure
+  Registry Settings:
+      Refresh Time Interval: 22
+      Refresh Random Offset: 8
+      Hash Publication Mode for BranchCache: per-share
+      Hash Version Support for BranchCache: version1
+  [...]
+
+    GPO Name: Resultant Set of Policy
+      Status: enabled
+  Advanced Audit Settings:
+      Object Access:
+          Central Access Policy Staging: failure
+  Registry Settings:
+      Refresh Time Interval: 22
+      Refresh Random Offset: 8
+      Hash Publication for Mode BranchCache: per-share
+      Hash Version Support for BranchCache: version1
+  [...]
+----
+. Muestre la configuración de GPO de BranchCache que se aplica al servidor CIFS mediante `vserver cifs group-policy show-applied` comando. ''
++
+[NOTE]
+====
+Este ejemplo no muestra todos los campos de resultado disponibles para el comando. La salida está truncada.
+
+====
++
+[listing]
+----
+cluster1::> vserver cifs group-policy show-applied -vserver vs1
+
+Vserver: vs1
+-----------------------------
+     GPO Name: Default Domain Policy
+       Level: Domain
+      Status: enabled
+  Advanced Audit Settings:
+      Object Access:
+          Central Access Policy Staging: failure
+  Registry Settings:
+      Refresh Time Interval: 22
+      Refresh Random Offset: 8
+      Hash Publication Mode for BranchCache: per-share
+      Hash Version Support for BranchCache: version1
+  [...]
+
+    GPO Name: Resultant Set of Policy
+       Level: RSOP
+  Advanced Audit Settings:
+      Object Access:
+          Central Access Policy Staging: failure
+  Registry Settings:
+      Refresh Time Interval: 22
+      Refresh Random Offset: 8
+      Hash Publication Mode for BranchCache: per-share
+      Hash Version Support for BranchCache: version1
+ [...]
+----
+
+
+.Información relacionada
+xref:enable-disable-gpo-support-task.adoc[Habilitar o deshabilitar la compatibilidad de GPO en un servidor CIFS]

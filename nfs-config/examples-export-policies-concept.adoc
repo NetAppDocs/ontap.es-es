@@ -1,0 +1,226 @@
+---
+permalink: nfs-config/examples-export-policies-concept.html 
+sidebar: sidebar 
+keywords: examples, ontap, export, policies, implementation, 7-mode 
+summary: Puede revisar el ejemplo de políticas de exportación para comprender mejor cómo funcionan las políticas de exportación en ONTAP. 
+---
+= Ejemplos de políticas de exportación de ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede revisar el ejemplo de políticas de exportación para comprender mejor cómo funcionan las políticas de exportación en ONTAP.
+
+
+
+== Implementación de ONTAP de ejemplo para una exportación de 7-Mode
+
+En el siguiente ejemplo se muestra una exportación de 7-Mode tal como aparece en la `/etc/export` archivo:
+
+[listing]
+----
+/vol/vol1 -sec=sys,ro=@readonly_netgroup,rw=@readwrite_netgroup1:
+@readwrite_netgroup2:@rootaccess_netgroup,root=@rootaccess_netgroup
+----
+Para reproducir esta exportación como una política de exportación en clúster, debe crear una política de exportación con tres reglas de exportación y, a continuación, asignar la política de exportación al volumen vol1.
+
+|===
+| Regla | Elemento | Valor 
+
+
+ a| 
+Artículo 1
+ a| 
+`-clientmatch` (especificación del cliente)
+ a| 
+`@readonly_netgroup`
+
+
+
+ a| 
+`-ruleindex`(posición de la regla de exportación en la lista de reglas)
+ a| 
+`1`
+
+
+
+ a| 
+`-protocol`
+ a| 
+`nfs`
+
+
+
+ a| 
+`-rorule`(permitir acceso de solo lectura)
+ a| 
+`sys` (Cliente autenticado con AUTH_SYS)
+
+
+
+ a| 
+`-rwrule`(permitir acceso de lectura/escritura)
+ a| 
+`never`
+
+
+
+ a| 
+`-superuser`(permitir acceso de superusuario)
+ a| 
+`none`(root _squashed_ a anon)
+
+
+
+ a| 
+Artículo 2
+ a| 
+`-clientmatch`
+ a| 
+`@rootaccess_netgroup`
+
+
+
+ a| 
+`-ruleindex`
+ a| 
+`2`
+
+
+
+ a| 
+`-protocol`
+ a| 
+`nfs`
+
+
+
+ a| 
+`-rorule`
+ a| 
+`sys`
+
+
+
+ a| 
+`-rwrule`
+ a| 
+`sys`
+
+
+
+ a| 
+`-superuser`
+ a| 
+`sys`
+
+
+
+ a| 
+Artículo 3
+ a| 
+`-clientmatch`
+ a| 
+`@readwrite_netgroup1,@readwrite_netgroup2`
+
+
+
+ a| 
+`-ruleindex`
+ a| 
+`3`
+
+
+
+ a| 
+`-protocol`
+ a| 
+`nfs`
+
+
+
+ a| 
+`-rorule`
+ a| 
+`sys`
+
+
+
+ a| 
+`-rwrule`
+ a| 
+`sys`
+
+
+
+ a| 
+`-superuser`
+ a| 
+`none`
+
+|===
+. Cree una política de exportación denominada exp_vol1:
++
+`vserver export-policy create -vserver NewSVM -policyname exp_vol1`
+
+. Cree tres reglas con los siguientes parámetros en el comando base:
++
+** Comando base: +
+`vserver export-policy rule create -vserver NewSVM -policyname exp_vol1`
+** Parámetros de regla: +
+`-clientmatch @readonly_netgroup -ruleindex 1 -protocol nfs -rorule sys -rwrule never -superuser none`+ `-clientmatch @rootaccess_netgroup -ruleindex 2 -protocol nfs -rorule sys -rwrule sys -superuser sys`+ `-clientmatch @readwrite_netgroup1,@readwrite_netgroup2 -ruleindex 3 -protocol nfs -rorule sys -rwrule sys -superuser none`
+
+
+. Asigne la política al volumen vol1:
++
+`volume modify -vserver NewSVM -volume vol1 -policy exp_vol1`
+
+
+
+
+
+== Consolidación de muestras de exportaciones de 7-Mode
+
+En el siguiente ejemplo se muestra un modelo 7-Mode `/etc/export` archivo que incluye una línea para cada 10 qtrees:
+
+[listing]
+----
+
+/vol/vol1/q_1472 -sec=sys,rw=host1519s,root=host1519s
+/vol/vol1/q_1471 -sec=sys,rw=host1519s,root=host1519s
+/vol/vol1/q_1473 -sec=sys,rw=host1519s,root=host1519s
+/vol/vol1/q_1570 -sec=sys,rw=host1519s,root=host1519s
+/vol/vol1/q_1571 -sec=sys,rw=host1519s,root=host1519s
+/vol/vol1/q_2237 -sec=sys,rw=host2057s,root=host2057s
+/vol/vol1/q_2238 -sec=sys,rw=host2057s,root=host2057s
+/vol/vol1/q_2239 -sec=sys,rw=host2057s,root=host2057s
+/vol/vol1/q_2240 -sec=sys,rw=host2057s,root=host2057s
+/vol/vol1/q_2241 -sec=sys,rw=host2057s,root=host2057s
+----
+En ONTAP, se necesita una de estas dos políticas para cada qtree: Una con una regla incluida `-clientmatch host1519s`, o una con una regla incluida `-clientmatch host2057s`.
+
+. Cree dos políticas de exportación llamadas exp_vol1q1 y exp_vol1q2:
++
+** `vserver export-policy create -vserver NewSVM -policyname exp_vol1q1`
+** `vserver export-policy create -vserver NewSVM -policyname exp_vol1q2`
+
+
+. Crear una regla para cada política:
++
+** `vserver export-policy rule create -vserver NewSVM -policyname exp_vol1q1 -clientmatch host1519s -rwrule sys -superuser sys`
+** `vserver export-policy rule create -vserver NewSVM -policyname exp_vol1q2 -clientmatch host1519s -rwrule sys -superuser sys`
+
+
+. Aplique las políticas a los qtrees:
++
+** `volume qtree modify -vserver NewSVM -qtree-path /vol/vol1/q_1472 -export-policy exp_vol1q1`
+** [4 qtrees siguientes...]
+** `volume qtree modify -vserver NewSVM -qtree-path /vol/vol1/q_2237 -export-policy exp_vol1q2`
+** [4 qtrees siguientes...]
+
+
+
+
+Si posteriormente necesita añadir qtrees adicionales para esos hosts, deberá usar las mismas políticas de exportación.

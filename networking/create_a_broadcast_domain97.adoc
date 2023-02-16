@@ -1,0 +1,75 @@
+---
+sidebar: sidebar 
+permalink: networking/create_a_broadcast_domain97.html 
+keywords: create, creation, creating, add, adding, broadcast, domain, create a broadcast domain, broadcast domains group network ports in the cluster that belong to the same layer 2 network 
+summary: Los dominios de retransmisión agrupan los puertos de red del clúster que pertenecen a la misma red de capa 2 
+---
+= Cree un dominio de retransmisión
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+En ONTAP 9.7 y versiones anteriores, se crea un dominio de retransmisión para agrupar los puertos de red del clúster que pertenecen a la misma red de capa 2. Los puertos pueden entonces ser utilizados por las SVM.
+
+.Antes de empezar
+A partir de ONTAP 9.8, los dominios de retransmisión se crean automáticamente durante la operación de creación de clústeres o unión. Si ejecuta ONTAP 9.8 o una versión posterior, no necesita estos pasos.
+
+En ONTAP 9.7 y versiones anteriores, los puertos que desea agregar al dominio de retransmisión no deben pertenecer a otro dominio de retransmisión.
+
+.Acerca de esta tarea
+* Todos los nombres de dominio de retransmisión deben ser únicos en un espacio IP.
+* Los puertos que se añaden a un dominio de retransmisión pueden ser puertos de red físicos, VLAN o grupos de interfaces (ifgrps).
+* Si los puertos que desea utilizar pertenecen a otro dominio de retransmisión, pero no se utilizan, utilice `network port broadcast-domain remove-ports` comando para quitar los puertos del dominio de retransmisión existente.
+* El MTU de los puertos añadidos a un dominio de retransmisión se actualiza al valor MTU establecido en el dominio de retransmisión.
+* El valor de MTU debe coincidir con todos los dispositivos conectados a esa red de capa 2, excepto en el caso del puerto e0M que gestiona el tráfico de gestión.
+* Si no especifica un nombre de espacio IP, el dominio de retransmisión se crea en el espacio IP «predeterminado».
+
+
+Para facilitar la configuración del sistema, se crea automáticamente un grupo de conmutación por error con el mismo nombre que contiene los mismos puertos.
+
+.Pasos
+. Vea los puertos que no están asignados actualmente a un dominio de retransmisión:
++
+`network port show`
+
++
+Si la pantalla es grande, utilice `network port show -broadcast-domain` comando para ver solo puertos sin asignar.
+
+. Cree un dominio de retransmisión:
++
+`network port broadcast-domain create -broadcast-domain broadcast_domain_name -mtu mtu_value [-ipspace ipspace_name] [-ports ports_list]`
+
++
+** `_broadcast_domain_name_` es el nombre del dominio de retransmisión que desea crear.
+** `_mtu_value_` Es el tamaño de MTU para paquetes IP; 1500 y 9000 son valores típicos.
++
+Este valor se aplica a todos los puertos que se agregan a este dominio de difusión.
+
+** `_ipspace_name_` Es el nombre del espacio IP al que se agregará este dominio de retransmisión.
++
+El espacio IP «predeterminado» se utiliza a menos que especifique un valor para este parámetro.
+
+** `_ports_list_` es la lista de puertos que se agregarán al dominio de retransmisión.
++
+Los puertos se añaden con el formato `_node_name:port_number_`, por ejemplo, `node1:e0c`.
+
+
+
+. Compruebe que el dominio de retransmisión se ha creado como desee:
+`network port show -instance -broadcast-domain _new_domain_`
+
+
+.Ejemplo
+El siguiente comando crea el dominio de broadcast bcast1 en el espacio IP predeterminado, establece la MTU en 1500 y agrega cuatro puertos:
+
+`network port broadcast-domain create -broadcast-domain _bcast1_ -mtu _1500_ -ports _cluster1-01:e0e,cluster1-01:e0f,cluster1-02:e0e,cluster1-02:e0f_`
+
+.Después de terminar
+Puede definir el pool de direcciones IP disponibles en el dominio de retransmisión mediante la creación de una subred, o puede asignar SVM e interfaces al espacio IP en este momento. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html["Relaciones entre iguales de clústeres y SVM"].
+
+Si necesita cambiar el nombre de un dominio de difusión existente, utilice `network port broadcast-domain rename` comando.

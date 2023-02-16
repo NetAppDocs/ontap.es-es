@@ -1,0 +1,60 @@
+---
+permalink: smb-hyper-v-sql/snapmanager-hyper-v-remote-backups-concept.html 
+sidebar: sidebar 
+keywords: snapmanager, hyper, v, remote, manage, vss, backup, smb 
+summary: Puede utilizar SnapManager para Hyper-V para gestionar los servicios de backup basados en VSS remoto. El servicio de backup gestionado de SnapManager para Hyper-V ofrece ventajas con el fin de crear conjuntos de backup que utilizan el espacio de forma eficiente. 
+---
+= Cómo gestiona SnapManager para Hyper-V los backups basados en VSS remotos para Hyper-V en SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar SnapManager para Hyper-V para gestionar los servicios de backup basados en VSS remoto. El servicio de backup gestionado de SnapManager para Hyper-V ofrece ventajas con el fin de crear conjuntos de backup que utilizan el espacio de forma eficiente.
+
+Entre las optimizaciones de SnapManager para backups gestionados por Hyper-V se incluyen las siguientes:
+
+* La integración de SnapDrive con ONTAP ofrece optimización del rendimiento al detectar la ubicación de los recursos compartidos de SMB.
++
+ONTAP proporciona a SnapDrive el nombre del volumen en el que reside el recurso compartido.
+
+* SnapManager para Hyper-V especifica la lista de archivos de máquinas virtuales de los recursos compartidos de SMB que el servicio de copia en sombra necesita copiar.
++
+Al proporcionar una lista de destino de archivos de máquinas virtuales, el servicio de instantáneas no necesita crear instantáneas de todos los archivos del recurso compartido.
+
+* La máquina virtual de almacenamiento (SVM) conserva las copias de Snapshot para SnapManager para Hyper-V y así poder utilizarlas para las restauraciones.
++
+No hay ninguna fase de backup. El backup es la copia Snapshot con una gestión eficiente del espacio.
+
+
+
+SnapManager para Hyper-V proporciona funcionalidades de backup y restauración para HyperV mediante SMB mediante el siguiente proceso:
+
+. Preparación para la operación de copia oculta
++
+El cliente VSS de la aplicación SnapManager para Hyper-V configura el conjunto de copias redundantes. El cliente VSS recopila información sobre los recursos compartidos que se incluirán en el conjunto de copias redundantes y proporciona esta información a ONTAP. Un conjunto puede contener una o más instantáneas y una copia de sombra corresponde a un recurso compartido.
+
+. Creación del conjunto de instantáneas (si se utiliza la recuperación automática)
++
+Por cada recurso compartido incluido en el conjunto de instantáneas, ONTAP crea una copia de sombra y hace que la copia de sombra sea editable.
+
+. Exponiendo el conjunto de instantáneas
++
+Una vez que ONTAP crea las copias instantáneas, éstas se exponen a SnapManager para Hyper-V para que los escritores de VSS de la aplicación puedan realizar una recuperación automática.
+
+. Recuperación automática del conjunto de instantáneas
++
+Durante la creación de conjuntos de instantáneas, hay un período de tiempo en el que se producen cambios activos en los archivos incluidos en el conjunto de copias de seguridad. Los escritores de VSS de la aplicación deben actualizar las instantáneas para asegurarse de que están en un estado completamente coherente antes de realizar la copia de seguridad.
+
++
+[NOTE]
+====
+La forma en que se realiza la recuperación automática es específica para cada aplicación. La fase de VSS remota no participa en esta.
+
+====
+. Completar y limpiar el conjunto de instantáneas
++
+El cliente VSS notifica a ONTAP una vez que finaliza la recuperación automática. El conjunto de instantáneas es de sólo lectura y, a continuación, está listo para la copia de seguridad. Al usar SnapManager para Hyper-V para realizar un backup, los archivos de una copia snapshot se convierten en el backup. Por lo tanto, en la fase de backup se crea una copia snapshot para cada volumen que contenga recursos compartidos en el conjunto de backup. Una vez finalizada la copia de seguridad, el conjunto de instantáneas se elimina del servidor CIFS.
+
+

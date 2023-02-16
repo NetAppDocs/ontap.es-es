@@ -1,0 +1,52 @@
+---
+permalink: nfs-admin/create-volumes-without-specifying-junction-task.html 
+sidebar: sidebar 
+keywords: create, data, volume, specify, junction, point 
+summary: Puede crear un volumen de datos sin especificar un punto de unión. El volumen resultante no se monta automáticamente y no se puede configurar para acceso NAS. Debe montar el volumen para poder configurar los recursos compartidos de SMB o las exportaciones de NFS de ese volumen. 
+---
+= Cree volúmenes de datos sin especificar puntos de unión
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede crear un volumen de datos sin especificar un punto de unión. El volumen resultante no se monta automáticamente y no se puede configurar para acceso NAS. Debe montar el volumen para poder configurar los recursos compartidos de SMB o las exportaciones de NFS de ese volumen.
+
+.Lo que necesitará
+El agregado en el que desea crear el volumen ya debe existir.
+
+.Pasos
+. Cree el volumen sin un punto de unión mediante el siguiente comando:
++
+`volume create -vserver vserver_name -volume volume_name -aggregate aggregate_name -size {integer[KB|MB|GB|TB|PB]} -security-style {ntfs|unix|mixed}`
+
++
+Es opcional especificar un estilo de seguridad del volumen. Si no se especifica un estilo de seguridad, ONTAP crea el volumen con el mismo estilo de seguridad que se aplica al volumen raíz de la máquina virtual de almacenamiento (SVM). Sin embargo, es posible que el estilo de seguridad del volumen raíz no sea el estilo de seguridad que se desea aplicar al volumen de datos. La recomendación es especificar el estilo de seguridad al crear el volumen para minimizar los problemas de acceso a archivos difíciles de solucionar.
+
++
+Existen muchos parámetros opcionales que se pueden usar para personalizar un volumen de datos. Para aprender más sobre ellos, consulte las páginas de manual de `volume create` comando.
+
+. Compruebe que el volumen se ha creado sin un punto de unión:
++
+`volume show -vserver vserver_name -volume volume_name -junction`
+
+
+
+.Ejemplo
+En el siguiente ejemplo se crea un volumen denominado «números» ubicado en la SVM vs1 que no se monta en un punto de unión:
+
+[listing]
+----
+cluster1::> volume create -vserver vs1 -volume sales -aggregate aggr3 -size 20GB
+[Job 3406] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1 -junction
+                     Junction                 Junction
+Vserver   Volume     Active   Junction Path   Path Source
+--------- ---------- -------- --------------- -----------
+vs1       data       true     /data           RW_volume
+vs1       home4      true     /eng/home       RW_volume
+vs1       vs1_root   -        /               -
+vs1       sales      -        -               -
+----

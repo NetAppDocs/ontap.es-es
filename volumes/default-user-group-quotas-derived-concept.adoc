@@ -1,0 +1,54 @@
+---
+permalink: volumes/default-user-group-quotas-derived-concept.html 
+sidebar: sidebar 
+keywords: how, default, user, group quotas, create, derived, quotas 
+summary: Cuando se crean cuotas predeterminadas de usuarios o grupos, las cuotas de usuarios o grupos correspondientes se crean automáticamente para cada usuario o grupo al que pertenecen archivos en el mismo nivel. 
+---
+= Cómo crean cuotas derivadas las cuotas de usuario y de grupo predeterminadas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando se crean cuotas predeterminadas de usuarios o grupos, las cuotas de usuarios o grupos correspondientes se crean automáticamente para cada usuario o grupo al que pertenecen archivos en el mismo nivel.
+
+Las cuotas de usuarios y grupos derivadas se crean de las siguientes formas:
+
+* Una cuota de usuario predeterminada en un volumen de FlexVol crea cuotas de usuario derivadas para cada usuario al que pertenece un archivo en cualquier parte del volumen.
+* Una cuota de usuario predeterminada en un qtree crea cuotas de usuario derivadas para cada usuario al que pertenece un archivo en el qtree.
+* Una cuota de grupo predeterminada en un volumen FlexVol crea cuotas de grupo derivadas para cada grupo al que pertenece un archivo en cualquier parte del volumen.
+* Una cuota de grupo predeterminada en un qtree crea cuotas de grupo derivadas para cada grupo al que pertenece un archivo en el qtree.
+
+
+Si un usuario o grupo no posee archivos en el nivel de una cuota de grupo o de usuario predeterminada, no se crean cuotas derivadas para el usuario o grupo. Por ejemplo, si se crea una cuota de usuario predeterminada para el proyecto de qtree 1 y el jsmith de usuario es propietario de archivos en un qtree diferente, no se crea ninguna cuota de usuario derivada para jsmith.
+
+Las cuotas derivadas tienen la misma configuración que las cuotas predeterminadas, incluidos los límites y la asignación de usuarios. Por ejemplo, si una cuota de usuario predeterminada tiene un límite de disco de 50 MB y tiene activada la asignación de usuarios, todas las cuotas derivadas resultantes también tienen un límite de disco de 50 MB y la asignación de usuarios activada.
+
+Sin embargo, no existen límites en las cuotas derivadas para tres usuarios y grupos especiales. Si los siguientes usuarios y grupos poseen archivos en el nivel de una cuota de grupo o de usuario predeterminada, se crea una cuota derivada con la misma configuración de asignación de usuario que la cuota de grupo o usuario predeterminada, pero sólo es una cuota de seguimiento (sin límites):
+
+* Usuario raíz UNIX (UID 0)
+* Grupo raíz UNIX (GID 0)
+* Grupo BUILTIN\Administradores de Windows
++
+Puesto que se realiza un seguimiento de las cuotas para los grupos de Windows como cuotas de usuario, una cuota derivada para este grupo es una cuota de usuario derivada de una cuota de usuario predeterminada, no de una cuota de grupo predeterminada.
+
+
+
+.Ejemplo de cuotas de usuario derivadas
+Si tiene un volumen en el que tres usuarios (archivos root, jsmith y bob) son propios y crea una cuota de usuario predeterminada en el volumen, ONTAP crea automáticamente tres cuotas de usuario derivadas. Por lo tanto, después de reiniciar las cuotas en el volumen, aparecen cuatro nuevas cuotas en el informe de cuotas:
+
+[listing]
+----
+cluster1::> volume quota report
+  Vserver: vs1
+                                     ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1               user    *           0B   50MB       0       -   *
+vol1               user    root        5B      -       1       -
+vol1               user    jsmith     30B   50MB      10       -   *
+vol1               user    bob        40B   50MB      15       -   *
+4 entries were displayed.
+----
+La primera línea nueva es la cuota de usuario predeterminada que ha creado, que puede identificarse con el asterisco (*) como ID. Las otras líneas nuevas son las cuotas de usuario derivadas. Las cuotas derivadas para jsmith y bob tienen el mismo límite de disco de 50 MB que la cuota predeterminada. La cuota derivada para el usuario raíz es una cuota de seguimiento sin límites.

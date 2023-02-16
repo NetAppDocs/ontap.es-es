@@ -1,0 +1,49 @@
+---
+sidebar: sidebar 
+permalink: networking/recover_from_an_incorrectly_configured_cluster_lif.html 
+keywords: misconfigured, misconfigurations, incorrect, incorrectly, switch, switches, switched, cable, physical, wiring, wired, reachability, port, cluster, ontap 9.8 and later, recover from an incorrectly configured cluster lif, how to identify and correct a cluster that has been misconfigured, cluster create, network port, reachability show -detail, reset the home port 
+summary: Cómo identificar y corregir un clúster que se ha configurado incorrectamente 
+---
+= ONTAP 9.8 y versiones posteriores: Recupere desde una LIF de clúster configurada incorrectamente
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+No se puede crear un clúster cuando la red del clúster se cableado a un switch, pero no todos los puertos configurados en el espacio IP del clúster pueden llegar a los otros puertos configurados en el espacio IP del clúster.
+
+.Acerca de esta tarea
+En un clúster de switches, si una interfaz de red de clúster (LIF) está configurada en el puerto incorrecto o si se conecta un puerto de clúster a la red incorrecta, el `cluster create` el comando puede fallar y generar el siguiente error:
+
+....
+Not all local cluster ports have reachability to one another.
+Use the "network port reachability show -detail" command for more details.
+....
+Los resultados de la `network port show` Puede que el comando muestre que se agregan varios puertos al espacio IP del clúster porque están conectados a un puerto que está configurado en una LIF del clúster. Sin embargo, los resultados de la `network port` `reachability show -detail` comando muestra qué puertos no tienen conectividad entre sí.
+
+Para recuperar desde un LIF de clúster configurado en un puerto que no sea accesible a los otros puertos configurados con LIF del clúster, realice los pasos siguientes:
+
+.Pasos
+. Restablezca el puerto de inicio de la LIF del clúster en el puerto correcto:
++
+....
+network port modify -home-port
+....
+. Quite los puertos que no tienen LIF del clúster configuradas en ellos desde el dominio de retransmisión del clúster:
++
+....
+network port broadcast-domain remove-ports
+....
+. Cree el clúster:
++
+....
+cluster create
+....
+
+
+.Resultado
+Una vez finalizada la creación del clúster, el sistema detecta la configuración correcta y coloca los puertos en los dominios de retransmisión correctos.

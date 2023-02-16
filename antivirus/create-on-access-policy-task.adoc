@@ -1,0 +1,69 @@
+---
+permalink: antivirus/create-on-access-policy-task.html 
+sidebar: sidebar 
+keywords: create, on-access, policy 
+summary: Una directiva en tiempo real define el ámbito de un análisis en tiempo real. Puede especificar el tamaño máximo de los archivos que se van a analizar, las extensiones de los archivos que se incluirán en el análisis y las extensiones y rutas de acceso de los archivos que se excluirán del análisis. Puede crear una política de acceso para una SVM individual o para todas las SVM de un clúster. 
+---
+= Crear una política de acceso
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Una directiva en tiempo real define el ámbito de un análisis en tiempo real. Puede especificar el tamaño máximo de los archivos que se van a analizar, las extensiones de los archivos que se incluirán en el análisis y las extensiones y rutas de acceso de los archivos que se excluirán del análisis. Puede crear una política de acceso para una SVM individual o para todas las SVM de un clúster.
+
+.Acerca de esta tarea
+De forma predeterminada, ONTAP crea una política de acceso denominada «CIFS predeterminado» y lo habilita para todas las SVM de un clúster.
+
+Puede ajustar la `scan-mandatory` Opción de desactivar para especificar que se permite el acceso al archivo cuando no hay servidores Vscan disponibles para el análisis de virus. Tenga en cuenta que cualquier archivo que pueda optar a la exclusión de análisis en función de `paths-to-exclude`, `file-ext-to-exclude`, o. `max-file-size` no se tienen en cuenta los parámetros para la exploración aunque la `scan-mandatory` la opción está activada.
+
+[NOTE]
+====
+Para problemas potenciales relacionados con `scan-mandatory` opción, consulte xref:vscan-server-connection-concept.adoc[Posibles problemas de conectividad relacionados con la opción de adquisición obligatoria].
+
+====
+De forma predeterminada, solo se analizan los volúmenes de lectura/escritura. Puede especificar filtros que permitan el análisis de volúmenes de sólo lectura o que restrinjan el análisis de archivos abiertos con acceso de ejecución.
+
+.Pasos
+. Cree una política de acceso:
++
+`vserver vscan on-access-policy create -vserver _data_SVM|cluster_admin_SVM_ -policy-name _policy_name_ -protocol CIFS -max-file-size _max_size_of_files_to_scan_ –filters [scan-ro-volume,][scan-execute-access] -file-ext-to-include _extensions_of_files_to_include_ -file-ext-to-exclude _extensions_of_files_to_exclude_ -scan-files-with-no-ext true|false -paths-to-exclude _paths_of_files_to_exclude_ -scan-mandatory on|off`
+
++
+** Especifique una SVM de datos para una política definida para una SVM individual, una SVM de administrador de clúster para una política definida para todas las SVM de un clúster.
+** La `-file-ext-to-exclude` el ajuste anula la `-file-ext-to-include` ajuste.
+** Configurado `-scan-files-with-no-ext` true para analizar archivos sin extensiones. El siguiente comando crea una política de acceso llamada `Policy1` en la ``vs1``SVM:
+
+
++
+[listing]
+----
+cluster1::> vserver vscan on-access-policy create -vserver vs1 -policy-name Policy1 -protocol CIFS -filters scan-ro-volume -max-file-size 3GB -file-ext-to-include “mp*”,"tx*" -file-ext-to-exclude "mp3","txt" -scan-files-with-no-ext false -paths-to-exclude "\vol\a b\","\vol\a,b\"
+----
+. Compruebe que se ha creado la política de acceso: `vserver vscan on-access-policy show -instance _data_SVM|cluster_admin_SVM_ -policy-name policy_name`
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los detalles de `Policy1` política:
+
++
+[listing]
+----
+cluster1::> vserver vscan on-access-policy show -instance vs1 -policy-name Policy1
+
+                           Vserver: vs1
+                            Policy: Policy1
+                     Policy Status: off
+               Policy Config Owner: vserver
+              File-Access Protocol: CIFS
+                           Filters: scan-ro-volume
+                    Mandatory Scan: on
+Max File Size Allowed for Scanning: 3GB
+            File Paths Not to Scan: \vol\a b\, \vol\a,b\
+       File Extensions Not to Scan: mp3, txt
+           File Extensions to Scan: mp*, tx*
+      Scan Files with No Extension: false
+----
+

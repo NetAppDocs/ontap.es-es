@@ -1,0 +1,109 @@
+---
+permalink: s3-config/create-intercluster-lifs-remote-fabricpool-tiering-task.html 
+sidebar: sidebar 
+keywords: create, intercluster, lifs, remote fabricpool, tiering 
+summary: 'Si va a habilitar la organización en niveles de la capacidad remota de FabricPool (cloud) mediante ONTAP S3, debe configurar las LIF entre clústeres. Las LIF de interconexión de clústeres se pueden configurar en los puertos compartidos con la red de datos. De este modo, se reduce el número de puertos necesarios para interconectar redes.' 
+---
+= Cree LIF de interconexión de clústeres para la organización en niveles de FabricPool remota
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si va a habilitar la organización en niveles de la capacidad remota de FabricPool (cloud) mediante ONTAP S3, debe configurar las LIF entre clústeres. Las LIF de interconexión de clústeres se pueden configurar en los puertos compartidos con la red de datos. De este modo, se reduce el número de puertos necesarios para interconectar redes.
+
+.Lo que necesitará
+* El puerto de red físico o lógico subyacente debe haber sido configurado para el administrador `up` estado.
+* Debe haber la política de servicio de LIF.
+
+
+.Acerca de esta tarea
+Las LIF de interconexión de clústeres no son necesarias para la organización en niveles de los pools de estructura local ni para servir aplicaciones S3 externas.
+
+.Pasos
+. Enumere los puertos del clúster:
++
+`network port show`
+
++
+En el siguiente ejemplo se muestran los puertos de red en `cluster01`:
+
++
+[listing]
+----
+
+cluster01::> network port show
+                                                             Speed (Mbps)
+Node   Port      IPspace      Broadcast Domain Link   MTU    Admin/Oper
+------ --------- ------------ ---------------- ----- ------- ------------
+cluster01-01
+       e0a       Cluster      Cluster          up     1500   auto/1000
+       e0b       Cluster      Cluster          up     1500   auto/1000
+       e0c       Default      Default          up     1500   auto/1000
+       e0d       Default      Default          up     1500   auto/1000
+cluster01-02
+       e0a       Cluster      Cluster          up     1500   auto/1000
+       e0b       Cluster      Cluster          up     1500   auto/1000
+       e0c       Default      Default          up     1500   auto/1000
+       e0d       Default      Default          up     1500   auto/1000
+----
+. Crear LIF de interconexión de clústeres en la SVM del sistema:
++
+`network interface create -vserver Cluster -lif _LIF_name_ -service-policy default-intercluster -home-node _node_ -home-port _port_ -address _port_IP_ -netmask _netmask_`
+
++
+En el siguiente ejemplo se crean LIF de interconexión de clústeres `cluster01_icl01` y.. `cluster01_icl02`:
+
++
+[listing]
+----
+
+cluster01::> network interface create -vserver Cluster -lif cluster01_icl01 -service-
+policy default-intercluster -home-node cluster01-01 -home-port e0c -address 192.168.1.201
+-netmask 255.255.255.0
+
+cluster01::> network interface create -vserver Cluster -lif cluster01_icl02 -service-
+policy default-intercluster -home-node cluster01-02 -home-port e0c -address 192.168.1.202
+-netmask 255.255.255.0
+----
+. Compruebe que se han creado las LIF de interconexión de clústeres:
++
+`network interface show -service-policy default-intercluster`
+
++
+[listing]
+----
+cluster01::> network interface show -service-policy default-intercluster
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster01
+            cluster01_icl01
+                       up/up      192.168.1.201/24   cluster01-01  e0c     true
+            cluster01_icl02
+                       up/up      192.168.1.202/24   cluster01-02  e0c     true
+----
+. Compruebe que las LIF de interconexión de clústeres son redundantes:
++
+`network interface show –service-policy default-intercluster -failover`
+
++
+El siguiente ejemplo muestra las LIF de interconexión de clústeres `cluster01_icl01` y.. `cluster01_icl02` en la `e0c` el puerto se conmuta al nodo de respaldo `e0d` puerto.
+
++
+[listing]
+----
+cluster01::> network interface show -service-policy default-intercluster –failover
+         Logical         Home                  Failover        Failover
+Vserver  Interface       Node:Port             Policy          Group
+-------- --------------- --------------------- --------------- --------
+cluster01
+         cluster01_icl01 cluster01-01:e0c   local-only      192.168.1.201/24
+                            Failover Targets: cluster01-01:e0c,
+                                              cluster01-01:e0d
+         cluster01_icl02 cluster01-02:e0c   local-only      192.168.1.201/24
+                            Failover Targets: cluster01-02:e0c,
+                                              cluster01-02:e0d
+----
+

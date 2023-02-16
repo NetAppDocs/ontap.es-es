@@ -1,0 +1,59 @@
+---
+permalink: nfs-config/load-netgroups-svms-task.html 
+sidebar: sidebar 
+keywords: load, netgroups, svms 
+summary: 'Uno de los métodos que se pueden utilizar para hacer coincidir clientes en las reglas de directiva de exportación es utilizando los hosts enumerados en netgroups. Puede cargar los grupos de red de un identificador de recursos (URI) uniforme en las SVM como alternativa al uso de grupos de red almacenados en servidores de nombres externos (carga de grupos de red de servicios Vserver NAME-service).' 
+---
+= Cargue grupos de redes en SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Uno de los métodos que se pueden utilizar para hacer coincidir clientes en las reglas de directiva de exportación es utilizando los hosts enumerados en netgroups. Puede cargar grupos de red de un identificador de recursos uniforme (URI) en las SVM como alternativa al uso de grupos de red almacenados en servidores de nombres externos (`vserver services name-service netgroup load`).
+
+.Lo que necesitará
+Los archivos de grupos de red deben cumplir los siguientes requisitos antes de cargarlos en una SVM:
+
+* El archivo debe utilizar el mismo formato de archivo de texto de netgroup adecuado que se utiliza para rellenar NIS.
++
+ONTAP comprueba el formato del archivo de texto del grupo de red antes de cargarlo. Si el archivo contiene errores, no se cargará y se mostrará un mensaje que indique las correcciones que debe realizar en el archivo. Después de corregir los errores, puede volver a cargar el archivo netgroup en la SVM especificada.
+
+* Los caracteres alfabéticos en los nombres de host del archivo netgroup deben ser en minúscula.
+* El tamaño máximo de archivo admitido es de 5 MB.
+* El nivel máximo admitido para los grupos de red de anidamiento es 1000.
+* Sólo se pueden utilizar nombres de host DNS primarios al definir nombres de host en el archivo de grupo de red.
++
+Para evitar problemas de acceso a la exportación, los nombres de host no deben definirse mediante registros CNAME o round robin de DNS.
+
+* Las porciones de triples del usuario y del dominio en el archivo de netgroup deben mantenerse vacías porque ONTAP no las admite.
++
+Solo se admite la parte host/IP.
+
+
+
+.Acerca de esta tarea
+ONTAP admite búsquedas netgroup-by-host para el archivo de netgroup local. Después de cargar el archivo netgroup, ONTAP crea automáticamente un mapa netgroup.byhost para habilitar búsquedas netgroup-by-host. Esto puede acelerar significativamente las búsquedas de grupos de red locales al procesar reglas de políticas de exportación para evaluar el acceso de los clientes.
+
+.Paso
+. Cargue los grupos de redes en SVM desde un URI:
++
+`vserver services name-service netgroup load -vserver _vserver_name_ -source {ftp|http|ftps|https}://_uri_`
+
++
+La carga del archivo de netgroup y la creación del mapa netgroup.byhost pueden tardar varios minutos.
+
++
+Si desea actualizar los grupos de red, puede editar el archivo y cargar el archivo de netgroup actualizado en la SVM.
+
+
+
+.Ejemplo
+El siguiente comando carga las definiciones de netgroup en la SVM denominada vs1 desde la URL HTTP `+http://intranet/downloads/corp-netgroup+`:
+
+[listing]
+----
+vs1::> vserver services name-service netgroup load -vserver vs1
+-source http://intranet/downloads/corp-netgroup
+----

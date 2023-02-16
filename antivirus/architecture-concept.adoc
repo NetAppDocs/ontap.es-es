@@ -1,0 +1,122 @@
+---
+permalink: antivirus/architecture-concept.html 
+sidebar: sidebar 
+keywords: antivirus, architecture 
+summary: La arquitectura antivirus de NetApp consta de un servidor Vscan y un conjunto de ONTAP configurables. 
+---
+= Arquitectura de antivirus
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La arquitectura antivirus de NetApp consta de un servidor Vscan y un conjunto de ONTAP configurables.
+
+
+
+== Componentes de servidor VSCAN
+
+Debe instalar los siguientes componentes en el servidor Vscan.
+
+* *Conector antivirus ONTAP*
++
+El conector antivirus ONTAP proporcionado por NetApp gestiona la comunicación entre ONTAP y el servidor Vscan.
+
+* *Software antivirus*
++
+El software antivirus de terceros compatible con ONTAP analiza archivos en busca de virus u otro código malintencionado. Al configurar el software, se especifican las acciones correctivas que se van a realizar en los archivos infectados.
+
+
+
+
+
+== Configurable ONTAP
+
+Debe configurar los siguientes elementos en el sistema de almacenamiento de NetApp.
+
+* *Piscina del escáner*
++
+Un grupo de escáneres define los servidores Vscan y los usuarios con privilegios que pueden conectarse a las SVM. También define un período de tiempo de espera de solicitud de exploración, tras el cual la solicitud de exploración se envía a un servidor Vscan alternativo si hay uno disponible.
+
++
+[NOTE]
+====
+Se recomienda establecer el tiempo de espera del software antivirus en el servidor Vscan a cinco segundos menos que el tiempo de espera de la solicitud del grupo de análisis, para evitar situaciones en las que el acceso a los archivos se retrasa o se deniega por completo porque el período de tiempo de espera del software es superior al período de tiempo de espera de la solicitud de análisis.
+
+====
+* *Usuario privilegiado*
++
+Un usuario con privilegios es una cuenta de usuario de dominio que un servidor Vscan utiliza para conectarse a la SVM. La cuenta debe incluirse en la lista de usuarios con privilegios definidos en el grupo de escáneres.
+
+* *Directiva del escáner*
++
+Una directiva de escáner determina si un grupo de escáneres está activo. Una directiva de escáner puede tener uno de los siguientes valores:
+
++
+** `Primary` especifica que el grupo de escáneres está activo.
+** `Secondary` Especifica que el grupo de escáneres está activo sólo si no hay ninguno de los servidores Vscan del grupo de escáneres primario conectado.
+** `Idle` especifica que el grupo de escáneres está inactivo. Las directivas de escáner están definidas por el sistema. No se puede crear una directiva de escáner personalizada.
+
+
+* *Política de acceso*
++
+Una directiva en tiempo real define el ámbito de un análisis en tiempo real. Puede especificar el tamaño máximo de los archivos que se van a analizar, las extensiones de los archivos que se incluirán en el análisis y las extensiones y rutas de acceso de los archivos que se excluirán del análisis.
+
++
+De forma predeterminada, solo se analizan los volúmenes de lectura/escritura. Puede especificar filtros que permitan el análisis de volúmenes de sólo lectura o que restrinjan el análisis de archivos abiertos con el acceso de ejecución:
+
++
+** `scan-ro-volume` permite analizar volúmenes de solo lectura.
+** `scan-execute-access` restringe el escaneo a archivos abiertos con acceso de ejecución.
++
+[NOTE]
+====
+«"Ejecutar acceso»" no es idéntico a «"permiso de ejecución».» Un cliente determinado tendrá «'acceso de ejecución'» en un archivo ejecutable sólo si el archivo se abrió con «'intención de ejecución'».
+
+====
+
+
++
+Puede ajustar la `scan-mandatory` Opción de desactivar para especificar que se permite el acceso al archivo cuando no hay servidores Vscan disponibles para el análisis de virus.
+
+* *Tarea a petición*
++
+Una tarea bajo demanda define el alcance de un análisis bajo demanda. Puede especificar el tamaño máximo de los archivos que se van a analizar, las extensiones y rutas de acceso de los archivos que se van a incluir en el análisis, así como las extensiones y rutas de acceso de los archivos que se van a excluir del análisis. Los archivos de los subdirectorios se analizan de forma predeterminada.
+
++
+Utilice una programación cron para especificar cuándo se ejecuta la tarea. Puede utilizar el `vserver vscan on-demand-task run` comando para ejecutar la tarea de inmediato.
+
+* *Perfil de operaciones de archivos Vscan (sólo escaneado en tiempo real)*
++
+La `-vscan-fileop-profile` parámetro para `vserver cifs share create` El comando define qué operaciones en un recurso compartido SMB pueden desencadenar la detección de virus. De manera predeterminada, el parámetro se establece en `standard`, Que es la mejor práctica de NetApp.
+
++
+Es posible ajustar este parámetro según sea necesario al crear o modificar un recurso compartido de SMB:
+
++
+** `no-scan` especifica que las exploraciones de virus nunca se activan para el recurso compartido.
+** `standard` especifica que las exploraciones de virus se pueden activar mediante operaciones abiertas, de cierre y de cambio de nombre.
+** `strict` especifica que los análisis de virus se pueden activar mediante operaciones abiertas, de lectura, de cierre y de cambio de nombre.
++
+La `strict` profile proporciona una seguridad mejorada para situaciones en las que varios clientes acceden a un archivo simultáneamente. Si un cliente cierra un archivo después de escribir un virus y el mismo archivo permanece abierto en un segundo cliente, `strict` garantiza que una operación de lectura del segundo cliente active un análisis antes de cerrar el archivo.
+
++
+Debe tener cuidado de restringir el `strict` se accederá simultáneamente a los recursos compartidos que contengan archivos que prevé. Dado que el perfil genera más solicitudes de análisis que las otras, puede afectar negativamente al rendimiento.
+
+** `writes-only` especifica que los análisis de virus sólo se pueden activar cuando se cierra un archivo que ha sido modificado.
++
+[NOTE]
+====
+Si una aplicación cliente realiza una operación de cambio de nombre, el archivo se cierra con el nuevo nombre y no se analiza. Si tales operaciones plantean un problema de seguridad en su entorno, debe utilizar el `standard` o. `strict` perfil.
+
+====
++
+Porque `writes-only` genera menos solicitudes de exploración que los demás perfiles (excepto `no-scan`), normalmente mejora el rendimiento.
+
++
+No obstante, tenga en cuenta que si utiliza este perfil para un recurso compartido, el analizador debe configurarse para eliminar o poner en cuarentena un archivo infectado que no se pueda reparar, de modo que los clientes no puedan acceder a él posteriormente. Si, por ejemplo, un cliente cierra un archivo después de escribir un virus en él y el archivo no se repara, elimina o pone en cuarentena, cualquier cliente que acceda al archivo _sin_ que lo escriba se infectará.
+
+
+
+

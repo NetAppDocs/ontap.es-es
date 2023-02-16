@@ -1,0 +1,80 @@
+---
+permalink: nfs-rdma/configure-nics-task.html 
+sidebar: sidebar 
+keywords: networking, NICs, NFS over RDMA, NVIDIA, NFS, system manager, ports, ethernet ports 
+summary: En este artículo se explica cómo los procesos de configuración del sistema cliente y de la plataforma de almacenamiento y los requisitos de las NIC para utilizar NFS a través de RDMA en ONTAP. 
+---
+= Configure las NIC para NFS a través de RDMA
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+NFS a través de RDMA requiere la configuración de NIC tanto para el sistema cliente como para la plataforma de almacenamiento.
+
+
+
+== Configuración de la plataforma de almacenamiento
+
+Es necesario instalar un adaptador RDMA X1148 en el servidor. Si se utiliza una configuración ha, debe tener el adaptador X1148 correspondiente en el partner de conmutación por error para que el servicio RDMA pueda continuar durante la conmutación por error. La NIC debe ser compatible con roce.
+
+A partir de ONTAP 9.10.1, es posible ver una lista de protocolos de descarga RDMA con el comando:
+`network port show -rdma-protocols roce`
+
+
+
+== Configuración del sistema cliente
+
+Los clientes Mellanox deben utilizar tarjetas NIC compatibles con RDMA (p. ej. X1148) y software de red Mellanox OFED. Consulte la documentación de Mellanox para conocer modelos y versiones compatibles. Aunque el cliente y el servidor pueden conectarse directamente, se recomienda el uso de switches debido a un rendimiento mejorado de la conmutación por error con un switch.
+
+El cliente, el servidor y todos los switches, así como todos los puertos de los switches, deben configurarse mediante tramas gigantes. Asegúrese también de que el control de flujo de prioridad está en vigor en cualquier conmutador.
+
+Una vez confirmada esta configuración, puede montar el NFS.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Debe utilizar ONTAP 9.12.1 o una versión posterior para configurar interfaces de red con NFS a través de RDMA mediante System Manager.
+
+.Pasos
+. Compruebe si es compatible con RDMA. Vaya a *Red > puertos Ethernet* y seleccione el nodo apropiado en la vista de grupo. Cuando expanda el nodo, mire el campo *protocolos RDMA* para un puerto dado: El valor *roce* indica que es compatible con RDMA; un guión (*-*) indica que no es compatible.
+. Para agregar una VLAN, seleccione *+ VLAN*. Seleccione el nodo que corresponda. En el menú desplegable *Puerto*, los puertos disponibles mostrarán el texto *roce Enabled* si admiten RDMA; no se mostrará ningún texto si no son compatibles con RDMA.
+. Siga el flujo de trabajo en xref:../task_nas_enable_linux_nfs.html[Almacenamiento NAS para servidores Linux mediante NFS] Para configurar un nuevo servidor NFS.
++
+Al agregar interfaces de red, tendrá la opción de seleccionar *utilizar puertos roce*. Seleccione esta opción para las interfaces de red que desee utilizar NFS a través de RDMA.
+
+
+
+--
+.CLI
+--
+. Compruebe si el acceso RDMA está habilitado en el servidor NFS con el comando:
++
+`vserver nfs show-vserver _SVM_name_`
+
++
+De forma predeterminada, `-rdma` debe estar activado. Si no lo está, habilite el acceso RDMA en el servidor NFS:
+
++
+`vserver nfs modify -vserver _SVM_name_ -rdma enabled`
+
+. Monte el cliente a través de NFSv4.0 por RDMA:
++
+.. La entrada del parámetro proto depende de la versión del protocolo IP del servidor. Si es IPv4, utilice `proto=rdma`. Si es IPv6, utilice `proto=rdma6`.
+.. Especifique el puerto de destino NFS como `port=20049` en lugar del puerto estándar 2049:
++
+`mount -o vers=4,minorversion=0,proto=rdma,port=20049 _Server_IP_address_:/_volume_path_ _mount_point_`
+
+
+
+. *OPCIONAL*: Si necesita desmontar el cliente, ejecute el comando `unmount _mount_path_`
+
+
+--
+====
+.Más información
+* xref:../nfs-config/create-server-task.html[Cree un servidor NFS]
+* xref:../task_nas_enable_linux_nfs.html[Almacenamiento NAS para servidores Linux mediante NFS]
+

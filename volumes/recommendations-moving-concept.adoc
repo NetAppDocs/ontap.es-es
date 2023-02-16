@@ -1,0 +1,83 @@
+---
+permalink: volumes/recommendations-moving-concept.html 
+sidebar: sidebar 
+keywords: considerations, recommendations, when, moving, volumes, flexclone volume, metroCluster configuration 
+summary: El movimiento de un volumen tiene muchas consideraciones y recomendaciones que influyen en el volumen que se está moviendo o la configuración del sistema, por ejemplo, una configuración de MetroCluster. Debe comprender las consideraciones y las recomendaciones asociadas con el movimiento de volúmenes. 
+---
+= Consideraciones y recomendaciones al mover volúmenes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El movimiento de un volumen tiene muchas consideraciones y recomendaciones que influyen en el volumen que se está moviendo o la configuración del sistema, por ejemplo, una configuración de MetroCluster. Debe comprender las consideraciones y las recomendaciones asociadas con el movimiento de volúmenes.
+
+
+
+== Consideraciones y recomendaciones generales
+
+* Si va a actualizar la familia de versiones de un clúster, no mueva un volumen hasta que haya actualizado todos los nodos del clúster.
++
+Esta recomendación impide que intente mover un volumen de una familia de versiones más reciente a una familia de versiones más antigua de forma accidental.
+
+* El volumen de origen debe ser coherente.
+* Si asignó uno o varios agregados a la SVM, el agregado de destino debe ser uno de los agregados asignados.
+* No podrá mover un volumen a un agregado de CFO trasladado o desde él.
+* Si un volumen que contiene LUN no tiene la función NVFAIL habilitada para poder moverlo, el volumen tendrá la función NVFAIL después de moverlo.
+* Puede mover un volumen de un agregado de Flash Pool a otro agregado de Flash Pool.
++
+** También se mueven las políticas de almacenamiento en caché de ese volumen.
+** El movimiento puede afectar al rendimiento del volumen.
+
+
+* Puede mover volúmenes entre un agregado de Flash Pool y otro que no sea Flash Pool.
++
+** Si mueve un volumen de un agregado de Flash Pool a uno que no sea Flash Pool, ONTAP muestra un mensaje para advertir que el movimiento puede afectar al rendimiento del volumen y pregunta si desea continuar.
+** Si se mueve un volumen de un agregado que no es Flash Pool a un agregado de Flash Pool, ONTAP asigna el `auto` política de almacenamiento en caché.
+
+
+* Los volúmenes tienen las protecciones de datos en reposo del agregado en el que residen. Si se mueve un volumen de un agregado que consta de unidades NSE a otro que no lo hace, el volumen ya no tiene la protección de datos en reposo de NSE.
+
+
+
+
+== Consideraciones y recomendaciones sobre el volumen FlexClone
+
+* Los volúmenes FlexClone no pueden estar desconectados cuando se muevan.
+* Puede mover volúmenes FlexClone de un agregado a otro en el mismo nodo u otro nodo de la misma SVM sin necesidad de iniciar el `vol clone split start` comando.
++
+Al iniciar una operación de movimiento de volúmenes en un volumen FlexClone, el volumen clonado se divide durante el proceso de movimiento hacia otro agregado. Una vez que se ha completado el movimiento del volumen en el volumen clonado, el volumen que se ha movido ya no aparece como clon, sino como un volumen independiente sin ninguna relación de clonado con el volumen principal anterior.
+
+* Las copias snapshot para volúmenes FlexClone no se pierden después de mover un clon.
+* Puede mover volúmenes principales FlexClone de un agregado a otro.
++
+Al mover un volumen principal FlexClone, queda un volumen temporal detrás que actúa como volumen principal de todos los volúmenes FlexClone. No se permiten operaciones en el volumen temporal, excepto para desconectarlo o eliminarlo. Una vez que todos los volúmenes FlexClone se dividen o destruyen, se limpia automáticamente el volumen temporal.
+
+* Tras mover un volumen secundario FlexClone, el volumen ya no es un volumen FlexClone.
+* Las operaciones de movimiento de FlexClone son mutuamente excluyentes entre las operaciones de copia o división de FlexClone.
+* Si hay una operación de división de clones en curso, es posible que se produzca un error en la transferencia de un volumen.
++
+No se debe mover un volumen hasta que se hayan completado las operaciones de separación de clones.
+
+
+
+
+
+== Consideraciones de configuración de MetroCluster
+
+* Durante un movimiento de volúmenes en una configuración MetroCluster, cuando se crea un volumen temporal en el agregado de destino en el clúster de origen, se crea un registro del volumen temporal que corresponde al volumen en el volumen reflejado, pero no asimilado, también se crea un agregado en el clúster superviviente.
+* Si se produce una conmutación de MetroCluster antes de la transposición, el volumen de destino tiene un registro y es un volumen temporal (un volumen del tipo TMP).
++
+El trabajo de movimiento se reinicia en el clúster superviviente (recuperación ante desastres), informa de un error y borra todos los elementos relacionados con el movimiento, incluido el volumen temporal. En cualquier caso en el que no se pueda realizar la limpieza correctamente, se genera un EMS para alertar al administrador del sistema de que realice la limpieza necesaria.
+
+* Si una conmutación de MetroCluster se produce después de que se haya iniciado la fase de transición pero antes de que se haya completado el trabajo de movimiento (es decir, el movimiento llegó a una fase en la que puede actualizar el clúster para que apunte al agregado de destino), el trabajo de movimiento se reinicia en el proceso superviviente (recuperación ante desastres). cluster y se ejecuta hasta la finalización.
++
+Todos los elementos relacionados con el traslado se limpian, incluido el volumen temporal (origen original). En cualquier caso en el que no se pueda realizar la limpieza correctamente, se genera un EMS para alertar al administrador del sistema de que realice la limpieza necesaria.
+
+* No se permiten ni devoluciones de MetroCluster forzadas ni forzadas si hay operaciones de movimiento de volúmenes en curso para volúmenes que pertenecen al sitio con switch.
++
+Los interruptores de control no se bloquean cuando las operaciones de movimiento de volúmenes están en curso para los volúmenes locales del sitio superviviente.
+
+* Los interruptores MetroCluster no forzados se bloquean, pero los conmutadores MetroCluster forzados no se bloquean si hay operaciones de movimiento de volúmenes en curso.
+

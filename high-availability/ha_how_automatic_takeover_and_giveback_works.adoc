@@ -1,0 +1,133 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_how_automatic_takeover_and_giveback_works.html 
+keywords: ontap, high availability, ha, pair, automatic, takeover, giveback, background, updates, policy, effect, node, panics, what, happens 
+summary: Las operaciones de toma de control y devolución automáticas pueden funcionar juntas para reducir y evitar las interrupciones del servicio cliente. 
+---
+= Cómo funciona la toma de control y la devolución automáticas
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Las operaciones de toma de control y devolución automáticas pueden funcionar juntas para reducir y evitar las interrupciones del servicio cliente.
+
+De forma predeterminada, si uno de los nodos de la pareja de alta disponibilidad produce una alarma, se reinicia o se detiene, el nodo del partner automáticamente sustituye y devuelve el almacenamiento cuando el nodo afectado se reinicia. A continuación, el par de alta disponibilidad reanuda su estado operativo normal.
+
+También se pueden producir tomas automáticas si uno de los nodos deja de responder.
+
+La devolución automática se produce de forma predeterminada. Si prefiere controlar el impacto de devolución en los clientes, puede desactivar la devolución automática y utilizar la `storage failover modify -auto-giveback false -node <node>` comando. Antes de realizar la devolución automática (independientemente de lo que la haya activado), el nodo del partner espera una cantidad fija de tiempo, controlada por el `-delay- seconds` parámetro de `storage failover modify` comando. El retardo predeterminado es de 600 segundos. Al retrasar la devolución, el proceso provoca dos breves interrupciones del servicio: Una durante la toma de control y otra durante la devolución.
+
+Este proceso evita una única interrupción prolongada que incluye el tiempo necesario para:
+
+* La operación de toma de control
+* El nodo tomado en arranque hasta el punto en el que está listo para la devolución
+* La operación de devolución
+
+
+Si la devolución automática falla en cualquiera de los agregados que no son raíz, el sistema realiza automáticamente dos intentos adicionales para completar la devolución.
+
+
+NOTE: Durante el proceso de toma de control, el proceso de devolución automática se inicia antes de que el nodo del partner esté listo para el retorno al nodo principal. Cuando caduca el límite de tiempo del proceso de devolución automática y el nodo del partner aún no está listo, el temporizador se reinicia. Como resultado, el tiempo entre el nodo del partner que está preparado y la devolución real que se está realizando puede ser más corto que el tiempo de devolución automática.
+
+
+
+== Qué sucede durante la toma de control
+
+Cuando un nodo toma el control de su compañero, sigue proporcionando y actualizando datos en los agregados y volúmenes del partner.
+
+Los siguientes pasos ocurren durante el proceso de toma de control:
+
+. Si la toma de control negociada está iniciada por el usuario, los datos agregados se mueven desde el nodo del partner al nodo que está realizando la toma de control. Se produce una breve interrupción del servicio cuando el propietario actual de cada agregado (excepto el agregado raíz) cambia a el nodo de toma de control. Esta interrupción es más breve que una interrupción que se produce durante una toma de control sin necesidad de reubicar agregados.
++
+** Puede supervisar el progreso con el `storage failover show‑takeover` comando.
+** Puede evitar la reubicación de agregados durante esta instancia de toma de control mediante la `‑bypass‑optimization` con el `storage failover takeover` comando.
++
+
+NOTE: Los agregados se reubican en serie durante las operaciones de toma de control planificadas para reducir las interrupciones del cliente. Si se omite la reubicación de agregados, se produce una interrupción del servicio del cliente mayor durante los eventos de toma de control planificados.
+
+
+
+. Si la toma de control iniciada por el usuario es una toma de control negociada, el nodo de destino se cierra con dignidad, seguido de la toma de control del agregado raíz del nodo de destino y de cualquier agregado que no se haya reubicado en el paso 1.
+. Antes de que comience la toma de control del almacenamiento, las LIF de datos (interfaces lógicas) migran del nodo de destino al nodo de toma de control o a cualquier otro nodo del clúster según las reglas de conmutación por error LIF. Puede evitar la migración de LIF mediante el `‑skip‑lif-migration` con el `storage failover takeover` comando.
+. Las sesiones SMB existentes se desconectan cuando se produce la toma de control.
++
+
+NOTE: Debido a la naturaleza del protocolo SMB, todas las sesiones SMB se interrumpen (a excepción de las sesiones SMB 3.0 conectadas a recursos compartidos con la propiedad Continuous Availability establecida). Las sesiones de SMB 1.0 y SMB 2.x no pueden volver a conectarse tras un evento de toma de control; por lo tanto, la toma de control es disruptiva y podrían producirse algunas pérdidas de datos.
+
+. Las sesiones SMB 3.0 que se establecen para recursos compartidos con la propiedad Continuous Availability habilitada pueden volver a conectarse a los recursos compartidos desconectados tras un evento de toma de control. Si su sitio utiliza conexiones SMB 3.0 a Microsoft Hyper-V y la propiedad de disponibilidad continua está activada en los recursos compartidos asociados, las tomas de control no causan interrupciones en dichas sesiones.
+
+
+
+
+=== Qué sucede si un nodo que realiza una toma de control produce una alarma
+
+Si el nodo que está realizando la toma de control produce una alarma en los 60 segundos tras iniciar la toma de control, se producen los siguientes eventos:
+
+* El nodo que entró en pánico se reinicia.
+* Después de reiniciar, el nodo realiza operaciones de recuperación automática y ya no se encuentra en modo de toma de control.
+* La conmutación por error está deshabilitada.
+* Si el nodo sigue teniendo algunos de los agregados del partner, tras habilitar la conmutación al nodo de respaldo del almacenamiento, devuelva estos agregados al partner mediante el `storage failover giveback` comando.
+
+
+
+
+== Qué sucede durante la devolución
+
+El nodo local devuelve la propiedad al nodo del partner cuando se resuelven los problemas, cuando el nodo del partner arranca o cuando se inicia la devolución.
+
+El siguiente proceso tiene lugar en una operación de devolución normal. En esta discusión, el nodo A ha tomado el control del nodo B. Se han resuelto todos los problemas en el nodo B y está listo para reanudar el servicio de datos.
+
+. Los problemas en el nodo B se resuelven y muestra el siguiente mensaje: `Waiting for giveback`
+. La devolución se inicia mediante `storage failover giveback` comando o mediante devolución automática si el sistema está configurado para él. Esto inicia el proceso de devolver la propiedad de los agregados y volúmenes del nodo B desde el nodo A al nodo B.
+. El nodo A devuelve primero el control del agregado raíz.
+. El nodo B completa el proceso de arranque hasta su estado operativo normal.
+. En cuanto el nodo B llega al punto del proceso de arranque en el que puede aceptar los agregados no raíz, el nodo A devuelve la propiedad de los otros agregados, uno a la vez, hasta que se completa la devolución. Puede supervisar el progreso de la devolución mediante el `storage failover show-giveback` comando.
++
+
+NOTE: La `storage failover show-giveback` el comando no muestra (ni está previsto) información acerca de todas las operaciones que se producen durante la operación de devolución de la conmutación por error del almacenamiento. Puede utilizar el `storage failover show` comando para mostrar detalles adicionales acerca del estado actual de la conmutación al respaldo del nodo, como si el nodo está totalmente funcional, la toma de control es posible y la devolución está completa.
+
++
+La I/o se reanuda para cada agregado una vez que se ha completado el retorno para ese agregado, lo que reduce su ventana de interrupción del servicio general.
+
+
+
+
+
+== Política de ALTA DISPONIBILIDAD y su efecto en la toma de control y el retorno al nodo primario
+
+ONTAP asigna automáticamente una política de alta disponibilidad del director financiero (recuperación tras fallos de la controladora) y de la recuperación tras fallos del almacenamiento en un agregado. Esta política determina la forma en que se producen las operaciones de conmutación por error del almacenamiento para el agregado y sus volúmenes.
+
+Las dos opciones, CFO y SFO, determinan la secuencia de control de agregados que utiliza ONTAP durante las operaciones de recuperación tras fallos y recuperación del almacenamiento.
+
+Aunque los términos CFO y SFO se utilizan a veces de manera informal para referirse a las operaciones de conmutación por error (toma de control y retorno al nodo primario) del almacenamiento, realmente representan la política de alta disponibilidad asignada a los agregados. Por ejemplo, los términos agregado SFO o agregado CFO simplemente se refieren a la asignación de la normativa de alta disponibilidad del agregado.
+
+Las políticas de ALTA DISPONIBILIDAD afectan a las operaciones de toma de control y devolución de la siguiente manera:
+
+* Los agregados creados en los sistemas ONTAP (excepto en el agregado raíz que contiene el volumen raíz) tienen una política de alta disponibilidad de SFO. La toma de control iniciada manualmente se optimiza para mejorar el rendimiento reubicando los agregados de SFO (no raíz) en serie en el partner antes de la toma de control. Durante el proceso de devolución, los agregados se devuelven en serie después de iniciar el sistema de recuperación y las aplicaciones de gestión se encuentran en línea, lo que permite al nodo recibir sus agregados.
+* Dado que las operaciones de reubicación de agregados implican la reasignación de la propiedad de disco agregado y el control de movimiento de un nodo a su compañero, solo los agregados con una política de alta disponibilidad de SFO son aptos para la reubicación de agregados.
+* El agregado raíz siempre tiene una política de alta disponibilidad de CFO y se devuelve al inicio de la operación de devolución. Esto es necesario para permitir el arranque del sistema de toma de control. El resto de agregados se devuelven en serie una vez que el sistema de recuperación completa el proceso de arranque y las aplicaciones de gestión se encuentran en línea, lo que permite al nodo recibir sus agregados.
+
+
+
+NOTE: Cambiar la política de alta disponibilidad de un agregado de SFO a CFO es una operación de modo de mantenimiento. No modifique esta configuración a menos que un representante de soporte al cliente lo indique.
+
+
+
+== Cómo afectan las actualizaciones en segundo plano a la toma de control y al retorno al nodo
+
+Las actualizaciones en segundo plano del firmware de disco afectarán a la toma de control, el retorno al nodo primario y las operaciones de reubicación de agregados de alta disponibilidad de forma diferente, en función de cómo se inicien esas operaciones.
+
+En la lista siguiente se describe cómo las actualizaciones del firmware del disco en segundo plano afectan a la toma de control, el retorno al nodo primario y la reubicación de agregados:
+
+* Si se produce una actualización del firmware del disco en segundo plano en un disco de cualquiera de los nodos, las operaciones de toma de control iniciadas manualmente se retrasan hasta que la actualización del firmware del disco finalice en dicho disco. Si la actualización del firmware del disco en segundo plano tarda más de 120 segundos, se cancelan las operaciones de toma de control y se deben reiniciar manualmente una vez finalizada la actualización del firmware del disco. Si la toma de control se ha iniciado con `‑bypass‑optimization` parámetro de `storage failover takeover` comando establecido en `true`, la actualización del firmware del disco en segundo plano que se produce en el nodo de destino no afecta a la toma de control.
+* Si se produce una actualización de firmware de disco en segundo plano en un disco del nodo de origen (o toma de control) y la toma de control se inició manualmente con el `‑options` parámetro de `storage failover takeover` comando establecido en `immediate`, las operaciones de toma de control se inician inmediatamente.
+* Si se produce una actualización del firmware del disco en segundo plano en un disco de un nodo y produce una alarma, la conmutación por error del nodo que ha entran en pánico se inicia de inmediato.
+* Si se está produciendo una actualización del firmware del disco en segundo plano en un disco de cualquiera de los nodos, la restauración de los agregados de datos se retrasa hasta que la actualización del firmware del disco finaliza en ese disco.
+* Si la actualización del firmware del disco en segundo plano tarda más de 120 segundos, se cancelan las operaciones de devolución y se deben reiniciar manualmente una vez finalizada la actualización del firmware del disco.
+* Si se está produciendo una actualización de firmware de disco en segundo plano en un disco de cualquiera de los nodos, las operaciones de reubicación de agregados se retrasan hasta que la actualización del firmware del disco finalice en ese disco. Si la actualización del firmware del disco en segundo plano tarda más de 120 segundos, se cancelan las operaciones de reubicación de agregados y se deben reiniciar manualmente una vez finalizada la actualización del firmware de disco. Si se inició la reubicación de agregados con el `-override-destination-checks` de la `storage aggregate relocation` comando establecido en `true`, la actualización del firmware del disco en segundo plano que se produce en el nodo de destino no afecta a la reubicación de agregados.
+

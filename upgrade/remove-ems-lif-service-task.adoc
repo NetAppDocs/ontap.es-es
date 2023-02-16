@@ -1,0 +1,72 @@
+---
+permalink: upgrade/remove-ems-lif-service-task.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, after, post, ems, event, management, system, lifs, messages, not, delivered 
+summary: El servicio Asesor de actualizaciones del Asesor digital de Active IQ proporciona inteligencia que le ayuda a planificar su actualización y minimiza la incertidumbre y el riesgo. 
+---
+= Quite el servicio LIF de EMS de las políticas de servicio de red
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si tiene mensajes del sistema de gestión de eventos (EMS) configurados antes de actualizar de ONTAP 9.7 o anterior a ONTAP 9.8 o posterior , después de la actualización, es posible que los mensajes de EMS no se envíen.
+
+Durante la actualización, Management-ems, que es el servicio LIF EMS, se agrega a todas las políticas de servicio existentes. Esto permite enviar mensajes de EMS desde cualquiera de las LIF asociadas con cualquiera de las políticas de servicio. Si la LIF seleccionada no tiene accesibilidad al destino de notificaciones de eventos, el mensaje no se entrega.
+
+Para evitar esto, después de la actualización, debe eliminar el servicio LIF de EMS de las políticas de servicio de red que no proporcionan accesibilidad al destino.
+
+.Pasos
+. Identificar las LIF y las políticas de servicio de red asociadas mediante las cuales se pueden enviar mensajes de EMS:
++
+`network interface show -fields service-policy -services management-ems`
+
++
+[listing]
+----
+vserver        lif            service-policy
+-------------- ------------ ------------------
+cluster-1      cluster_mgmt
+                                      default-management
+cluster-1      node1-mgmt
+                                      default-management
+cluster-1      node2-mgmt
+                                      default-management
+cluster-1      inter_cluster
+                                      default-intercluster
+4 entries were displayed.
+----
+. Compruebe cada LIF para obtener conectividad con el destino EMS:
++
+`network ping -lif lif_name -vserver svm_name -destination destination_address`
+
++
+Realice esto en cada nodo.
+
++
+.Ejemplos
+[listing]
+----
+cluster-1::> network ping -lif node1-mgmt -vserver cluster-1 -destination 10.10.10.10
+10.10.10.10 is alive
+
+cluster-1::> network ping -lif inter_cluster -vserver cluster-1 -destination 10.10.10.10
+no answer from 10.10.10.10
+----
+. Introduzca el nivel de privilegio avanzado:
++
+`set advanced`
+
+. Para los LIF que no tienen habilidad, quite el servicio LIF Management-ems de las políticas de servicio correspondientes:
++
+`network interface service-policy remove-service -vserver svm_name -policy service_policy_name -service management-ems`
+
+. Compruebe que el LIF de ems de gestión solo esté asociado a las LIF que proporcionan accesibilidad al destino de EMS:
++
+`network interface show -fields service-policy -services management-ems`
+
+
+
+.Enlaces relacionados
+link:https://docs.netapp.com/us-en/ontap/networking/lifs_and_service_policies96.html#service-policies-for-system-svms.["LIF y políticas de servicio en ONTAP 9.6 y posteriores"]

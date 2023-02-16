@@ -1,0 +1,69 @@
+= 
+:allow-uri-read: 
+
+
+. Utilice la `system license show` Comando para verificar que tiene una licencia para FC o iSCSI.
++
+`system license show`
+
++
+[listing]
+----
+
+Package           Type    Description           Expiration
+ ----------------- ------- --------------------- --------------------
+ Base              site    Cluster Base License  -
+ NFS               site    NFS License           -
+ CIFS              site    CIFS License          -
+ iSCSI             site    iSCSI License         -
+ FCP               site    FCP License           -
+----
+. Si no tiene una licencia para FC o iSCSI, utilice `license add` comando.
++
+`license add -license-code _your_license_code_`
+
+. Habilite el servicio de protocolo en la SVM:
++
+*Para iSCSI:* `vserver iscsi create -vserver _vserver_name_ -target-alias _vserver_name_`
+
++
+*Para FC:* `vserver fcp create -vserver _vserver_name_ -status-admin up`
+
+. Cree dos LIF para las SVM en cada nodo:
++
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol iscsi|fc -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask netmask`
+
++
+NetApp admite un mínimo de un LIF iSCSI o FC por nodo para cada SVM que sirve datos. Sin embargo, se necesitan dos LIF por nodo para redundancia.
+
+. Compruebe que sus LIF se han creado y que su estado operativo es `online`:
++
+`network interface show -vserver _vserver_name_ _lif_name_`
+
+. Cree sus LUN:
++
+`lun create -vserver vserver_name -volume _volume_name_ -lun _lun_name_ -size _lun_size_ -ostype linux -space-reserve enabled|disabled`
+
++
+El nombre de la LUN no puede superar los 255 caracteres y no puede contener espacios.
+
++
+
+NOTE: La opción NVFAIL se habilita automáticamente cuando se crea una LUN en un volumen.
+
+. Cree sus iGroups:
++
+`igroup create -vserver _vserver_name_ -igroup _igroup_name_ -protocol fcp|iscsi|mixed -ostype linux -initiator _initiator_name_`
+
+. Asigne sus LUN a iGroups:
++
+`lun mapping create -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -igroup _igroup_name_`
+
+. Compruebe que sus LUN están configuradas correctamente:
++
+`lun show -vserver _vserver_name_`
+
+. link:san-admin/create-port-sets-binding-igroups-task.html["Cree un conjunto de puertos y enlace a un igroup"] (opcional).
+. Siga los pasos de la documentación de host para habilitar el acceso en bloque en los hosts específicos.
+. Use las utilidades de host para completar la asignación de FC o iSCSI y para detectar las LUN en el host.
+

@@ -1,0 +1,111 @@
+---
+permalink: disks-aggregates/relocate-aggregate-ownership-task.html 
+sidebar: sidebar 
+keywords: relocate, aggregate, ownership, local tier 
+summary: 'Solo puede cambiar la propiedad de un nivel local (agregado) entre los nodos de un par de alta disponibilidad.' 
+---
+= La propiedad de reubicación de un nivel local (agregado) dentro de un par de alta disponibilidad
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede cambiar la propiedad de los niveles locales (agregados) entre los nodos de un par de alta disponibilidad sin interrumpir el servicio desde los niveles locales.
+
+Ambos nodos de una pareja de alta disponibilidad están conectados físicamente entre sí a los discos o LUN de cabina. Cada LUN de disco o cabina es propiedad de uno de los nodos.
+
+La propiedad de todos los discos o LUN de cabina dentro de un nivel local (agregado) cambia temporalmente de un nodo a otro cuando se produce una toma de control. Sin embargo, las operaciones de reubicación de niveles locales también pueden cambiar permanentemente la propiedad (por ejemplo, si se realiza para el equilibrio de carga). La propiedad cambia sin ningún proceso de copia de datos ni movimiento físico de los discos o los LUN de cabina.
+
+.Acerca de esta tarea
+* Dado que los límites de recuento de volúmenes se validan mediante programación durante las operaciones de reubicación de nivel local, no es necesario comprobar este valor manualmente.
++
+Si el número de volúmenes supera el límite admitido, la operación de reubicación de nivel local produce un error indicando un mensaje de error relevante.
+
+* No se debe iniciar la reubicación de nivel local cuando existen operaciones a nivel del sistema en curso en el nodo de origen o en el de destino; del mismo modo, no se deben iniciar estas operaciones durante la reubicación de nivel local.
++
+Estas operaciones pueden incluir las siguientes:
+
++
+** Respaldo
+** Devolución
+** Apagado
+** Otra operación de reubicación de nivel local
+** Cambia la propiedad del disco
+** Operaciones de configuración de nivel local o volumen
+** Reemplazo de la controladora de almacenamiento
+** Actualización de ONTAP
+** Reversión de ONTAP
+
+
+* Si dispone de una configuración MetroCluster, no debe iniciar la reubicación de niveles local mientras las operaciones de recuperación ante desastres (_switchover_, _curing_ o _Switched_) están en curso.
+* Si tiene una configuración de MetroCluster e inicia la reubicación de nivel local en un nivel local de conmutación, es posible que se produzca un error en la operación porque supera el número de límite de volúmenes del partner de DR.
+* No se debe iniciar la reubicación de nivel local en agregados dañados o sometidos a mantenimiento.
+* Antes de iniciar la reubicación de nivel local, debe guardar cualquier volcado principal en los nodos de origen y destino.
+
+
+.Pasos
+. Visualice los agregados en el nodo para confirmar qué agregados se moverán y asegúrese de que estén en línea y en buenas condiciones:
++
+`storage aggregate show -node _source-node_`
+
++
+El siguiente comando muestra seis agregados en los cuatro nodos del clúster. Todos los agregados están en línea. Los nodos 1 y Node3 forman un par de alta disponibilidad y Node2 y Node4 forman un par de alta disponibilidad.
+
++
+[listing]
+----
+cluster::> storage aggregate show
+Aggregate     Size Available Used% State   #Vols  Nodes  RAID Status
+--------- -------- --------- ----- ------- ------ ------ -----------
+aggr_0     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_1     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_2     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_3     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_4     239.0GB   238.9GB    0% online       5 node3  raid_dp,
+                                                         normal
+aggr_5     239.0GB   239.0GB    0% online       4 node4  raid_dp,
+                                                         normal
+6 entries were displayed.
+----
+. Ejecute el comando para iniciar la reubicación de agregados:
++
+`storage aggregate relocation start -aggregate-list _aggregate-1_, _aggregate-2_... -node _source-node_ -destination _destination-node_`
+
++
+El siguiente comando mueve los agregados aggr_1 y aggr_2 de Node1 a Node3. El nodo 3 es el partner de alta disponibilidad de Node1. Los agregados solo se pueden mover dentro del par de alta disponibilidad.
+
++
+[listing]
+----
+cluster::> storage aggregate relocation start -aggregate-list aggr_1, aggr_2 -node node1 -destination node3
+Run the storage aggregate relocation show command to check relocation status.
+node1::storage aggregate>
+----
+. Supervise el progreso de la reubicación de agregados con la `storage aggregate relocation show` comando:
++
+`storage aggregate relocation show -node _source-node_`
+
++
+El siguiente comando muestra el progreso de los agregados que se están moviendo a Node3:
+
++
+[listing]
+----
+cluster::> storage aggregate relocation show -node node1
+Source Aggregate   Destination    Relocation Status
+------ ----------- -------------  ------------------------
+node1
+       aggr_1      node3          In progress, module: wafl
+       aggr_2      node3          Not attempted yet
+2 entries were displayed.
+node1::storage aggregate>
+----
++
+Una vez finalizada la reubicación, el resultado de este comando muestra cada agregado con el estado de reubicación de "D one".
+
+

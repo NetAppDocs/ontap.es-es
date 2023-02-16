@@ -1,0 +1,40 @@
+---
+permalink: nfs-admin/enable-access-windows-nfs-clients-task.html 
+sidebar: sidebar 
+keywords: enable, access, windows, nfs, clients 
+summary: 'ONTAP admite el acceso a archivos desde clientes de Windows NFSv3. Esto significa que los clientes que ejecutan sistemas operativos Windows con compatibilidad con NFSv3 ahora pueden acceder a los archivos de las exportaciones NFSv3 del clúster. Para utilizar correctamente esta funcionalidad, debe configurar correctamente la máquina virtual de almacenamiento (SVM) y tener en cuenta ciertos requisitos y limitaciones.' 
+---
+= Permita el acceso a clientes NFS de Windows
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP admite el acceso a archivos desde clientes de Windows NFSv3. Esto significa que los clientes que ejecutan sistemas operativos Windows con compatibilidad con NFSv3 ahora pueden acceder a los archivos de las exportaciones NFSv3 del clúster. Para utilizar correctamente esta funcionalidad, debe configurar correctamente la máquina virtual de almacenamiento (SVM) y tener en cuenta ciertos requisitos y limitaciones.
+
+.Lo que necesitará
+Debe estar habilitado NFSv3 en la SVM.
+
+.Acerca de esta tarea
+De manera predeterminada, la compatibilidad con el cliente de Windows NFSv3 está deshabilitada.
+
+Los clientes de Windows NFSv3 no admiten el protocolo NSM (monitor de estado de red). Como resultado, las sesiones de cliente de Windows NFSv3 pueden experimentar interrupciones durante las operaciones de conmutación al nodo de respaldo del almacenamiento y de movimiento de volúmenes.
+
+.Pasos
+. Habilitar la compatibilidad con clientes de Windows NFSv3:
++
+`vserver nfs modify -vserver vserver_name -v3-ms-dos-client enabled`
+
+. En todas las SVM que admiten clientes Windows NFSv3, deshabilite el `-enable-ejukebox` y.. `-v3-connection-drop` parámetros: `vserver nfs modify -vserver vserver_name -enable-ejukebox false -v3-connection-drop disabled`
++
+Los clientes de Windows NFSv3 ahora pueden montar las exportaciones en el sistema de almacenamiento.
+
+. Asegúrese de que cada cliente Windows NFSv3 utilice montajes hard especificando el `-o mtype=hard` opción.
++
+Esto es necesario para garantizar montajes fiables.
+
++
+`mount -o mtype=hard \\10.53.33.10\vol\vol1 z:\`
+
+

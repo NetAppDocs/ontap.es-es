@@ -1,0 +1,65 @@
+---
+permalink: authentication/define-custom-roles-task.html 
+sidebar: sidebar 
+keywords: define, custom roles 
+summary: Puede usar el comando Security login role create para definir un rol personalizado. Puede ejecutar el comando tantas veces como sea necesario para obtener la combinación exacta de funcionalidades que desea asociar al rol. 
+---
+= Definir funciones personalizadas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `security login role create` comando para definir un rol personalizado. Puede ejecutar el comando tantas veces como sea necesario para obtener la combinación exacta de funcionalidades que desea asociar al rol.
+
+.Lo que necesitará
+Para realizar esta tarea, debe ser un administrador de clústeres.
+
+.Acerca de esta tarea
+* Un rol, ya sea predefinido o personalizado, concede o deniega el acceso a los comandos o directorios de comandos de ONTAP.
++
+Un directorio de comandos (`volume`, por ejemplo) es un grupo de comandos y subdirectorios de comandos relacionados. Excepto como se describe en este procedimiento, la concesión o denegación del acceso a un directorio de comandos otorga o deniega el acceso a cada comando del directorio y sus subdirectorios.
+
+* El acceso a comandos específicos o al subdirectorio anula el acceso al directorio principal.
++
+Si se define un rol con un directorio de comandos y se define de nuevo con un nivel de acceso diferente para un comando específico o para un subdirectorio del directorio principal, el nivel de acceso especificado para el comando o subdirectorio anula el nivel del primario.
+
+
+
+[NOTE]
+====
+No puede asignar un administrador de SVM un rol que otorga acceso a un comando o un directorio de comandos que solo esté disponible para el `admin` administrador de clúster: por ejemplo, el `security` directorio de comandos.
+
+====
+.Paso
+. Defina un rol personalizado:
++
+`security login role create -vserver SVM_name -role role -cmddirname command_or_directory_name -access access_level -query query`
+
++
+Para obtener una sintaxis completa del comando, consulte link:config-worksheets-reference.html["hoja de trabajo"].
+
++
+Los siguientes comandos conceden el `vol_role` rol de acceso completo a los comandos de la `volume` el directorio de comandos y el acceso de sólo lectura a los comandos de la `volume snapshot` subdirectorio.
+
++
+[listing]
+----
+cluster1::>security login role create -role vol_role -cmddirname "volume" -access all
+
+cluster1::>security login role create -role vol_role -cmddirname "volume snapshot" -access readonly
+----
++
+Los siguientes comandos conceden el `SVM_storage` el acceso de solo lectura de roles a los comandos de la `storage` directorio de comandos, sin acceso a los comandos de la `storage encryption` y acceso completo al subdirectorio `storage aggregate plex offline` comando no intrínseco.
+
++
+[listing]
+----
+cluster1::>security login role create -role SVM_storage -cmddirname "storage" -access readonly
+
+cluster1::>security login role create -role SVM_storage -cmddirname "storage encryption" -access none
+
+cluster1::>security login role create -role SVM_storage -cmddirname "storage aggregate plex offline" -access all
+----
+

@@ -1,0 +1,53 @@
+---
+permalink: san-config/change-fc-adapter-speed-task.html 
+sidebar: sidebar 
+keywords: change, fc adapter, speed 
+summary: Debe configurar la velocidad del puerto de destino del adaptador para que coincida con la velocidad del dispositivo al que se conecta, en vez de utilizar la autonegociación. Un puerto configurado para la autonegociación puede tardar más tiempo en reconectar después de una toma de control/devolución u otra interrupción. 
+---
+= Cambie la velocidad del adaptador de FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe configurar la velocidad del puerto de destino del adaptador para que coincida con la velocidad del dispositivo al que se conecta, en vez de utilizar la autonegociación. Un puerto configurado para la autonegociación puede tardar más tiempo en reconectar después de una toma de control/devolución u otra interrupción.
+
+.Lo que necesitará
+Todos los LIF que utilizan este adaptador como puerto de inicio deben estar desconectados.
+
+.Acerca de esta tarea
+Dado que esta tarea abarca todas las máquinas virtuales de almacenamiento (SVM) y todos los LIF de un clúster, debe utilizar el `-home-port` y.. `-home-lif` parámetros para limitar el alcance de esta operación. Si no utiliza estos parámetros, la operación se aplica a todas las LIF del clúster, lo que podría no ser deseable.
+
+.Pasos
+. Desconecte todas las LIF de este adaptador:
++
+`network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin down`
+
+. Desconectar el adaptador:
++
+`network fcp adapter modify -node node1 -adapter 0c -state down`
+
++
+Si el adaptador no se desconecta, también puede quitar el cable del puerto de adaptador correspondiente del sistema.
+
+. Determine la velocidad máxima del adaptador de puerto:
++
+`fcp adapter show -instance`
+
++
+No puede modificar la velocidad del adaptador más allá de la velocidad máxima.
+
+. Cambie la velocidad del adaptador:
++
+`network fcp adapter modify -node node1 -adapter 0c -speed 16`
+
+. Conectar el adaptador:
++
+`network fcp adapter modify -node node1 -adapter 0c -state up`
+
+. Conectar todas las LIF del adaptador:
++
+`network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin up`
+
+

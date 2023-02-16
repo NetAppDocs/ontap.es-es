@@ -1,0 +1,68 @@
+---
+permalink: system-admin/reboot-node-system-prompt-task.html 
+sidebar: sidebar 
+keywords: reboot, node, system, prompt, normal, boot, device, pc, compactflash, card 
+summary: Puede reiniciar un nodo en modo normal desde el símbolo del sistema. Un nodo se configura para arrancar desde el dispositivo de arranque, como una tarjeta PC CompactFlash. 
+---
+= Reinicie un nodo en el símbolo del sistema
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede reiniciar un nodo en modo normal desde el símbolo del sistema. Un nodo se configura para arrancar desde el dispositivo de arranque, como una tarjeta PC CompactFlash.
+
+.Pasos
+. Si el clúster contiene cuatro o más nodos, compruebe que el nodo que se va a reiniciar no tenga épsilon:
++
+.. Configure el nivel de privilegio en Advanced:
++
+`*set -privilege advanced*`
+
+.. Determine qué nodo tiene épsilon:
++
+`*cluster show*`
+
++
+En el siguiente ejemplo, se muestra «'1'» con épsilon:
+
++
+[listing]
+----
+cluster1::*> cluster show
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node1                true    true          true
+node2                true    true          false
+node3                true    true          false
+node4                true    true          false
+4 entries were displayed.
+----
+.. Si el nodo que se va a reiniciar está configurado con épsilon, elimine épsilon del nodo:
++
+`*cluster modify -node _node_name_ -epsilon false*`
+
+.. Asigne épsilon a un nodo diferente que permanecerá activo:
++
+`*cluster modify -node _node_name_ -epsilon true*`
+
+.. Vuelva al nivel de privilegio de administrador:
++
+`*set -privilege admin*`
+
+
+
+. Utilice la `system node reboot` comando para reiniciar el nodo.
++
+Si no especifica el `-skip-lif-migration` Parámetro, el comando intenta migrar LIF de datos y de gestión del clúster de forma síncrona a otro nodo antes del reinicio. Si la migración de LIF falla o se agota el tiempo de espera, se anula el proceso de reinicio y ONTAP muestra un error para indicar el error de migración de la LIF.
+
++
+[listing]
+----
+cluster1::> system node reboot -node node1 -reason "software upgrade"
+----
++
+El nodo inicia el proceso de reinicio. Aparece la solicitud de inicio de sesión de ONTAP, que indica que el proceso de reinicio ha finalizado.
+
+

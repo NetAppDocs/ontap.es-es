@@ -1,0 +1,75 @@
+---
+sidebar: sidebar 
+permalink: networking/relationship_between_broadcast_domains.html 
+keywords: relationship, broadcast, domain, failover, fail, over, group, policy, policies, relationship between broadcast domains, failover groups, and failover policies, comparing broadcast domains, failover groups, and failover policies, port failover, network interface show -failover, decide which lif failover policy to use, failover policy decision tree, default failover policies by lif type, sfo-partner-only 
+summary: Los dominios de retransmisión, los grupos de conmutación por error y las políticas de conmutación por error trabajan conjuntamente para determinar qué puerto tomará el relevo en caso de producirse un fallo 
+---
+= Relación entre dominios de retransmisión, grupos de conmutación por error y políticas de conmutación por error
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Los dominios de retransmisión, los grupos de conmutación por error y las políticas de conmutación por error trabajan en conjunto para determinar qué puerto tomará el relevo cuando se produzca un error en el nodo o puerto en el que se ha configurado un LIF.
+
+Un dominio de retransmisión enumera todos los puertos a los que se puede acceder en la misma red Ethernet de capa 2. Todos los demás puertos del dominio de retransmisión ven un paquete de retransmisión Ethernet enviado desde uno de los puertos. Esta característica de accesibilidad común de un dominio de retransmisión es importante para los LIF, ya que si una LIF se conmute a otro puerto del dominio de retransmisión, todavía podría llegar a todos los hosts locales y remotos a los que se pudiera acceder desde el puerto original.
+
+Los grupos de conmutación por error definen los puertos dentro de un dominio de retransmisión que proporcionan cobertura de conmutación por error de LIF entre sí. Cada dominio de retransmisión tiene un grupo de conmutación al nodo de respaldo que incluye todos sus puertos. Este grupo de conmutación por error que contiene todos los puertos del dominio de retransmisión es el grupo de conmutación por error predeterminado y recomendado para la LIF. Puede crear grupos de conmutación por error con subconjuntos más pequeños que defina, como un grupo de conmutación por error de puertos que tengan la misma velocidad de enlace dentro de un dominio de difusión.
+
+Una política de conmutación por error dicta cómo un LIF utiliza los puertos de un grupo de recuperación tras fallos cuando un nodo o puerto está inactivo. Considere la política de conmutación por error como un tipo de filtro que se aplica a un grupo de conmutación por error. Los destinos de conmutación por error de una LIF (el conjunto de puertos en los que se puede conmutar un LIF) están determinados por medio de la aplicación de la política de conmutación por error de la LIF al grupo de conmutación por error de la LIF en el dominio de retransmisión.
+
+Puede ver los destinos de conmutación por error de una LIF con el siguiente comando CLI:
+
+....
+network interface show -failover
+....
+NetApp recomienda utilizar la política de conmutación por error predeterminada para el tipo de LIF.
+
+
+
+== Decidir qué política de conmutación por error de LIF se utilizará
+
+Decidir si se utilizará la política de conmutación por error predeterminada recomendada o si se va a cambiar según el tipo y el entorno de LIF.
+
+
+
+=== Árbol de decisión de directiva de conmutación por error
+
+image:LIF_failover_decision_tree.png["Imagen del árbol de decisiones de conmutación por error de LIF"]
+
+
+
+=== Políticas de conmutación por error predeterminadas por tipo de LIF
+
+[cols="25,25,50"]
+|===
+
+
+| Tipo de LIF | Política de conmutación por error predeterminada | Descripción 
+
+
+| LIF de BGP | deshabilitado | LIF no conmuta al nodo de respaldo a otro puerto. 
+
+
+| LIF del clúster | solo local | LIF conmuta por error a los puertos del mismo nodo únicamente. 
+
+
+| LIF de gestión del clúster | ámbito de difusión | LIF conmuta por error a los puertos del mismo dominio de retransmisión, en todos los nodos del clúster. 
+
+
+| LIF de interconexión de clústeres | solo local | LIF conmuta por error a los puertos del mismo nodo únicamente. 
+
+
+| LIF de datos NAS | definido por el sistema | LIF conmuta por error a otro nodo que no es el partner de alta disponibilidad. 
+
+
+| LIF de gestión de nodos | solo local | LIF conmuta por error a los puertos del mismo nodo únicamente. 
+
+
+| LIF de datos SAN | deshabilitado | LIF no conmuta al nodo de respaldo a otro puerto. 
+|===
+La política de recuperación tras fallos "solo para sfo" no es un valor predeterminado, pero se puede usar cuando desee que la LIF realice la conmutación al nodo de respaldo en un puerto del nodo de inicio o del partner SFO únicamente.

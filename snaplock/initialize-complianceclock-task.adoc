@@ -1,0 +1,120 @@
+---
+permalink: snaplock/initialize-complianceclock-task.html 
+sidebar: sidebar 
+keywords: snaplock, complianceclock, initialize, worm, retention, period, node, ntp, reset, resynchronize 
+summary: La instancia de SnapLock ComplianceClock se asegura de una manipulación que puede alterar el período de retención de archivos WORM. Debe inicializar la instancia de ComplianceClock del sistema en cada nodo que aloje un agregado de SnapLock. Una vez que inicializa la instancia de ComplianceClock en un nodo, no puede volver a iniciarla. 
+---
+= Inicialice la instancia de ComplianceClock
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La instancia de SnapLock ComplianceClock se asegura de una manipulación que puede alterar el período de retención de archivos WORM. Debe inicializar la instancia de _System ComplianceClock_ en cada nodo que aloje un agregado de SnapLock. Una vez que inicializa la instancia de ComplianceClock en un nodo, no puede volver a iniciarla.
+
+.Lo que necesitará
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* La licencia de SnapLock debe instalarse en el nodo.
+
+
+.Acerca de esta tarea
+La hora de la instancia de ComplianceClock del sistema se hereda en _volume ComplianceClock_, que controla el período de retención de archivos WORM del volumen. La instancia de ComplianceClock del volumen se inicializa automáticamente cuando se crea un nuevo volumen de SnapLock.
+
+[NOTE]
+====
+La configuración inicial de la instancia de ComplianceClock se basa en el reloj del sistema actual. Por ese motivo, debe comprobar que la hora y la zona horaria del sistema sean correctas antes de inicializar la instancia de ComplianceClock. Una vez que inicializa la instancia de ComplianceClock en un nodo, no puede volver a iniciarla.
+
+====
+[role="tabbed-block"]
+====
+.System Manager
+--
+A partir de ONTAP 9.12.1, puede utilizar System Manager para inicializar el reloj de cumplimiento de SnapLock.
+
+.Pasos
+. Vaya a *Cluster > Overview*.
+. En la sección *Nodes*, haga clic en *inicializar reloj de cumplimiento de SnapLock*.
+. Para mostrar la columna Reloj de cumplimiento y comprobar que el reloj de cumplimiento está inicializado, en la sección *clúster > Descripción general > nodos*, haga clic en *Mostrar/Ocultar* y seleccione *Reloj de cumplimiento SnapLock*.
+
+
+--
+--
+.CLI
+. Inicialice la instancia de ComplianceClock del sistema:
++
+`*snaplock compliance-clock initialize -node _node_name_*`
+
++
+El siguiente comando inicializa la instancia de ComplianceClock del sistema en `node1`:
+
++
+[listing]
+----
+cluster1::> snaplock compliance-clock initialize -node node1
+----
+. Cuando se le solicite, confirme que el reloj del sistema sea correcto y que desea inicializar la instancia de ComplianceClock:
++
+[listing]
+----
+Warning: You are about to initialize the secure ComplianceClock of
+the node "node1" to the current value of the node's system clock.
+This procedure can be performed only once on a given node, so you
+should ensure that the system time is set correctly before proceeding.
+
+The current node's system clock is: Mon Apr 25 06:04:10 GMT 2016
+
+Do you want to continue? (y|n): y
+----
+. Repita este procedimiento para cada nodo que aloje un agregado de SnapLock.
+
+
+--
+====
+
+
+== Habilite la resincronización de ComplianceClock para un sistema configurado en NTP
+
+Puede habilitar la función de sincronización de hora de SnapLock ComplianceClock cuando se configure un servidor NTP.
+
+.Lo que necesitará
+* Esta función solo está disponible en el nivel de privilegios avanzado.
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* La licencia de SnapLock debe instalarse en el nodo.
+* Esta función sólo está disponible para plataformas Cloud Volumes ONTAP, ONTAP Select y VSIM.
+
+
+.Acerca de esta tarea
+Cuando el daemon de reloj seguro de SnapLock detecta una desviación que excede el umbral, ONTAP utiliza la hora del sistema para restablecer tanto los relojes de cumplimiento de cumplimiento del sistema como los del volumen. Se establece un período de 24 horas como umbral de desviación. Esto significa que la instancia de ComplianceClock del sistema se sincroniza con el reloj del sistema solo si la desviación tiene más de un día de antigüedad.
+
+El daemon de reloj seguro de SnapLock detecta una inclinación y cambia la instancia de ComplianceClock a la hora del sistema. Se produce un error en los intentos por modificar la hora del sistema para forzar la instancia de ComplianceClock a que se sincronice con el sistema, ya que la instancia de ComplianceClock solo se sincroniza con la hora del sistema si la hora del mismo se sincroniza con la hora de NTP.
+
+.Pasos
+. Habilite la función de sincronización de hora de SnapLock ComplianceClock cuando se configure un servidor NTP:
++
+`*snaplock compliance-clock ntp*`
+
++
+El siguiente comando habilita la función de sincronización de hora de la instancia de ComplianceClock del sistema:
+
++
+[listing]
+----
+cluster1::*> snaplock compliance-clock ntp modify -is-sync-enabled true
+----
+. Cuando se le solicite, confirme que los servidores NTP configurados son de confianza y que el canal de comunicación es seguro para habilitar la función:
+. Compruebe que la función está activada:
++
+`*snaplock compliance-clock ntp show*`
+
++
+El siguiente comando comprueba que la función de sincronización de hora de la instancia de ComplianceClock del sistema esté habilitada:
+
++
+[listing]
+----
+cluster1::*> snaplock compliance-clock ntp show
+
+Enable clock sync to NTP system time: true
+----
+

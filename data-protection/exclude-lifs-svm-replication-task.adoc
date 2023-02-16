@@ -1,0 +1,143 @@
+---
+permalink: data-protection/exclude-lifs-svm-replication-task.html 
+sidebar: sidebar 
+keywords: lifs, network, settings, svm, replication 
+summary: Si las SVM de origen y destino están en subredes diferentes, puede utilizar la opción de red -descartar-configuraciones del comando snapmirror policy create para excluir LIF y configuraciones de red relacionadas de la replicación de SVM. 
+---
+= Excluya las LIF y la configuración de red relacionada desde la replicación de SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si las SVM de origen y destino están en subredes diferentes, puede utilizar `-discard-configs network` opción de `snapmirror policy create` Comando para excluir LIF y configuración de red relacionada desde la replicación de SVM.
+
+.Lo que necesitará
+Las SVM y los clústeres de origen y destino deben tener una relación entre iguales.
+
+Para obtener más información, consulte link:../peering/create-cluster-relationship-93-later-task.html["Cree una relación de paridad entre clústeres"] y.. link:../peering/create-intercluster-svm-peer-relationship-93-later-task.html["Cree una relación de interconexión de clústeres entre iguales de SVM"].
+
+.Acerca de esta tarea
+La `-identity-preserve` opción de `snapmirror create` el comando debe estar establecido en `true` Al crear la relación de replicación de SVM.
+
+Para obtener una sintaxis de comando completa, consulte la página man.
+
+.Pasos
+. Cree una SVM de destino:
++
+`vserver create -vserver _SVM_ -subtype dp-destination`
+
++
+El nombre de SVM debe ser único en los clústeres de origen y destino.
+
++
+En el ejemplo siguiente se crea una SVM de destino llamada `svm_backup`:
+
++
+[listing]
+----
+cluster_dst:> vserver create -vserver svm_backup -subtype dp-destination
+----
+. En el clúster de destino, cree una relación entre iguales de SVM mediante el `vserver peer create` comando.
++
+Para obtener más información, consulte link:../peering/create-intercluster-svm-peer-relationship-93-later-task.html["Cree una relación de interconexión de clústeres entre iguales de SVM"].
+
+. Crear un programa de trabajo:
++
+`job schedule cron create -name _job_name_ -month _month_ -dayofweek _day_of_week_ -day _day_of_month_ -hour _hour_ -minute _minute_`
+
++
+Para `-month`, `-dayofweek`, y. `-hour`, puede especificar `all` para ejecutar el trabajo cada mes, día de la semana y hora, respectivamente.
+
++
+En el ejemplo siguiente se crea una programación de trabajo denominada `my_weekly` Es decir, los sábados a las 3:00 horas:
+
++
+[listing]
+----
+cluster_dst::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
+----
+. Cree una política de replicación personalizada:
++
+`snapmirror policy create -vserver _SVM_ -policy _policy_ -type async-mirror|vault|mirror-vault -comment _comment_ -tries transfer_tries -transfer-priority low|normal -is-network-compression-enabled true|false -discard-configs network`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el ejemplo siguiente se crea una normativa de replicación personalizada para recuperación ante desastres de SnapMirror que excluye las LIF:
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy DR_exclude_LIFs -type async-mirror -discard-configs network
+----
++
+En el ejemplo siguiente se crea una directiva de replicación personalizada para la replicación unificada que excluye las LIF:
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy unified_exclude_LIFs -type mirror-vault -discard-configs network
+----
+. A partir de la SVM de destino o el clúster de destino, ejecute el siguiente comando para crear una relación de replicación:
++
+`snapmirror create -source-path _SVM_: -destination-path _SVM_: -type DP|XDP -schedule _schedule_ -policy _policy_ -identity-preserve true|false`
+
++
+[NOTE]
+====
+Después del nombre de la SVM en el, se deben introducir dos puntos (:) `-source-path` y.. `-destination-path` opciones. Vea los ejemplos a continuación.
+
+====
++
+En el ejemplo siguiente se crea una relación de recuperación ante desastres de SnapMirror que excluye las LIF:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy DR_exclude_LIFs -identity-preserve true
+----
++
+En el ejemplo siguiente se crea una relación de replicación unificada de SnapMirror que excluye las LIF:
+
++
+[listing]
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy unified_exclude_LIFs -identity-preserve true
+----
+. Detenga la SVM de destino:
++
+`vserver stop`
+
++
+`_SVM name_`
+
++
+En el ejemplo siguiente se detiene una SVM de destino denominada dvs1:
+
++
+[listing]
+----
+cluster_dst::> vserver stop -vserver dvs1
+----
+. En la SVM de destino o el clúster de destino, inicialice una relación de replicación:
++
+`snapmirror initialize -source-path _SVM_: -destination-path _SVM_:`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo se inicializa la relación entre el origen, `svm1` y el destino, `svm_backup`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror initialize -source-path svm1: -destination-path svm_backup:
+----
+
+
+.Después de terminar
+Es necesario configurar la red y los protocolos en la SVM de destino para acceder a los datos en caso de que se produzca un desastre.

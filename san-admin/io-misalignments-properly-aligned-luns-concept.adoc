@@ -1,0 +1,182 @@
+---
+permalink: san-admin/io-misalignments-properly-aligned-luns-concept.html 
+sidebar: sidebar 
+keywords: i/o misalignments, occur, properly, aligned, luns 
+summary: ONTAP podría informar de desalineación de I/o en LUN alineadas correctamente. En general, estas advertencias de mala alineación pueden ignorarse mientras tenga la confianza de que su LUN está correctamente aprovisionada y que la tabla de particiones es correcta. 
+---
+= Alineación incorrecta de I/o en la descripción general de las LUN alineadas correctamente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP podría informar de desalineación de I/o en LUN alineadas correctamente. En general, estas advertencias de mala alineación pueden ignorarse mientras tenga la confianza de que su LUN está correctamente aprovisionada y que la tabla de particiones es correcta.
+
+Los LUN y los discos duros proporcionan almacenamiento como bloques. Como el tamaño de bloque de los discos del host es de 512 bytes, los LUN presentan bloques de ese tamaño al host a la vez que utilizan bloques de más grandes de 4 KB para almacenar datos. El bloque de datos de 512 bytes que usa el host se conoce como un bloque lógico. El bloque de datos de 4 KB que utiliza la LUN para almacenar datos se conoce como un bloque físico. Esto significa que hay ocho bloques lógicos de 512 bytes en cada bloque físico de 4 KB.
+
+image::../media/bsag-cmode-lbpb.gif[bsag modo cmode lbpb]
+
+El sistema operativo host puede iniciar una operación de I/o de lectura o escritura en cualquier bloque lógico. Las operaciones de I/o solo se consideran alineadas cuando comienzan en el primer bloque lógico del bloque físico. Si una operación de I/o se inicia en un bloque lógico que no es también el inicio de un bloque físico, la I/o se considera mal alineada. ONTAP detecta automáticamente los errores de alineación y los informa en la LUN. Sin embargo, la presencia de I/o mal alineadas no significa necesariamente que la unidad lógica tampoco esté alineada. Es posible que se notifique una I/o mal alineada en las LUN alineadas correctamente.
+
+Si necesita más investigación, consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_identify_unaligned_IO_on_LUNs["¿Cómo identificar las I/o no alineadas en las LUN?"^]
+
+Para obtener más información sobre las herramientas para corregir problemas de alineación, consulte la siguiente documentación: +
+
+* https://docs.netapp.com/us-en/ontap-sanhost/hu_wuhu_71.html["Utilidades unificadas de host de Windows 7.1"]
+* https://docs.netapp.com/ontap-9/topic/com.netapp.doc.exp-iscsi-esx-cpg/GUID-7428BD24-A5B4-458D-BD93-2F3ACD72CBBB.html["Guía de instalación y administración de Virtual Storage Console para VMware vSphere"^]
+
+
+
+
+== Alinear las operaciones de I/o con los tipos de SO de LUN
+
+Para alinear el I/o con su esquema de particiones del SO, debe usar la LUN de ONTAP recomendada `ostype` valor que más se ajusta a su sistema operativo.
+
+El esquema de partición empleado por el sistema operativo host es un factor importante que contribuye a los desalineamientos de E/S. Algunas LUN de ONTAP `ostype` los valores utilizan un desplazamiento especial denominado «'prefix'» para habilitar la alineación del esquema de partición predeterminado utilizado por el sistema operativo host.
+
+[NOTE]
+====
+En algunas circunstancias, puede que se requiera una tabla de particiones personalizadas para lograr la alineación de las operaciones de I/O. Sin embargo, para `ostype` valores con un valor de «'prefijo'» mayor que `0`, Es posible que una partición personalizada cree E/S mal alineadas
+
+====
+La LUN `ostype` los valores de la siguiente tabla deben utilizarse en función del sistema operativo.
+
+[cols="4*"]
+|===
+| LUN `ostype` | Prefijo (bytes) | Prefijo (sectores) | De NetApp 
+
+
+ a| 
+`windows`
+ a| 
+32,256
+ a| 
+63
+ a| 
+Windows 2000, 2003 (formato MBR)
+
+
+
+ a| 
+`windows_gpt`
+ a| 
+17,408
+ a| 
+34
+ a| 
+Windows 2003 (formato GPT)
+
+
+
+ a| 
+`windows_2008`
+ a| 
+0
+ a| 
+0
+ a| 
+Windows 2008 y posterior
+
+
+
+ a| 
+`linux`
+ a| 
+0
+ a| 
+0
+ a| 
+Todas las distribuciones de Linux
+
+
+
+ a| 
+`xen`
+ a| 
+0
+ a| 
+0
+ a| 
+Citrix XenServer
+
+
+
+ a| 
+`vmware`
+ a| 
+0
+ a| 
+0
+ a| 
+ESX de VMware
+
+
+
+ a| 
+`solaris`
+ a| 
+1 MB
+ a| 
+2,048
+ a| 
+Solaris
+
+
+
+ a| 
+`solaris_efi`
+ a| 
+17,408
+ a| 
+34
+ a| 
+Solaris
+
+
+
+ a| 
+`hpux`
+ a| 
+0
+ a| 
+0
+ a| 
+HP-UX
+
+
+
+ a| 
+`aix`
+ a| 
+0
+ a| 
+0
+ a| 
+AIX
+
+|===
+
+
+== Consideraciones especiales sobre la alineación de E/S para Linux
+
+Las distribuciones de Linux ofrecen una amplia variedad de formas de usar un LUN, como dispositivos sin formato para bases de datos, varios administradores de volúmenes y sistemas de archivos. No es necesario crear particiones en un LUN cuando se usa como dispositivo sin configurar o como volumen físico en un volumen lógico.
+
+Para RHEL 5 y versiones anteriores y SLES 10 y anteriores, si la LUN se utilizará sin un administrador de volúmenes, debe realizar particiones en la LUN para tener una partición que comienza en un desplazamiento alineado, que es un sector que es un múltiplo de ocho bloques lógicos.
+
+
+
+== Consideraciones especiales sobre la alineación de I/o para las LUN de Solaris
+
+Es necesario tener en cuenta varios factores a la hora de determinar si se debe usar el `solaris` ostype o la `solaris_efi` ostype.
+
+Consulte http://mysupport.netapp.com/documentation/productlibrary/index.html?productID=61343["Guía de instalación y administración de Solaris Host Utilities"^] para obtener información detallada.
+
+
+
+== Los LUN de arranque de ESX no están alineados
+
+ONTAP suele informar de las LUN utilizadas como LUN de arranque de ESX como mal alineadas. ESX crea varias particiones en el LUN de arranque, por lo que es muy difícil realizar una alineación. Las LUN de arranque de ESX mal alineadas no suelen ser un problema de rendimiento, ya que la cantidad total de I/o mal alineadas es pequeña. Suponiendo que la LUN se provisionara correctamente con VMware `ostype`, no se necesita ninguna acción.
+
+.Información relacionada
+https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/Virtual_Storage_Console_for_VMware_vSphere/Guest_VM_file_system_partition%2F%2Fdisk_alignment_for_VMware_vSphere["Alineación de disco/partición del sistema de archivos de máquina virtual invitada para VMware vSphere, otros entornos virtuales y los sistemas de almacenamiento de NetApp"]

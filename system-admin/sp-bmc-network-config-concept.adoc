@@ -1,0 +1,58 @@
+---
+permalink: system-admin/sp-bmc-network-config-concept.html 
+sidebar: sidebar 
+keywords: consideration, sp, bmc, network, configuration, cluster, level, disable, configuration 
+summary: 'Es posible habilitar la configuración de red automática a nivel de clúster para el SP (recomendado). También puede dejar deshabilitada la configuración automática de red de SP (predeterminado) y gestionar la configuración de red de SP manualmente en el nivel de nodo. Existen algunas consideraciones para cada caso.' 
+---
+= Consideraciones que tener en cuenta para la configuración de red del SP/BMC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible habilitar la configuración de red automática a nivel de clúster para el SP (recomendado). También puede dejar deshabilitada la configuración automática de red de SP (predeterminado) y gestionar la configuración de red de SP manualmente en el nivel de nodo. Existen algunas consideraciones para cada caso.
+
+[NOTE]
+====
+Este tema se aplica tanto al SP como al BMC.
+
+====
+La configuración de red automática del SP permite al SP utilizar recursos de dirección (incluida la dirección IP, la máscara de subred y la dirección de puerta de enlace) desde la subred especificada para configurar su red automáticamente. Con la configuración de red automática de SP, no es necesario asignar manualmente las direcciones IP para el SP de cada nodo. De forma predeterminada, la configuración de red automática del SP está deshabilitada; esto se debe a que para habilitar la configuración es necesario que la subred se utilice para la configuración en el clúster primero.
+
+Si habilita la configuración de red automática del SP, se aplican las siguientes situaciones y consideraciones:
+
+* Si el SP nunca se ha configurado, la red del SP se configura automáticamente de acuerdo con la subred especificada para la configuración de red automática del SP.
+* Si el SP se ha configurado manualmente o si la configuración de red del SP existente se basa en una subred diferente, la red de SP de todos los nodos del clúster se reconfiguran en función de la subred que especifique en la configuración de red automática de SP.
++
+La reconfiguración puede dar como resultado que se asigne a SP otra dirección, lo que puede afectar a la configuración de DNS y a su capacidad de resolver los nombres de host de SP. Como resultado, es posible que deba actualizar la configuración de DNS.
+
+* Un nodo que se une al clúster utiliza la subred especificada para configurar su red de SP automáticamente.
+* La `system service-processor network modify` El comando no le permite cambiar la dirección IP del SP.
++
+Cuando la configuración de red automática del SP está habilitada, el comando solo le permite habilitar o deshabilitar la interfaz de red del SP.
+
++
+** Si la configuración de red automática del SP se habilitó anteriormente, al deshabilitar la interfaz de red del SP, se libera el recurso de dirección asignado y se vuelve a la subred.
+** Si deshabilita la interfaz de red de SP y vuelve a habilitarla, el SP podría volver a configurarse con una dirección diferente.
+
+
+
+
+Si la configuración de red automática del SP está deshabilitada (por defecto), se aplican las siguientes situaciones y consideraciones:
+
+* Si el SP nunca se ha configurado, la configuración de red IPv4 de SP establece de manera predeterminada el uso de DHCP IPv4 e IPv6 está deshabilitado.
++
+Un nodo que se une al clúster también utiliza DHCP IPv4 para la configuración de red del SP de forma predeterminada.
+
+* La `system service-processor network modify` Command le permite configurar la dirección IP del SP de un nodo.
++
+Aparece un mensaje de advertencia cuando intenta configurar manualmente la red del SP con direcciones asignadas a una subred. Si ignora la advertencia y continúa con la asignación manual de direcciones, podría producirse un escenario con direcciones duplicadas.
+
+
+
+Si la configuración de red automática del SP se deshabilita después de haberse habilitado previamente, se aplican las siguientes situaciones y consideraciones:
+
+* Si la configuración de red automática del SP tiene deshabilitada la familia de direcciones IPv4, la red IPv4 de SP debe utilizar DHCP de manera predeterminada y la `system service-processor network modify` El comando le permite modificar la configuración IPv4 de SP para nodos individuales.
+* Si la configuración de red automática del SP tiene la familia de direcciones IPv6 deshabilitada, la red IPv6 del SP también está deshabilitada y el `system service-processor network modify` Comando le permite habilitar y modificar la configuración de IPv6 de SP para nodos individuales.
+

@@ -1,0 +1,68 @@
+---
+permalink: nas-audit/create-fpolicy-external-engine-task.html 
+sidebar: sidebar 
+keywords: create, fpolicy, external engine 
+summary: 'Debe crear un motor externo para comenzar a crear una configuración de FPolicy. El motor externo define el modo en que FPolicy realiza y gestiona conexiones a servidores FPolicy externos. Si su configuración utiliza el motor interno de ONTAP (el motor externo nativo) para bloquear archivos de forma sencilla, no tendrá que configurar un motor externo de FPolicy independiente y no tenga que llevar a cabo este paso.' 
+---
+= Cree el motor externo FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe crear un motor externo para comenzar a crear una configuración de FPolicy. El motor externo define el modo en que FPolicy realiza y gestiona conexiones a servidores FPolicy externos. Si su configuración utiliza el motor interno de ONTAP (el motor externo nativo) para bloquear archivos de forma sencilla, no tendrá que configurar un motor externo de FPolicy independiente y no tenga que llevar a cabo este paso.
+
+.Lo que necesitará
+La link:fpolicy-external-engine-config-worksheet-reference.html["motor externo"] debe rellenar la hoja de trabajo.
+
+.Acerca de esta tarea
+Si el motor externo se utiliza en una configuración de MetroCluster, debe especificar las direcciones IP de los servidores FPolicy del sitio de origen como servidores principales. Las direcciones IP de los servidores FPolicy del sitio de destino se deben especificar como servidores secundarios.
+
+.Pasos
+. Cree el motor externo FPolicy mediante `vserver fpolicy policy external-engine create` comando.
++
+El siguiente comando crea un motor externo en una máquina virtual de almacenamiento (SVM) vs1.example.com. No se requiere autenticación para las comunicaciones externas con el servidor FPolicy.
+
++
+`vserver fpolicy policy external-engine create -vserver-name vs1.example.com -engine-name engine1 -primary-servers 10.1.1.2,10.1.1.3 -port 6789 -ssl-option no-auth`
+
+. Verifique la configuración del motor externo de FPolicy mediante `vserver fpolicy policy external-engine show` comando.
++
+El siguiente comando muestra información acerca de todos los motores externos configurados en SVM vs1.example.com:
+
++
+`vserver fpolicy policy external-engine show -vserver vs1.example.com`
+
++
+[listing]
+----
+
+                                Primary        Secondary          External
+Vserver            Engine       Servers        Servers       Port Engine Type
+---------------    -----------  -------------- ----------- ------ -----------
+vs1.example.com    engine1      10.1.1.2,      -             6789 synchronous
+                                10.1.1.3
+----
++
+El siguiente comando muestra información detallada sobre el motor externo denominado «'motor1'» en la SVM vs1.example.com:
+
++
+`vserver fpolicy policy external-engine show -vserver vs1.example.com -engine-name engine1`
+
++
+[listing]
+----
+
+                              Vserver: vs1.example.com
+                               Engine: engine1
+              Primary FPolicy Servers: 10.1.1.2, 10.1.1.3
+       Port Number of FPolicy Service: 6789
+            Secondary FPolicy Servers: -
+                 External Engine Type: synchronous
+SSL Option for External Communication: no-auth
+           FQDN or Custom Common Name: -
+         Serial Number of Certificate: -
+                Certificate Authority: -
+----
+

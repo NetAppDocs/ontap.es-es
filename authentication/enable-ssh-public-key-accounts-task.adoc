@@ -1,0 +1,83 @@
+---
+permalink: authentication/enable-ssh-public-key-accounts-task.html 
+sidebar: sidebar 
+keywords: enable, ssh, public key, accounts 
+summary: Puede usar el comando Security login create para habilitar cuentas de administrador para acceder a un administrador o una SVM de datos con una clave pública SSH. 
+---
+= Habilite cuentas de clave pública de SSH
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `security login create` Comando para habilitar cuentas de administrador para acceder a una SVM de administrador o de datos con una clave pública SSH.
+
+.Lo que necesitará
+Para realizar esta tarea, debe ser un administrador de clústeres.
+
+.Acerca de esta tarea
+* Debe asociar la clave pública a la cuenta para que esta pueda acceder a la SVM.
++
+xref:manage-public-key-authentication-concept.adoc[Asociación de una clave pública con una cuenta de usuario]
+
++
+Puede realizar esta tarea antes o después de habilitar el acceso a la cuenta.
+
+* Si no está seguro de la función de control de acceso que desea asignar a la cuenta de inicio de sesión, puede usar la `security login modify` comando para añadir el rol más adelante.
+
+
+Si desea habilitar el modo SSL FIPS en un clúster donde las cuentas de administrador se autentican con una clave pública SSH antes de acceder a las SVM, debe asegurarse de que el algoritmo de clave de host sea compatible antes de habilitar FIPS.
+
+*Nota:* la compatibilidad con el algoritmo de clave de host ha cambiado en ONTAP 9.11.1 y versiones posteriores.
+
+[cols="30,30,30"]
+|===
+
+
+| Versión de ONTAP | Tipos de clave admitidos | Tipos de claves no compatibles 
+
+
+ a| 
+9.11.1 y posterior
+ a| 
+ecdsa-sha2-nistp256
+ a| 
+rsa-sha2-512 + rsa-sha2-256 + ssh-ed25519 + ssh-dss + ssh-rsa
+
+
+
+ a| 
+9.10.1 y anteriores
+ a| 
+ecdsa-sha2-nistp256 + ssh-ed25519
+ a| 
+ssh-dss + ssh-rsa
+
+|===
+Las cuentas de clave pública SSH existentes sin los algoritmos de clave admitidos deben volver a configurarse con un tipo de clave compatible antes de habilitar FIPS o la autenticación del administrador fallará.
+
+Para obtener más información, consulte link:../networking/configure_network_security_using_federal_information_processing_standards_@fips@.html["Configurar la seguridad de red con FIPS"].
+
+.Paso
+. Habilite cuentas de administrador local para acceder a una SVM mediante una clave pública de SSH:
++
+`security login create -vserver _SVM_name_ -user-or-group-name user_or_group_name -application _application_ -authmethod _authentication_method_ -role _role_ -comment _comment_`
+
++
+Para obtener una sintaxis completa del comando, consulte link:config-worksheets-reference.html["hoja de trabajo"].
+
++
+El siguiente comando habilita la cuenta de administrador de SVM `svmadmin1` con los predefinidos `vsadmin-volume` Rol para acceder a la SVM``engData1`` Mediante una clave pública SSH:
+
++
+[listing]
+----
+cluster1::>security login create -vserver engData1 -user-or-group-name svmadmin1 -application ssh -authmethod publickey -role vsadmin-volume
+----
+
+
+.Después de terminar
+Si no ha asociado una clave pública a la cuenta de administrador, debe hacerlo para que la cuenta pueda acceder a la SVM.
+
+xref:manage-public-key-authentication-concept.adoc[Asociación de una clave pública con una cuenta de usuario]

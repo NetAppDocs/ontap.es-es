@@ -1,0 +1,105 @@
+---
+permalink: nfs-admin/display-locks-task.html 
+sidebar: sidebar 
+keywords: display, information, lock 
+summary: Puede mostrar información acerca de los bloqueos de archivos actuales, incluidos los tipos de bloqueos que se conservan y el estado de bloqueo, detalles sobre bloqueos de rango de bytes, modos sharelock, bloqueos de delegación y bloqueos oportunistas, y si se abren bloqueos con identificadores duraderos o persistentes. 
+---
+= Mostrar información sobre bloqueos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede mostrar información acerca de los bloqueos de archivos actuales, incluidos los tipos de bloqueos que se conservan y el estado de bloqueo, detalles sobre bloqueos de rango de bytes, modos sharelock, bloqueos de delegación y bloqueos oportunistas, y si se abren bloqueos con identificadores duraderos o persistentes.
+
+.Acerca de esta tarea
+No se puede mostrar la dirección IP del cliente para los bloqueos establecidos a través de NFSv4 o NFSv4.1.
+
+De forma predeterminada, el comando muestra información sobre todos los bloqueos. Puede usar los parámetros del comando para mostrar información sobre los bloqueos de una máquina virtual de almacenamiento (SVM) específica o para filtrar el resultado del comando según otros criterios.
+
+La `vserver locks show` el comando muestra información sobre cuatro tipos de bloqueos:
+
+* Bloqueos de rango de bytes, que bloquean sólo una parte de un archivo.
+* Bloqueos de uso compartido, que bloquean los archivos abiertos.
+* Bloqueos oportunistas, que controlan el almacenamiento en caché en el cliente a través de SMB.
+* Delegaciones, que controlan el almacenamiento en caché en el cliente a través de NFSv4.x.
+
+
+Al especificar parámetros opcionales, puede determinar información importante sobre cada tipo de bloqueo. Consulte la página de manual del comando para obtener más información.
+
+.Paso
+. Muestra información sobre los bloqueos mediante `vserver locks show` comando.
+
+
+.Ejemplos
+En el siguiente ejemplo, se muestra información de resumen para un bloqueo de NFSv4 en un archivo con la ruta `/vol1/file1`. El modo de acceso sharelock es write-deny_none, y el bloqueo se concedió mediante la delegación de escritura:
+
+[listing]
+----
+cluster1::> vserver locks show
+
+Vserver: vs0
+Volume  Object Path               LIF         Protocol  Lock Type   Client
+------- ------------------------- ----------- --------- ----------- -------
+vol1    /vol1/file1               lif1        nfsv4     share-level -
+               Sharelock Mode: write-deny_none
+                                                        delegation  -
+               Delegation Type: write
+----
+En el siguiente ejemplo se muestra información detallada sobre oplock y sharelock acerca del bloqueo SMB en un archivo con la ruta de acceso `/data2/data2_2/intro.pptx`. Se concede un identificador duradero en el archivo con un modo de acceso de bloqueo compartido de Write-Deny_none a un cliente con una dirección IP de 10.3.1.3. Un plock de arrendamiento se concede con un nivel de plock por lotes:
+
+[listing]
+----
+cluster1::> vserver locks show -instance -path /data2/data2_2/intro.pptx
+
+                   Vserver: vs1
+                    Volume: data2_2
+         Logical Interface: lif2
+               Object Path: /data2/data2_2/intro.pptx
+                 Lock UUID: 553cf484-7030-4998-88d3-1125adbba0b7
+             Lock Protocol: cifs
+                 Lock Type: share-level
+   Node Holding Lock State: node3
+                Lock State: granted
+  Bytelock Starting Offset: -
+    Number of Bytes Locked: -
+     Bytelock is Mandatory: -
+     Bytelock is Exclusive: -
+     Bytelock is Superlock: -
+          Bytelock is Soft: -
+              Oplock Level: -
+   Shared Lock Access Mode: write-deny_none
+       Shared Lock is Soft: false
+           Delegation Type: -
+            Client Address: 10.3.1.3
+             SMB Open Type: durable
+         SMB Connect State: connected
+SMB Expiration Time (Secs): -
+         SMB Open Group ID: 78a90c59d45ae211998100059a3c7a00a007f70da0f8ffffcd445b0300000000
+
+                   Vserver: vs1
+                    Volume: data2_2
+         Logical Interface: lif2
+               Object Path: /data2/data2_2/test.pptx
+                 Lock UUID: 302fd7b1-f7bf-47ae-9981-f0dcb6a224f9
+             Lock Protocol: cifs
+                 Lock Type: op-lock
+   Node Holding Lock State: node3
+                Lock State: granted
+  Bytelock Starting Offset: -
+    Number of Bytes Locked: -
+     Bytelock is Mandatory: -
+     Bytelock is Exclusive: -
+     Bytelock is Superlock: -
+          Bytelock is Soft: -
+              Oplock Level: batch
+   Shared Lock Access Mode: -
+       Shared Lock is Soft: -
+           Delegation Type: -
+            Client Address: 10.3.1.3
+             SMB Open Type: -
+         SMB Connect State: connected
+SMB Expiration Time (Secs): -
+         SMB Open Group ID: 78a90c59d45ae211998100059a3c7a00a007f70da0f8ffffcd445b0300000000
+----

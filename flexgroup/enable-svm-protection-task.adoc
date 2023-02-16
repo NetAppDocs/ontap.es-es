@@ -1,0 +1,81 @@
+---
+permalink: flexgroup/enable-svm-protection-task.html 
+sidebar: sidebar 
+keywords: enable, svm, protection, flexgroup, volume 
+summary: Cuando la Marca de protección de recuperación ante desastres de SVM se establece en desprotegida en un volumen FlexGroup, puede configurar el indicador en protegido para habilitar la protección de recuperación ante desastres de SVM. 
+---
+= Habilite la protección de SVM en un volumen de FlexGroup
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando la Marca de protección de recuperación ante desastres de SVM se establece en `unprotected` En un volumen FlexGroup, puede establecer el indicador como `protected` Para habilitar la protección de recuperación ante desastres de SVM.
+
+.Lo que necesitará
+* La relación de recuperación ante desastres de SVM entre el volumen primario y el secundario está en buen estado.
+* El parámetro de protección DR de SVM se ha establecido en `unprotected`.
+
+
+.Pasos
+. Habilite la protección mediante `volume modify` para cambiar la `vserver-dr-protection` Parámetro del volumen de FlexGroup a. `protected`.
++
+[listing]
+----
+cluster2::> volume modify -vserver vs1 -volume fg_src -vserver-dr-protection protected
+[Job 5384] Job is queued: Modify fg_src.
+[Job 5384] Steps completed: 4 of 4.
+cluster2::>
+----
+. Actualice la SVM en el sitio secundario: `snapmirror update -destination-path destination_svm_name -source-path source_svm_name`
++
+[listing]
+----
+snapmirror update -destination-path vs1_dst: -source-path vs1:
+----
+. Compruebe que la relación de SnapMirror funciona correctamente: `snapmirror show`
++
+[listing]
+----
+cluster2::> snapmirror show
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs1:        XDP  vs1_dst:     Snapmirrored
+                                      Idle           -         true    -
+----
+. Compruebe que la relación de SnapMirror de FlexGroup es correcta: `snapmirror show -expand`
++
+[listing]
+----
+cluster2::> snapmirror show -expand
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs1:        XDP  vs1_dst:     Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src  XDP  vs1_dst:fg_src
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0001
+            XDP  vs1_dst:fg_src__0001
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0002
+            XDP  vs1_dst:fg_src__0002
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0003
+            XDP  vs1_dst:fg_src__0003
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0004
+            XDP  vs1_dst:fg_src__0004
+                              Snapmirrored
+                                      Idle           -         true    -
+6 entries were displayed.
+----
+

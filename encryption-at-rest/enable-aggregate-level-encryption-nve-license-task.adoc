@@ -1,0 +1,109 @@
+---
+permalink: encryption-at-rest/enable-aggregate-level-encryption-nve-license-task.html 
+sidebar: sidebar 
+keywords: enabling, aggregate-level, encryption, nve, ve license, license 
+summary: A partir de ONTAP 9.7, los agregados y volúmenes recién creados se cifran de forma predeterminada cuando se dispone de la licencia ve y la gestión de claves interna o externa. A partir de ONTAP 9.6, puede utilizar el cifrado a nivel de agregado para asignar claves al agregado que contiene para los volúmenes que se van a cifrar. Los volúmenes que se crean en el agregado están cifrados de manera predeterminada. Puede anular el valor predeterminado al cifrar el volumen. 
+---
+= Habilite el cifrado a nivel de agregado con la licencia ve
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.7, los agregados y volúmenes recién creados se cifran de forma predeterminada cuando se dispone de la licencia ve y la gestión de claves interna o externa. A partir de ONTAP 9.6, puede utilizar el cifrado a nivel de agregado para asignar claves al agregado que contiene para los volúmenes que se van a cifrar.
+
+.Lo que necesitará
+Para realizar esta tarea, debe ser un administrador de clústeres.
+
+.Acerca de esta tarea
+Debe utilizar el cifrado a nivel de agregado si tiene pensado realizar deduplicación en línea o en segundo plano a nivel de agregado. De lo contrario, NVE no admite la deduplicación a nivel de agregado.
+
+Un agregado habilitado para el cifrado a nivel de agregado se denomina agregado _NAE_ (para el cifrado de agregados de NetApp). Todos los volúmenes de un agregado de NAE deben estar cifrados con NAE o NVE. Con el cifrado a nivel de agregado, los volúmenes que cree en el agregado se cifran de forma predeterminada con el cifrado NAE. Puede anular el valor predeterminado para utilizar el cifrado NVE en su lugar.
+
+No se admiten volúmenes de texto sin formato en los agregados de la NAE.
+
+.Pasos
+. Habilite o deshabilite el cifrado de nivel de agregado:
++
+[cols="40,60"]
+|===
+
+
+| Para... | Se usa este comando... 
+
+
+ a| 
+Cree un agregado de NAE con ONTAP 9.7 o posterior
+ a| 
+`storage aggregate create -aggregate _aggregate_name_ -node _node_name_`
+
+
+
+ a| 
+Cree un agregado de NAE con ONTAP 9.6
+ a| 
+`storage aggregate create -aggregate _aggregate_name_ -node _node_name_ -encrypt-with-aggr-key true`
+
+
+
+ a| 
+Convertir un agregado que no sea NAE en un agregado de NAE
+ a| 
+`storage aggregate modify -aggregate _aggregate_name_ -node _node_name_ -encrypt-with-aggr-key true`
+
+
+
+ a| 
+Convertir un agregado de NAE en un agregado que no sea NAE
+ a| 
+`storage aggregate modify -aggregate _aggregate_name_ -node _node_name_ -encrypt-with-aggr-key false`
+
+|===
++
+Para obtener una sintaxis de comando completa, consulte las páginas man.
+
++
+El siguiente comando habilita el cifrado a nivel de agregado para `aggr1`:
+
++
+** ONTAP 9.7 o posterior:
++
+[listing]
+----
+cluster1::> storage aggregate create -aggregate aggr1
+----
+** ONTAP 9.6 o anterior:
++
+[listing]
+----
+cluster1::> storage aggregate create -aggregate aggr1 -encrypt-with-aggr-key true
+----
+
+
+. Compruebe que el agregado está habilitado para el cifrado:
++
+`storage aggregate show -fields encrypt-with-aggr-key`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+El siguiente comando lo verifica `aggr1` está habilitado para el cifrado:
+
++
+[listing]
+----
+cluster1::> storage aggregate show -fields encrypt-with-aggr-key
+aggregate            encrypt-aggr-key
+-------------------- ----------------
+aggr0_vsim4          false
+aggr1                true
+2 entries were displayed.
+----
+
+
+.Después de terminar
+Ejecute el `volume create` comando para crear los volúmenes cifrados.
+
+Si utiliza un servidor KMIP para almacenar las claves de cifrado de un nodo, ONTAP inserta automáticamente una clave de cifrado en el servidor al cifrar un volumen.

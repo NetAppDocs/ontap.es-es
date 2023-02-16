@@ -1,0 +1,101 @@
+---
+sidebar: sidebar 
+permalink: networking/lif_roles95.html 
+keywords: lif, role, ontap 9.5, lif roles in ontap 9.5 and earlier, lifs with different roles have different characteristics, lif compatibility with port types, network interface modify -vserver _vserver name_ -lif _intercluster lif_ -status-admin up|down, lif security, lif failover, lif routing, lif rebalancing 
+summary: Los LIF con diferentes roles tienen características diferentes 
+---
+= Roles de LIF en ONTAP 9.5 y versiones anteriores
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Los LIF con diferentes roles tienen características diferentes. Una función de LIF determina el tipo de tráfico que se admite a través de la interfaz, junto con las reglas de conmutación por error aplicables, las restricciones de firewall aplicadas, la seguridad, el equilibrio de carga y el comportamiento de enrutamiento de cada LIF. Una LIF puede tener cualquiera de los siguientes roles: Clúster, gestión de clústeres, datos, interconexión de clústeres, gestión de nodos, y undef (sin definir). El rol Undef se utiliza para los LIF BGP.
+
+A partir de ONTAP 9.6, los roles de LIF quedan obsoletos. Debería especificar políticas de servicio para las LIF en lugar de un rol. No es necesario especificar un rol de LIF al crear una LIF con una política de servicio.
+
+
+
+== Seguridad de LIF
+
+|===
+
+
+|  | LIF de datos | LIF de clúster | LIF de gestión de nodos | LIF de gestión de clústeres | LIF entre clústeres 
+
+
+| ¿Necesita una subred IP privada? | No | Sí | No | No | No 
+
+
+| ¿Necesita una red segura? | No | Sí | No | No | Sí 
+
+
+| Política de firewall predeterminada | Muy restrictivo | Completamente abierto | Mediano | Mediano | Muy restrictivo 
+
+
+| ¿Se puede personalizar el firewall? | Sí | No | Sí | Sí | Sí 
+|===
+
+
+== Recuperación tras fallos de LIF
+
+|===
+
+
+|  | LIF de datos | LIF de clúster | LIF de gestión de nodos | LIF de gestión de clústeres | LIF entre clústeres 
+
+
+| Comportamiento predeterminado | Solo esos puertos del mismo grupo de recuperación tras fallos que se encuentran en el nodo principal de la LIF y en un nodo partner distinto de SFO | Solo aquellos puertos del mismo grupo de conmutación al nodo de respaldo que se encuentran en el nodo raíz de la LIF | Solo aquellos puertos del mismo grupo de conmutación al nodo de respaldo que se encuentran en el nodo raíz de la LIF | Cualquier puerto del mismo grupo de recuperación tras fallos | Solo aquellos puertos del mismo grupo de conmutación al nodo de respaldo que se encuentran en el nodo raíz de la LIF 
+
+
+| ¿Se puede personalizar? | Sí | No | Sí | Sí | Sí 
+|===
+
+
+== Enrutamiento de LIF
+
+|===
+
+
+|  | LIF de datos | LIF de clúster | LIF de gestión de nodos | LIF de gestión de clústeres | LIF entre clústeres 
+
+
+| ¿Cuándo es necesaria una ruta predeterminada? | Cuando los clientes o el controlador de dominio están en una subred IP diferente | Nunca | Cuando cualquiera de los tipos de tráfico principales requiere acceso a una subred IP diferente | Cuando el administrador se conecta desde otra subred IP | Cuando otras LIF de interconexión de clústeres se encuentran en una subred IP diferente 
+
+
+| ¿Cuándo se necesita una ruta estática a una subred IP específica? | Raras | Nunca | Raras | Raras | Cuando los nodos de otro clúster tienen sus LIF de interconexión de clústeres en subredes IP diferentes 
+
+
+| ¿Cuándo se necesita una ruta de host estática a un servidor específico? | Para tener uno de los tipos de tráfico enumerados en LIF de gestión de nodos, vaya a través de una LIF de datos y no a una LIF de gestión de nodos. Esto requiere un cambio de firewall correspondiente. | Nunca | Raras | Raras | Raras 
+|===
+
+
+== Reequilibrado de LIF
+
+|===
+
+
+|  | LIF de datos | LIF de clúster | LIF de gestión de nodos | LIF de gestión de clústeres | LIF entre clústeres 
+
+
+| DNS: ¿Usar como servidor DNS? | Sí | No | No | No | No 
+
+
+| DNS: ¿Exportar como zona? | Sí | No | No | No | No 
+|===
+
+
+== Tipos de tráfico principales de LIF
+
+|===
+
+
+|  | LIF de datos | LIF de clúster | LIF de gestión de nodos | LIF de gestión de clústeres | LIF entre clústeres 
+
+
+| Tipos de tráfico principales | Servidor NFS, servidor CIFS, cliente NIS, Active Directory, LDAP, WINS, cliente DNS y servidor, iSCSI y servidor FC | Dentro del clúster | Servidor SSH, servidor HTTPS, cliente NTP, SNMP, cliente AutoSupport, Cliente DNS, cargando actualizaciones de software | Servidor SSH, servidor HTTPS | Replicación entre clústeres 
+|===

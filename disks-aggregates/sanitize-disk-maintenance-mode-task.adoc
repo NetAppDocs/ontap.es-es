@@ -1,0 +1,214 @@
+---
+permalink: disks-aggregates/sanitize-disk-maintenance-mode-task.html 
+sidebar: sidebar 
+keywords: sanitize, disk, maintenance mode, nodeshell, node shell, sanitization 
+summary: A partir de ONTAP 9.6, puede realizar un saneamiento de disco en modo de mantenimiento. Esto le permite eliminar datos de un disco o un conjunto de discos en sistemas retirados del servicio o inoperables para que los datos nunca puedan recuperarse. 
+---
+= Desinfecte un disco
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El saneamiento de un disco le permite eliminar datos de un disco o un conjunto de discos en sistemas retirados del servicio o inoperables para que los datos nunca puedan recuperarse.
+
+Existen dos métodos para desinfectar discos utilizando la CLI:
+
+.Desinfecte un disco con y#8220;modo de mantenimiento&#8221; comandos (ONTAP 9.6 y versiones posteriores)
+[%collapsible]
+====
+A partir de ONTAP 9.6, puede realizar un saneamiento de disco en modo de mantenimiento.
+
+.Antes de empezar
+* Los discos no pueden ser discos de autocifrado (SED).
++
+Debe utilizar el `storage encryption disk sanitize` Comando para desinfectar un SED.
+
++
+link:../encryption-at-rest/index.html["Cifrado de datos en reposo"]
+
+
+
+.Pasos
+. Arranque en modo de mantenimiento.
++
+.. Para salir del shell actual, introduzca `halt`.
++
+Aparece el aviso del CARGADOR.
+
+.. Para entrar en el modo de mantenimiento, introduzca `boot_ontap maint`.
++
+Después de ver alguna información, se muestra el símbolo del sistema del modo de mantenimiento.
+
+
+
+. Si los discos que desea desinfectar se crean particiones, desparticionar cada disco:
++
+
+NOTE: El comando para anular la partición de un disco solo está disponible a nivel de diagnóstico y solo se debe realizar bajo la supervisión del soporte de NetApp. Es muy recomendable que se ponga en contacto con el soporte de NetApp antes de continuar. También puede consultar el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Cómo desparticionar una unidad de reserva en ONTAP"^]
+
++
+`disk unpartition _disk_name_`
+
+. Desinfecte los discos especificados:
++
+`disk sanitize start [-p _pattern1_|-r [-p _pattern2_|-r [-p _pattern3_|-r]]] [-c _cycle_count_] _disk_list_`
+
++
+
+NOTE: No apague el nodo, interrumpa la conectividad de almacenamiento ni elimine los discos de destino mientras se está saneando. Si se interrumpe la operación durante la fase de formateo, se debe reiniciar la fase de formateo y se debe permitir que finalice antes de que los discos se sanearan y estén listos para ser devueltos al pool de reserva. Si necesita anular el proceso de saneamiento, puede hacerlo utilizando el `disk sanitize abort` comando. Si los discos especificados se están sometiendo a la fase de formateo del saneamiento, la interrupción no se producirá hasta que se complete la fase.
+
++
+ `-p` `_pattern1_` `-p` `_pattern2_` `-p` `_pattern3_` especifica un ciclo de uno a tres patrones de sobrescritura de bytes hex definidos por el usuario que se pueden aplicar sucesivamente a los discos que se están saneando. El patrón predeterminado son tres pasadas, usando 0x55 para la primera pasada, 0xaa para la segunda pasada y 0x3c para la tercera pasada.
+
++
+`-r` reemplaza una sobrescritura con patrón por una sobrescritura aleatoria para cualquiera de las pasadas o para todas ellas.
+
++
+`-c` `_cycle_count_` especifica el número de veces que se aplican los patrones de sobrescritura especificados. El valor predeterminado es un ciclo. El valor máximo es siete ciclos.
+
++
+`_disk_list_` Especifica una lista separada por espacio de los ID de los discos de repuesto que se van a desinfectar.
+
+. Si lo desea, compruebe el estado del proceso de saneamiento de disco:
++
+`disk sanitize status [_disk_list_]`
+
+. Una vez completado el proceso de saneamiento, devuelva los discos al estado de reserva de cada disco:
++
+`disk sanitize release _disk_name_`
+
+. Salga del modo de mantenimiento.
+
+
+====
+.Desinfecte un disco con y#8220;nodeshell&#8221; comandos (todas las versiones de ONTAP 9)
+[%collapsible]
+====
+Para todas las versiones de ONTAP 9, cuando se habilita el saneamiento de disco mediante comandos nodeshell, se deshabilitan algunos comandos ONTAP de bajo nivel. Cuando el saneamiento de disco está habilitado en un nodo, no se puede deshabilitar.
+
+.Antes de empezar
+* Los discos deben ser discos de repuesto; deben ser propiedad de un nodo, pero no se usan en un nivel local (agregado).
++
+Si los discos están particionados, ninguna partición puede estar en uso en un nivel local (agregado).
+
+* Los discos no pueden ser discos de autocifrado (SED).
++
+Debe utilizar el `storage encryption disk sanitize` Comando para desinfectar un SED.
+
++
+link:../encryption-at-rest/index.html["Cifrado de datos en reposo"]
+
+* Los discos no pueden formar parte de una agrupación de almacenamiento.
+
+
+.Pasos
+. Si los discos que desea desinfectar se crean particiones, desparticionar cada disco:
++
+--
+
+NOTE: El comando para anular la partición de un disco solo está disponible a nivel de diagnóstico y solo se debe realizar bajo la supervisión del soporte de NetApp. **Se recomienda encarecidamente que se ponga en contacto con el soporte de NetApp antes de continuar.** también puede consultar el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Cómo desparticionar una unidad de reserva en ONTAP"^].
+
+--
++
+`disk unpartition _disk_name_`
+
+. Introduzca el nodo que posee los discos que desea desinfectar:
++
+`system node run -node _node_name_`
+
+. Habilitar el saneamiento de disco:
++
+`options licensed_feature.disk_sanitization.enable on`
+
++
+Se le pide que confirme el comando porque es irreversible.
+
+. Cambie al nivel de privilegio avanzado de Nodesinfierno:
++
+`priv set advanced`
+
+. Desinfecte los discos especificados:
++
+`disk sanitize start [-p pattern1|-r [-p pattern2|-r [-p pattern3|-r]]] [-c cycle_count] disk_list`
+
++
+
+NOTE: No apague el nodo, interrumpa la conectividad de almacenamiento ni elimine los discos de destino mientras se está saneando. Si se interrumpe la operación durante la fase de formateo, se debe reiniciar la fase de formateo y se debe permitir que finalice antes de que los discos se sanearan y estén listos para ser devueltos al pool de reserva. Si necesita anular el proceso de saneamiento, puede hacerlo mediante el comando Disk sanitize abort. Si los discos especificados se están sometiendo a la fase de formateo del saneamiento, la interrupción no se producirá hasta que se complete la fase.
+
++
+`-p pattern1 -p pattern2 -p pattern3` especifica un ciclo de uno a tres patrones de sobrescritura de bytes hex definidos por el usuario que se pueden aplicar sucesivamente a los discos que se están saneando. El patrón predeterminado son tres pasadas, usando 0x55 para la primera pasada, 0xaa para la segunda pasada y 0x3c para la tercera pasada.
+
++
+`-r` reemplaza una sobrescritura con patrón por una sobrescritura aleatoria para cualquiera de las pasadas o para todas ellas.
+
++
+`-c cycle_count` especifica el número de veces que se aplican los patrones de sobrescritura especificados.
+
++
+El valor predeterminado es un ciclo. El valor máximo es siete ciclos.
+
++
+`disk_list` Especifica una lista separada por espacio de los ID de los discos de repuesto que se van a desinfectar.
+
+. Si desea comprobar el estado del proceso de saneamiento de disco:
++
+`disk sanitize status [disk_list]`
+
+. Una vez finalizado el proceso de saneamiento, devuelva los discos a estado de repuesto:
++
+`disk sanitize release _disk_name_`
+
+. Volver al nivel de privilegios de administración nodesinfierno:
++
+`priv set admin`
+
+. Volver a la CLI de ONTAP:
++
+`exit`
+
+. Determine si todos los discos se han devuelto al estado de repuesto:
++
+`storage aggregate show-spare-disks`
+
++
+[cols="1,2"]
+|===
+
+
+| Si... | Realice lo siguiente... 
+
+
+| Todos los discos sanitizados se enumeran como repuestos | Ha terminado. Los discos se sanean y están en estado de repuesto. 
+
+
+| Algunos de los discos sanitizados no aparecen como repuestos  a| 
+Complete los siguientes pasos:
+
+.. Entre en el modo de privilegio avanzado:
++
+`set -privilege advanced`
+
+.. Asigne los discos sanitizados sin asignar al nodo adecuado para cada disco:
++
+`storage disk assign -disk _disk_name_ -owner _node_name_`
+
+.. Devuelva los discos al estado de repuesto de cada disco:
++
+`storage disk unfail -disk _disk_name_ -s -q`
+
+.. Volver al modo administrativo:
++
+`set -privilege admin`
+
+
+
+|===
+
+
+====
+.Resultado
+Los discos especificados están sancionados y designados como piezas de repuesto. Los números de serie de los discos sanitizados se escriben en `/etc/log/sanitized_disks`.
+
+Los registros de saneamiento de los discos especificados, que muestran en qué se ha completado cada disco, se escriben `/mroot/etc/log/sanitization.log`.

@@ -1,0 +1,152 @@
+---
+permalink: system-admin/troubleshoot-autosupport-delivery-smtp-task.html 
+sidebar: sidebar 
+keywords: troubleshoot, autosupport, deliver, system, smtp, settings, resolve, problem 
+summary: Si el sistema no puede entregar mensajes de AutoSupport a través de SMTP, puede comprobar una serie de opciones para resolver el problema. 
+---
+= Solucionar los problemas de entrega de mensajes de AutoSupport a través de SMTP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si el sistema no puede entregar mensajes de AutoSupport a través de SMTP, puede comprobar una serie de opciones para resolver el problema.
+
+.Lo que necesitará
+Debe haber confirmado la conectividad de red básica y la búsqueda de DNS:
+
+* El LIF de gestión de nodos debe estar activo para tener el estado operativo y administrativo.
+* Debe poder hacer ping a un host en funcionamiento en la misma subred desde la LIF de gestión del clúster (no una LIF en ninguno de los nodos).
+* Debe poder hacer ping a un host en funcionamiento fuera de la subred desde la LIF de administración de clústeres.
+* Debe poder hacer ping a un host en funcionamiento fuera de la subred desde la LIF de administración de clústeres con el nombre del host (no la dirección IP).
+
+
+.Acerca de esta tarea
+Estos pasos son para casos en los que ha determinado que AutoSupport puede generar el mensaje, pero no puede entregarlo a través de SMTP.
+
+Si encuentra errores o no puede completar un paso de este procedimiento, determine y resuelva el problema antes de continuar con el siguiente paso.
+
+Todos los comandos se introducen en la interfaz de línea de comandos de ONTAP, a menos que se especifique lo contrario.
+
+.Pasos
+. Compruebe el estado de la LIF de gestión de nodos:
++
+`*network interface show -home-node local -role node-mgmt -fields vserver,lif,status-oper,status-admin,address,role*`
+
++
+La `status-oper` y.. `status-admin` los campos deben regresar `up`.
+
+. Registre el nombre de la SVM, el nombre de la LIF y la dirección IP de la LIF para usarlos más adelante.
+. Asegúrese de que DNS esté habilitado y configurado correctamente:
++
+`*vserver services name-service dns show*`
+
+. Mostrar todos los servidores configurados para ser utilizados por AutoSupport:
++
+`*system node autosupport show -fields mail-hosts*`
+
++
+Registre todos los nombres de servidor mostrados.
+
+. Para cada servidor que se muestra en el paso anterior, y. `support.netapp.com`, Asegúrese de que el nodo puede acceder al servidor o a la URL:
++
+`*network traceroute -node local -destination _server_name_*`
+
++
+Si alguna de estas rutas no funciona, pruebe la misma ruta desde un host en funcionamiento en la misma subred que el clúster, utilizando la utilidad «'traceroute' o «'tracert'» que se encuentra en la mayoría de los clientes de red de terceros. Esto le ayuda a determinar si el problema está en la configuración de red o en la configuración del clúster.
+
+. Inicie sesión en el host designado como host de correo y asegúrese de que puede atender solicitudes SMTP:
++
+`*netstat -aAn|grep 25*`
+
++
+`25` Es el número de puerto SMTP del listener.
+
++
+Se muestra un mensaje similar al siguiente texto:
+
++
+[listing]
+----
+ff64878c tcp        0      0  *.25    *.*    LISTEN.
+----
+. Desde otro host, abra una sesión Telnet con el puerto SMTP del host de correo:
++
+`*telnet _mailhost_ 25*`
+
++
+Se muestra un mensaje similar al siguiente texto:
+
++
+[listing]
+----
+
+220 filer.yourco.com Sendmail 4.1/SMI-4.1 ready at Thu, 30 Nov 2014 10:49:04 PST
+----
+. En el símbolo de telnet, asegúrese de que se puede transmitir un mensaje desde su host de correo:
++
+`*HELO _domain_name_*`
+
++
+`*MAIL FROM: _your_email_address_*`
+
++
+`*RCPT TO: \autosupport@netapp.com*`
+
++
+`domain_name` es el nombre de dominio de la red.
+
++
+Si se devuelve un error que indica que se deniega la retransmisión, la retransmisión no está activada en el host de correo. Póngase en contacto con el administrador del sistema.
+
+. En el símbolo de telnet, envíe un mensaje de prueba:
++
+`*DATA*`
+
++
+`*SUBJECT: TESTING*`
+`*THIS IS A TEST*`
+
++
+`*.*`
+
++
+[NOTE]
+====
+Asegúrese de introducir el último período (.) en una línea por sí misma. El período indica al host de correo que el mensaje ha finalizado.
+
+====
++
+Si se devuelve un error, el host de correo no está configurado correctamente. Póngase en contacto con el administrador del sistema.
+
+. Desde la interfaz de línea de comandos de ONTAP, envíe un mensaje de prueba de AutoSupport a una dirección de correo electrónico de confianza a la que tenga acceso:
++
+`*system node autosupport invoke -node local -type test*`
+
+. Busque el número de secuencia del intento:
++
+`*system node autosupport history show -node local -destination smtp*`
+
++
+Busque el número de secuencia para su intento basado en la Marca de hora. Probablemente sea el intento más reciente.
+
+. Mostrar el error para el intento de mensaje de prueba:
++
+`*system node autosupport history show -node local -seq-num seq_num -fields error*`
+
++
+Si el error mostrado es `Login denied`, El servidor SMTP no acepta peticiones de envío desde la LIF de administración del clúster. Si no desea cambiar al uso de HTTPS como protocolo de transporte, póngase en contacto con el administrador de red del sitio para configurar las puertas de enlace SMTP para resolver este problema.
+
++
+Si esta prueba se realiza correctamente pero el mismo mensaje enviado a mailto:autosupport@netapp.com no lo hace, asegúrese de que la retransmisión SMTP está activada en todos los hosts de correo SMTP o utilice HTTPS como protocolo de transporte.
+
++
+Si incluso el mensaje a la cuenta de correo administrada localmente no se realiza correctamente, confirme que los servidores SMTP están configurados para reenviar archivos adjuntos con ambas características:
+
++
+** El sufijo "'7z'"
+** El tipo MIME "'Application/x-7x-Compressed'".
+
+
+

@@ -1,0 +1,279 @@
+---
+permalink: nas-audit/plan-auditing-config-concept.html 
+sidebar: sidebar 
+keywords: plan, audit, configuration, svm, rotate, logs, size, schedule, rotation, dr, disaster recovery 
+summary: 'Antes de configurar la auditoría de máquinas virtuales de almacenamiento (SVM), debe comprender qué opciones de configuración están disponibles y planificar los valores que desea establecer para cada opción. Esta información puede ayudarle a configurar la configuración de auditoría que se ajuste a sus necesidades empresariales.' 
+---
+= Planifique la configuración de auditoría
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de configurar la auditoría de máquinas virtuales de almacenamiento (SVM), debe comprender qué opciones de configuración están disponibles y planificar los valores que desea establecer para cada opción. Esta información puede ayudarle a configurar la configuración de auditoría que se ajuste a sus necesidades empresariales.
+
+Hay ciertos parámetros de configuración que son comunes a todas las configuraciones de auditoría.
+
+Además, existen ciertos parámetros que se pueden utilizar para especificar qué métodos se utilizan al girar los registros de auditoría consolidados y convertidos. Puede especificar uno de los tres métodos siguientes al configurar la auditoría:
+
+* Rotar registros según el tamaño del registro
++
+Este es el método predeterminado utilizado para rotar registros.
+
+* Rotar registros según un programa
+* Rotar registros según el tamaño del registro y la programación (el evento que ocurra primero)
+
+
+[NOTE]
+====
+Siempre debe establecerse al menos uno de los métodos de rotación de log.
+
+====
+
+
+== Parámetros comunes a todas las configuraciones de auditoría
+
+Hay dos parámetros necesarios que debe especificar al crear la configuración de auditoría. También puede especificar tres parámetros opcionales:
+
+[cols="40,30,10,10,10"]
+|===
+
+
+| Tipo de información | Opción | Obligatorio | Incluya | Sus valores 
+
+
+ a| 
+_SVM name_
+
+Nombre de la SVM en la que se creará la configuración de auditoría. La SVM ya debe existir.
+ a| 
+`-vserver` `vserver_name`
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+
+
+
+ a| 
+_Ruta de destino del registro_
+
+Especifica el directorio en el que se almacenan los registros de auditoría convertidos, normalmente un volumen o qtree dedicados. La ruta ya debe existir en el espacio de nombres de la SVM.
+
+La ruta puede tener hasta 864 caracteres y debe tener permisos de lectura y escritura.
+
+Si la ruta no es válida, el comando de configuración de auditoría falla.
+
+Si la SVM es un origen de recuperación ante desastres de SVM, la ruta de destino de registros no puede estar en el volumen raíz. Esto se debe a que el contenido del volumen raíz no se replica en el destino de recuperación ante desastres.
+
+No se puede utilizar un volumen de FlexCache como destino del registro (ONTAP 9.7 y versiones posteriores).
+ a| 
+`-destination` `text`
+ a| 
+Sí
+ a| 
+Sí
+ a| 
+
+
+
+ a| 
+_Categorías de eventos para auditar_
+
+Especifica las categorías de eventos que se van a auditar. Se pueden auditar las siguientes categorías de eventos:
+
+* Eventos de acceso a los archivos (SMB y NFSv4)
+* Eventos de inicio y cierre de sesión en SMB
+* Eventos de configuración de directivas de acceso central
++
+Los eventos de configuración de directivas de acceso central son un nuevo evento de auditoría avanzada disponible a partir de los dominios de Active Directory de Windows 2012. Los eventos de configuración de directivas de acceso central registran información sobre los cambios en las directivas de acceso central configuradas en Active Directory.
+
+* Eventos de categoría de recursos compartidos de archivos
+* Auditar eventos de cambio de directivas
+* Eventos de gestión de cuentas de usuario local
+* Eventos de gestión del grupo de seguridad
+* Eventos de cambio de directiva de autorización
+
+
+El valor predeterminado es auditar el acceso a archivos y los eventos de inicio y cierre de sesión de SMB.
+
+*Nota:* antes de poder especificar `cap-staging` Como categoría de evento, debe existir un servidor SMB en la SVM. Aunque puede habilitar la configuración de directivas de acceso central en la configuración de auditoría sin habilitar Dynamic Access Control en el servidor SMB, los eventos de configuración de directivas de acceso central sólo se generan si el control de acceso dinámico está habilitado. El control de acceso dinámico se activa mediante una opción de servidor SMB. No está habilitado de forma predeterminada.
+ a| 
+`-events` {`file-ops`|`cifs-logon-logoff`|`cap-staging`|`file-share`|`audit-policy-change`|`user-account`|`security-group`|`authorization-policy-change`}
+ a| 
+No
+ a| 
+ a| 
+
+
+
+ a| 
+_Formato de salida del archivo de registro_
+
+Determina el formato de salida de los registros de auditoría. El formato de salida puede ser específico de ONTAP `XML` O Microsoft Windows `EVTX` formato de registro. De forma predeterminada, el formato de salida es `EVTX`.
+ a| 
+`-format` {`xml`|`evtx`}
+ a| 
+No
+ a| 
+ a| 
+
+
+
+ a| 
+_Límite de rotación de los archivos de registro_
+
+Determina cuántos archivos de registro de auditoría se retendrán antes de rotar el archivo de registro más antiguo. Por ejemplo, si introduce un valor de `5`, se conservan los cinco últimos archivos de registro.
+
+Valor de `0` indica que se conservan todos los archivos de registro. El valor predeterminado es 0.
+ a| 
+`-rotate-limit` `integer`
+ a| 
+No
+ a| 
+ a| 
+
+|===
+
+
+== Parámetros que se utilizan para determinar cuándo rotar registros de eventos de auditoría
+
+*Rotar registros según el tamaño del registro*
+
+El valor predeterminado es girar los registros de auditoría en función del tamaño.
+
+* El tamaño predeterminado del registro es 100 MB
+* Si desea utilizar el método de rotación de registro predeterminado y el tamaño de registro predeterminado, no necesita configurar ningún parámetro específico para la rotación de registros.
+* Si desea rotar los registros de auditoría según un tamaño de registro solo, utilice el siguiente comando para anular la definición del `-rotate-schedule-minute` parámetro: `vserver audit modify -vserver vs0 -destination / -rotate-schedule-minute -`
+
+
+Si no desea utilizar el tamaño predeterminado del registro, puede configurar el `-rotate-size` parámetro para especificar un tamaño de registro personalizado:
+
+[cols="40,30,10,10,10"]
+|===
+
+
+| Tipo de información | Opción | Obligatorio | Incluya | Sus valores 
+
+
+ a| 
+_Límite de tamaño de archivo de registro_
+
+Determina el límite de tamaño del archivo del registro de auditoría.
+ a| 
+`-rotate-size` {`integer`[KB|MB|GB|TB|PB]}
+ a| 
+No
+ a| 
+ a| 
+
+|===
+*Rotar registros en función de un horario*
+
+Si opta por rotar los registros de auditoría según una programación, puede programar la rotación del registro utilizando los parámetros de rotación basados en tiempo en cualquier combinación.
+
+* Si utiliza rotación basada en tiempo, el `-rotate-schedule-minute` el parámetro es obligatorio.
+* Todos los demás parámetros de rotación basados en el tiempo son opcionales.
+* El programa de rotación se calcula utilizando todos los valores relacionados con el tiempo.
++
+Por ejemplo, si especifica solo el `-rotate-schedule-minute` parámetro, los archivos de registro de auditoría se rotan en función de los minutos especificados en todos los días de la semana, durante todas las horas en todos los meses del año.
+
+* Si especifica solo uno o dos parámetros de rotación basados en la hora (por ejemplo, `-rotate-schedule-month` y.. `-rotate-schedule-minutes`), los archivos de registro se rotan en función de los valores de minutos que haya especificado en todos los días de la semana, durante todas las horas, pero sólo durante los meses especificados.
++
+Por ejemplo, puede especificar que el registro de auditoría se va a rotar durante los meses de enero, marzo y agosto todos los lunes, miércoles y sábados a las 10:30 a.m.
+
+* Si especifica valores para ambos `-rotate-schedule-dayofweek` y.. `-rotate-schedule-day`, se consideran independientes.
++
+Por ejemplo, si especifica `-rotate-schedule-dayofweek` Como viernes y. `-rotate-schedule-day` Como 13, los registros de auditoría se girarían cada viernes y el día 13 del mes especificado, no sólo cada viernes 13.
+
+* Si desea rotar los registros de auditoría según una programación solo, se debe utilizar el siguiente comando para anular la definición del `-rotate-size` parámetro: `vserver audit modify -vserver vs0 -destination / -rotate-size -`
+
+
+Puede utilizar la siguiente lista de parámetros de auditoría disponibles para determinar qué valores utilizar para configurar una programación para las rotaciones del registro de eventos de auditoría:
+
+[cols="40,30,10,10,10"]
+|===
+
+
+| Tipo de información | Opción | Obligatorio | Incluya | Sus valores 
+
+
+ a| 
+_Registro del programa de rotación: Mes_
+
+Determina la programación mensual para registros de auditoría giratorios.
+
+Los valores válidos son `January` por `December`, y. `all`. Por ejemplo, puede especificar que el registro de auditoría se va a rotar durante los meses enero, marzo y agosto.
+ a| 
+`-rotate-schedule-month` `chron_month`
+ a| 
+No
+ a| 
+ a| 
+
+
+
+ a| 
+_Registro del programa de rotación: Día de la semana_
+
+Determina la programación diaria (día de la semana) para los registros de auditoría giratorios.
+
+Los valores válidos son `Sunday` por `Saturday`, y. `all`. Por ejemplo, puede especificar que el registro de auditoría se gire los martes y viernes o durante todos los días de una semana.
+ a| 
+`-rotate-schedule-dayofweek` `chron_dayofweek`
+ a| 
+No
+ a| 
+ a| 
+
+
+
+ a| 
+_Registro del programa de rotación: Día_
+
+Determina el día del programa del mes para rotar el registro de auditoría.
+
+Los valores válidos van desde `1` por `31`. Por ejemplo, puede especificar que el registro de auditoría se va a rotar los días 10 y 20 del mes, o todos los días del mes.
+ a| 
+`-rotate-schedule-day` `chron_dayofmonth`
+ a| 
+No
+ a| 
+ a| 
+
+
+
+ a| 
+_Registro de la rotación del programa: Hora_
+
+Determina la programación horaria para rotar el registro de auditoría.
+
+Los valores válidos van desde `0` (medianoche) a. `23` (a las 11:00). Especificando `all` gira los registros de auditoría cada hora. Por ejemplo, puede especificar que el registro de auditoría se gire a las 6 (6 a.m.) y 18 (6 p.m.).
+ a| 
+`-rotate-schedule-hour` `chron_hour`
+ a| 
+No
+ a| 
+ a| 
+
+
+
+ a| 
+_Registro del programa de rotación: Minuto_
+
+Determina la programación de minutos para rotar el registro de auditoría.
+
+Los valores válidos van desde `0` para `59`. Por ejemplo, puede especificar que el registro de auditoría se va a rotar a 30 minutos.
+ a| 
+`-rotate-schedule-minute` `chron_minute`
+ a| 
+Sí, si se configura la rotación del registro basada en horario; de lo contrario, no
+ a| 
+ a| 
+
+|===
+*Rotar registros según el tamaño del registro y el horario*
+
+Puede elegir girar los archivos de registro según el tamaño del registro y una programación configurando ambos `-rotate-size` parámetros y parámetros de rotación basados en tiempo en cualquier combinación. Por ejemplo: Si `-rotate-size` Se establece en 10 MB y. `-rotate-schedule-minute` Se establece en 15, los archivos de registro giran cuando el tamaño del archivo de registro alcanza 10 MB o en el 15 minuto de cada hora (el evento que ocurra primero).

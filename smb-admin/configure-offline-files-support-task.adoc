@@ -1,0 +1,131 @@
+---
+permalink: smb-admin/configure-offline-files-support-task.html 
+sidebar: sidebar 
+keywords: configure, offline, file, support, ontap, cli, smb, modify, exist, smb, share, manual, default, setting, configure offline files support on smb shares using the cli 
+summary: Puede configurar la compatibilidad de archivos sin conexión mediante la interfaz de línea de comandos de ONTAP especificando una de las cuatro archivos sin conexión al crear recursos compartidos de SMB o en cualquier momento modificando los recursos compartidos de SMB existentes. La compatibilidad con archivos manuales sin conexión es la configuración predeterminada. 
+---
+= Configure la compatibilidad de archivos sin conexión en recursos compartidos SMB mediante la CLI
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede configurar la compatibilidad de archivos sin conexión mediante la interfaz de línea de comandos de ONTAP especificando una de las cuatro archivos sin conexión al crear recursos compartidos de SMB o en cualquier momento modificando los recursos compartidos de SMB existentes. La compatibilidad con archivos manuales sin conexión es la configuración predeterminada.
+
+.Acerca de esta tarea
+Al configurar el soporte de archivos sin conexión, puede elegir una de las siguientes cuatro opciones de archivos sin conexión:
+
+|===
+| Ajuste | Descripción 
+
+
+ a| 
+`none`
+ a| 
+Despermite a los clientes de Windows almacenar en caché cualquier archivo en este recurso compartido.
+
+
+
+ a| 
+`manual`
+ a| 
+Permite a los usuarios de clientes de Windows seleccionar manualmente los archivos que se van a almacenar en caché.
+
+
+
+ a| 
+`documents`
+ a| 
+Permite a los clientes de Windows almacenar en caché los documentos de usuario utilizados por el usuario para el acceso sin conexión.
+
+
+
+ a| 
+`programs`
+ a| 
+Permite a los clientes de Windows almacenar en caché programas que utilizan el usuario para el acceso sin conexión. Los clientes pueden utilizar los archivos de programa almacenados en caché en modo sin conexión incluso si el recurso compartido está disponible.
+
+|===
+Sólo puede seleccionar una configuración de archivo sin conexión. Si modifica una configuración de archivos sin conexión en un recurso compartido SMB existente, la opción nuevos archivos sin conexión reemplaza la configuración original. Las demás opciones de configuración y propiedades de uso compartido de SMB existentes no se eliminan ni se reemplazan. Permanecen vigentes hasta que se eliminan o cambian explícitamente.
+
+.Pasos
+. Ejecute la acción adecuada:
++
+|===
+| Si desea configurar archivos sin conexión en... | Introduzca el comando... 
+
+
+ a| 
+Un nuevo recurso compartido de SMB
+ a| 
+`vserver cifs share create -vserver vserver_name -share-name share_name -path path -offline-files {none|manual|documents|programs}`
+
+
+
+ a| 
+Un recurso compartido de SMB existente
+ a| 
+`vserver cifs share modify -vserver vserver_name -share-name share_name -offline-files {none|manual|documents|programs}`
+
+|===
+. Compruebe que la configuración de recursos compartidos de SMB es correcta: `vserver cifs share show -vserver vserver_name -share-name share_name -instance`
+
+
+.Ejemplo
+El siguiente comando crea un recurso compartido SMB denominado «data1» con archivos sin conexión establecidos en `documents`:
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name data1 -path /data1 -comment "Offline files" -offline-files documents
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: -
+     Directory Mode Creation Mask: -
+                    Share Comment: Offline files
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: documents
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+El siguiente comando modifica un recurso compartido SMB existente llamado «data1» cambiando la configuración de archivos sin conexión a. `manual` y agregando valores para la máscara de creación de modo de archivo y directorio:
+
+[listing]
+----
+cluster1::> vserver cifs share modify -vserver vs1 -share-name data1 -offline-files manual -file-umask 644 -dir-umask 777
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: 644
+     Directory Mode Creation Mask: 777
+                    Share Comment: Offline files
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: manual
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+.Información relacionada
+xref:add-remove-share-properties-eexisting-share-task.adoc[Agregar o quitar propiedades de recursos compartidos en un recurso compartido SMB existente]

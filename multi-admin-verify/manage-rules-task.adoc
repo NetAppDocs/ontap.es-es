@@ -1,0 +1,158 @@
+---
+sidebar: sidebar 
+permalink: multi-admin-verify/manage-rules-task.html 
+keywords: ontap, mav, multi, admin, verification, administrator, protected, operation, rules, manage 
+summary: 'Se crean reglas de verificación de varios administradores (MAV) para designar operaciones que requieren aprobación. Siempre que se inicia una operación, las operaciones protegidas se interceptan y se genera una solicitud de aprobación' 
+---
+= Gestione reglas de operaciones protegidas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Se crean reglas de verificación de varios administradores (MAV) para designar operaciones que requieren aprobación. Siempre que se inicia una operación, las operaciones protegidas se interceptan y se genera una solicitud de aprobación.
+
+Las reglas se pueden crear antes de habilitar MAV por cualquier administrador con las capacidades RBAC adecuadas, pero una vez que MAV está activado, cualquier modificación del conjunto de reglas requiere la aprobación de MAV.
+
+Puede crear reglas para los siguientes comandos en ONTAP 9.11.1.
+
+[cols="2*"]
+|===
+
+
+ a| 
+`cluster peer delete`
+
+`event config modify`
+
+`security login create`
+
+`security login delete`
+
+`security login modify`
+
+`system node run`
+
+`system node systemshell`
+
+`volume delete`
+
+`volume flexcache delete`
+ a| 
+`volume snapshot autodelete modify`
+
+`volume snapshot delete`
+
+`volume snapshot policy add-schedule`
+
+`volume snapshot policy create`
+
+`volume snapshot policy delete`
+
+`volume snapshot policy modify`
+
+`volume snapshot policy modify-schedule`
+
+`volume snapshot policy remove-schedule`
+
+`volume snapshot restore`
+
+`vserver peer delete`
+
+|===
+Además, los siguientes comandos están protegidos de forma predeterminada cuando MAV está habilitado, pero puede modificar las reglas para quitar la protección de estos comandos.
+
+* `security login password`
+* `security login unlock`
+* `set`
+
+
+Las reglas para los comandos de MAV por defecto del sistema: El `security multi-admin-verify` comandos: no se pueden modificar.
+
+Al crear una regla, puede especificar opcionalmente la `-query` opción para limitar la solicitud a un subconjunto de la funcionalidad del comando. Por ejemplo, en el comando Default Set, `-query` se establece en `-privilege diag`, lo que significa que se genera una solicitud para el comando set sólo cuando se especifica -privilege diag.
+
+[listing]
+----
+smci-vsim20::> security multi-admin-verify rule show
+                                               Required  Approval
+Vserver Operation                              Approvers Groups
+------- -------------------------------------- --------- -------------
+vs01    set                                    -         -
+          Query: -privilege diagnostic
+----
+De forma predeterminada, las reglas especifican que corresponde `security multi-admin-verify request create _“protected_operation”_` el comando se genera automáticamente cuando se introduce una operación protegida. Puede modificar este valor predeterminado para requerir que el `request create` el comando se introduce por separado.
+
+De forma predeterminada, las reglas heredan la siguiente configuración global de MAV, aunque se pueden especificar excepciones específicas de reglas:
+
+* Número de aprobadores requerido
+* Grupos de aprobación
+* Período de caducidad de la aprobación
+* Periodo de caducidad de ejecución
+
+
+
+
+== Procedimiento de System Manager
+
+Si desea añadir una regla de operación protegida por primera vez, consulte el procedimiento de System Manager a. link:enable-disable-task.html#system-manager-procedure["habilite la verificación multi-admin."]
+
+Para modificar el conjunto de reglas existente:
+
+. Haga clic en *clúster > Configuración*.
+. Haga clic en image:icon_gear.gif["icono de marcha"] Junto a *aprobación Multi-Admin* en la sección *Seguridad*.
+. Haga clic en image:icon_add.gif["icono agregar"] para agregar al menos una regla, también puede modificar o eliminar reglas existentes.
++
+** Operación: Seleccione un comando admitido de la lista.
+** Query: Introduzca los valores y las opciones de comandos que desee.
+** Parámetros opcionales: Dejar en blanco para aplicar la configuración global o asignar un valor diferente para reglas específicas para anular la configuración global.
++
+*** Número requerido de aprobadores
+*** Grupos de aprobación
+
+
+
+
+
+
+
+
+== Procedimiento de la CLI
+
+
+NOTE: Todo `security multi-admin-verify rule` Los comandos requieren la aprobación del administrador de MAV antes de la ejecución excepto `security multi-admin-verify rule show`.
+
+[cols="50,50"]
+|===
+| Si desea… | Introduzca este comando 
+
+
+| Cree una regla  a| 
+`security multi-admin-verify rule create -operation _“protected_operation”_ [-query _operation_subset_] [_parameters_]`
+
+
+
+| Modifique las credenciales de los administradores actuales  a| 
+`security login modify _<parameters>_`
+
+*Ejemplo*: La siguiente regla requiere aprobación para eliminar el volumen raíz.
+
+`security multi-admin-verify rule create  -operation "volume delete" -query "-vserver vs0`
+
+
+
+| Modificar una regla  a| 
+`security multi-admin-verify rule modify -operation _“protected_operation”_ [_parameters_]`
+
+
+
+| Eliminar una regla  a| 
+`security multi-admin-verify rule delete -operation _“protected_operation”_`
+
+
+
+| Muestra las reglas  a| 
+`security multi-admin-verify rule show`
+
+|===
+Para obtener detalles de sintaxis de comandos, consulte `security multi-admin-verify rule` páginas de manual.

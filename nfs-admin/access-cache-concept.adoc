@@ -1,0 +1,26 @@
+---
+permalink: nfs-admin/access-cache-concept.html 
+sidebar: sidebar 
+keywords: access, cache 
+summary: ONTAP usa una caché de acceso para almacenar los resultados de la evaluación de las reglas de política de exportación para las operaciones de acceso de los clientes a un volumen o un qtree. Esto genera mejoras en el rendimiento porque la información se puede recuperar mucho más rápido de la caché de acceso que pasar por el proceso de evaluación de las reglas de la política de exportación cada vez que un cliente envía una solicitud de I/O. 
+---
+= Cómo funciona la caché de acceso
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP usa una caché de acceso para almacenar los resultados de la evaluación de las reglas de política de exportación para las operaciones de acceso de los clientes a un volumen o un qtree. Esto genera mejoras en el rendimiento porque la información se puede recuperar mucho más rápido de la caché de acceso que pasar por el proceso de evaluación de las reglas de la política de exportación cada vez que un cliente envía una solicitud de I/O.
+
+Siempre que un cliente NFS envía una solicitud de I/o para acceder a los datos de un volumen o un qtree, ONTAP debe evaluar cada solicitud de I/o para determinar si desea conceder o denegar la solicitud de I/O. Esta evaluación implica la comprobación de cada regla de política de exportación de la política de exportación asociada con el volumen o el qtree. Si la ruta al volumen o qtree implica cruzar uno o más puntos de unión, puede ser necesario realizar esta comprobación en busca de varias políticas de exportación por la ruta.
+
+Tenga en cuenta que esta evaluación se produce para cada solicitud de I/o que se envía desde un cliente NFS, como operaciones de lectura, escritura, lista, copia y otras, y no solo para solicitudes de montaje iniciales.
+
+Una vez que ONTAP ha identificado las reglas de política de exportación aplicables y ha decidido si permitir o denegar la solicitud, ONTAP creará una entrada en la caché de acceso para almacenar dicha información.
+
+Cuando un cliente NFS envía una solicitud de I/o, ONTAP señala la dirección IP del cliente, el ID de la SVM y la política de exportación asociada con el volumen o qtree de destino, y, primero, comprueba la caché de acceso para ver si existe una entrada correspondiente. Si existe una entrada coincidente en la caché de acceso, ONTAP utiliza la información almacenada para permitir o denegar la solicitud de E/S. Si no existe una entrada coincidente, ONTAP pasa por el proceso normal de evaluación de todas las reglas de política aplicables como se ha explicado anteriormente.
+
+Las entradas de la caché de acceso que no se utilizan activamente no se actualizan. Esto reduce la comunicación innecesaria y innecesaria con servicios de nombres externos.
+
+La recuperación de la información de la caché de acceso es mucho más rápida que pasar por todo el proceso de evaluación de las reglas de política de exportación para cada solicitud de I/O. Por lo tanto, el uso de la caché de acceso mejora considerablemente el rendimiento, ya que reduce la sobrecarga de las comprobaciones del acceso de los clientes.

@@ -1,0 +1,86 @@
+---
+sidebar: sidebar 
+permalink: networking/monitor_the_health_of_network_ports.html 
+keywords: monitor, monitoring, manage, managing, automatic, health, port, monitor the health of network ports, automatic health monitoring and a set of health monitors help you identify network ports that might not be suitable for hosting lifs, network options port-health-monitor modify 
+summary: La supervisión automática del estado y un conjunto de monitores de estado ayudan a identificar puertos de red que podrían no ser adecuados para alojar LIF 
+---
+= Supervise el estado de los puertos de red
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+La gestión de ONTAP de los puertos de red incluye supervisión automática del estado y un conjunto de monitores de estado para ayudarle a identificar puertos de red que podrían no ser adecuados para alojar LIF.
+
+.Acerca de esta tarea
+Si un monitor de estado determina que un puerto de red no es bueno, advierte a los administradores a través de un mensaje de EMS o Marca el puerto como degradado. ONTAP evita el alojamiento de LIF en puertos de red degradados si existen destinos de conmutación al nodo de respaldo alternativos en buen estado para esa LIF. Un puerto puede degradarse debido a un evento de fallo de software, como el enlace flapping (enlaces que rebotan rápidamente entre arriba y abajo) o la partición de red:
+
+* Los puertos de red del espacio IP del clúster se marcan como degradados cuando experimentan el enlace flopping o la pérdida de la capacidad de acceso de la capa 2 (L2) a otros puertos de red en el dominio de retransmisión.
+* Los puertos de red de los espacios IP que no pertenecen al clúster se marcan como degradados cuando experimentan un enlace flapping.
+
+
+Debe tener en cuenta los siguientes comportamientos de un puerto degradado:
+
+* No se puede incluir un puerto degradado en una VLAN o en un grupo de interfaces.
++
+Si un puerto del miembro de un grupo de interfaces se Marca como degradado, pero el grupo de interfaces sigue marcado como correcto, las LIF se pueden alojar en ese grupo de interfaces.
+
+* Los LIF se migran automáticamente de puertos degradados a puertos en buen estado.
+* Durante un evento de conmutación por error, no se considera un puerto degradado como destino de conmutación por error. Si no hay puertos en buen estado disponibles, puertos LIF degradados del host según la política de conmutación al respaldo normal.
+* No puede crear, migrar o revertir un LIF a un puerto degradado.
++
+Puede modificar el `ignore-health-status` configuración del puerto de red a. `true`. Luego puede alojar una LIF en los puertos en buen estado.
+
+
+
+.Pasos
+. Inicie sesión en el modo de privilegio avanzado:
++
+....
+set -privilege advanced
+....
+. Compruebe qué monitores de estado están habilitados para supervisar el estado del puerto de red:
++
+....
+network options port-health-monitor show
+....
++
+El estado de un puerto está determinado por el valor de los monitores de estado.
+
++
+Los siguientes monitores de estado están disponibles y están habilitados de manera predeterminada en ONTAP:
+
++
+** Monitor de estado de enlace: Monitores de enlace flapping
++
+Si un puerto tiene un enlace que flaquear más de una vez en cinco minutos, este puerto se Marca como degradado.
+
+** Monitor de estado de accesibilidad L2: Controla si todos los puertos configurados en el mismo dominio de difusión tienen accesibilidad L2 entre sí
++
+Este monitor de estado genera problemas de accesibilidad L2 en todos los espacios IP; sin embargo, solo Marca los puertos del espacio IP del clúster como degradados.
+
+** Monitor CRC: Supervisa las estadísticas de CRC en los puertos
++
+Este monitor de estado no Marca un puerto como degradado, pero genera un mensaje de EMS cuando se observa una tasa de fallo de CRC muy alta.
+
+
+
+. Habilite o deshabilite cualquiera de los monitores de estado de un espacio IP según lo desee mediante el `network options port-health-monitor modify` comando.
+. Consulte el estado detallado de un puerto:
++
+....
+network port show -health
+....
+
+
+El resultado del comando muestra el estado del puerto, `ignore health status` configuración y lista de motivos por los que el puerto está marcado como degradado.
+
+Un estado de estado de puerto puede ser `healthy` o. `degraded`.
+
+Si la `ignore health status` el ajuste es `true`, indica que el estado del puerto se ha modificado de `degraded` para `healthy` el administrador.
+
+Si la `ignore health status` el ajuste es `false`, el estado del puerto lo determina automáticamente el sistema.

@@ -1,0 +1,81 @@
+---
+permalink: upgrade/task_verifying_the_lif_failover_configuration.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, verifying, verify, lif, failover, configuration 
+summary: Antes de realizar una actualización, debe verificar que las políticas de conmutación por error y los grupos de conmutación por error estén configurados correctamente. 
+---
+= Verificación de la configuración de recuperación tras fallos de LIF
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de realizar una actualización, debe verificar que las políticas de conmutación por error y los grupos de conmutación por error estén configurados correctamente.
+
+
+NOTE: Durante el proceso de actualización, las LIF se migran en función del método de actualización. En función del método de actualización, es posible que se utilice la política de conmutación por error del LIF.
+
+Si tiene 8 nodos o más en el clúster, la actualización automatizada se realiza mediante el método de lote. El método de actualización por lotes implica dividir el clúster en varios lotes de actualización, actualizar el conjunto de nodos del primer lote, actualizar sus partners de alta disponibilidad (ha) y, a continuación, repetir el proceso para los lotes restantes. En ONTAP 9.7 y versiones anteriores, si se utiliza el método por lotes, los LIF se migran al partner de alta disponibilidad del nodo que se actualiza. En ONTAP 9.8 y versiones posteriores, si se utiliza el método por lotes, los LIF se migran al otro grupo por lotes.
+
+Si tiene menos de 8 nodos en el clúster, la actualización automatizada se realiza mediante el método de reversión. El método de actualización gradual implica que se inicie una operación de conmutación al nodo de respaldo en cada nodo de una pareja de alta disponibilidad, que actualice el nodo «con errores», inicie el retorno y, a continuación, repita el proceso para cada pareja de alta disponibilidad del clúster. Si se usa el método de reversión, las LIF se migran al nodo de destino de conmutación por error tal como se define en la política de conmutación por error de LIF.
+
+. Mostrar la política de recuperación tras fallos para cada LIF de datos:
++
+[cols="2*"]
+|===
+| Si la versión de ONTAP es... | Utilice este comando 
+
+
+| 9.6 o posterior  a| 
+`network interface show -service-policy data -failover`
+
+
+
+| 9.5 o anterior  a| 
+`network interface show -role data -failover`
+
+|===
++
+Este ejemplo muestra la configuración predeterminada de la conmutación por error de un clúster de dos nodos con dos LIF de datos:
+
++
+[listing]
+----
+cluster1::> network interface show -role data -failover
+         Logical         Home                  Failover        Failover
+Vserver  Interface       Node:Port             Policy          Group
+-------- --------------- --------------------- --------------- ---------------
+vs0
+         lif0            node0:e0b             nextavail       system-defined
+                         Failover Targets: node0:e0b, node0:e0c,
+                                           node0:e0d, node0:e0e,
+                                           node0:e0f, node1:e0b,
+                                           node1:e0c, node1:e0d,
+                                           node1:e0e, node1:e0f
+vs1
+         lif1            node1:e0b             nextavail       system-defined
+                         Failover Targets: node1:e0b, node1:e0c,
+                                           node1:e0d, node1:e0e,
+                                           node1:e0f, node0:e0b,
+                                           node0:e0c, node0:e0d,
+                                           node0:e0e, node0:e0f
+----
++
+El campo *objetivos de conmutación por error* muestra una lista priorizada de destinos de conmutación por error para cada LIF. Por ejemplo, si lif0 conmuta al nodo de respaldo de su puerto de inicio (e0b en nodo 0), es el primer intento de conmutación al puerto e0c en el nodo 0. Si lif0 no puede conmutar al nodo de respaldo en e0c, es el siguiente intento de conmutar al puerto e0d en nodo 0, etc.
+
+. Si la política de conmutación por error está establecida en deshabilitada para las LIF, excepto las LIF SAN, utilice el comando network interface modify para poder habilitar la conmutación por error.
+. Para cada LIF, compruebe que el campo *objetivos de conmutación por error* incluye puertos de datos de un nodo diferente que permanecerán activos mientras se esté actualizando el nodo de inicio de la LIF.
++
+Puede utilizar el `network interface failover-groups modify` comando para agregar un destino de conmutación por error al grupo de conmutación por error.
+
++
+.Ejemplo
+[listing]
+----
+network interface failover-groups modify -vserver vs0 -failover-group fg1 -targets sti8-vsim-ucs572q:e0d,sti8-vsim-ucs572r:e0d
+----
+
+
+.Información relacionada
+link:../networking/networking_reference.html["Gestión de redes y LIF"]

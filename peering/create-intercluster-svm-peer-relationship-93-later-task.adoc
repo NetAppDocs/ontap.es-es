@@ -1,0 +1,71 @@
+---
+permalink: peering/create-intercluster-svm-peer-relationship-93-later-task.html 
+sidebar: sidebar 
+keywords: create, intercluster, svm, peer, relationship 
+summary: Puede usar el comando vserver peer create para crear una relación entre iguales entre SVM en clústeres locales y remotos. 
+---
+= Cree una relación entre iguales de SVM entre clústeres
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `vserver peer create` Comando para crear una relación entre iguales entre SVM en clústeres locales y remotos.
+
+.Antes de empezar
+* Los clústeres de origen y destino deben tener una relación entre iguales.
+* Los clústeres deben ejecutar ONTAP 9.3. (Si los clústeres ejecutan ONTAP 9.2 o una versión anterior, consulte los procedimientos en link:https://library.netapp.com/ecm/ecm_download_file/ECMLP2494079["este documento archivado"^].)
+* Debe tener relaciones entre iguales "preautorizadas" para las SVM en el clúster remoto.
++
+Para obtener más información, consulte link:create-cluster-relationship-93-later-task.html["Creación de una relación de paridad entre clústeres"].
+
+
+
+.Acerca de esta tarea
+En versiones anteriores de ONTAP, solo se podía autorizar una relación entre iguales para una SMV a la vez. Necesitaba ejecutar el `vserver peer accept` Cada vez que autorizó una relación entre iguales de SVM pendiente.
+
+A partir de ONTAP 9.3, puede "preautorizar" relaciones entre iguales para varias SMV mediante la lista de las SMV en el `-initial-allowed-vserver` opción cuando se crea una relación de paridad entre clústeres. Para obtener más información, consulte link:create-cluster-relationship-93-later-task.html["Creación de una relación de paridad entre clústeres"].
+
+.Pasos
+. En el clúster de destino de protección de datos, muestre las SVM que están autorizadas previamente para la paridad:
++
+`vserver peer permission show`
+
++
+[listing]
+----
+cluster02::> vserver peer permission show
+Peer Cluster         Vserver               Applications
+-------------------  --------------------  --------------------
+cluster02            vs1,vs2               snapmirror
+----
+. En el clúster de origen de protección de datos, cree una relación entre iguales con una SVM preautorizada en el clúster de destino de protección de datos:
++
+`vserver peer create -vserver _local_SVM_ -peer-vserver _remote_SVM_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo se crea una relación entre iguales entre la SVM local `pvs1` Y la SVM remota preautorizada `vs1`:
+
++
+[listing]
+----
+cluster01::> vserver peer create -vserver pvs1 -peer-vserver vs1
+----
+. Compruebe las relaciones entre iguales de SVM:
++
+`vserver peer show`
+
++
+[listing]
+----
+cluster01::> vserver peer show
+            Peer        Peer                           Peering        Remote
+Vserver     Vserver     State        Peer Cluster      Applications   Vserver
+----------- ----------- ------------ ----------------- -------------- ---------
+pvs1        vs1         peered       cluster02         snapmirror     vs1
+----
+

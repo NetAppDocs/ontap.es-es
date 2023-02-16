@@ -1,0 +1,70 @@
+---
+permalink: smb-admin/dynamic-home-directories-concept.html 
+sidebar: sidebar 
+keywords: ontap, home, directories, directory, configure, smb, share, map, base, connect, set, variable, creating, create, separate, share, user, define, home, relationship, entry, point, svm, how ontap enables dynamic home directories 
+summary: 'Los directorios iniciales de ONTAP permiten configurar un recurso compartido de SMB que se asigna a directorios diferentes en función del usuario que se conecta a él y a un conjunto de variables. En lugar de crear recursos compartidos independientes para cada usuario, puede configurar un recurso compartido con algunos parámetros de directorio principal para definir la relación de un usuario entre un punto de entrada (el recurso compartido) y el directorio principal (un directorio en la SVM).' 
+---
+= Cómo habilita ONTAP los directorios iniciales dinámicos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Los directorios iniciales de ONTAP permiten configurar un recurso compartido de SMB que se asigna a directorios diferentes en función del usuario que se conecta a él y a un conjunto de variables. En lugar de crear recursos compartidos independientes para cada usuario, puede configurar un recurso compartido con algunos parámetros del directorio inicial para definir la relación de un usuario entre un punto de entrada (el recurso compartido) y el directorio inicial (un directorio en la SVM).
+
+Un usuario que ha iniciado sesión como usuario invitado no tiene un directorio principal y no puede acceder a los directorios iniciales de otros usuarios. Existen cuatro variables que determinan cómo se asigna un usuario a un directorio:
+
+* *Nombre del recurso compartido*
++
+Éste es el nombre del recurso compartido que se crea al que se conecta el usuario. Debe establecer la propiedad del directorio principal para este recurso compartido.
+
++
+El nombre del recurso compartido puede utilizar los siguientes nombres dinámicos:
+
++
+** `%w` (Nombre de usuario de Windows del usuario)
+** `%d` (Nombre de dominio de Windows del usuario)
+**  `%u` (Nombre de usuario UNIX asignado del usuario) para que el nombre de recurso compartido sea único en todos los directorios principales, el nombre de recurso compartido debe contener cualquiera de los dos/`%w` o la `%u` variable. El nombre del recurso compartido puede contener ambos `%d` y la/`%w` variable (por ejemplo, `%d`/`%w`), o el nombre del recurso compartido puede contener una parte estática y una parte variable (por ejemplo, home_/`%w`).
+
+
+* *Compartir ruta*
++
+Esta es la ruta relativa, que define el recurso compartido y, por lo tanto, está asociada con uno de los nombres de recurso compartido, que se anexa a cada ruta de búsqueda para generar toda la ruta de directorio inicial del usuario desde la raíz de la SVM. Puede ser estático (por ejemplo, `home`), dinámico (por ejemplo, `%w`), o una combinación de los dos (por ejemplo, `eng/%w`).
+
+* *Rutas de búsqueda*
++
+Este es el conjunto de rutas absolutas desde la raíz de la SVM que especifique que dirige la búsqueda ONTAP de directorios iniciales. Puede especificar una o varias rutas de búsqueda mediante el `vserver cifs home-directory search-path add` comando. Si especifica varias rutas de búsqueda, ONTAP las intenta en el orden especificado hasta que encuentre una ruta válida.
+
+* *Directorio*
++
+Éste es el directorio principal del usuario que se crea para el usuario. El nombre del directorio suele ser el nombre del usuario. Debe crear el directorio principal en uno de los directorios definidos por las rutas de búsqueda.
+
+
+
+Por ejemplo, considere la siguiente configuración:
+
+* Usuario: John Smith
+* Dominio de usuario: acme
+* Nombre de usuario: Jsmith
+* Nombre de SVM: vs1
+* Directorio principal nombre compartido #1: home_ `%w` - vía compartida: `%w`
+* Nombre del recurso compartido del directorio inicial #2: `%w` - vía compartida: `%d/%w`
+* Ruta de búsqueda #1: `/vol0home/home`
+* Ruta de búsqueda #2: `/vol1home/home`
+* Ruta de búsqueda #3: `/vol2home/home`
+* Directorio inicial: `/vol1home/home/jsmith`
+
+
+Escenario 1: El usuario se conecta a. `\\vs1\home_jsmith`. Esto coincide con el nombre del primer recurso compartido del directorio principal y genera la ruta de acceso relativa `jsmith`. ONTAP busca ahora un directorio llamado `jsmith` comprobando cada ruta de búsqueda en orden:
+
+* `/vol0home/home/jsmith` no existe; pasar a la ruta de búsqueda #2.
+* `/vol1home/home/jsmith` existe; por lo tanto, la ruta de búsqueda #3 no está activada; el usuario está conectado a su directorio principal.
+
+
+Escenario 2: El usuario se conecta a. `\\vs1\jsmith`. Esto coincide con el segundo nombre del recurso compartido del directorio principal y genera la ruta de acceso relativa `acme/jsmith`. ONTAP busca ahora un directorio llamado `acme/jsmith` comprobando cada ruta de búsqueda en orden:
+
+* `/vol0home/home/acme/jsmith` no existe; pasar a la ruta de búsqueda #2.
+* `/vol1home/home/acme/jsmith` no existe; se pasa a la ruta de búsqueda #3.
+* `/vol2home/home/acme/jsmith` no existe; el directorio principal no existe; por lo tanto, la conexión falla.
+

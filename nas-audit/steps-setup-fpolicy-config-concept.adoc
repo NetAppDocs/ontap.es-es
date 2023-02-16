@@ -1,0 +1,56 @@
+---
+permalink: nas-audit/steps-setup-fpolicy-config-concept.html 
+sidebar: sidebar 
+keywords: steps, setting, fpolicy configuration 
+summary: 'Para poder supervisar el acceso a los archivos, debe crearse y habilitarse una configuración de FPolicy en la máquina virtual de almacenamiento (SVM) para la cual se requieren servicios de FPolicy.' 
+---
+= Cuáles son los pasos para configurar una configuración de FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para poder supervisar el acceso a los archivos, debe crearse y habilitarse una configuración de FPolicy en la máquina virtual de almacenamiento (SVM) para la cual se requieren servicios de FPolicy.
+
+Los pasos para configurar y habilitar una configuración de FPolicy en la SVM son los siguientes:
+
+. Cree un motor externo de FPolicy.
++
+El motor externo de FPolicy identifica los servidores de FPolicy externos (servidores de FPolicy) asociados con una configuración de FPolicy específica. Si se utiliza el motor de FPolicy interno "'Native'" para crear una configuración nativa de bloqueo de archivos, no será necesario crear un motor externo de FPolicy.
+
+. Cree un evento FPolicy.
++
+Un evento de FPolicy describe lo que debe supervisar la política de FPolicy. Los eventos consisten en los protocolos y las operaciones de archivos que se deben supervisar y pueden contener una lista de filtros. Los eventos utilizan filtros para limitar la lista de eventos supervisados para los que el motor externo de FPolicy debe enviar notificaciones. Los eventos también especifican si la política supervisa las operaciones de volumen.
+
+. Cree una política de FPolicy.
++
+La directiva FPolicy es responsable de asociar, con el ámbito apropiado, el conjunto de eventos que se deben supervisar y para los que se deben enviar las notificaciones de eventos supervisados al servidor FPolicy designado (o al motor nativo si no hay servidores FPolicy configurados). La directiva también define si se permite al servidor FPolicy el acceso con privilegios a los datos para los que recibe notificaciones. Un servidor FPolicy necesita acceso con privilegios si el servidor necesita acceder a los datos. Entre los casos de uso típicos en los que se necesita un acceso con privilegios se incluyen el bloqueo de archivos, la gestión de cuotas y la gestión del almacenamiento jerárquico. La directiva es donde se especifica si la configuración de esta directiva utiliza un servidor FPolicy o el servidor FPolicy interno "'Native'".
+
++
+Una directiva especifica si la selección es obligatoria. Si el tramado es obligatorio y todos los servidores FPolicy están inactivos o no se recibe ninguna respuesta de los servidores FPolicy dentro de un período de tiempo de espera definido, se deniega el acceso al archivo.
+
++
+Los límites de una política son la SVM. No es posible aplicar una política a más de una SVM. Sin embargo, una SVM específica puede tener varias políticas de FPolicy, cada una con la misma combinación u otra de configuraciones de alcance, eventos y servidores externos.
+
+. Configurar el alcance de la directiva.
++
+El alcance de FPolicy determina qué volúmenes, recursos compartidos o políticas de exportación actúa o se excluye de la supervisión. Un ámbito también determina qué extensiones de archivo se deben incluir o excluir de la supervisión de FPolicy.
+
++
+[NOTE]
+====
+Las listas de exclusión tienen prioridad sobre las listas de inclusión.
+
+====
+. Habilite la política de FPolicy.
++
+Cuando la directiva está activada, se conectan los canales de control y, opcionalmente, los canales de datos con privilegios. El proceso de FPolicy en los nodos en los que participa la SVM comienza a supervisar el acceso a archivos y carpetas y, en el caso de eventos que coincidan con los criterios configurados, envía notificaciones a los servidores FPolicy (o al motor nativo si no hay servidores FPolicy configurados).
+
+
+
+[NOTE]
+====
+Si la directiva utiliza el bloqueo de archivos nativo, no se configura ni se asocia un motor externo con la directiva.
+
+====

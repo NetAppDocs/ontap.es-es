@@ -1,0 +1,291 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_monitor_an_ha_pair_overview.html 
+keywords: ontap, high, availability, ha, pair, monitor 
+summary: Puede usar los comandos ONTAP para supervisar el estado de la pareja de ha. 
+---
+= Comandos para supervisar una pareja de alta disponibilidad
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Puede usar los comandos ONTAP para supervisar el estado de la pareja de ha. Si se produce una toma de control, también se puede determinar la causa de la toma de control.
+
+|===
+
+
+| Si desea comprobar | Utilice este comando 
+
+
+| Tanto si la conmutación por error está habilitada como si se ha producido, o por qué no es posible la conmutación por error actualmente | `storage failover show` 
+
+
+| Ver los nodos en los que se habilita la configuración de conmutación por error de almacenamiento ha-Mode debe establecer el valor en ha para que el nodo participe en una configuración de conmutación por error (pareja de ha) de almacenamiento. La `non-ha` el valor se utiliza solo en una configuración de clúster independiente o de nodo único. | `storage failover show -fields mode` 
+
+
+| Si la toma de control asistida por hardware está habilitada | `storage failover hwassist show` 
+
+
+| Historial de eventos de toma de control asistida por hardware que se han producido | `storage failover hwassist stats show` 
+
+
+| El progreso de una operación de toma de control a medida que los agregados del partner se mueven al nodo que realiza la toma de control | `storage failover show‑takeover` 
+
+
+| El progreso de una operación de devolución al devolver agregados al nodo asociado | `storage failover show‑giveback` 
+
+
+| Si un agregado se muestra a raíz durante las operaciones de toma de control o devolución | `aggregate show ‑fields home‑id,owner‑id,home‑name,owner‑name,is‑home` 
+
+
+| Si la alta disponibilidad del clúster está habilitada (solo se aplica a clústeres de dos nodos) | `cluster ha show` 
+
+
+| Estado de alta disponibilidad de los componentes de un par de alta disponibilidad (en sistemas que usan el estado de alta disponibilidad) | `ha‑config show`Este es un comando de modo de mantenimiento. 
+|===
+
+
+== estados de nodo que se muestran con comandos show-type de conmutación al nodo de respaldo del almacenamiento
+
+En la siguiente lista se describen los estados del nodo que el `storage failover show` se muestra el comando.
+
+|===
+
+
+| Estado del nodo | Descripción 
+
+
+ a| 
+Conectado a nombre_partner, toma de control automática deshabilitada.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. Se ha deshabilitado la toma de control automática del partner.
+
+
+
+ a| 
+Esperando nombre_partner, restauración de los discos de repuesto del partner pendientes.
+ a| 
+El nodo local no puede intercambiar información con el nodo compañero a través de la interconexión de alta disponibilidad. La devolución de los agregados de la OFS al partner se ha completado, pero los discos de reserva del partner siguen siendo propiedad del nodo local.
+
+* Ejecute el `storage failover show-giveback` comando para obtener más información.
+
+
+
+
+ a| 
+Esperando nombre_partner. Esperando la sincronización de bloqueo del partner.
+ a| 
+El nodo local no puede intercambiar información con el nodo asociado a través de la interconexión de alta disponibilidad; está esperando a que se produzca la sincronización de bloqueo del partner.
+
+
+
+ a| 
+Esperando nombre_partner. Esperando a que las aplicaciones del clúster se conecten en el nodo local.
+ a| 
+El nodo local no puede intercambiar información con el nodo asociado a través de la interconexión de alta disponibilidad; mientras espera a que las aplicaciones de clúster se conecten.
+
+
+
+ a| 
+Toma de control programada. El nodo de destino reubica sus agregados de SFO durante la preparación de la toma de control.
+ a| 
+Se inició el procesamiento de la toma de control. El nodo de destino se está reubicando la propiedad de sus agregados de SFO durante la preparación para la toma de control.
+
+
+
+ a| 
+Toma de control programada. El nodo de destino ha reubicado sus agregados SFO durante la preparación de la toma de control.
+ a| 
+Se inició el procesamiento de la toma de control. El nodo de destino ha reubicado la propiedad de sus agregados SFO para prepararse para la toma de control.
+
+
+
+ a| 
+Toma de control programada. Esperando para deshabilitar las actualizaciones del firmware del disco en segundo plano en el nodo local. Hay una actualización de firmware en curso en el nodo.
+ a| 
+Se inició el procesamiento de la toma de control. El sistema está esperando a que se completen operaciones de actualización del firmware de los discos en segundo plano en el nodo local.
+
+
+
+ a| 
+Reubicación de los agregados de SFO para hacer frente al nodo en la preparación de la toma de control
+ a| 
+El nodo local está reubicando la propiedad de sus agregados de la OFS al nodo de toma de control como preparación para la toma de control.
+
+
+
+ a| 
+Se reubicaron los agregados de SFO para hacer frente al nodo. A la espera de que se tome el control del nodo.
+ a| 
+Se ha completado la reubicación de la propiedad de los agregados de la OFS del nodo local al nodo de toma de control. El sistema está esperando a que el nodo de toma de control.
+
+
+
+ a| 
+Reubicando los agregados de SFO en partner_NAME. Esperando para deshabilitar las actualizaciones del firmware del disco en segundo plano en el nodo local. Hay una actualización de firmware en curso en el nodo.
+ a| 
+La reubicación de la propiedad de los agregados de la OFS del nodo local al nodo de toma de control está en curso. El sistema está esperando a que se completen operaciones de actualización del firmware de los discos en segundo plano en el nodo local.
+
+
+
+ a| 
+Reubicando los agregados de SFO en partner_NAME. Esperando a deshabilitar las actualizaciones de firmware del disco en segundo plano para nombre_partner. Hay una actualización de firmware en curso en el nodo.
+ a| 
+La reubicación de la propiedad de los agregados de la OFS del nodo local al nodo de toma de control está en curso. El sistema está esperando a que se completen operaciones de actualización del firmware del disco en segundo plano en el nodo del partner.
+
+
+
+ a| 
+Conectado a nombre_partner. Se ha anulado el intento de toma de control anterior debido a este motivo. El nodo local posee algunos de los agregados SFO del partner. Vuelva a emitir la toma de control del partner con el `‑bypass-optimization` parámetro establecido en true para la toma de control de los agregados restantes, o emita una devolución del partner para devolver los agregados reubicados.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. El intento de toma de control anterior se canceló debido al motivo mostrado bajo el motivo. El nodo local posee algunos de los agregados SFO de su partner.
+
+* Vuelva a emitir la toma de control del nodo asociado, estableciendo el parámetro -bypass-optimization en true para tomar posesión de los agregados SFO restantes, o realice una devolución del partner para devolver los agregados reubicados.
+
+
+
+
+ a| 
+Conectado a nombre_partner. Se canceló el intento de toma de control anterior. El nodo local posee algunos de los agregados SFO del partner. Vuelva a emitir la toma de control del partner con el `‑bypass-optimization` parámetro establecido en true para la toma de control de los agregados restantes, o emita una devolución del partner para devolver los agregados reubicados.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. Se canceló el intento de toma de control anterior. El nodo local posee algunos de los agregados SFO de su partner.
+
+* Vuelva a emitir la toma de control del nodo asociado, estableciendo el parámetro -bypass-optimization en true para tomar posesión de los agregados SFO restantes, o realice una devolución del partner para devolver los agregados reubicados.
+
+
+
+
+ a| 
+Esperando nombre_partner. Se ha anulado el intento de toma de control anterior debido a este motivo. El nodo local posee algunos de los agregados SFO del partner. Vuelva a emitir la toma de control del partner con el parámetro "-bypass-Optimization" establecido en true para tomar el control de los agregados restantes, o emita una devolución del partner para devolver los agregados reubicados.
+ a| 
+El nodo local no puede intercambiar información con el nodo compañero a través de la interconexión de alta disponibilidad. El intento de toma de control anterior se canceló debido al motivo mostrado bajo el motivo. El nodo local posee algunos de los agregados SFO de su partner.
+
+* Vuelva a emitir la toma de control del nodo asociado, estableciendo el parámetro -bypass-optimization en true para tomar posesión de los agregados SFO restantes, o realice una devolución del partner para devolver los agregados reubicados.
+
+
+
+
+ a| 
+Esperando nombre_partner. Se canceló el intento de toma de control anterior. El nodo local posee algunos de los agregados SFO del partner. Vuelva a emitir la toma de control del partner con el parámetro "-bypass-Optimization" establecido en true para tomar el control de los agregados restantes, o emita una devolución del partner para devolver los agregados reubicados.
+ a| 
+El nodo local no puede intercambiar información con el nodo compañero a través de la interconexión de alta disponibilidad. Se canceló el intento de toma de control anterior. El nodo local posee algunos de los agregados SFO de su partner.
+
+* Vuelva a emitir la toma de control del nodo asociado, estableciendo el parámetro -bypass-optimization en true para tomar posesión de los agregados SFO restantes, o realice una devolución del partner para devolver los agregados reubicados.
+
+
+
+
+ a| 
+Conectado a nombre_partner. Se canceló el intento de toma de control anterior porque no se pudo deshabilitar la actualización del firmware del disco en segundo plano (BDFU) en el nodo local.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. Se canceló el intento de toma de control anterior porque la actualización del firmware del disco en segundo plano en el nodo local no estaba deshabilitada.
+
+
+
+ a| 
+Conectado a nombre_partner. Se ha anulado el intento de toma de control anterior debido a este motivo.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. El intento de toma de control anterior se canceló debido al motivo mostrado bajo el motivo.
+
+
+
+ a| 
+Esperando nombre_partner. Se ha anulado el intento de toma de control anterior debido a este motivo.
+ a| 
+El nodo local no puede intercambiar información con el nodo compañero a través de la interconexión de alta disponibilidad. El intento de toma de control anterior se canceló debido al motivo mostrado bajo el motivo.
+
+
+
+ a| 
+Conectado a nombre_partner. Se ha anulado el intento de toma de control anterior por nombre_partner porque el motivo.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. El intento de toma de control anterior del nodo partner se canceló debido al motivo que muestra motivo.
+
+
+
+ a| 
+Conectado a nombre_partner. Se ha anulado el intento de toma de control anterior por nombre_partner.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. Se canceló el intento de toma de control anterior del nodo partner.
+
+
+
+ a| 
+Esperando nombre_partner. Se ha anulado el intento de toma de control anterior por nombre_partner porque el motivo.
+ a| 
+El nodo local no puede intercambiar información con el nodo compañero a través de la interconexión de alta disponibilidad. El intento de toma de control anterior del nodo partner se canceló debido al motivo que muestra motivo.
+
+
+
+ a| 
+Error del retorno anterior en el módulo: Nombre del módulo. La devolución automática se iniciará en número de segundos.
+ a| 
+Error en el intento de devolución anterior en module_name. La devolución automática se iniciará en número de segundos.
+
+* Ejecute el `storage failover show-giveback` comando para obtener más información.
+
+
+
+
+ a| 
+El nodo posee agregados de los partners como parte del procedimiento de actualización de controladora sin interrupciones.
+ a| 
+El nodo posee los agregados de su partner debido al procedimiento de actualización de controladoras sin interrupciones actualmente en curso.
+
+
+
+ a| 
+Conectado a nombre_partner. El nodo posee agregados que pertenecen a otro nodo del clúster.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. El nodo posee agregados que pertenecen a otro nodo del clúster.
+
+
+
+ a| 
+Conectado a nombre_partner. Esperando la sincronización de bloqueo del partner.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. El sistema está esperando a que se complete la sincronización del bloqueo del partner.
+
+
+
+ a| 
+Conectado a nombre_partner. Esperando a que las aplicaciones del clúster se conecten en el nodo local.
+ a| 
+La interconexión de alta disponibilidad es activa y puede transmitir datos al nodo asociado. El sistema está esperando a que las aplicaciones de clúster estén conectadas en el nodo local.
+
+
+
+ a| 
+No modo de alta disponibilidad, reinicie para utilizar NVRAM completa.
+ a| 
+No es posible recuperar el sistema de almacenamiento. La opción de modo de alta disponibilidad está configurada como non_ha.
+
+* Debe reiniciar el nodo para utilizar toda su NVRAM.
+
+
+
+
+ a| 
+Modo no de alta disponibilidad. Reinicie el nodo para activar alta disponibilidad.
+ a| 
+No es posible recuperar el sistema de almacenamiento.
+
+* El nodo se debe reiniciar para habilitar la funcionalidad de alta disponibilidad.
+
+
+
+
+ a| 
+Modo no de alta disponibilidad.
+ a| 
+No es posible recuperar el sistema de almacenamiento. La opción de modo de alta disponibilidad está configurada como non_ha.
+
+* Debe ejecutar el `storage failover modify ‑mode ha ‑node nodename` Comando en ambos nodos de la pareja de ha y, a continuación, reinicie los nodos para habilitar la funcionalidad de alta disponibilidad.
+
+
+|===

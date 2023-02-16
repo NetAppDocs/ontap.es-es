@@ -1,0 +1,53 @@
+---
+permalink: disks-aggregates/determine-modify-caching-policy-flash-pool-task.html 
+sidebar: sidebar 
+keywords: modify, cache, policy, flash pool, aggregate, local tier 
+summary: 'Se pueden asignar políticas de retención de caché a volúmenes en niveles locales (agregados) de Flash Pool para determinar cuánto tiempo permanecen los datos de un volumen en la caché Flash Pool. Sin embargo, en algunos casos, cambiar la política de retención de caché puede no afectar la cantidad de tiempo que permanecen los datos del volumen en la caché.' 
+---
+= Determinar si se modifica la política de almacenamiento en caché de los niveles locales de Flash Pool (agregados)
+:allow-uri-read: 
+
+
+[role="lead"]
+Se pueden asignar políticas de retención de caché a volúmenes en niveles locales (agregados) de Flash Pool para determinar cuánto tiempo permanecen los datos de un volumen en la caché Flash Pool. Sin embargo, en algunos casos, cambiar la política de retención de caché puede no afectar la cantidad de tiempo que permanecen los datos del volumen en la caché.
+
+.Acerca de esta tarea
+Si los datos cumplen alguna de las siguientes condiciones, es posible que el cambio de la política de retención de caché no afecte:
+
+* La carga de trabajo es secuencial.
+* Su carga de trabajo no releer los bloques aleatorios almacenados en caché en las unidades de estado sólido (SSD).
+* El tamaño de la caché del volumen es demasiado pequeño.
+
+
+.Pasos
+Los siguientes pasos comprueban las condiciones que deben cumplir los datos. La tarea debe realizarse mediante la interfaz de línea de comandos en modo de privilegios avanzado.
+
+. Use la interfaz de línea de comandos para ver el volumen de carga de trabajo:
++
+`statistics start -object workload_volume`
+
+. Determine el patrón de carga de trabajo del volumen:
++
+`statistics show -object workload_volume -instance _volume-workload_ -counter sequential_reads`
+
+. Determine la tasa de aciertos del volumen:
++
+`statistics show -object wafl_hya_vvol -instance _volume_ -counter read_ops_replaced_pwercent|wc_write_blks_overwritten_percent`
+
+. Determine el `Cacheable Read` y.. `Project Cache Alloc` del volumen:
++
+`system node run -node node_name wafl awa start _aggr_name_`
+
+. Mostrar el resumen de AWA:
++
+`system node run -node node_name wafl awa print _aggr_name_`
+
+. Compare la tasa de aciertos del volumen con la `Cacheable Read`.
++
+Si la tasa de aciertos del volumen es mayor que la `Cacheable Read`, Entonces su carga de trabajo no releer bloques aleatorios almacenados en caché en los SSD.
+
+. Compare el tamaño actual de la caché del volumen con el `Project Cache Alloc`.
++
+Si el tamaño actual de la caché del volumen es mayor que el `Project Cache Alloc`, entonces el tamaño de la caché de volumen es demasiado pequeño.
+
+

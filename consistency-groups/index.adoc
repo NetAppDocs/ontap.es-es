@@ -1,0 +1,117 @@
+---
+permalink: consistency-groups/index.html 
+sidebar: sidebar 
+keywords: consistency group protection, application protection, metrocluster, write-order, application management, workload 
+summary: Un grupo de coherencia es una colección de volúmenes organizados como una sola unidad, lo que facilita la gestión y la protección de cargas de trabajo que abarcan varios volúmenes o LUN. 
+---
+= Información general sobre los grupos de consistencia
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un grupo de coherencia es una recogida de volúmenes que se gestionan como una sola unidad. En ONTAP, los grupos de consistencia ofrecen una gestión sencilla y una garantía de protección para una carga de trabajo de aplicaciones que abarca varios volúmenes.
+
+Puede utilizar grupos de consistencia para simplificar la gestión del almacenamiento. Imagine que dispone de una base de datos importante que abarca veinte LUN. Podría gestionar las LUN de forma individual, o tratar las LUN como un conjunto de datos solitario, agrupándolas en un único grupo de consistencia.
+
+Los grupos de consistencia facilitan la gestión de las cargas de trabajo de aplicaciones, proporcionando una gestión sencilla de las políticas de protección locales y remotas y proporcionando copias Snapshot simultáneas coherentes con los fallos o con las aplicaciones de una colección de volúmenes en un momento específico. Las Snapshot de grupos de consistencia permiten restaurar una carga de trabajo de aplicación completa.
+
+
+
+== Funciones
+
+Los grupos de consistencia admiten cualquier volumen de FlexVol independientemente del protocolo (NAS, SAN o NVMe) y pueden gestionarse a través de la API REST de ONTAP o en System Manager, en el elemento de menú *almacenamiento > grupos de consistencia*.
+
+Los grupos de consistencia pueden existir como entidades individuales o en una relación jerárquica. Un grupo de coherencia individual es una recogida de volúmenes. Los volúmenes pueden tener su propia política de copias Snapshot granulares en el volumen. Además, el grupo de coherencia al que está asociado puede tener su propia política Snapshot. El grupo de consistencia solo puede tener una relación de continuidad del negocio de SnapMirror (SM-BC) y una política de SM-BC compartida, que puede utilizarse para recuperar todo el grupo de consistencia.
+
+En el siguiente diagrama se muestra cómo se puede utilizar un grupo de consistencia individual. Los datos de una aplicación alojada en `SVM1` abarca dos volúmenes: `vol1` y.. `vol2`. Una política de Snapshot en el grupo de coherencia captura Snapshot de los datos cada 15 minutos.
+
+image:../media/consistency-group-single-diagram.gif["Diagrama de un único grupo de consistencia con sus volúmenes constituyentes y la política de Snapshot local"]
+
+Las cargas de trabajo de aplicaciones más grandes pueden requerir varios grupos de coherencia. En estas situaciones, puede crear grupos de consistencia jerárquicos, donde un grupo de consistencia único se convierte en los componentes secundarios de un grupo de consistencia primario. El grupo de consistencia primario puede incluir hasta cinco grupos de consistencia secundarios. Al igual que en grupos de consistencia individuales, se puede aplicar una política de protección de SM-BC remota a toda la configuración de los grupos de consistencia (principal y secundario) para recuperar la carga de trabajo de la aplicación.
+
+En el siguiente ejemplo, una aplicación se aloja en `SVM1`. El administrador ha creado un grupo de consistencia primario, `SVM1_app`, que incluye dos grupos de consistencia secundarios: `SVM1appDataCG` para los datos y. `SVM1app_logCG` para los registros. Cada grupo de coherencia secundario tiene su propia política de Snapshot. Snapshots de los volúmenes en `SVM1appDataCG` se toman cada 15 minutos. Copias Snapshot de `SVM1app_logCG` se toman cada hora. El grupo de consistencia primario `SVM1_app` Tiene una política de SM-BC que replica los datos para garantizar un servicio continuado en caso de desastre.
+
+image:../media/consistency-group-nested-diagram.gif["Diagrama de un grupo de coherencia anidado con sus volúmenes asociados"]
+
+A partir de ONTAP 9.12.1, admiten los grupos de consistencia xref:clone-task.html[clonado] y modificar los miembros de la consistencia por xref:modify-task.html[agregar o quitar volúmenes] Tanto en System Manager como en la API DE REST de ONTAP. A partir de ONTAP 9.12.1, la API REST de ONTAP también admite:
+
+* Creación de grupos de coherencia con volúmenes NFS o SMB o espacios de nombres NVMe nuevos.
+* Añadir volúmenes NFS o SMB o espacios de nombres NVMe nuevos o existentes a grupos de coherencia existentes.
+
+
+Para obtener más información sobre la API de REST de ONTAP, consulte https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation["Documentación de referencia de la API DE REST de ONTAP"].
+
+
+
+== Protección
+
+Los grupos de consistencia ofrecen:
+
+* Protección local mediante políticas de Snapshot
+* Protección remota con xref:../smbc/index.html[Continuidad del negocio de SnapMirror (SM-BC)] o. <<mcc>>
+
+
+La creación de un grupo de consistencia no habilita la protección automáticamente. Se pueden establecer políticas de protección local o remota cuando se crea un grupo de consistencia o después de crearlo.
+
+Para configurar la protección local en un grupo de consistencia, consulte link:protect-task.html["Proteja un grupo de consistencia"].
+
+Para poder utilizar la protección remota, debe cumplir los requisitos de xref:../smbc/smbc_plan_prerequisites.html#licensing[Puestas en marcha de continuidad del negocio con SnapMirror].
+
+
+NOTE: No se pueden establecer relaciones de SM-BC en volúmenes montados para el acceso NAS.
+
+A partir de ONTAP 9.11.1, los grupos de consistencia también son compatibles link:protect-task.html#two-phase-CG-snapshot-creation["creación de snapshots de grupo de consistencia en dos fases"].
+
+
+
+== Etiquetas de aplicaciones y componentes
+
+A partir de ONTAP 9.12.1, los grupos de consistencia admiten etiquetado de componentes y aplicaciones. Las etiquetas de aplicaciones y componentes son una herramienta de gestión que le permite filtrar e identificar diferentes cargas de trabajo en sus grupos de consistencia.
+
+Existen dos tipos de etiquetas:
+
+* **Etiquetas de aplicación**: Estas se aplican a grupos de consistencia individuales y padre. Las etiquetas de las aplicaciones proporcionan etiquetas para cargas de trabajo como MongoDB, Oracle o SQL Server. La etiqueta de aplicación predeterminada para los grupos de consistencia es otra.
+* **Etiquetas de componentes**: Los niños de los grupos de consistencia jerárquicos tienen etiquetas de componentes en lugar de etiquetas de aplicación. Las opciones para etiquetas de componentes son "datos", "registros" u "otros". El valor predeterminado es Other.
+
+
+Puede aplicar las etiquetas al crear grupos de consistencia o después de crear los grupos de consistencia. Si el grupo de consistencia tiene una relación SM-BC, debe utilizar *otros* como la aplicación o etiqueta de componente.
+
+
+
+== Grupos de consistencia en configuraciones de MetroCluster
+
+A partir de ONTAP 9.11.1, puede aprovisionar grupos de consistencia con nuevos volúmenes en un clúster dentro de una configuración de MetroCluster. Estos volúmenes se aprovisionan en agregados reflejados.
+
+Después de que se hayan aprovisionado, puede mover los volúmenes asociados con grupos de coherencia entre los agregados reflejados y no reflejados. Por lo tanto, los volúmenes asociados con grupos de coherencia pueden ubicarse en agregados reflejados, agregados no reflejados o en ambos. Es posible modificar los agregados reflejados que contienen volúmenes asociados con grupos de coherencia para que no se reflejen. De igual manera, se pueden modificar los agregados no reflejados que contienen volúmenes asociados con grupos de coherencia para habilitar el mirroring.
+
+Los volúmenes asociados con grupos de coherencia colocados en agregados reflejados y sus copias Snapshot, incluidas cualquier copia Snapshot de grupo de coherencia, se replican en el sitio remoto (sitio B). El contenido de los volúmenes del sitio B son compatibles con la semántica del grupo de coherencia. Es posible acceder a las copias de Snapshot de grupo de coherencia replicadas mediante la API DE REST de Snapshot de grupo de coherencia y System Manager en clústeres que ejecutan ONTAP 9.11.1 o una versión posterior.
+
+Si algunos o todos los volúmenes asociados con un grupo de consistencia se encuentran en agregados no reflejados a los que no se puede acceder actualmente, las operaciones GET o DELETE en el grupo de coherencia se comportan como si los volúmenes locales o los agregados de alojamiento están sin conexión.
+
+
+
+=== Replicación de configuración del grupo de consistencia
+
+Si el sitio B ejecuta ONTAP 9.10.1 o una versión anterior, solo se replican los volúmenes asociados con los grupos de coherencia ubicados en agregados reflejados al sitio B. Las configuraciones del grupo de consistencia solo se replican en el sitio B, si ambos sitios ejecutan ONTAP 9.11.1 o una versión posterior. Una vez que el sitio B se actualiza a ONTAP 9.11.1, los datos de los grupos de consistencia del sitio A que tienen todos los volúmenes asociados ubicados en agregados reflejados se replican en el sitio B.
+
+
+
+== Consideraciones de renovación
+
+Los grupos de consistencia creados con SM-BC en ONTAP 9.8 y 9.9.1 se actualizarán automáticamente y serán manejables bajo *almacenamiento > grupos de consistencia* en System Manager o la API REST de ONTAP al actualizar a ONTAP 9.10.1. Para obtener más información acerca de la actualización, consulte link:../smbc/smbc_admin_upgrade_and_revert_considerations.html["Consideraciones sobre la actualización y reversión de SM-BC"].
+
+Las snapshots de grupo de coherencia creadas con la API REST de ONTAP pueden gestionarse a través de la interfaz de grupo de consistencia de System Manager y mediante los extremos API del grupo de consistencia.
+
+
+NOTE: Las snapshots se crean con los comandos ONAPI `cg-start` y.. `cg-commit` No se reconocerá como copias Snapshot del grupo de consistencia y, por lo tanto, no se podrá gestionar a través de la interfaz del grupo de consistencia de System Manager ni de los extremos del grupo de consistencia en la API de ONTAP.
+
+
+
+== Más información sobre los grupos de consistencia
+
+video::j0jfXDcdyzE[youtube,width=848,height=480]
+.Más información
+* link:https://docs.netapp.com/us-en/ontap-automation/["Documentación de automatización de ONTAP"^]
+

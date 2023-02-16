@@ -1,0 +1,105 @@
+---
+permalink: nfs-rdma/configure-lifs-task.html 
+sidebar: sidebar 
+keywords: networking, LIF, NFS over RDMA, NVIDIA, NFS, RDMA, ROCE, network interface, system manager 
+summary: 'En este artículo, se explica cómo configurar una LIF (interfaz de red) para que sea compatible con RDMA.' 
+---
+= Configure LIF para NFS a través de RDMA
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para utilizar NFS a través de RDMA, debe configurar sus LIF (interfaz de red) para que sean compatibles con RDMA. Tanto el LIF como su pareja de conmutación por error deben ser compatibles con RDMA.
+
+
+
+== Cree una nueva LIF
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Debe usar ONTAP 9.12.1 o posterior para crear una interfaz de red para NFS a través de RDMA con System Manager.
+
+.Pasos
+. Seleccione *Red > Descripción general > interfaces de red*.
+. Seleccione image:icon_add.gif["icono agregar"].
+. Al seleccionar *NFS,SMB/CIFS,S3*, tendrá la opción de *utilizar puertos roce*. Seleccione la casilla de verificación *usar puertos roce*.
+. Seleccione la máquina virtual de almacenamiento y el nodo principal. Asigne un nombre. Introduzca la dirección IP y la máscara de subred.
+. Una vez que se introducen la dirección IP y la máscara de subred, System Manager filtrará la lista de dominios de retransmisión a los que tengan puertos compatibles con roce. Seleccione un dominio de retransmisión. Opcionalmente, puede añadir una puerta de enlace.
+. Seleccione *Guardar*.
+
+
+--
+.CLI
+--
+.Pasos
+. Cree una LIF:
++
+`network interface create -vserver _SVM_name_ -lif _lif_name_ -service-policy _service_policy_name_ -home-node _node_name_ -home-port _port_name_ {-address _IP_address_ -netmask _netmask_value_ | -subnet-name _subnet_name_} -firewall-policy _policy_name_ -auto-revert {true|false} -rdma-protocols roce`
+
++
+** La política de servicio debe ser los archivos de datos predeterminados o una política personalizada que incluya el servicio de interfaz de red data-nfs.
+** La `-rdma-protocols` el parámetro acepta una lista, que está vacía de forma predeterminada. Cuando `roce` Se añade como valor, el LIF solo puede configurarse en puertos que admitan la descarga de roce, lo que afecta a la migración LIF bot y la conmutación por error.
+
+
+
+
+--
+====
+
+
+== Modificar una LIF
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Debe usar ONTAP 9.12.1 o posterior para crear una interfaz de red para NFS a través de RDMA con System Manager.
+
+.Pasos
+. Seleccione *Red > Descripción general > interfaces de red*.
+. Seleccione image:icon_kabob.gif["icono de kabob"] *> Editar* junto a la interfaz de red que desea cambiar.
+. Seleccione *usar puertos roce* para activar NFS sobre RDMA o anule la selección de la casilla para desactivarla. Si la interfaz de red se encuentra en un puerto con capacidad para roce, aparecerá una casilla de verificación junto a *usar puertos roce*.
+. Modifique los demás ajustes según sea necesario.
+. Seleccione *Guardar* para confirmar los cambios.
+
+
+--
+.CLI
+--
+. Puede comprobar el estado de sus LIF con el `network interface show` comando. La política de servicio debe incluir el servicio de interfaz de red data-nfs. La `-rdma-protocols` la lista debe incluir `roce`. Si alguna de estas condiciones no es verdadera, modifique la LIF.
+. Para modificar la LIF, ejecute:
++
+`network interface modify vserver _SVM_name_ -lif _lif_name_ -service-policy _service_policy_name_ -home-node _node_name_ -home-port _port_name_ {-address _IP_address_ -netmask _netmask_value_ | -subnet-name _subnet_name_} -firewall-policy _policy_name_ -auto-revert {true|false} -rdma-protocols roce`
+
+
+
+
+NOTE: Modificar una LIF para requerir un protocolo de descarga determinado cuando la LIF no está asignada actualmente a un puerto que admita ese protocolo producirá un error.
+
+--
+====
+
+
+== Migre una LIF
+
+ONTAP también le permite migrar interfaces de red (LIF) para utilizar NFS a través de RDMA. Cuando realice esta migración, debe asegurarse de que el puerto de destino sea compatible con roce. A partir de ONTAP 9.12.1, puede completar este procedimiento en System Manager. Al seleccionar un puerto de destino para la interfaz de red, System Manager designará si los puertos son compatibles con roce.
+
+Solo puede migrar un LIF a una configuración de NFS sobre RDMA si:
+
+* Es una interfaz de red (LIF) RDMA de NFS alojada en un puerto compatible con roce.
+* Es una interfaz de red TCP (LIF) NFS alojada en un puerto compatible con roce.
+* Es una interfaz de red TCP (LIF) de NFS alojada en un puerto no compatible con roce.
+
+
+Para obtener más información sobre la migración de una interfaz de red, consulte xref:../networking/migrate_a_lif.html[Migre una LIF].
+
+.Más información
+* xref:../networking/create_a_lif.html[Cree una LIF]
+* xref:../networking/create_a_lif.html[Cree una LIF]
+* xref:../networking/modify_a_lif.html[Modificar una LIF]
+* xref:../networking/migrate_a_lif.html[Migre una LIF]
+

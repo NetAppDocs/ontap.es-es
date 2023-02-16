@@ -1,0 +1,84 @@
+---
+permalink: data-protection/snapmirror-global-throttling-concept.html 
+sidebar: sidebar 
+keywords: using snapmirror, global, throttling 
+summary: La limitación de red global está disponible para todas las transferencias de SnapMirror y SnapVault a nivel de nodo. 
+---
+= Use la limitación global de SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La limitación de red global está disponible para todas las transferencias de SnapMirror y SnapVault a nivel de nodo.
+
+.Acerca de esta tarea
+La limitación global de SnapMirror restringe el ancho de banda utilizado por transferencias entrantes o salientes de SnapMirror y SnapVault. La restricción se aplica en todo el clúster en todos los nodos del clúster.
+
+Por ejemplo, si el acelerador saliente está establecido en 100 Mbps, cada nodo del clúster tendrá el ancho de banda saliente establecido en 100 Mbps. Si la regulación global está deshabilitada, se desactiva en todos los nodos.
+
+Aunque las velocidades de transferencia de datos a menudo se expresan en bits por segundo (bps), los valores del acelerador deben introducirse en kilobytes por segundo (kbps).
+
+[NOTE]
+====
+En las versiones ONTAP 9.9.1 y anteriores, el acelerador no tiene ningún efecto activado `volume move` transferencias o transferencias de reflejos con uso compartido de la carga. A partir de ONTAP 9.10.0, es posible especificar una opción para acelerar las operaciones de movimiento de volúmenes. Para obtener más información, consulte link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_throttle_volume_move_in_ONTAP_9.10_or_later["Cómo acelerar el movimiento del volumen en ONTAP 9.10 y versiones posteriores."]
+
+====
+La limitación global funciona con la función acelerador por relación para transferencias de SnapMirror y SnapVault. El acelerador por relación se aplica hasta que el ancho de banda combinado de las transferencias por relación supere el valor de la aceleración global, después de lo cual se aplica la aceleración global. Un valor de acelerador `0` implica que la limitación global está desactivada.
+
+[NOTE]
+====
+La regulación global de SnapMirror no tiene ningún efecto en las relaciones de SnapMirror síncrono cuando están en sincronización. Sin embargo, el acelerador hace efecto en las relaciones de SnapMirror síncrono cuando realizan una fase de transferencia asíncrona, como una operación de inicialización o después de un evento de no sincronización. Por este motivo, no se recomienda habilitar la regulación global con relaciones de SnapMirror síncrono.
+
+====
+.Pasos
+. Habilitar la limitación global:
++
+`options -option-name replication.throttle.enable on|off`
+
++
+El siguiente ejemplo muestra cómo habilitar la regulación global de SnapMirror `cluster_dst`:
+
++
+[listing]
+----
+cluster_dst::> options -option-name replication.throttle.enable on
+----
+. Especifique el ancho de banda total máximo utilizado por las transferencias entrantes en el clúster de destino:
++
+`options -option-name replication.throttle.incoming.max_kbs _KBps_`
+
++
+El ancho de banda mínimo recomendado del acelerador es de 4 kbps y el máximo es de 2 TB/s. El valor predeterminado de esta opción es `unlimited`, lo que significa que no hay límite en el ancho de banda total utilizado.
+
++
+El siguiente ejemplo muestra cómo establecer el ancho de banda total máximo utilizado por las transferencias entrantes en 100 Mbps:
+
++
+[listing]
+----
+cluster_dst::> options -option-name replication.throttle.incoming.max_kbs 12500
+----
++
+[NOTE]
+====
+100 Mbps = 12500 kbps
+
+====
+. Especifique el ancho de banda total máximo que utilizan las transferencias salientes en el clúster de origen:
++
+`options -option-name replication.throttle.outgoing.max_kbs _KBps_`
+
++
+Kbps es la velocidad de transferencia máxima en kilobytes por segundo. Los valores de velocidad de transferencia válidos son de 1 a 125000. El valor predeterminado de esta opción es `unlimited`, lo que significa que no hay límite en el ancho de banda total utilizado.
+
++
+En el siguiente ejemplo se muestra cómo establecer el ancho de banda total máximo utilizado por las transferencias salientes en 100 Mbps:
+
++
+[listing]
+----
+cluster_src::> options -option-name replication.throttle.outgoing.max_kbs 12500
+----
+

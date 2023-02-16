@@ -1,0 +1,55 @@
+---
+sidebar: sidebar 
+permalink: smbc/index.html 
+keywords: SM-BC, SMBC, overview, benefits, use cases, architecture 
+summary: 'A partir de ONTAP 9.8, puede utilizar la continuidad empresarial de SnapMirror (SM-BC) para proteger las aplicaciones con LUN, lo que permite que las aplicaciones conmutan de forma transparente y garantiza la continuidad empresarial en caso de desastre.' 
+---
+= Descripción general
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.8, puede utilizar la continuidad del negocio de SnapMirror (SM-BC) para proteger las aplicaciones con LUN, lo que permite que las aplicaciones conmuen al nodo de respaldo de forma transparente, lo que garantiza la continuidad del negocio en caso de desastre. SM-BC es compatible en clústeres AFF o clústeres de cabina All SAN (ASA), donde los clústeres principal y secundario pueden ser AFF o ASA. SM-BC protege las aplicaciones con LUN iSCSI o FCP.
+
+
+
+== Beneficios
+
+La continuidad del negocio de SnapMirror proporciona las siguientes ventajas:
+
+* Proporciona disponibilidad continua para aplicaciones vitales para el negocio
+* Capacidad de alojar aplicaciones críticas alternativamente desde la ubicación principal y la secundaria
+* Gestión de aplicaciones simplificada usando grupos de consistencia para mantener la coherencia de los pedidos de escritura dependiente
+* La capacidad de probar la recuperación tras fallos para cada aplicación
+* Creación instantánea de clones duplicados sin afectar a la disponibilidad de las aplicaciones
+* A partir de ONTAP 9.11.1, admite SM-BC xref:../data-protection/restore-single-file-snapshot-task.html[SnapRestore de archivo único].
+
+
+
+
+== Casos de uso típicos
+
+
+
+=== Puesta en marcha de aplicaciones con objetivo de tiempo de recuperación nulo o conmutación por error de aplicaciones transparente
+
+Recuperación tras fallos de aplicaciones transparente se basa en la conmutación por error de rutas basadas en software I/o multivía del host (MPIO) para lograr un acceso no disruptivo al almacenamiento. Las dos copias de LUN, por ejemplo, primarias (L1P) y de la copia de mirroring (L1S), tienen la misma identidad (número de serie) y se notifican como editables de lectura en el host. Sin embargo, el volumen primario solo realiza tareas de lectura y escritura. Las E/S emitidas a la copia duplicada se representan mediante un proxy en la copia primaria. La ruta preferida del host a L1 es VS1:N1 según el estado de acceso asimétrico de unidad lógica (ALUA) optimizado (A/o). Se recomienda al mediador como parte de la puesta en marcha, principalmente para realizar una recuperación tras fallos en caso de interrupción del servicio de almacenamiento en el volumen principal.
+
+
+
+=== Situación de desastre
+
+El sitio que aloja el clúster principal experimenta un desastre. El software de multivía del host Marca todas las rutas a través del clúster como desconectado y utiliza rutas desde el clúster secundario. El resultado es una conmutación al respaldo no disruptiva a la copia de mirroring de LUN L1. L1S se convierte de una copia mirror a la copia activa de la LUN L1. La conmutación por error se produce automáticamente cuando se configura un Mediador externo. La ruta preferida del host a L1 se convierte en VS2:N1.
+
+
+
+== Arquitectura
+
+La siguiente figura muestra el funcionamiento de la función de continuidad de negocio de SnapMirror a grandes rasgos.
+
+image:workflow_san_snapmirror_business_continuity.png["Flujo de trabajo de continuidad del negocio con SnapMirror"]

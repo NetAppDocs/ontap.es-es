@@ -1,0 +1,78 @@
+---
+permalink: smb-admin/mount-unmount-existing-volumes-nas-namespace-task.html 
+sidebar: sidebar 
+keywords: volume, mount, nas, namespace, configure, client, access, data, contain, storage, virtual, machine, svm, junction, point, mount, unmount, mount or unmount existing volumes in the nas namespace 
+summary: 'Un volumen se debe montar en el espacio de nombres NAS para poder configurar el acceso de clientes NAS a los datos contenidos en los volúmenes de la máquina virtual de almacenamiento (SVM). Puede montar un volumen en un punto de unión si no está montado actualmente. También es posible desmontar volúmenes.' 
+---
+= Monte o desmonte volúmenes existentes en el espacio de nombres NAS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un volumen se debe montar en el espacio de nombres NAS para poder configurar el acceso de clientes NAS a los datos contenidos en los volúmenes de la máquina virtual de almacenamiento (SVM). Puede montar un volumen en un punto de unión si no está montado actualmente. También es posible desmontar volúmenes.
+
+.Acerca de esta tarea
+Si un volumen se desmonta y se desconecta, todos los datos del punto de unión, incluidos los datos de los volúmenes con puntos de unión contenidos en el espacio de nombres del volumen no montado, son inaccesibles para los clientes NAS.
+
+[NOTE]
+====
+Para interrumpir el acceso de un cliente NAS a un volumen, no basta con desmontar el volumen. Debe desconectar el volumen o realizar otros pasos para garantizar que las cachés de manejados de archivos del cliente no sean más validadas. Para obtener más información, consulte el siguiente artículo de la base de conocimientos:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/NFSv3_clients_still_have_access_to_a_volume_after_being_removed_from_the_namespace_in_ONTAP[NFSv3 los clientes siguen teniendo acceso a un volumen después de quitarse del espacio de nombres en ONTAP]
+
+====
+Al desmontar y desconectar un volumen, no se pierden datos dentro del volumen. Además, se conservan las políticas de exportación de volúmenes existentes y los recursos compartidos de SMB creados en el volumen o en directorios y puntos de unión dentro del volumen desmontado. Si vuelve a montar el volumen desmontado, los clientes NAS pueden acceder a los datos contenidos en el volumen mediante políticas de exportación y recursos compartidos SMB existentes.
+
+.Pasos
+. Realice la acción deseada:
++
+|===
+| Si desea... | Introduzca los comandos... 
+
+
+ a| 
+Montar un volumen
+ a| 
+`volume mount -vserver _svm_name_ -volume _volume_name_ -junction-path _junction_path_`
+
+
+
+ a| 
+Desmontar un volumen
+ a| 
+`volume unmount -vserver _svm_name_ -volume _volume_name_ volume offline -vserver _svm_name_ -volume _volume_name_`
+
+|===
+. Compruebe que el volumen esté en el estado de montaje deseado: `volume show -vserver _vserver_name_ -volume _volume_name_ -fields state,junction-path,junction-active`
+
+
+.Ejemplos
+En el siguiente ejemplo se monta un volumen denominado «números» ubicado en la SVM vs1 hasta el punto de unión `/sales`:
+
+[listing]
+----
+cluster1::> volume mount -vserver vs1 -volume sales -junction-path /sales
+
+cluster1::> volume show -vserver vs1 state,junction-path,junction-active
+
+vserver   volume     state     junction-path   junction-active
+--------- ---------- -------- --------------- ----------------
+vs1       data       online    /data           true
+vs1       home4      online    /eng/home       true
+vs1       sales      online    /sales          true
+----
+En el siguiente ejemplo, se desmonta y se desconecte un volumen llamado «data» ubicado en la SVM vs1:
+
+[listing]
+----
+cluster1::> volume unmount -vserver vs1 -volume data
+cluster1::> volume offline -vserver vs1 -volume data
+
+cluster1::> volume show -vserver vs1 -fields state,junction-path,junction-active
+
+vserver   volume     state     junction-path   junction-active
+--------- ---------- --------- --------------- ---------------
+vs1       data       offline   -               -
+vs1       home4      online    /eng/home       true
+vs1       sales      online    /sales          true
+----

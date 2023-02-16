@@ -1,0 +1,71 @@
+---
+permalink: disks-aggregates/determine-space-usage-aggregate-concept.html 
+sidebar: sidebar 
+keywords: space, usage, aggregate, local tier, volume 
+summary: 'Puede ver la cantidad de espacio que utilizan todos los volúmenes en uno o más niveles locales (agregados) para poder realizar acciones para liberar más espacio.' 
+---
+= Determinar el uso de espacio en un nivel local (agregado)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede ver la cantidad de espacio que utilizan todos los volúmenes en uno o más niveles locales (agregados) para poder realizar acciones para liberar más espacio.
+
+WAFL reserva el 10% del espacio total en disco para el rendimiento y los metadatos a nivel de agregado. El espacio utilizado para mantener los volúmenes del agregado sale de la reserva de WAFL y no se puede cambiar.
+
+A partir de ONTAP 9.12.1 y versiones posteriores, en las plataformas All Flash FAS (AFF) y FAS500f, la reserva de WAFL para agregados superiores a 30 TB se reduce de un 10 % a un 5 %, de modo que se aumenta el espacio útil del agregado.
+
+Puede ver el uso de espacio por parte de todos los volúmenes de uno o varios agregados con el `aggregate show-space` comando. De este modo, puede ver qué volúmenes consumen más espacio en los agregados que los contienen, de modo que puede llevar a cabo acciones para liberar más espacio.
+
+El espacio utilizado de un agregado se ve directamente afectado por el espacio utilizado en los volúmenes de FlexVol que contiene. Las medidas que se toman para aumentar el espacio de un volumen también afectan al espacio del agregado.
+
+Las siguientes filas se incluyen en la `aggregate show-space` resultado del comando:
+
+* *Calzado por volumen*
++
+El total de espacios de volumen dentro del agregado. Incluye todo el espacio que usa o se reserva para todos los datos y metadatos de todos los volúmenes del agregado que contiene.
+
+* *Metadatos agregados*
++
+Los metadatos del sistema de archivos totales necesarios para el agregado, como los mapas de bits de asignación y los archivos de nodos de información.
+
+* *Reserva Snapshot*
++
+La cantidad de espacio reservado para las copias de Snapshot del agregado, en función del tamaño del volumen. Se considera espacio usado y no está disponible para los datos o metadatos de volúmenes o agregados.
+
+* *Reserva instantánea no utilizable*
++
+La cantidad de espacio asignado originalmente para la reserva de Snapshot agregado que no está disponible para las copias Snapshot del agregado, ya que está siendo utilizada por los volúmenes asociados con el agregado. Solo se puede producir para agregados con una reserva de Snapshot sin agregados.
+
+* *Total usado*
++
+La suma de todo el espacio usado o reservado en el agregado por volúmenes, metadatos o copias de Snapshot.
+
+* *Total físico utilizado*
++
+La cantidad de espacio que se utiliza para los datos ahora (en lugar de reservarse para uso futuro). Incluye el espacio utilizado por las copias de Snapshot agregadas.
+
+
+
+En el siguiente ejemplo se muestra el `aggregate show-space` Resultado del comando para un agregado cuya reserva Snapshot es del 5%. Si la reserva de instantánea era 0, no se mostraría la fila.
+
+....
+cluster1::> storage aggregate show-space
+
+						Aggregate : wqa_gx106_aggr1
+
+      Feature                                   Used      Used%
+      --------------------------------    ----------     ------
+      Volume Footprints                      101.0MB         0%
+      Aggregate Metadata                       300KB         0%
+      Snapshot Reserve                        5.98GB         5%
+
+      Total Used                              6.07GB         5%
+      Total Physical Used                    34.82KB         0%
+....
+.Información relacionada
+link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Space_Usage["Artículo basado en conocimientos: Uso del espacio"]
+
+link:https://www.netapp.com/blog/free-up-storage-capacity-upgrade-ontap/["Libere hasta un 5 % de su capacidad de almacenamiento actualizando a ONTAP 9.12.1"]

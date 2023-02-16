@@ -1,0 +1,54 @@
+---
+permalink: s3-config/s3-support-concept.html 
+sidebar: sidebar 
+keywords: s3 support, ontap 9 
+summary: En ONTAP, la arquitectura subyacente para un bloque es un volumen FlexGroup, un espacio de nombres único compuesto por varios volúmenes constituyentes, pero que se gestiona como un único volumen. 
+---
+= Arquitectura y casos prácticos de ONTAP S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En ONTAP, la arquitectura subyacente para un bloque es un volumen FlexGroup, un espacio de nombres único que está compuesto por varios volúmenes constituyentes, pero que se gestiona como un único volumen.
+
+image::../media/fg-overview-s3-config.gif[El volumen de FlexGroup se representa como un grupo de volúmenes de FlexVol denominado constituyentes]
+
+Los bloques solo están limitados por los máximos físicos del hardware subyacente, los máximos arquitectónicos podrían ser mayores. Los bloques pueden aprovechar el tamaño elástico de FlexGroup para hacer crecer automáticamente un componente de un volumen FlexGroup si se está quedando sin espacio. Existe un límite de 1000 bloques por volumen de FlexGroup, o 1/3 de la capacidad del volumen de FlexGroup (para hacer frente al crecimiento de datos en bloques).
+
+[NOTE]
+====
+No se permite acceso al protocolo NAS o SAN al volumen FlexGroup que contiene bloques S3.
+
+====
+El acceso al bloque se proporciona a través de usuarios autorizados y aplicaciones cliente.
+
+image::../media/s3-svm-layout.png[distribución de svm de s3]
+
+Existen tres casos prácticos principales para el acceso de clientes a los servicios ONTAP S3:
+
+* Para sistemas ONTAP que utilizan ONTAP S3 como nivel de capacidad de FabricPool remota (cloud)
++
+El servidor y el bloque de S3 que contienen el nivel de capacidad (para datos _fríos_) se encuentran en un clúster diferente al nivel de rendimiento (para datos _hot_).
+
+* Para los sistemas ONTAP que usan ONTAP S3 como nivel de FabricPool local
++
+El servidor y el bloque de S3 que contiene el nivel de capacidad están en el mismo clúster, pero en un par de alta disponibilidad diferente, al nivel de rendimiento.
+
+* Para aplicaciones de cliente S3 externas
++
+ONTAP S3 da servicio a las aplicaciones cliente S3 que se ejecutan en sistemas que no son de NetApp.
+
+
+
+Se recomienda proporcionar acceso a buckets de ONTAP S3 mediante HTTPS. Cuando HTTPS está habilitado, se requieren certificados de seguridad para una integración correcta con SSL/TLS. A continuación, se requieren claves secretas y de acceso de los usuarios clientes para autenticar el usuario con ONTAP S3, así como para autorizar los permisos de acceso de los usuarios para operaciones en ONTAP S3. La aplicación de cliente también debe tener acceso al certificado de CA raíz (el certificado firmado del servidor ONTAP S3) para poder autenticar el servidor y crear una conexión segura entre el cliente y el servidor.
+
+Los usuarios se crean dentro de la SVM habilitada para S3 y sus permisos de acceso se pueden controlar a nivel de bloque o SVM; es decir, se puede otorgar acceso a uno o más bloques dentro de la SVM.
+
+De forma predeterminada, HTTPS está habilitado en los servidores ONTAP S3. Es posible deshabilitar HTTPS y habilitar HTTP para el acceso de cliente, en cuyo caso no se requiere la autenticación con certificados de CA. Sin embargo, cuando se habilita HTTP y HTTPS está deshabilitado, todas las comunicaciones con el servidor ONTAP S3 se envían por la red en texto sin cifrar.
+
+Para obtener más información, consulte https://www.netapp.com/pdf.html?item=/media/17219-tr4814pdf.pdf["Informe técnico: S3 en las prácticas recomendadas de ONTAP"]
+
+.Información relacionada
+link:../flexgroup/index.html["Gestión de volúmenes de FlexGroup"]

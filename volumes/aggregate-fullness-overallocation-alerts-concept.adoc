@@ -1,0 +1,101 @@
+---
+permalink: volumes/aggregate-fullness-overallocation-alerts-concept.html 
+sidebar: sidebar 
+keywords: how to, address, aggregate, fullness, overallocation, alerts 
+summary: ONTAP emite mensajes de EMS cuando los agregados se están quedando sin espacio de modo que puede realizar acciones correctivas proporcionando más espacio para todo el agregado. Conocer los tipos de alertas y cómo puede afrontarlas le ayuda a garantizar la disponibilidad de sus datos. 
+---
+= Envíe las alertas de ocupación y sobreasignación del agregado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP emite mensajes de EMS cuando los agregados se están quedando sin espacio de modo que puede realizar acciones correctivas proporcionando más espacio para todo el agregado. Conocer los tipos de alertas y cómo puede afrontarlas le ayuda a garantizar la disponibilidad de sus datos.
+
+Cuando un agregado se describe como _Full_, significa que el porcentaje del espacio en el agregado disponible para su uso por los volúmenes ha caído por debajo de un umbral predefinido. Cuando un agregado se convierte en _overasignó_, se ha agotado el espacio utilizado por ONTAP para los metadatos y para admitir el acceso básico a los datos. A veces, el espacio que se suele reservar para otros fines puede utilizarse para mantener el agregado en funcionamiento, pero las garantías de volumen para los volúmenes asociados con el agregado o la disponibilidad de los datos pueden estar en riesgo.
+
+La sobreasignación puede ser lógica o física. _Sobreasignación lógica_ significa que el espacio reservado para cumplir con los compromisos espaciales futuros, como las garantías por volumen, se ha utilizado con otro propósito. _Physical overasignada_ significa que el agregado se está quedando sin bloques físicos que usar. Los agregados en este estado corren riesgo de rechazar escrituras, desconectarse o potencialmente provocar una interrupción de controladora.
+
+En la siguiente tabla se describen las alertas de ocupación y sobreasignación de agregados, las acciones que puede realizar para resolver el problema y los riesgos de no emprender acciones.
+
+[cols="5%,5%,5%,35%,25%,25%"]
+|===
+| Tipo de alerta | Nivel de EMS | ¿Configurable? | Definición | Formas de abordar | Riesgo si no se toman medidas 
+
+
+ a| 
+Casi lleno
+ a| 
+Depurar
+ a| 
+N
+ a| 
+La cantidad de espacio asignado a los volúmenes, incluidas sus garantías, superó el umbral establecido para esta alerta (95 %). El porcentaje es el `Used` Total menos el tamaño de la reserva de Snapshot.
+ a| 
+* Adición de almacenamiento al agregado
+* Reducir o eliminar volúmenes
+* Mover volúmenes a otro agregado con más espacio
+* Eliminar garantías de volumen (establecerlas en `none`)
+
+ a| 
+Todavía no existen riesgos de operaciones de escritura ni disponibilidad de datos.
+
+
+
+ a| 
+Lleno
+ a| 
+Depurar
+ a| 
+N
+ a| 
+El sistema de archivos superó el umbral configurado para esta alerta (98 %). El porcentaje es el `Used` Total menos el tamaño de la reserva de Snapshot.
+ a| 
+* Adición de almacenamiento al agregado
+* Reducir o eliminar volúmenes
+* Mover volúmenes a otro agregado con más espacio
+* Eliminar garantías de volumen (establecerlas en `none`)
+
+ a| 
+Las garantías de volumen para los volúmenes en el agregado pueden estar en riesgo, así como las operaciones de escritura en esos volúmenes.
+
+
+
+ a| 
+Sobreasignado lógicamente
+ a| 
+Error de servicio
+ a| 
+N
+ a| 
+Además del espacio reservado para los volúmenes que está lleno, se ha agotado el espacio del agregado usado para los metadatos.
+ a| 
+* Adición de almacenamiento al agregado
+* Reducir o eliminar volúmenes
+* Mover volúmenes a otro agregado con más espacio
+* Eliminar garantías de volumen (establecerlas en `none`)
+
+ a| 
+Las garantías de volumen para los volúmenes del agregado están en riesgo, así como las operaciones de escritura en dichos volúmenes.
+
+
+
+ a| 
+Sobreasignado físicamente
+ a| 
+Error de nodo
+ a| 
+N
+ a| 
+El agregado se está quedando sin bloques físicos en los que puede escribir.
+ a| 
+* Adición de almacenamiento al agregado
+* Reducir o eliminar volúmenes
+* Mover volúmenes a otro agregado con más espacio
+
+ a| 
+Las operaciones de escritura en volúmenes del agregado están en riesgo, así como la disponibilidad de datos; el agregado puede desconectarse. En casos extremos, el nodo podría experimentar una interrupción.
+
+|===
+Cada vez que se cruza un umbral para un agregado, ya sea que el porcentaje de ocupación está aumentando o cayendo, se genera un mensaje EMS. Cuando el nivel de llenado del agregado está por debajo de un umbral, una `aggregate ok` Se genera un mensaje EMS.

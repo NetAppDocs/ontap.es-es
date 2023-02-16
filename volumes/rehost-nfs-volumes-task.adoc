@@ -1,0 +1,81 @@
+---
+permalink: volumes/rehost-nfs-volumes-task.html 
+sidebar: sidebar 
+keywords: rehost, nfs, volumes 
+summary: Puede volver a alojar volúmenes que sirven datos mediante el protocolo NFS. Después de volver a alojar los volúmenes NFS, para seguir accediendo a los datos mediante el protocolo NFS, debe asociar el volumen con la política de exportación de la SVM de host y configurar manualmente las políticas y las reglas asociadas. 
+---
+= Vuelva a alojar volúmenes NFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede volver a alojar volúmenes que sirven datos mediante el protocolo NFS. Después de volver a alojar los volúmenes NFS, para seguir accediendo a los datos mediante el protocolo NFS, debe asociar el volumen con la política de exportación de la SVM de host y configurar manualmente las políticas y las reglas asociadas.
+
+.Lo que necesitará
+* El volumen debe estar en línea.
+* No se deben ejecutar las operaciones de gestión de volúmenes, como movimientos de volúmenes o movimientos de LUN.
+* Se debe detener el acceso a los datos al volumen que se está realojando.
+* La configuración de los servicios de nombres y ns-switch de la SVM objetivo debe configurarse para admitir el acceso a los datos del volumen de realojamiento.
+* El ID de usuario y el ID de grupo del volumen deben estar disponibles en la SVM objetivo o cambiarse en el volumen de host.
+
+
+.Acerca de esta tarea
+* El realojamiento es una operación disruptiva.
+* Si la operación de realojamiento falla, es posible que deba volver a configurar las políticas de volumen y las reglas asociadas en el volumen de origen.
+* Tras la operación de realojamiento, se pierden las siguientes políticas de volumen, reglas de política y configuraciones en el volumen de origen y se deben volver a configurar manualmente en el volumen hospedado:
++
+** Políticas de exportación de volúmenes y qtrees
+** Directivas de antivirus
+** Política de eficiencia de volúmenes
+** Políticas de calidad de servicio (QoS)
+** Políticas de Snapshot
+** Reglas de cuotas
+** reglas y políticas de exportación de configuración de ns-switch y servicios de nombres
+** ID de usuario y de grupo
+
+
+
+
+.Pasos
+. Registrar información sobre las políticas de exportación de NFS para evitar la pérdida de información sobre las políticas de NFS en caso de que se produzca un error en la operación de realojamiento del volumen.
+. Desmonte el volumen del volumen principal:
++
+`volume unmount`
+
+. Cambie al nivel de privilegio avanzado:
++
+`set -privilege advanced`
+
+. Vuelva a alojar el volumen en la SVM de destino:
++
+`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+
++
+La política de exportación predeterminada de la SVM de destino se aplica al volumen realojado.
+
+. Cree la política de exportación:
++
+`vserver export-policy create`
+
+. Actualice la política de exportación del volumen realojado a una política de exportación definida por el usuario:
++
+`volume modify`
+
+. Monte el volumen en la ruta de unión adecuada en la SVM de destino:
++
+`volume mount`
+
+. Compruebe que el servicio NFS está en ejecución en la SVM de destino.
+. Reanude el acceso NFS al volumen que se realoja.
+. Actualice las credenciales del cliente NFS y las configuraciones de LIF para reflejar las LIF de SVM de destino.
++
+Esto se debe a que la ruta de acceso al volumen (LIF y ruta de unión) ha sufrido cambios.
+
+
+
+.Después de terminar
+Es necesario volver a configurar manualmente las políticas y las reglas asociadas en el volumen realojado.
+
+https://docs.netapp.com/us-en/ontap-sm-classic/nfs-config/index.html["Configuración de NFS"]

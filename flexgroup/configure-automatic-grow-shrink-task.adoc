@@ -1,0 +1,54 @@
+---
+permalink: flexgroup/configure-automatic-grow-shrink-task.html 
+sidebar: sidebar 
+keywords: configure, flexgroup, volume, automatic, grow, shrink, size 
+summary: A partir de ONTAP 9.3, se pueden configurar los volúmenes de FlexGroup para que crezcan y se reduzcan automáticamente en función de la cantidad de espacio que necesiten actualmente. 
+---
+= Configure los volúmenes de FlexGroup para que aumenten y reduzcan su tamaño automáticamente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.3, se pueden configurar los volúmenes de FlexGroup para que crezcan y se reduzcan automáticamente en función de la cantidad de espacio que necesiten actualmente.
+
+.Lo que necesitará
+El volumen FlexGroup debe estar en línea.
+
+.Acerca de esta tarea
+los volúmenes de FlexGroup se pueden ajustar de forma automática en dos modos:
+
+* Aumente automáticamente el tamaño del volumen (`grow` modo)
++
+El crecimiento automático ayuda a evitar que un volumen de FlexGroup se quede sin espacio si el agregado puede suministrar más espacio. Puede configurar el tamaño máximo del volumen. El aumento se activa automáticamente en función de la cantidad de datos que se escriben en el volumen en relación con la cantidad actual de espacio usado y todos los umbrales establecidos.
+
++
+De forma predeterminada, el tamaño máximo que puede crecer un volumen es del 120 % del tamaño en el cual se habilita el crecimiento automático. Si es necesario asegurarse de que el volumen pueda crecer para ser mayor que dicho, debe configurar el tamaño máximo para el volumen según corresponda.
+
+* Reduzca el tamaño del volumen automáticamente (`grow_shrink` modo)
++
+La reducción automática evita que un volumen sea mayor de lo necesario y libera espacio en el agregado para que lo usen otros volúmenes.
+
++
+La autoreducción sólo se puede utilizar en combinación con el crecimiento automático para satisfacer las cambiantes demandas de espacio y no está disponible solo. Cuando se habilita la función de reducción automática, ONTAP gestiona automáticamente el comportamiento de reducción de un volumen para evitar un bucle interminable de acciones de autocrecimiento y autoreducción.
+
+
+
+A medida que crece un volumen, es posible que el número máximo de archivos que puede contener se aumente automáticamente. Cuando un volumen se reduce, el número máximo de archivos que puede contener no cambia y un volumen no se puede reducir automáticamente por debajo del tamaño correspondiente a su número máximo actual de archivos. Por este motivo, es posible que no sea posible reducir de forma automática un volumen hasta su tamaño original.
+
+.Paso
+. Configure el volumen para que crezca y reduzca su tamaño automáticamente: `volume autosize -vserver vserver_name -volume vol_name -mode [grow | grow_shrink]`
++
+También se puede especificar el tamaño máximo, el tamaño mínimo y los umbrales para aumentar o reducir el volumen.
+
++
+El siguiente comando habilita cambios de tamaño automáticos para un volumen denominado fg1. El volumen está configurado para crecer hasta alcanzar un tamaño máximo de 5 TB cuando está lleno al 70 %.
+
++
+[listing]
+----
+cluster1::> volume autosize -volume fg1 -mode grow -maximum-size 5TB -grow-threshold-percent 70
+vol autosize: volume "vs_src:fg1" autosize settings UPDATED.
+----
+

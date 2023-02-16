@@ -1,0 +1,95 @@
+---
+permalink: ndmp/configure-lifs-node-scoped-task.html 
+sidebar: sidebar 
+keywords: configure, lif 
+summary: Debe identificar una LIF que se utilizará para establecer una conexión de datos y controlar la conexión entre el nodo y la aplicación de backup. Tras identificar la LIF, debe verificar que las políticas de firewall y recuperación tras fallos están establecidas para la LIF. 
+---
+= Configure una LIF
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe identificar una LIF que se utilizará para establecer una conexión de datos y controlar la conexión entre el nodo y la aplicación de backup. Tras identificar la LIF, debe verificar que las políticas de firewall y recuperación tras fallos están establecidas para la LIF.
+
+
+NOTE: A partir de ONTAP 9.10.1, las políticas de firewall están obsoletas y sustituidas por completo por políticas de servicios LIF. Para obtener más información, consulte link:../networking/configure_firewall_policies_for_lifs.html["Configurar políticas de firewall para LIF"].
+
+.Pasos
+. Identifique la LIF de interconexión de clústeres alojada en los nodos mediante el `network interface show` con el `-role` parámetro.
++
+[listing]
+----
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+cluster1    IC2        up/up      192.0.2.68/24      cluster1-2    e0b     true
+----
+. Compruebe que la política de firewall está activada para NDMP en las LIF de interconexión de clústeres:
++
+.. Compruebe que la directiva de firewall está activada para NDMP mediante el `system services firewall policy show` comando.
++
+El siguiente comando muestra la política de firewall para la LIF de interconexión de clústeres:
+
++
+[listing]
+----
+cluster1::> system services firewall policy show -policy intercluster
+
+Vserver     Policy       Service    Allowed
+-------     ------------ ---------- -------------------
+cluster1    intercluster dns        -
+                         http       -
+                         https      -
+                         **ndmp       0.0.0.0/0, ::/0**
+                         ndmps      -
+                         ntp        -
+                         rsh        -
+                         ssh        -
+                         telnet     -
+9 entries were displayed.
+----
+.. Si la directiva de firewall no está activada, active la directiva de firewall mediante el `system services firewall policy modify` con el `-service` parámetro.
++
+El siguiente comando habilita la política de firewall para la LIF de interconexión de clústeres:
+
++
+[listing]
+----
+cluster1::> system services firewall policy modify -vserver cluster1 -policy intercluster -service ndmp 0.0.0.0/0
+----
+
+
+. Asegúrese de que la normativa de recuperación tras fallos esté establecida de forma adecuada para las LIF de interconexión de clústeres:
++
+.. Compruebe que la política de recuperación tras fallos de las LIF de interconexión de clústeres está establecida en `local-only` mediante el uso de `network interface show -failover` comando.
++
+[listing]
+----
+cluster1::> network interface show -failover
+            Logical          Home              Failover     Failover
+Vserver     Interface        Node:Port         Policy       Group
+--------    ---------------  ----------------- ------------ --------
+cluster1    **IC1               cluster1-1:e0a    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+            **IC2               cluster1-2:e0b    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+cluster1-1  cluster1-1_mgmt1 cluster1-1:e0m    local-only    Default
+                                                    Failover Targets:
+                                                    .......
+----
+.. Si la política de conmutación por error no está definida de forma adecuada, modifique la política de conmutación por error mediante el `network interface modify` con el `-failover-policy` parámetro.
++
+[listing]
+----
+cluster1::> network interface modify -vserver cluster1 -lif IC1 -failover-policy local-only
+----
+
+
+

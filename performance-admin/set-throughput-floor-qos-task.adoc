@@ -1,0 +1,133 @@
+---
+permalink: performance-admin/set-throughput-floor-qos-task.html 
+sidebar: sidebar 
+keywords: setting, throughput, floor, qos 
+summary: 'Puede usar el campo rendimiento mínimo de un grupo de políticas para definir un piso de rendimiento para las cargas de trabajo de objetos de almacenamiento (QoS mín.). Puede aplicar el grupo de políticas cuando crea o modifica el objeto de almacenamiento. A partir de ONTAP 9.8, puede especificar el nivel mínimo de rendimiento en IOPS o Mbps, o IOPS y Mbps.' 
+---
+= Fije un piso de rendimiento con calidad de servicio
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `min-throughput` Campo para un grupo de políticas a fin de definir un piso de rendimiento para las cargas de trabajo de objetos de almacenamiento (QoS mín.). Puede aplicar el grupo de políticas cuando crea o modifica el objeto de almacenamiento. A partir de ONTAP 9.8, puede especificar el nivel mínimo de rendimiento en IOPS o Mbps, o IOPS y Mbps.
+
+.Lo que necesitará
+* Debe ejecutar ONTAP 9.2 o una versión posterior. Los pisos de alto rendimiento están disponibles a partir de ONTAP 9.2.
+* Para crear un grupo de políticas, debe ser un administrador de clústeres.
+
+
+.Acerca de esta tarea
+* A partir de ONTAP 9.4, puede usar un grupo de políticas _no compartido_ QoS para especificar que la planta de rendimiento definida se aplique a cada carga de trabajo miembro de forma individual. Esta es la única condición en la que un grupo de políticas para una planta de rendimiento se puede aplicar a varias cargas de trabajo.
++
+Configurado `-is-shared=false` para la `qos policy-group create` comando para especificar un grupo de políticas no compartido.
+
+* El rendimiento de una carga de trabajo puede caer por debajo de la superficie especificada si no hay suficiente capacidad de rendimiento (margen adicional) en el nodo o el agregado.
+* Un objeto de almacenamiento sujeto a un límite de calidad de servicio debe ser contenido por la SVM a la que pertenece el grupo de políticas. Pueden pertenecer varios grupos de políticas a la misma SVM.
+* Es una práctica recomendada de la calidad de servicio aplicar un grupo de políticas al mismo tipo de objetos de almacenamiento.
+* Un grupo de políticas que define un piso de rendimiento no se puede aplicar a una SVM.
+
+
+.Pasos
+. Compruebe la capacidad de rendimiento adecuada en el nodo o agregado, como se describe en enlace permanente :Identify-remaining-performance-capacity-task.html[Identificación de la capacidad de rendimiento restante].
+. Cree un grupo de políticas:
++
+`qos policy-group create -policy group _policy_group_ -vserver _SVM_ -min-throughput _qos_target_ -is-shared true|false`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man de la versión ONTAP. Puede utilizar el `qos policy-group modify` comando para ajustar los pisos de rendimiento.
+
++
+El siguiente comando crea el grupo de políticas compartidas `pg-vs2` Con un rendimiento mínimo de 1,000 IOPS:
+
++
+[listing]
+----
+cluster1::> qos policy-group create -policy group pg-vs2 -vserver vs2 -min-throughput 1000iops -is-shared true
+----
++
+El siguiente comando crea el grupo de políticas no compartido `pg-vs4` sin límite de rendimiento:
+
++
+[listing]
+----
+cluster1::> qos policy-group create -policy group pg-vs4 -vserver vs4 -is-shared false
+----
+. Aplique un grupo de políticas a un volumen o una LUN:
++
+`_storage_object_ create -vserver _SVM_ -qos-policy-group _policy_group_`
+
++
+Para obtener una sintaxis de comando completa, consulte las páginas man. Puede utilizar el `_storage_object_modify` comando para aplicar un grupo de políticas diferente al objeto de almacenamiento.
+
++
+El siguiente comando aplica un grupo de políticas `pg-app2` al volumen `app2`:
+
++
+[listing]
+----
+cluster1::> volume create -vserver vs2 -volume app2 -aggregate aggr1 -qos-policy-group pg-app2
+----
+. Supervise el rendimiento del grupo de políticas:
++
+`qos statistics performance show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+Supervise el rendimiento desde el clúster. No utilice una herramienta en el host para supervisar el rendimiento.
+
+====
++
+El siguiente comando muestra el rendimiento del grupo de políticas:
+
++
+[listing]
+----
+cluster1::> qos statistics performance show
+Policy Group           IOPS      Throughput   Latency
+-------------------- -------- --------------- ----------
+-total-                 12316       47.76MB/s  1264.00us
+pg_app2                  7216       28.19MB/s   420.00us
+_System-Best-Effort        62       13.36KB/s     4.13ms
+_System-Background         30           0KB/s        0ms
+----
+. Supervisar el rendimiento de la carga de trabajo:
++
+`qos statistics workload performance show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+Supervise el rendimiento desde el clúster. No utilice una herramienta en el host para supervisar el rendimiento.
+
+====
++
+El siguiente comando muestra el rendimiento de la carga de trabajo:
+
++
+[listing]
+----
+cluster1::> qos statistics workload performance show
+Workload          ID     IOPS      Throughput    Latency
+--------------- ------ -------- ---------------- ----------
+-total-              -    12320        47.84MB/s  1215.00us
+app2-wid7967      7967     7219        28.20MB/s   319.00us
+vs1-wid12279     12279     5026        19.63MB/s     2.52ms
+_USERSPACE_APPS     14       55        10.92KB/s   236.00us
+_Scan_Backgro..   5688       20            0KB/s        0ms
+----
++
+[NOTE]
+====
+Puede utilizar el `qos statistics workload latency show` Comando para ver estadísticas detalladas de latencia de las cargas de trabajo de calidad de servicio.
+
+====
+

@@ -1,0 +1,48 @@
+---
+permalink: nfs-admin/check-whether-client-ip-address-is-member-netgroup-task.html 
+sidebar: sidebar 
+keywords: check, client, ip, address, member, netgroup 
+summary: Al solucionar los problemas de acceso de cliente NFS relacionados con los grupos de red, puede utilizar el comando de comprobación de pertenencia a grupos de red de la directiva de exportación Vserver para ayudar a determinar si una IP de cliente es miembro de un determinado grupo de red. 
+---
+= Compruebe si una dirección IP de cliente es miembro de un grupo de red
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Al solucionar problemas de acceso de cliente NFS relacionados con los grupos de red, puede utilizar `vserver export-policy netgroup check-membership` Comando para ayudar a determinar si una IP de cliente es miembro de un determinado netgroup.
+
+.Acerca de esta tarea
+Al comprobar la pertenencia a un grupo de red, puede determinar si ONTAP sabe que un cliente es o no miembro de un grupo de red. También le permite saber si la caché del netgroup de ONTAP está en un estado transitorio mientras actualiza la información del netgroup. Esta información puede ayudarle a entender por qué se puede conceder o denegar el acceso a un cliente de forma inesperada.
+
+.Paso
+. Compruebe la pertenencia al grupo de redes a una dirección IP de cliente: `vserver export-policy netgroup check-membership -vserver vserver_name -netgroup netgroup_name -client-ip client_ip`
++
+El comando puede mostrar los siguientes resultados:
+
++
+** El cliente es un miembro del netgroup.
++
+Esto se ha confirmado mediante una búsqueda inversa o una búsqueda de netgroup-by-host.
+
+** El cliente es un miembro del netgroup.
++
+Se encontró en la caché de netgroup de ONTAP.
+
+** El cliente no es miembro del netgroup.
+** La pertenencia al cliente aún no se puede determinar porque ONTAP está actualizando la caché de netgroup.
++
+Hasta que esto se haga, la membresía no puede ser explícitamente dentro o fuera. Utilice la `vserver export-policy netgroup queue show` comando para supervisar la carga del netgroup y volver a intentar la comprobación después de que haya finalizado.
+
+
+
+
+
+.Ejemplo
+En el siguiente ejemplo, se comprueba si un cliente con la dirección IP 172.17.16.72 es miembro del netgroup Mercury en la SVM vs1:
+
+[listing]
+----
+ cluster1::> vserver export-policy netgroup check-membership -vserver vs1 -netgroup  mercury -client-ip 172.17.16.72
+----

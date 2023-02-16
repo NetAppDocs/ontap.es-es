@@ -1,0 +1,75 @@
+---
+permalink: concepts/load-balancing-concept.html 
+sidebar: sidebar 
+keywords: 'load balance, workload, latency, overload, reduce load, ceiling, limits, iops, "mb/s", qos, min, max, policy group, throughput, headroom, floor, adaptive qos' 
+summary: 'La latencia comienza a afectar al rendimiento de las cargas de trabajo cuando la cantidad de trabajo en un nodo supera los recursos disponibles. Puede gestionar un nodo sobrecargado aumentando los recursos disponibles (actualizar discos o CPU) o reduciendo la carga (moviendo volúmenes o LUN a nodos diferentes según sea necesario).' 
+---
+= Balanceo de carga
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La latencia comienza a afectar al rendimiento de las cargas de trabajo cuando la cantidad de trabajo en un nodo supera los recursos disponibles. Puede gestionar un nodo sobrecargado aumentando los recursos disponibles (actualizar discos o CPU) o reduciendo la carga (moviendo volúmenes o LUN a nodos diferentes según sea necesario).
+
+También puede utilizar ONTAP _calidad de servicio (QoS)_ para garantizar que las cargas de trabajo críticas no degraden el rendimiento de las cargas de trabajo más importantes:
+
+* Puede definir un rendimiento de calidad de servicio _ploter_ en una carga de trabajo de la competencia para limitar el impacto sobre los recursos del sistema (QoS máx.).
+* Puede establecer un rendimiento de calidad de servicio _floor_ para una carga de trabajo crítica y asegurarse de que cumple con los objetivos de rendimiento mínimos sin importar la demanda de otras cargas de trabajo de la competencia (QoS mín.).
+* Puede establecer un techo y un piso de calidad de servicio para la misma carga de trabajo.
+
+
+
+
+== Techos de rendimiento
+
+Un límite máximo de rendimiento limita el rendimiento de una carga de trabajo a un número máximo de IOPS o MB/s. En la siguiente figura, el máximo rendimiento de la carga de trabajo 2 garantiza que no «"matones"» en las cargas de trabajo 1 y 3.
+
+Un _policy group_ define el techo de rendimiento de una o más cargas de trabajo. Una carga de trabajo representa las operaciones de I/o para un objeto de almacenamiento:_ un volumen, un archivo o una LUN, o todos los volúmenes, archivos o LUN de una SVM. Puede especificar el techo al crear el grupo de políticas, o bien se puede esperar hasta después de supervisar las cargas de trabajo para especificarlo.
+
+[NOTE]
+====
+El rendimiento en las cargas de trabajo puede superar el límite máximo especificado hasta en un 10 %, especialmente si una carga de trabajo experimenta cambios rápidos en el rendimiento. El techo podría ser superado en hasta un 50% para manejar las ráfagas.
+
+====
+image::../media/qos-ceiling-concepts.gif[conceptos del techo de la calidad de servicio]
+
+
+
+== Pisos de rendimiento
+
+Un piso de rendimiento garantiza que el rendimiento de una carga de trabajo no esté por debajo del número mínimo de IOPS. En la siguiente figura, los pisos de rendimiento de la carga de trabajo 1 y la carga de trabajo 3 garantizan que cumplen los objetivos de rendimiento mínimos, sin importar la demanda por carga de trabajo 2.
+
+[TIP]
+====
+Tal y como sugieren los ejemplos, un límite máximo de rendimiento limita el rendimiento directamente. Un entorno de rendimiento limita el rendimiento de forma indirecta, al dar prioridad a las cargas de trabajo para las que se ha establecido un piso.
+
+====
+Una carga de trabajo representa las operaciones de I/o para un volumen, LUN o, comenzando por ONTAP 9.3, archivo. Un grupo de políticas que define un piso de rendimiento no se puede aplicar a una SVM. Puede especificar la planta al crear el grupo de políticas, o bien esperar hasta que supervise las cargas de trabajo para especificarlas.
+
+[NOTE]
+====
+El rendimiento de una carga de trabajo puede caer por debajo de la superficie especificada si no hay suficiente capacidad de rendimiento (margen adicional) en el nodo o el agregado, o durante operaciones críticas como `volume move trigger-cutover`. Incluso cuando hay suficiente capacidad disponible y no se realizan operaciones críticas, el rendimiento de una carga de trabajo puede estar por debajo del nivel especificado hasta en un 5 %.
+
+====
+image::../media/qos-floor-concepts.gif[conceptos básicos de la calidad de servicio]
+
+
+
+== Calidad de servicio adaptativa
+
+Por lo general, el valor del grupo de políticas que asigna a un objeto de almacenamiento es fijo. Es necesario cambiar el valor de forma manual cuando cambia el tamaño del objeto de almacenamiento. Por ejemplo, un aumento de la cantidad de espacio utilizado en un volumen requiere, por lo general, un aumento correspondiente en el techo de rendimiento especificado para el volumen.
+
+_Adaptive QoS_ escala automáticamente el valor del grupo de políticas al tamaño de la carga de trabajo, y mantiene la ratio de IOPS en TB|GB a medida que cambia el tamaño de la carga de trabajo. Esto es una ventaja importante si gestiona cientos o miles de cargas de trabajo en una puesta en marcha grande.
+
+Normalmente, la calidad de servicio adaptativa se puede utilizar para ajustar los techos de rendimiento, pero también para gestionar el uso de pisos de rendimiento (cuando aumenta el tamaño de la carga de trabajo). El tamaño de la carga de trabajo se expresa como el espacio asignado para el objeto de almacenamiento o el espacio utilizado por el objeto de almacenamiento.
+
+[NOTE]
+====
+El espacio usado está disponible para pisos de rendimiento en ONTAP 9.5 y versiones posteriores. No se admite para pisos de rendimiento en ONTAP 9.4 y versiones anteriores.
+
+====
+* Una política de _espacio_ mantiene la ratio de IOPS/TB|GB según el tamaño nominal del objeto de almacenamiento. Si la relación es de 100 IOPS/GB, un volumen de 150 GB tendrá un techo de rendimiento de 15,000 IOPS mientras el volumen siga siendo de ese tamaño. Si el tamaño del volumen cambia a 300 GB, la calidad de servicio adaptativa ajusta el techo de rendimiento a 30,000 IOPS.
+* Una política de _space_ utilizada (predeterminada) mantiene la relación IOPS/TB|GB según la cantidad de datos reales almacenados antes de las eficiencias de almacenamiento. Si la relación es de 100 IOPS/GB, un volumen de 150 GB que tiene 100 GB de datos almacenados tendría un límite máximo de rendimiento de 10,000 IOPS. A medida que cambia la cantidad de espacio usado, la calidad de servicio adaptativa ajusta el techo de rendimiento en función de la ratio.
+

@@ -1,0 +1,191 @@
+---
+permalink: nfs-admin/troubleshoot-name-service-issues-task.html 
+sidebar: sidebar 
+keywords: troubleshoot, name, service, issue 
+summary: Cuando los clientes experimentan fallos de acceso debido a problemas del servicio de nombres, puede utilizar la familia de comandos de servicios Vserver name-service getxxbyyy para realizar manualmente varias búsquedas de servicios de nombres y examinar los detalles y resultados de la búsqueda para ayudar a solucionar problemas. 
+---
+= Solucionar problemas del servicio de nombres
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando los clientes experimentan errores de acceso debido a problemas del servicio de nombres, puede utilizar el `vserver services name-service getxxbyyy` familia de comandos para realizar manualmente varias búsquedas del servicio de nombres y examinar los detalles y los resultados de la búsqueda para ayudar con la solución de problemas.
+
+.Acerca de esta tarea
+* Para cada comando, puede especificar lo siguiente:
++
+** Nombre del nodo o de la máquina virtual de almacenamiento (SVM) en la que se realiza la búsqueda.
++
+Esto le permite probar las búsquedas del servicio de nombres para un nodo o SVM específicos a fin de limitar la búsqueda de un posible problema de configuración del servicio de nombres.
+
+** Si se muestra el origen utilizado para la búsqueda.
++
+Esto le permite comprobar si se ha utilizado la fuente correcta.
+
+
+
+* ONTAP selecciona el servicio para realizar la búsqueda de acuerdo con el orden del switch de servicio de nombres configurado.
+* Estos comandos están disponibles en el nivel de privilegio avanzado.
+
+
+.Pasos
+. Ejecute una de las siguientes acciones:
+
+
+|===
+
+
+| Para recuperar... | Usar el comando... 
+
+
+ a| 
+Dirección IP de un nombre de host
+ a| 
+`vserver services name-service getxxbyyy getaddrinfo`  `vserver services name-service getxxbyyy gethostbyname` (Solo direcciones IPv4)
+
+
+
+ a| 
+Miembros de un grupo por ID de grupo
+ a| 
+`vserver services name-service getxxbyyy getgrbygid`
+
+
+
+ a| 
+Miembros de un grupo por nombre de grupo
+ a| 
+`vserver services name-service getxxbyyy getgrbyname`
+
+
+
+ a| 
+Lista de grupos a los que pertenece un usuario
+ a| 
+`vserver services name-service getxxbyyy getgrlist`
+
+
+
+ a| 
+Nombre de host de una dirección IP
+ a| 
+`vserver services name-service getxxbyyy getnameinfo`  `vserver services name-service getxxbyyy gethostbyaddr` (Solo direcciones IPv4)
+
+
+
+ a| 
+Información de usuario por nombre de usuario
+ a| 
+`vserver services name-service getxxbyyy getpwbyname` Puede probar la resolución de nombres de los usuarios de RBAC especificando el `-use-rbac` parámetro como `true`.
+
+
+
+ a| 
+Información de usuario por ID de usuario
+ a| 
+`vserver services name-service getxxbyyy getpwbyuid`Puede probar la resolución de nombres de los usuarios de RBAC especificando el `-use-rbac` parámetro como `true`.
+
+
+
+ a| 
+Pertenencia a netgroup de un cliente
+ a| 
+`vserver services name-service getxxbyyy netgrp`
+
+
+
+ a| 
+Pertenencia a netgroup de un cliente mediante la búsqueda netgroup-by-host
+ a| 
+`vserver services name-service getxxbyyy netgrpbyhost`
+
+|===
+En el siguiente ejemplo, se muestra una prueba de búsqueda DNS para la SVM vs1 intentando obtener la dirección IP del host acast1.eng.example.com:
+
+[listing]
+----
+cluster1::*> vserver services name-service getxxbyyy getaddrinfo -vserver vs1 -hostname acast1.eng.example.com -address-family all -show-source true
+Source used for lookup: DNS
+Host name: acast1.eng.example.com
+Canonical Name: acast1.eng.example.com
+IPv4: 10.72.8.29
+----
+En el siguiente ejemplo, se muestra una prueba de búsqueda de NIS para el SVM vs1 intentando recuperar la información de usuario de un usuario con el UID 501768:
+
+[listing]
+----
+cluster1::*> vserver services name-service getxxbyyy getpwbyuid -vserver vs1 -userID 501768 -show-source true
+Source used for lookup: NIS
+pw_name: jsmith
+pw_passwd: $1$y8rA4XX7$/DDOXAvc2PC/IsNFozfIN0
+pw_uid: 501768
+pw_gid: 501768
+pw_gecos:
+pw_dir: /home/jsmith
+pw_shell: /bin/bash
+----
+En el siguiente ejemplo, se muestra una prueba de búsqueda LDAP para la SVM vs1 intentando recuperar la información de usuario de un usuario con el nombre ldap1:
+
+[listing]
+----
+cluster1::*> vserver services name-service getxxbyyy getpwbyname -vserver vs1 -username ldap1 -use-rbac false -show-source true
+Source used for lookup: LDAP
+pw_name: ldap1
+pw_passwd: {crypt}JSPM6yc/ilIX6
+pw_uid: 10001
+pw_gid: 3333
+pw_gecos: ldap1 user
+pw_dir: /u/ldap1
+pw_shell: /bin/csh
+----
+En el siguiente ejemplo se muestra una prueba de búsqueda de netgroup para la SVM vs1 intentando averiguar si el cliente dnshost0 es miembro del netgroup lnetgroup136:
+
+[listing]
+----
+cluster1::*> vserver services name-service getxxbyyy netgrp -vserver vs1 -netgroup lnetgroup136 -client dnshost0 -show-source true
+Source used for lookup: LDAP
+dnshost0 is a member of lnetgroup136
+----
+. Analice los resultados de la prueba realizada y tome las medidas necesarias.
+
+
+|===
+
+
+| Si... | Compruebe... 
+
+
+ a| 
+Error en la búsqueda del nombre de host o de la dirección IP o se obtuvieron resultados incorrectos
+ a| 
+Configuración de DNS
+
+
+
+ a| 
+La búsqueda se ha consultado con un origen incorrecto
+ a| 
+Asigne un nombre a la configuración del switch de servicio
+
+
+
+ a| 
+Error de búsqueda de usuarios o grupos o resultados incorrectos
+ a| 
+Configuración del switch del servicio de nombres Configuración de origen (archivos locales, dominio NIS, cliente LDAP)
+
+Configuración de red (por ejemplo, LIF y rutas)
+
+
+
+ a| 
+Se ha producido un error en la búsqueda del nombre de host o se ha agotado el tiempo de espera y el servidor DNS no resuelve los nombres cortos de DNS (por ejemplo, host1)
+ a| 
+Configuración de DNS para consultas de dominio de nivel superior (TLD). Puede desactivar las consultas TLD mediante el `-is-tld-query-enabled false` de la `vserver services name-service dns modify` comando.
+
+|===
+.Información relacionada
+https://www.netapp.com/pdf.html?item=/media/16328-tr-4668pdf.pdf["Informe técnico de NetApp 4668: Guía de prácticas recomendadas de servicios de nombres"^]

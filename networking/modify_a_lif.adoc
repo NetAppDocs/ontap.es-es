@@ -1,0 +1,109 @@
+---
+sidebar: sidebar 
+permalink: networking/modify_a_lif.html 
+keywords: lif attributes, fc lifs, ip lifs, change lifs, change, changing, logical, interface, lif, modify a lif, modify a lif by changing its attributes 
+summary: Modificar una LIF cambiando sus atributos 
+---
+= Modificar una LIF
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Puede modificar una LIF cambiando los atributos, como el nodo inicial o el nodo actual, el estado administrativo, la dirección IP, la máscara de red, la política de conmutación por error política de firewall y política de servicio. También puede cambiar la familia de direcciones de un LIF de IPv4 a IPv6.
+
+.Acerca de esta tarea
+* Cuando se modifica el estado administrativo de una LIF a inactivo, se retienen todos los bloqueos de NFSv4 extraordinarios hasta que se devuelva el estado administrativo de la LIF a.
++
+Para evitar conflictos de bloqueos que se pueden producir cuando otros LIF intentan acceder a los archivos bloqueados, debe mover los clientes de NFSv4 a una LIF diferente antes de establecer el estado administrativo como inactivo.
+
+* No puede modificar los protocolos de datos que utiliza una LIF FC. Sin embargo, puede modificar los servicios asignados a una política de servicio o cambiar la política de servicio asignada a una LIF de IP.
++
+Para modificar los protocolos de datos que utiliza una LIF FC, debe eliminar y volver a crear la LIF. Para realizar cambios en la política de servicio en una LIF de IP, hay una breve interrupción mientras se realizan las actualizaciones.
+
+* No puede modificar el nodo de inicio ni el nodo actual de una LIF de gestión de ámbito de nodo.
+* Cuando se usa una subred para cambiar la dirección IP y el valor de máscara de red de una LIF, se asigna una dirección IP desde la subred especificada; si la dirección IP anterior de la LIF procede de una subred diferente, la dirección IP se devuelve a esa subred.
+* Para modificar la familia de direcciones de un LIF de IPv4 a IPv6, debe usar la notación de dos puntos para la dirección IPv6 y añadir un nuevo valor para `-netmask-length` parámetro.
+* No puede modificar las direcciones IPv6 locales de enlace configuradas automáticamente.
+* La modificación de una LIF que hace que la LIF no tenga ningún destino de conmutación por error válido da como resultado un mensaje de advertencia.
++
+Si una LIF que no tiene un destino de conmutación por error válido intenta conmutar al respaldo, se podría producir una interrupción del servicio.
+
+* A partir de ONTAP 9.5, puede modificar la política de servicio asociada con una LIF.
++
+En ONTAP 9.5, las políticas de servicio solo se admiten para los servicios entre iguales de BGP y interconexión de clústeres. En ONTAP 9.6, puede crear políticas de servicio para varios servicios de datos y gestión.
+
+* A partir de ONTAP 9.11.1, la función de conmutación por error del LIF iSCSI está disponible en las plataformas de cabina All SAN (ASA).
++
+Para los LIF iSCSI preexistentes, es decir, los LIF creados antes de actualizar a la versión 9.11.1 o una posterior, puede modificar la política de conmutación por error para habilitar la función de conmutación por error de LIF iSCSI.
+
++
+link:../san-admin/asa-iscsi-lif-fo-task.html["Conmutación por error de LIF de iSCSI para plataformas ASA"]
+
+
+
+El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*A partir de ONTAP 9.12.0, puede utilizar System Manager para editar una interfaz de red*
+
+.Pasos
+. Seleccione *Red > Descripción general > interfaces de red*.
+. Seleccione image:icon_kabob.gif["icono de kebob"] *> Editar* junto a la interfaz de red que desea cambiar.
+. Cambie una o varias de las opciones de configuración de la interfaz de red. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/networking/create_a_lif.html["Cree una LIF"].
+. Guarde los cambios.
+
+
+--
+.CLI
+--
+*Utilice la CLI para modificar un LIF*
+
+.Pasos
+. Modifique los atributos de una LIF mediante el `network interface modify` comando.
++
+En el ejemplo siguiente se muestra cómo modificar la dirección IP y la máscara de red de los datos de LIF 2 mediante una dirección IP y el valor de máscara de red de la subred cliente1_sub:
+
++
+....
+network interface modify -vserver vs1 -lif datalif2 -subnet-name client1_sub
+....
++
+En el ejemplo siguiente se muestra cómo modificar la política de servicio de una LIF.
+
++
+....
+network interface modify -vserver siteA -lif node1_inter1 -service-policy example
+....
+. Compruebe que sea posible acceder a las direcciones IP.
++
+|===
+
+
+| Si está usando... | Utilice... 
+
+
+ a| 
+Direcciones IPv4
+ a| 
+`network ping`
+
+
+
+ a| 
+Direcciones IPv6
+ a| 
+`network ping6`
+
+|===
+
+
+--
+====

@@ -1,0 +1,317 @@
+---
+permalink: snaplock/set-retention-period-task.html 
+sidebar: sidebar 
+keywords: snaplock, set, retention, time, default, explicit, file, modify, volume, period, ebr, event, based 
+summary: Se puede establecer el tiempo de retención de un archivo explícitamente o se puede usar el período de retención predeterminado para el volumen a fin de obtener el tiempo de retención. A menos que se establezca el tiempo de retención explícitamente, SnapLock utiliza el período de retención predeterminado para calcular el tiempo de retención. También es posible configurar la retención de archivos después de un evento. 
+---
+= Establezca el tiempo de retención
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Se puede establecer el tiempo de retención de un archivo explícitamente o se puede usar el período de retención predeterminado para el volumen a fin de obtener el tiempo de retención. A menos que se establezca el tiempo de retención explícitamente, SnapLock utiliza el período de retención predeterminado para calcular el tiempo de retención. También es posible configurar la retención de archivos después de un evento.
+
+.Acerca del período de retención y del tiempo de retención
+El _retention period_ para un archivo WORM especifica la cantidad de tiempo que debe conservarse el archivo después de comprometerse al estado WORM. El _retention time_ para un archivo WORM es el tiempo a partir del cual ya no es necesario retener el archivo. Un período de retención de 20 años para un archivo comprometido con EL estado WORM el 10 de noviembre a las 2020 6:00, por ejemplo, daría como resultado un período de retención de 10 de noviembre a las 2040 6:00 a.m.
+
+image::../media/retention.gif[retención]
+
+[NOTE]
+====
+A partir de ONTAP 9.10.1, se puede establecer un tiempo de retención hasta el 26 de octubre de 3058 y un período de retención de hasta 100 años. Al ampliar las fechas de retención, las directivas más antiguas se convierten automáticamente. En ONTAP 9.9.1 y versiones anteriores, a menos que se establezca el período de retención predeterminado en infinito, el tiempo de retención máximo admitido es el 19 2071 de enero (GMT).
+
+====
+.Consideraciones importantes sobre la replicación
+Cuando se establece una relación de SnapMirror con un volumen de origen de SnapLock con una fecha de retención posterior al 19 de enero de 2071 (GMT), el clúster de destino debe ejecutar ONTAP 9.10.1 o una versión posterior, o se producirá un error en la transferencia de SnapMirror.
+
+.Consideraciones importantes sobre la reversión
+ONTAP impide que se pueda revertir un clúster de ONTAP 9.10.1 a una versión de ONTAP anterior cuando hay archivos con un período de retención posterior a “19 de enero de 2071 8:44:07 AM”.
+
+.Descripción de los períodos de retención predeterminados
+Los volúmenes de empresa o de cumplimiento de normativas de SnapLock tienen cuatro períodos de retención:
+
+* Período de retención mínimo (`min`), con un valor predeterminado de 0
+* Período de retención máximo (`max`), con un valor por defecto de 30 años
+* Período de retención predeterminado, con un valor predeterminado igual a. `min` Tanto para el modo de cumplimiento como para el modo de empresa a partir de ONTAP 9.10.1. En las versiones de ONTAP anteriores a ONTAP 9.10.1, el período de retención predeterminado depende del modo:
++
+** Para el modo de cumplimiento, el valor predeterminado es igual a `max`.
+** Para el modo Enterprise, el valor predeterminado es igual a. `min`.
+
+
+* Período de retención no especificado.
++
+A partir de ONTAP 9.8, es posible establecer el período de retención en los archivos de un volumen en `unspecified`, para permitir que el archivo se conserve hasta que se establezca un tiempo de retención absoluto. Puede establecer un archivo con tiempo de retención absoluto en retención no especificada y volver a la retención absoluta siempre y cuando el nuevo tiempo de retención absoluto sea posterior al tiempo absoluto establecido anteriormente.
+
++
+A partir de ONTAP 9.12.1, archivos WORM con el período de retención establecido en `unspecified` Estén garantizados para que el período de retención se haya establecido en el período de retención mínimo configurado para el volumen de SnapLock. Al cambiar el período de retención de archivos de `unspecified` para un tiempo de retención absoluto, el nuevo tiempo de retención especificado debe ser superior al tiempo de retención mínimo establecido en el archivo.
+
+
+
+Por lo tanto, si no establece el tiempo de retención explícitamente antes de confirmar un archivo de modo de cumplimiento en el estado WORM y no modifica los valores predeterminados, el archivo se conservará durante 30 años. Del mismo modo, si no establece el tiempo de retención explícitamente antes de comprometer un archivo de modo empresarial con el estado WORM, y no modifica los valores predeterminados, el archivo se conservará durante 0 años o, efectivamente, De nada.
+
+
+
+== Establecer el período de retención predeterminado
+
+Puede utilizar el `volume snaplock modify` Comando para establecer el período de retención predeterminado para los archivos de un volumen de SnapLock.
+
+.Lo que necesitará
+El volumen SnapLock debe estar en línea.
+
+.Acerca de esta tarea
+En la siguiente tabla se muestran los posibles valores para la opción de período de retención predeterminado:
+
+[NOTE]
+====
+El período de retención predeterminado debe ser mayor o igual que (>=) el período de retención mínimo y menor o igual que (\<=) el período de retención máximo.
+
+====
+|===
+| Valor | Unidad | Notas 
+
+
+ a| 
+0 - 65535
+ a| 
+segundos
+ a| 
+
+
+
+ a| 
+0 - 24
+ a| 
+horas
+ a| 
+
+
+
+ a| 
+0 - 365
+ a| 
+días
+ a| 
+
+
+
+ a| 
+0 - 12
+ a| 
+meses
+ a| 
+
+
+
+ a| 
+0 - 100
+ a| 
+años
+ a| 
+A partir de ONTAP 9.10.1, Para versiones anteriores de ONTAP, el valor es 0 - 70.
+
+
+
+ a| 
+capacidad
+ a| 
+-
+ a| 
+Usar el período de retención máximo.
+
+
+
+ a| 
+espacio
+ a| 
+-
+ a| 
+Use el período de retención mínimo.
+
+
+
+ a| 
+infinita
+ a| 
+-
+ a| 
+Conserve los archivos para siempre.
+
+
+
+ a| 
+sin especificar
+ a| 
+-
+ a| 
+Conserve los archivos hasta que se defina un período de retención absoluto.
+
+|===
+Los valores y los rangos para los períodos de retención máximo y mínimo son idénticos, excepto para `max` y.. `min`, que no son aplicables. Para obtener más información acerca de esta tarea, consulte link:set-retention-period-task.html["Establezca la visión general de la hora de retención"].
+
+Puede utilizar el `volume snaplock show` comando para ver la configuración del período de retención del volumen. Para obtener más información, consulte la página man del comando.
+
+[NOTE]
+====
+Después de que un archivo se haya comprometido con el estado WORM, puede ampliar el período de retención, pero no acortar.
+
+====
+.Pasos
+. Establezca el período de retención predeterminado para los archivos en un volumen de SnapLock:
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -default-retention-period _default_retention_period_ -minimum-retention-period _min_retention_period_ -maximum-retention-period _max_retention_period_*`
+
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+[NOTE]
+====
+En los siguientes ejemplos se asume que los períodos de retención mínimo y máximo no se han modificado previamente.
+
+====
++
+El siguiente comando establece el período de retención predeterminado para un volumen de Compliance o Enterprise en 20 días:
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period 20days
+----
++
+El siguiente comando establece el período de retención predeterminado para un volumen de cumplimiento en 70 años:
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -maximum-retention-period 70years
+----
++
+El comando siguiente establece el período de retención predeterminado para un volumen de Enterprise en 10 años:
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period max -maximum-retention-period 10years
+----
++
+Los siguientes comandos establecen el período de retención predeterminado para un volumen de empresa en 10 días:
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -minimum-retention-period 10days
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period min
+----
++
+El siguiente comando establece el período de retención predeterminado para un volumen de cumplimiento en infinito:
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period infinite -maximum-retention-period infinite
+----
+
+
+
+
+== Establezca explícitamente el tiempo de retención de un archivo
+
+Puede establecer explícitamente el tiempo de retención de un archivo modificando su última hora de acceso. Puede usar cualquier comando o programa adecuado a través de NFS o CIFS para modificar la última hora de acceso.
+
+.Acerca de esta tarea
+Después de haber comprometido un archivo con WORM, puede ampliar el tiempo de retención, pero no reducir este. El tiempo de retención se almacena en la `atime` para el archivo.
+
+[NOTE]
+====
+No se puede establecer explícitamente el tiempo de retención de un archivo en `infinite`. Ese valor solo está disponible cuando se utiliza el período de retención predeterminado para calcular el tiempo de retención.
+
+====
+.Pasos
+. Utilice un comando o programa adecuado para modificar la última hora de acceso para el archivo cuyo tiempo de retención desee establecer.
++
+En un shell de UNIX, utilice el comando siguiente para establecer una hora de retención de 21 de noviembre de 2020 6:00 a.m. en un archivo llamado `document.txt`:
+
++
+[listing]
+----
+touch -a -t 202011210600 document.txt
+----
++
+[NOTE]
+====
+Puede utilizar cualquier comando o programa adecuado para modificar la última hora de acceso en Windows.
+
+====
+
+
+
+
+== Establezca el período de retención de archivos después de un evento
+
+[role="lead"]
+A partir de ONTAP 9.3, puede definir cuánto tiempo se retiene un archivo después de que se produzca un evento mediante la función SnapLock _Event Based Retention (EBR)_.
+
+.Lo que necesitará
+* Debe ser un administrador de SnapLock para realizar esta tarea.
++
+link:create-compliance-administrator-account-task.html["Cree una cuenta de administrador de SnapLock"]
+
+* Debe haber iniciado sesión en una conexión segura (SSH, Console o ZAPI).
+
+
+.Acerca de esta tarea
+La directiva _event retention_ define el período de retención del archivo después de que se produzca el evento. La directiva se puede aplicar a un único archivo o a todos los archivos de un directorio.
+
+* Si un archivo no es UN archivo WORM, se comprometerá con el estado WORM para el período de retención definido en la política.
+* Si un archivo es UN archivo WORM o un archivo ampliable WORM, su período de retención se extenderá por el período de retención que se define en la política.
+
+
+Puede usar un volumen de modo de cumplimiento o de modo empresarial.
+
+[NOTE]
+====
+Las políticas de EBR no se pueden aplicar a los archivos de una retención legal.
+
+====
+Para un uso avanzado, consulte link:https://www.netapp.com/us/media/tr-4526.pdf["Almacenamiento WORM conforme a la normativa con SnapLock de NetApp"].
+
+|===
+
+
+| *_usar EBR para ampliar el período de retención de archivos WORM ya existentes_* 
+
+
+ a| 
+EBR resulta muy práctico cuando se desea ampliar el período de retención de archivos WORM ya existentes. Por ejemplo, podría ser la política de su empresa retener los registros del empleado W-4 en forma no modificada durante tres años después de que el empleado cambie una elección de retención. Otra política de la empresa podría requerir que los registros W-4 se retengan durante cinco años después de que el empleado haya terminado.
+
+En este caso, podría crear una política EBR con un período de retención de cinco años. Una vez que el empleado ha terminado (el "'evento'"), aplicaría la política de EBR al registro W-4 del empleado, lo que provocaría que se ampliara su período de retención. Esto suele ser más sencillo que ampliar el período de retención manualmente, especialmente cuando se trata de un gran número de archivos.
+
+|===
+.Pasos
+. Crear una política EBR:
++
+`*snaplock event-retention policy create -vserver _SVM_name_ -name _policy_name_ -retention-period _retention_period_*`
+
++
+El siguiente comando crea la política EBR `employee_exit` encendido `vs1` con un período de retención de diez años:
+
++
+[listing]
+----
+cluster1::>snaplock event-retention policy create -vserver vs1 -name employee_exit -retention-period 10years
+----
+. Aplicar una política EBR:
++
+`*snaplock event-retention apply -vserver _SVM_name_ -name _policy_name_ -volume _volume_name_ -path _path_name_*`
+
++
+El siguiente comando aplica la política EBR `employee_exit` encendido `vs1` a todos los archivos del directorio `d1`:
+
++
+[listing]
+----
+cluster1::>snaplock event-retention apply -vserver vs1 -name employee_exit -volume vol1 -path /d1
+----
+

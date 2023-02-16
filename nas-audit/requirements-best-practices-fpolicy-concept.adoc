@@ -1,0 +1,86 @@
+---
+permalink: nas-audit/requirements-best-practices-fpolicy-concept.html 
+sidebar: sidebar 
+keywords: requirements, considerations, best practices, configure, fpolicy 
+summary: 'Antes de crear y configurar las configuraciones de FPolicy en las máquinas virtuales de almacenamiento (SVM), debe tener en cuenta determinados requisitos, consideraciones y prácticas recomendadas para configurar FPolicy.' 
+---
+= Requisitos, consideraciones y prácticas recomendadas para configurar FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de crear y configurar las configuraciones de FPolicy en las SVM, debe tener en cuenta determinados requisitos, consideraciones y prácticas recomendadas para configurar FPolicy.
+
+Las funciones de FPolicy se configuran mediante la interfaz de línea de comandos (CLI) o mediante API.
+
+
+
+== Requisitos para configurar FPolicy
+
+Antes de configurar y habilitar FPolicy en una máquina virtual de almacenamiento (SVM), debe conocer ciertos requisitos.
+
+* Todos los nodos del clúster deben ejecutar una versión de ONTAP que admita FPolicy.
+* Si no utiliza el motor de FPolicy nativo de ONTAP, debe tener instalados servidores de FPolicy externos (servidores FPolicy).
+* Los servidores de FPolicy deben instalarse en un servidor al que se pueda acceder desde las LIF de datos de la SVM, donde se habilitaron políticas de FPolicy.
++
+
+NOTE: A partir de ONTAP 9.8, ONTAP proporciona un servicio LIF de cliente para conexiones FPolicy de salida con la adición del `data-fpolicy-client` servicio. https://docs.netapp.com/us-en/ontap/networking/lifs_and_service_policies96.html["Más información acerca de los LIF y las políticas de servicio"].
+
+* La dirección IP del servidor FPolicy debe configurarse como servidor primario o secundario en la configuración del motor externo de directivas de FPolicy.
+* Si los servidores FPolicy acceden a los datos a través de un canal de datos con privilegios, se deben cumplir los siguientes requisitos adicionales:
++
+** Las licencias de SMB deben estar en el clúster.
++
+El acceso a datos con privilegios se logra mediante conexiones SMB.
+
+** Se debe configurar una credencial de usuario para acceder a los archivos a través del canal de datos con privilegios.
+** El servidor FPolicy debe ejecutarse con las credenciales configuradas en la configuración de FPolicy.
+** Todas las LIF de datos utilizadas para comunicarse con los servidores de FPolicy deben estar configuradas para tener `cifs` como uno de los protocolos permitidos.
++
+Esto incluye los LIF utilizados para conexiones de lectura de paso a través.
+
+
+
+
+
+
+
+== Prácticas recomendadas y recomendaciones al configurar FPolicy
+
+Al configurar FPolicy en máquinas virtuales de almacenamiento (SVM), debe estar familiarizado con las prácticas recomendadas de configuración y recomendaciones para garantizar que su configuración de FPolicy proporciona un rendimiento y unos resultados sólidos de supervisión que cumplan con sus requisitos.
+
+* Los servidores de FPolicy externos (servidores de FPolicy) deben colocarse cerca del clúster con conectividad de alto ancho de banda para proporcionar una latencia mínima y una conectividad de alto ancho de banda.
+* El motor externo de FPolicy se debe configurar con más de un servidor FPolicy para proporcionar resiliencia y alta disponibilidad al procesamiento de notificaciones del servidor de FPolicy, especialmente si las políticas están configuradas para el filtrado sincrónico.
+* Se recomienda deshabilitar la política de FPolicy antes de realizar cualquier cambio de configuración.
++
+Por ejemplo, si desea añadir o modificar una dirección IP en el motor externo de FPolicy configurado para la política habilitada, primero debe deshabilitar la política.
+
+* La relación entre el nodo y el servidor FPolicy del clúster debe optimizarse para garantizar que los servidores de FPolicy no estén sobrecargados, lo que puede introducir latencias cuando la SVM responde a las solicitudes de cliente.
++
+La relación óptima depende de la aplicación para la que se utilice el servidor FPolicy.
+
+
+
+
+
+== Consideraciones sobre la actualización de paso a través y la reversión
+
+Hay ciertas consideraciones de actualización y reversión que debe saber acerca de antes de actualizar a una versión ONTAP que admite lectura previa al paso o antes de revertir a una versión que no admite lectura a través del paso.
+
+
+
+=== Actualizar
+
+Después de actualizar todos los nodos a una versión de ONTAP que admita la lectura PassThrough de FPolicy, el clúster puede usar la funcionalidad de lectura mediante paso a paso; sin embargo, la lectura a través permanece deshabilitada de forma predeterminada en las configuraciones de FPolicy existentes. Para utilizar la lectura de paso a través en las configuraciones de FPolicy existentes, debe deshabilitar la política de FPolicy, modificar la configuración y, a continuación, volver a habilitar la configuración.
+
+
+
+=== Revertir
+
+Antes de revertir a una versión de ONTAP que no admite lectura de paso a través de FPolicy, se deben cumplir las siguientes condiciones:
+
+* Todas las directivas que utilizan passthrough-read deben estar deshabilitadas y, a continuación, se deben modificar las configuraciones afectadas para que no utilicen passthrough-read.
+* La funcionalidad de FPolicy debe deshabilitarse en el clúster deshabilitando cada política de FPolicy del clúster.
+

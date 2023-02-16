@@ -1,0 +1,101 @@
+---
+permalink: smb-admin/statistics-monitor-automatic-node-referral-task.html 
+sidebar: sidebar 
+keywords: smb, connection, refer, monitor, automatic, node, referral, extent, locating, locate, host, redistribute, lif, local, access, cifs, use statistics to monitor automatic node referral activity 
+summary: Para determinar cuántas conexiones SMB se hacen referencia, puede supervisar la actividad de referencia automática de nodos mediante el comando statistics. Al supervisar las referencias puede determinar en qué medida las referencias automáticas están ubicando conexiones en los nodos que alojan los recursos compartidos y si debe redistribuir sus LIF de datos para proporcionar un mejor acceso local a los recursos compartidos en el servidor CIFS. 
+---
+= Utilice estadísticas para supervisar la actividad de referencia automática de nodos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para determinar cuántas conexiones SMB se hacen referencia, puede supervisar la actividad de referencia automática de nodos mediante el `statistics` comando. Al supervisar las referencias puede determinar en qué medida las referencias automáticas están ubicando conexiones en los nodos que alojan los recursos compartidos y si debe redistribuir sus LIF de datos para proporcionar un mejor acceso local a los recursos compartidos en el servidor CIFS.
+
+.Acerca de esta tarea
+La `cifs` Object proporciona varios contadores en el nivel de privilegio avanzado que son útiles para supervisar referencias automáticas de nodos de SMB:
+
+* `node_referral_issued`
++
+Número de clientes a los que se ha emitido una referencia al nodo de la raíz compartida después de que el cliente se haya conectado mediante una LIF alojada por un nodo diferente al nodo de la raíz compartida.
+
+* `node_referral_local`
++
+Número de clientes que se conectan mediante una LIF alojada por el mismo nodo que aloja la raíz compartida. El acceso local generalmente proporciona un rendimiento óptimo.
+
+* `node_referral_not_possible`
++
+Número de clientes que no se han emitido una referencia al nodo que aloja el recurso compartido raíz tras la conexión mediante una LIF alojada por un nodo diferente al nodo raíz del recurso compartido. Esto se debe a que no se encontró una LIF de datos activa para el nodo raíz del recurso compartido.
+
+* `node_referral_remote`
++
+Número de clientes que se conectan mediante una LIF alojada por un nodo diferente al nodo que aloja la raíz compartida. El acceso remoto puede provocar una degradación del rendimiento.
+
+
+
+Es posible supervisar las estadísticas de referencia automática de nodos en la máquina virtual de almacenamiento (SVM) mediante la recopilación y la visualización de datos de un período de tiempo específico (una muestra). Puede ver los datos de la muestra si no detiene la recopilación de datos. Al detener la recopilación de datos, se proporciona una muestra fija. No detener la recopilación de datos le ofrece la posibilidad de obtener datos actualizados que puede utilizar para compararlos con consultas anteriores. La comparativa puede ayudarle a identificar las tendencias de rendimiento.
+
+[NOTE]
+====
+Para evaluar y utilizar la información que recopila de `statistics` comando, debe comprender la distribución de clientes en sus entornos.
+
+====
+.Pasos
+. Configure el nivel de privilegio en Advanced: `set -privilege advanced`
+. Para ver las estadísticas automáticas de referencia de nodos, utilice `statistics` comando.
++
+En este ejemplo, se visualizan y recogen estadísticas de referencia automática de nodos:
+
++
+.. Inicie la colección: `statistics start -object cifs -instance vs1 -sample-id sample1`
++
+[listing]
+----
+Statistics collection is being started for Sample-id: sample1
+----
+.. Espere a que transcurra el tiempo de recogida deseado.
+.. Detenga la colección: `statistics stop -sample-id sample1`
++
+[listing]
+----
+Statistics collection is being stopped for Sample-id: sample1
+----
+.. Vea las estadísticas de referencia automática de nodos: `statistics show -sample-id sample1 -counter *node*`
++
+[listing]
+----
+Object: cifs
+Instance: vs1
+Start-time: 2/4/2013 19:27:02
+End-time: 2/4/2013 19:30:11
+Cluster: cluster1
+
+    Counter                                             Value
+    ----------------------------- ---------------------------
+    node_name                                          node1
+    node_referral_issued                                    0
+    node_referral_local                                     1
+    node_referral_not_possible                              2
+    node_referral_remote                                    2
+    ...
+
+    node_name                                          node2
+    node_referral_issued                                    2
+    node_referral_local                                     1
+    node_referral_not_possible                              0
+    node_referral_remote                                    2
+    ...
+----
++
+La salida muestra los contadores de todos los nodos que participan en SVM vs1. Para mayor claridad, en el ejemplo solo se proporcionan los campos de salida relacionados con las estadísticas automáticas de referencia de nodos.
+
+
+
+. Vuelva al nivel de privilegio de administrador: `set -privilege admin`
+
+
+.Información relacionada
+xref:display-statistics-task.adoc[Mostrar estadísticas]
+
+link:../performance-config/index.html["Configuración de supervisión del rendimiento"]

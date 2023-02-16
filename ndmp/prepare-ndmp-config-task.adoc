@@ -1,0 +1,103 @@
+---
+permalink: ndmp/prepare-ndmp-config-task.html 
+sidebar: sidebar 
+keywords: prepare, ndmp, configuration 
+summary: 'Antes de configurar el acceso al backup a cinta mediante el protocolo de gestión de datos de red (NDMP), debe comprobar que la configuración planificada es compatible y comprobar que las unidades de cinta aparecen como unidades adecuadas en cada nodo, verificar que todos los nodos tienen LIF de interconexión de clústeres. E identifique si la aplicación de backup es compatible con la extensión Cluster Aware Backup (CAB).' 
+---
+= Prepárese para la configuración de NDMP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de configurar el acceso al backup a cinta mediante el protocolo de gestión de datos de red (NDMP), debe comprobar que la configuración planificada es compatible y comprobar que las unidades de cinta aparecen como unidades adecuadas en cada nodo, verificar que todos los nodos tienen LIF de interconexión de clústeres. E identifique si la aplicación de backup es compatible con la extensión Cluster Aware Backup (CAB).
+
+.Pasos
+. Consulte la matriz de compatibilidad del proveedor de aplicaciones de backup para obtener información sobre la compatibilidad con ONTAP (NetApp no reúne los requisitos de aplicaciones de backup de terceros con ONTAP o NDMP).
++
+Debe verificar que los siguientes componentes de NetApp sean compatibles:
+
++
+--
+** La versión de ONTAP 9 que se ejecuta en el clúster.
+** El proveedor de aplicaciones de backup y la versión: Por ejemplo, Veritas NetBackup 8.2 o CommVault.
+** Los detalles de los dispositivos de cinta, como el fabricante, el modelo y la interfaz de las unidades de cinta: Por ejemplo, IBM Ultrium 8 o HPE StoreEver Ultrium 30750 LTO-8.
+** Las plataformas de los nodos del clúster: Por ejemplo, FAS8700 o A400.
+
+
+--
++
+
+NOTE: Puede encontrar matrices de compatibilidad con ONTAP heredadas para aplicaciones de backup en la https://mysupport.netapp.com/matrix["Herramienta de matriz de interoperabilidad de NetApp"^].
+
+. Compruebe que las unidades de cinta aparecen como unidades cualificadas en el archivo de configuración de cinta incorporado de cada nodo:
++
+.. En la interfaz de línea de comandos, consulte el archivo de configuración de cinta incorporado mediante la `storage tape show-supported-status` comando.
++
+....
+cluster1::> storage tape show-supported-status
+
+Node: cluster1-1
+                                Is
+Tape Drives                     Supported  Support Status
+------------------------------  ---------  -------------------------------
+Certance Ultrium 2              true       Dynamically Qualified
+Certance Ultrium 3              true       Dynamically Qualified
+Digital DLT2000                 true       Qualified
+....
+.. Compare las unidades de cinta con la lista de unidades cualificadas de la salida.
++
+[NOTE]
+====
+Los nombres de los dispositivos de cinta de la salida pueden variar ligeramente con respecto a los nombres de la etiqueta del dispositivo o de la matriz de interoperabilidad. Por ejemplo, Digital DLT2000 también se conoce como DLT2k. Puede ignorar estas pequeñas diferencias de nomenclatura.
+
+====
+.. Si un dispositivo no aparece como cualificado en el resultado a pesar de que el dispositivo está cualificado según la matriz de interoperabilidad, descargue e instale un archivo de configuración actualizado para el dispositivo con las instrucciones en el sitio de soporte de NetApp.
++
+http://mysupport.netapp.com/NOW/download/tools/tape_config["Descargas de NetApp: Archivos de configuración de dispositivo de cinta"]
+
++
+Es posible que un dispositivo cualificado no aparezca en el archivo de configuración de cinta integrado si el dispositivo de cinta fue cualificado después de enviar el nodo.
+
+
+
+. Compruebe que todos los nodos del clúster tienen una LIF de interconexión de clústeres:
++
+.. Consulte las LIF de interconexión de clústeres de los nodos mediante el `network interface show -role intercluster` comando.
++
+[listing]
+----
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+----
+.. Si no hay ninguna LIF de interconexión de clústeres en ningún nodo, cree una LIF de interconexión de clústeres mediante la `network interface create` comando.
++
+[listing]
+----
+cluster1::> network interface create -vserver cluster1 -lif IC2 -role intercluster
+-home-node cluster1-2 -home-port e0b -address 192.0.2.68 -netmask 255.255.255.0
+-status-admin up -failover-policy local-only -firewall-policy intercluster
+
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+cluster1    IC2        up/up      192.0.2.68/24      cluster1-2    e0b     true
+----
++
+link:../networking/index.html["Gestión de redes"]
+
+
+
+. Identifique si la aplicación de backup es compatible con Cluster Aware Backup (CAB) mediante la documentación proporcionada con la aplicación de backup.
++
+El soporte CAB es un factor clave a la hora de determinar el tipo de backup que se puede realizar.
+
+

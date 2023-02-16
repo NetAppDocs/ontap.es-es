@@ -1,0 +1,88 @@
+---
+permalink: smb-admin/enable-disable-access-based-enumeration-task.html 
+sidebar: sidebar 
+keywords: enable, disable, access-based, enumeration, abe, smb, allow, prevent, user, permission, access, enable or disable access-based enumeration on smb shares 
+summary: 'Puede habilitar o deshabilitar la enumeración basada en acceso (ABE) en recursos compartidos SMB para permitir o impedir que los usuarios vean recursos compartidos a los que no tienen permiso para acceder.' 
+---
+= Habilite o deshabilite la enumeración basada en acceso en los recursos compartidos de SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede habilitar o deshabilitar la enumeración basada en acceso (ABE) en recursos compartidos SMB para permitir o impedir que los usuarios vean recursos compartidos a los que no tienen permiso para acceder.
+
+.Acerca de esta tarea
+De forma predeterminada, ABE está deshabilitado.
+
+.Pasos
+. Ejecute una de las siguientes acciones:
++
+|===
+| Si desea... | Introduzca el comando... 
+
+
+ a| 
+Habilite ABE en un nuevo recurso compartido
+ a| 
+`vserver cifs share create -vserver vserver_name -share-name share_name -path path -share-properties access-based-enumeration` Puede especificar configuraciones de recursos compartidos adicionales y propiedades de recursos compartidos adicionales al crear un recurso compartido SMB. Para obtener más información, consulte la página de manual de `vserver cifs share create` comando.
+
+
+
+ a| 
+Habilite ABE en un recurso compartido existente
+ a| 
+`vserver cifs share properties add -vserver vserver_name -share-name share_name -share-properties access-based-enumeration` Se conservan las propiedades de recursos compartidos existentes. La propiedad ABE share se agrega a la lista existente de propiedades compartidas.
+
+
+
+ a| 
+Deshabilite ABE en un recurso compartido existente
+ a| 
+`vserver cifs share properties remove -vserver vserver_name -share-name share_name -share-properties access-based-enumeration` Se conservan otras propiedades compartidas. Sólo la propiedad compartida ABE se elimina de la lista de propiedades de recursos compartidos.
+
+|===
+. Compruebe que la configuración de recurso compartido sea correcta mediante el `vserver cifs share show` comando.
+
+
+.Ejemplos
+El siguiente ejemplo crea una unidad ABE SMB denominada «números» con una ruta de acceso `/sales` En SVM vs1. El recurso compartido se crea con `access-based-enumeration` como propiedad compartida:
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name sales -path /sales  -share-properties access-based-enumeration,oplocks,browsable,changenotify
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name sales
+
+                      Vserver: vs1
+                        Share: sales
+     CIFS Server NetBIOS Name: VS1
+                         Path: /sales
+             Share Properties: access-based-enumeration
+                               oplocks
+                               browsable
+                               changenotify
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+En el siguiente ejemplo se agrega el `access-based-enumeration` Compartir propiedad a un recurso compartido SMB denominado «data2»:
+
+[listing]
+----
+cluster1::> vserver cifs share properties add -vserver vs1 -share-name data2 -share-properties access-based-enumeration
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2 -fields share-name,share-properties
+server  share-name share-properties
+------- ---------- -------------------------------------------------------
+vs1     data2      oplocks,browsable,changenotify,access-based-enumeration
+----
+.Información relacionada
+xref:add-remove-share-properties-eexisting-share-task.adoc[Agregar o quitar propiedades de recursos compartidos en un recurso compartido SMB existente]

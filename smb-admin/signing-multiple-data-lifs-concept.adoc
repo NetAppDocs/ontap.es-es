@@ -1,0 +1,31 @@
+---
+permalink: smb-admin/signing-multiple-data-lifs-concept.html 
+sidebar: sidebar 
+keywords: enable, disable, require, smb, sign, server, guideline, lifs, configuration, svm, guidelines for smb signing when multiple data lifs are configured 
+summary: Si habilita o deshabilita la firma SMB requerida en el servidor SMB, debe tener en cuenta las directrices para varias configuraciones de LIF de datos para una SVM. 
+---
+= Directrices para la firma SMB cuando se configuran varias LIF de datos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si habilita o deshabilita la firma SMB requerida en el servidor SMB, debe tener en cuenta las directrices para varias configuraciones de LIF de datos para una SVM.
+
+Cuando configura un servidor SMB, puede haber varios LIF de datos configurados. Si es así, el servidor DNS contiene varios `A` Registre las entradas del servidor CIFS utilizando el mismo nombre de host del servidor SMB, pero cada una con una dirección IP única. Por ejemplo, un servidor SMB que tiene dos LIF de datos configuradas puede tener el siguiente DNS `A` entradas de registro:
+
+[listing]
+----
+10.1.1.128 A VS1.IEPUB.LOCAL VS1
+10.1.1.129 A VS1.IEPUB.LOCAL VS1
+----
+El comportamiento normal es que, al cambiar la configuración de firma SMB necesaria, solo las nuevas conexiones de clientes se ven afectadas por el cambio en la configuración de firma SMB. Sin embargo, hay una excepción a este comportamiento. Existe un caso en el que un cliente tiene una conexión existente con un recurso compartido y éste crea una nueva conexión con el mismo recurso compartido después de cambiar la configuración, manteniendo la conexión original. En este caso, tanto la conexión SMB nueva como la existente adoptan los nuevos requisitos de firma SMB.
+
+Observe el siguiente ejemplo:
+
+. CLIENTE1 se conecta a un recurso compartido sin la firma SMB requerida mediante la ruta de acceso `O:\`.
+. El administrador de almacenamiento modifica la configuración del servidor SMB para requerir la firma SMB.
+. CLIENTE1 se conecta al mismo recurso compartido con la firma SMB requerida mediante la ruta de acceso `S:\` (mientras mantiene la conexión utilizando la ruta `O:\`).
+. El resultado es que se utiliza la firma SMB al acceder a datos a través de ambos `O:\` y.. `S:\` unidades.
+

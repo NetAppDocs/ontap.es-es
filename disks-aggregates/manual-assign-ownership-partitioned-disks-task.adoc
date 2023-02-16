@@ -1,0 +1,137 @@
+---
+permalink: disks-aggregates/manual-assign-ownership-partitioned-disks-task.html 
+sidebar: sidebar 
+keywords: manual, assign, disk, ownership, partition, disks 
+summary: Puede establecer la propiedad del disco de contenedor o de las particiones manualmente o mediante la asignación automática, igual que en los discos sin particiones. 
+---
+= Información general sobre la propiedad de discos con particiones manualmente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Con la CLI, puede establecer la propiedad del disco de contenedor o de las particiones manualmente o mediante la asignación automática, tal como lo hace con discos sin particiones.
+
+[NOTE]
+====
+Si se produce un error en un disco de contenedor en una bandeja ocupada a la mitad y se reemplaza, ONTAP no asignará automáticamente la propiedad. En este caso, deberá realizar manualmente cualquier asignación de discos nuevos. Para que la asignación automática funcione en bandejas medio pobladas, coloque los discos de manera equitativa en la mitad inferior y en 6 en las bahías del extremo derecho para empezar. Es decir, 6 discos de las bahías 0-5 y 6 discos de las bahías 18-23. Una vez asignado el disco de contenedor en un sistema configurado por ADP, el software ONTAP manejará cualquier asignación de particiones y particiones que sea necesaria, sin intervención del usuario.
+
+====
+Puede realizar las siguientes tareas en la CLI:
+
+.Asigne manualmente discos mediante particiones de datos raíz
+[%collapsible]
+====
+Para la partición de datos raíz, existen tres entidades propiedad (el disco contenedor y las dos particiones) que pertenecen colectivamente al par de alta disponibilidad.
+
+El disco de contenedor y las dos particiones no necesitan ser propiedad del mismo nodo en el par de alta disponibilidad siempre y cuando sean propiedad de uno de los nodos del par de alta disponibilidad. Sin embargo, cuando se utiliza una partición en un nivel local (agregado), debe ser propiedad del mismo nodo que posee el nivel local.
+
+.Pasos
+. Use la interfaz de línea de comandos para mostrar la propiedad actual del disco con particiones:
++
+`storage disk show -disk _disk_name_ -partition-ownership`
+
+. Configure el nivel de privilegio de la CLI en Advanced:
++
+`set -privilege advanced`
+
+. Escriba el comando apropiado, en función de la entidad de propiedad a la que desee asignar la propiedad:
++
+[cols="25,75"]
+|===
+
+
+| Si desea asignar la propiedad para... | Se usa este comando... 
+
+
+ a| 
+Disco de contenedor
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_`
+
+
+
+ a| 
+Partición de datos
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -data true`
+
+
+
+ a| 
+Partición raíz
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -root true`
+
+|===
++
+Si alguna de las entidades de propiedad ya está en propiedad, deberá incluir la opción « »-force».
+
+
+
+====
+.Asigne manualmente discos con partición de datos raíz
+[%collapsible]
+====
+Para la partición raíz-datos, hay cuatro entidades propiedad (el disco contenedor y las tres particiones) que pertenecen colectivamente al par de alta disponibilidad.
+
+La partición raíz-datos-datos crea una partición pequeña como la partición raíz y dos particiones de datos de tamaño similar para los datos.
+
+.Acerca de esta tarea
+Los parámetros deben utilizarse con `disk assign` comando para asignar la partición correcta de un disco particionado raíz-datos-datos. Estos parámetros no se pueden usar con discos que forman parte de un pool de almacenamiento. El valor predeterminado es «'false'».
+
+* La `-data1 true` el parámetro asigna la partición "data1" de un disco particionado root-data1-data2.
+* La `-data2 true` el parámetro asigna la partición "data2" de un disco particionado root-data1-data2.
+
+
+.Pasos
+. Use la interfaz de línea de comandos para mostrar la propiedad actual del disco con particiones:
++
+`storage disk show -disk _disk_name_ -partition-ownership`
+
+. Configure el nivel de privilegio de la CLI en Advanced:
++
+`set -privilege advanced`
+
+. Escriba el comando apropiado, en función de la entidad de propiedad a la que desee asignar la propiedad:
++
+[cols="25,75"]
+|===
+
+
+| Si desea asignar la propiedad para... | Se usa este comando... 
+
+
+ a| 
+Disco de contenedor
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_`
+
+
+
+ a| 
+Partición Data1
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -data1 true`
+
+
+
+ a| 
+Partición Data2
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -data2 true`
+
+
+
+ a| 
+Partición raíz
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -root true`
+
+|===
+
+
+Si alguna de las entidades de propiedad ya está en propiedad, deberá incluir la opción « »-force».
+
+====

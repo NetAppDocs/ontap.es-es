@@ -1,0 +1,171 @@
+---
+permalink: peering/create-cluster-relationship-93-later-task.html 
+sidebar: sidebar 
+keywords: create, cluster, peer, relationship 
+summary: Puede usar el comando cluster peer create para crear una relación entre iguales entre un clúster local y remoto. Después de crear la relación entre iguales, puede ejecutar la creación entre iguales de clústeres en el clúster remoto para autenticarla en el clúster local. 
+---
+= Cree una relación de paridad entre clústeres
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `cluster peer create` comando para crear una relación entre iguales entre un clúster local y remoto. Una vez creada la relación de paridad, puede ejecutarse `cluster peer create` en el clúster remoto para autenticarse en el clúster local.
+
+.Antes de empezar
+* Debe haber creado LIF de interconexión de clústeres en todos los nodos de los clústeres que se están interponiendo.
+* Los clústeres deben ejecutar ONTAP 9.3 o una versión posterior. (Si los clústeres ejecutan ONTAP 9.2 o una versión anterior, consulte los procedimientos en link:https://library.netapp.com/ecm/ecm_download_file/ECMLP2494079["este documento archivado"^].)
+
+
+.Pasos
+. En el clúster de destino, cree una relación entre iguales con el clúster de origen:
++
+`cluster peer create -generate-passphrase -offer-expiration _MM/DD/YYYY HH:MM:SS_|1...7days|1...168hours -peer-addrs _peer_LIF_IPs_ -initial-allowed-vserver-peers _svm_name_,..|* -ipspace _ipspace_`
+
++
+Si especifica ambas `-generate-passphrase` y.. `-peer-addrs`, Sólo el clúster cuyas LIF de interconexión de clústeres se especifican en `-peer-addrs` puede utilizar la contraseña generada.
+
++
+Puede ignorar la `-ipspace` Si no está utilizando un espacio IP personalizado. Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+Si va a crear la relación de paridad en ONTAP 9.6 o una versión posterior y no desea que se cifren las comunicaciones entre clústeres, debe utilizar el `-encryption-protocol-proposed none` opción para deshabilitar el cifrado.
+
++
+En el siguiente ejemplo, se crea una relación de paridad entre clústeres con un clúster remoto no especificado y se preautoriza relaciones entre iguales con SVM `vs1` y.. `vs2` en el clúster local:
+
++
+[listing]
+----
+cluster02::> cluster peer create -generate-passphrase -offer-expiration 2days -initial-allowed-vserver-peers vs1,vs2
+
+                     Passphrase: UCa+6lRVICXeL/gq1WrK7ShR
+                Expiration Time: 6/7/2017 08:16:10 EST
+  Initial Allowed Vserver Peers: vs1,vs2
+            Intercluster LIF IP: 192.140.112.101
+              Peer Cluster Name: Clus_7ShR (temporary generated)
+
+Warning: make a note of the passphrase - it cannot be displayed again.
+----
++
+En el siguiente ejemplo se crea una relación entre iguales de clústeres con el clúster remoto en las direcciones IP de LIF entre clústeres 192.140.112.103 y 192.140.112.104, y se autoriza previamente una relación entre iguales con cualquier SVM del clúster local:
+
++
+[listing]
+----
+cluster02::> cluster peer create -generate-passphrase -peer-addrs 192.140.112.103,192.140.112.104 -offer-expiration 2days -initial-allowed-vserver-peers *
+
+                     Passphrase: UCa+6lRVICXeL/gq1WrK7ShR
+                Expiration Time: 6/7/2017 08:16:10 EST
+  Initial Allowed Vserver Peers: vs1,vs2
+            Intercluster LIF IP: 192.140.112.101,192.140.112.102
+              Peer Cluster Name: Clus_7ShR (temporary generated)
+
+Warning: make a note of the passphrase - it cannot be displayed again.
+----
++
+En el siguiente ejemplo, se crea una relación de paridad entre clústeres con un clúster remoto no especificado y se preautoriza relaciones entre iguales con SVM``vs1`` y.. `vs2` en el clúster local:
+
++
+[listing]
+----
+cluster02::> cluster peer create -generate-passphrase -offer-expiration 2days -initial-allowed-vserver-peers vs1,vs2
+
+                     Passphrase: UCa+6lRVICXeL/gq1WrK7ShR
+                Expiration Time: 6/7/2017 08:16:10 EST
+  Initial Allowed Vserver Peers: vs1,vs2
+            Intercluster LIF IP: 192.140.112.101
+              Peer Cluster Name: Clus_7ShR (temporary generated)
+
+Warning: make a note of the passphrase - it cannot be displayed again.
+----
+. En el clúster de origen, autentique el clúster de origen al clúster de destino:
++
+`cluster peer create -peer-addrs _peer_LIF_IPs_ -ipspace ipspace`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo se autentica el clúster local en el clúster remoto en las direcciones IP de LIF entre clústeres 192.140.112.101 y 192.140.112.102:
+
++
+[listing]
+----
+cluster01::> cluster peer create -peer-addrs 192.140.112.101,192.140.112.102
+
+Notice: Use a generated passphrase or choose a passphrase of 8 or more characters.
+        To ensure the authenticity of the peering relationship, use a phrase or sequence of characters that would be hard to guess.
+
+Enter the passphrase:
+Confirm the passphrase:
+
+Clusters cluster02 and cluster01 are peered.
+----
++
+Introduzca la frase de acceso para la relación entre iguales cuando se le solicite.
+
+. Compruebe que se ha creado la relación de paridad entre clústeres:
++
+`cluster peer show -instance`
+
++
+[listing]
+----
+cluster01::> cluster peer show -instance
+
+                               Peer Cluster Name: cluster02
+                   Remote Intercluster Addresses: 192.140.112.101, 192.140.112.102
+              Availability of the Remote Cluster: Available
+                             Remote Cluster Name: cluster2
+                             Active IP Addresses: 192.140.112.101, 192.140.112.102
+                           Cluster Serial Number: 1-80-123456
+                  Address Family of Relationship: ipv4
+            Authentication Status Administrative: no-authentication
+               Authentication Status Operational: absent
+                                Last Update Time: 02/05 21:05:41
+                    IPspace for the Relationship: Default
+----
+. Compruebe la conectividad y el estado de los nodos en la relación de paridad:
++
+`cluster peer health show`
+
++
+[listing]
+----
+cluster01::> cluster peer health show
+Node       cluster-Name                Node-Name
+             Ping-Status               RDB-Health Cluster-Health  Avail…
+---------- --------------------------- ---------  --------------- --------
+cluster01-01
+           cluster02                   cluster02-01
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+                                       cluster02-02
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+cluster01-02
+           cluster02                   cluster02-01
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+                                       cluster02-02
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+----
+
+
+
+
+== Otras maneras de hacerlo en ONTAP
+
+[cols="2"]
+|===
+| Para ejecutar estas tareas con... | Ver este contenido... 
+
+
+| System Manager rediseñado (disponible con ONTAP 9.7 y versiones posteriores) | link:https://docs.netapp.com/us-en/ontap/task_dp_prepare_mirror.html["Prepare el mirroring y el almacenamiento"^] 
+
+
+| System Manager Classic (disponible con ONTAP 9.7 y versiones anteriores) | link:https://docs.netapp.com/us-en/ontap-sm-classic/volume-disaster-prep/index.html["Información general de preparación para la recuperación ante desastres de volúmenes"^] 
+|===

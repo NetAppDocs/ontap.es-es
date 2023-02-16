@@ -1,0 +1,108 @@
+---
+permalink: nfs-admin/config-options-ldap-directory-searches-concept.html 
+sidebar: sidebar 
+keywords: LDAP referral chasing 
+summary: Puede optimizar las búsquedas de directorios LDAP, incluida la información de usuario, grupo y grupo de red, configurando el cliente LDAP de ONTAP para que se conecte a servidores LDAP de la forma más adecuada para su entorno. Es necesario entender cuándo son suficientes los valores predeterminados de la base LDAP y de la búsqueda de ámbito y qué parámetros especificar cuando los valores personalizados son más apropiados. 
+---
+= Opciones de configuración para las búsquedas de directorios LDAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede optimizar las búsquedas de directorios LDAP, incluida la información de usuario, grupo y grupo de red, configurando el cliente LDAP de ONTAP para que se conecte a servidores LDAP de la forma más adecuada para su entorno. Es necesario entender cuándo son suficientes los valores predeterminados de la base LDAP y de la búsqueda de ámbito y qué parámetros especificar cuando los valores personalizados son más apropiados.
+
+Las opciones de búsqueda de clientes LDAP para información de usuarios, grupos y netgroup pueden ayudar a evitar consultas LDAP que han fallado y, por lo tanto, permitir que el cliente acceda a los sistemas de almacenamiento con errores. También ayudan a garantizar que las búsquedas sean lo más eficientes posible para evitar problemas de rendimiento de los clientes.
+
+
+
+== Valores de búsqueda base y ámbito predeterminados
+
+La base LDAP es el DN base predeterminado que utiliza el cliente LDAP para realizar consultas LDAP. Todas las búsquedas, incluidas las búsquedas de usuario, grupo y netgroup, se realizan utilizando el DN base. Esta opción es apropiada cuando el directorio LDAP es relativamente pequeño y todas las entradas relevantes se encuentran en el mismo DN.
+
+Si no especifica un DN base personalizado, el valor predeterminado es `root`. Esto significa que cada consulta busca en todo el directorio. A pesar de que esto maximiza las posibilidades de éxito de la consulta LDAP, puede resultar ineficiente y producir una reducción significativa del rendimiento con grandes directorios LDAP.
+
+El ámbito de base LDAP es el ámbito de búsqueda predeterminado que utiliza el cliente LDAP para realizar consultas LDAP. Todas las búsquedas, incluidas las de usuario, grupo y netgroup, se realizan utilizando el ámbito base. Determina si la consulta LDAP busca sólo la entrada con nombre, las entradas de un nivel por debajo del DN o el subárbol entero por debajo del DN.
+
+Si no especifica un ámbito base personalizado, el valor predeterminado es `subtree`. Esto significa que cada consulta busca todo el subárbol que se encuentra debajo del DN. A pesar de que esto maximiza las posibilidades de éxito de la consulta LDAP, puede resultar ineficiente y producir una reducción significativa del rendimiento con grandes directorios LDAP.
+
+
+
+== Valores de búsqueda de base y ámbito personalizados
+
+Opcionalmente, puede especificar valores de base y ámbito independientes para búsquedas de usuarios, grupos y grupos de red. Limitar la base de búsqueda y el ámbito de las consultas de esta manera puede mejorar significativamente el rendimiento porque limita la búsqueda a una subsección más pequeña del directorio LDAP.
+
+Si se especifican valores de base y ámbito personalizados, se reemplazan la base de búsqueda y el ámbito predeterminados generales para las búsquedas de usuarios, grupos y grupos de red. Los parámetros para especificar valores de base y ámbito personalizados están disponibles en el nivel de privilegio avanzado.
+
+[cols="35,65"]
+|===
+
+
+| Parámetro de cliente LDAP... | Especifica el valor personalizado... 
+
+
+ a| 
+`-base-dn`
+ a| 
+DN base de todas las búsquedas de LDAP se pueden introducir varios valores si es necesario (por ejemplo, si la búsqueda de referencias de LDAP está habilitada en ONTAP 9.5 y versiones posteriores).
+
+
+
+ a| 
+`-base-scope`
+ a| 
+Ámbito base para todas las búsquedas LDAP
+
+
+
+ a| 
+`-user-dn`
+ a| 
+DNS base para todas las búsquedas de usuarios LDAP.este parámetro también se aplica a las búsquedas de asignación de nombres de usuario.
+
+
+
+ a| 
+`-user-scope`
+ a| 
+Ámbito base para todas las búsquedas de usuarios LDAP este parámetro también se aplica a las búsquedas de asignación de nombres de usuario.
+
+
+
+ a| 
+`-group-dn`
+ a| 
+DNS base para todas las búsquedas de grupos LDAP
+
+
+
+ a| 
+`-group-scope`
+ a| 
+Ámbito base para todas las búsquedas de grupos LDAP
+
+
+
+ a| 
+`-netgroup-dn`
+ a| 
+DNS base para todas las búsquedas de grupos de red LDAP
+
+
+
+ a| 
+`-netgroup-scope`
+ a| 
+Alcance base para todas las búsquedas de grupos de red LDAP
+
+|===
+
+
+== Varios valores DN base personalizados
+
+Si su estructura de directorios LDAP es más compleja, puede ser necesario especificar varios DNS base para buscar varias partes del directorio LDAP para cierta información. Puede especificar varios DNS para los parámetros de DN de usuario, grupo y grupo de red separándolos con punto y coma (;) y encerrando toda la lista de búsqueda de DN con comillas dobles ("). Si un DN contiene un punto y coma, debe agregar un carácter de escape (\) inmediatamente antes del punto y coma en el DN.
+
+Tenga en cuenta que el ámbito se aplica a toda la lista de DNS especificada para el parámetro correspondiente. Por ejemplo, si especifica una lista de tres DNS de usuario y subárbol diferentes para el ámbito de usuario, el usuario LDAP buscará en todo el subárbol para cada uno de los tres DNS especificados.
+
+A partir de ONTAP 9.5, también puede especificar LDAP _referenciación persiguiendo_, lo que permite al cliente LDAP de ONTAP remitir solicitudes de búsqueda a otros servidores LDAP si el servidor LDAP principal no devuelve una respuesta de referencia LDAP. El cliente utiliza esos datos de referencia para recuperar el objeto de destino del servidor descrito en los datos de referencia. Para buscar objetos presentes en los servidores LDAP a los que se hace referencia, se puede agregar la base-dn de los objetos a los que se hace referencia a base-dn como parte de la configuración del cliente LDAP. Sin embargo, los objetos a los que se hace referencia sólo se buscan cuando se activa la búsqueda de referencias (mediante la `-referral-enabled true` Opción) durante la creación o modificación de un cliente LDAP.

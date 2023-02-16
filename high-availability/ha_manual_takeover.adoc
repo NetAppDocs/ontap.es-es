@@ -1,0 +1,125 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_manual_takeover.html 
+keywords: ontap, high, availability, ha, pair, manual, takeover, moving, move, epislon, manually, initiated 
+summary: Puede realizar la toma de control manualmente cuando necesite realizar tareas de mantenimiento en el partner y en otras situaciones similares. 
+---
+= Comandos de toma de control manual
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Puede realizar la toma de control manualmente cuando necesite realizar tareas de mantenimiento en el partner y en otras situaciones similares. En función del estado del partner, el comando que utilice para realizar la toma de control varía.
+
+|===
+
+
+| Si desea... | Se usa este comando... 
+
+
+| Tome el control del nodo del partner | `storage failover takeover` 
+
+
+| Supervisar el progreso de la toma de control mientras los agregados del partner se mueven al nodo que realiza la toma de control | `storage failover show‑takeover` 
+
+
+| Muestra el estado de conmutación por error de almacenamiento de todos los nodos del clúster | `storage failover show` 
+
+
+| Tomar el control del nodo del partner sin migrar las LIF | `storage failover takeover ‑skip‑lif‑migration‑before‑takeover true` 
+
+
+| Hágase cargo del nodo del partner incluso si hay un error de coincidencia del disco | `storage failover takeover ‑skip‑lif‑migration‑before‑takeover true` 
+
+
+| Tome el control del nodo asociado incluso si hay una versión ONTAP no coincide *Nota:* esta opción sólo se utiliza durante el proceso de actualización no disruptiva de ONTAP. | `storage failover takeover ‑option allow‑version‑mismatch` 
+
+
+| Asuma el control del nodo de partner sin realizar la reubicación de agregados | `storage failover takeover ‑bypass‑optimization true` 
+
+
+| Toma el control del nodo de partner antes de que el partner tenga tiempo para cerrar sus recursos de almacenamiento perfectamente | `storage failover takeover ‑option immediate` 
+|===
+[NOTE]
+====
+Antes de emitir el comando de conmutación al nodo de respaldo de almacenamiento con la opción inmediata, debe migrar las LIF de datos a otro nodo mediante el comando siguiente: `network interface migrate-all -node _node_`
+
+Si especifica el `storage failover takeover ‑option immediate` Comando sin primero migrar las LIF de datos, la migración de la LIF de datos del nodo se retrasa significativamente aunque la `skip‑lif‑migration‑before‑takeover` opción no especificada.
+
+De forma similar, si especifica la opción inmediato, se omite la optimización negociada de toma de control aunque la opción bypass-Optimization esté establecida en _false_.
+
+====
+
+
+== Traslado del épsilon para determinadas adquisiciones iniciadas manualmente
+
+Debería mover épsilon si espera que cualquier toma de control iniciada manualmente podría provocar que su sistema de almacenamiento falle un nodo inesperado durante una pérdida de quórum en todo el clúster.
+
+.Acerca de esta tarea
+Para realizar tareas de mantenimiento planificadas, debe hacerse el control de uno de los nodos de un par de alta disponibilidad. Se debe mantener el quorum en todo el clúster para evitar interrupciones no planificadas en los datos del cliente para los nodos restantes. En algunos casos, realizar la toma de control puede provocar que un clúster que sea un fallo inesperado de un nodo deje de producirse la pérdida de quórum en todo el clúster.
+
+Esto puede suceder si el nodo que se está tomando está épsilon o si el nodo con épsilon no está en buen estado. Para mantener un clúster más resiliente, se puede transferir épsilon a un nodo en buen estado que no se vaya a transferir. Normalmente, este sería el partner de alta disponibilidad.
+
+Solo los nodos sanos y aptos participan en la votación de quórum. Para mantener el quórum en todo el clúster, se necesitan más de N/2 votos (donde _N_ representa la suma de nodos en línea sanos y elegibles). En clústeres con un número par de nodos en línea, épsilon añade más peso a la votación para mantener el quórum para el nodo al que se le asigna.
+
+
+NOTE: Aunque la formación de cluster puede modificarse mediante el `cluster modify ‑eligibility false` comando, debe evitar esto excepto en situaciones como restaurar la configuración del nodo o realizar un mantenimiento prolongado de los nodos. Si establece un nodo que no cumple los requisitos, deja de servir datos DE SAN hasta que el nodo se restablece a apto y se reinicia. El acceso a datos NAS al nodo también puede verse afectado cuando el nodo no cumple con los requisitos.
+
+.Pasos
+. Compruebe el estado del clúster y confirme que un nodo en buen estado no está ocupado con épsilon:
++
+.. Cambie al nivel de privilegio avanzado y confirme que desea continuar cuando aparezca el símbolo del sistema del modo avanzado (*>):
++
+`set -privilege advanced`
+
+.. Determine qué nodo tiene épsilon:
++
+`cluster show`
+
++
+En el siguiente ejemplo, Node1 mantiene épsilon:
+
++
+|===
+
+
+| Nodo | Salud | Condiciones | Épsilon 
+
+
+ a| 
+Nodo 1 2
+ a| 
+cierto es cierto
+ a| 
+cierto es cierto
+ a| 
+verdadero falso
+
+|===
++
+Si el nodo que desea sustituir no tiene un valor épsilon, continúe con el paso 4.
+
+
+
+. Elimine el valor épsilon del nodo que desee sustituir:
++
+`cluster modify -node Node1 -epsilon false`
+
+. Asigne épsilon al nodo del partner (en este ejemplo, Node2):
++
+`cluster modify -node Node2 -epsilon true`
+
+. Realice la operación de toma de control:
++
+`storage failover takeover -ofnode _node_name_`
+
+. Vuelva al nivel de privilegio de administrador:
++
+`set -privilege admin`
+
+

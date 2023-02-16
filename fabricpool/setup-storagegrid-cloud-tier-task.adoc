@@ -1,0 +1,79 @@
+---
+permalink: fabricpool/setup-storagegrid-cloud-tier-task.html 
+sidebar: sidebar 
+keywords: setting up, storagegrid, cloud tier 
+summary: Si utiliza ONTAP 9.2 o una versión posterior, puede configurar StorageGRID como nivel de cloud para FabricPool. 
+---
+= Configure StorageGRID como nivel de cloud
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si utiliza ONTAP 9.2 o una versión posterior, puede configurar StorageGRID como nivel de cloud para FabricPool. En el caso de la organización en niveles de los datos a los que se accede mediante protocolos SAN, NetApp recomienda utilizar clouds privados, como StorageGRID, debido a consideraciones de conectividad.
+
+.Consideraciones para usar StorageGRID con FabricPool
+* Debe instalar un certificado de CA para StorageGRID, a menos que deshabilite explícitamente la comprobación de certificados.
+* No debe habilitar el control de versiones de objetos StorageGRID en el bloque de almacenamiento de objetos.
+* No se necesita una licencia de FabricPool.
+* Si un nodo StorageGRID se pone en marcha en una máquina virtual con almacenamiento asignado de un sistema AFF de NetApp, confirme que el volumen no tiene habilitada una política de organización en niveles de FabricPool.
++
+Al deshabilitar el almacenamiento en niveles de FabricPool para los volúmenes que se usan con los nodos StorageGRID, se simplifica la solución de problemas y las operaciones de almacenamiento.
+
++
+[NOTE]
+====
+No utilice nunca FabricPool para colocar en niveles datos relacionados con StorageGRID en el propio StorageGRID. La organización en niveles de los datos de StorageGRID en StorageGRID aumenta la solución de problemas y la complejidad operativa.
+
+====
+
+
+.Acerca de esta tarea
+El equilibrio de carga se habilita para StorageGRID en ONTAP 9.8 y versiones posteriores. Cuando el nombre de host del servidor se resuelve en más de una dirección IP, ONTAP establece conexiones de cliente con todas las direcciones IP devueltas (hasta un máximo de 16 direcciones IP). Las direcciones IP se recogen en un método round-robin cuando se establecen conexiones.
+
+.Procedimientos
+Puede configurar StorageGRID como nivel de cloud para FabricPool con ONTAP System Manager o la CLI de ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Haga clic en *almacenamiento > niveles > Agregar nivel de cloud* y seleccione StorageGRID como proveedor de almacén de objetos.
+. Complete la información solicitada.
+. Si desea crear una réplica en la nube, haga clic en *Agregar como réplica de FabricPool*.
+
+
+El duplicado de FabricPool proporciona un método para sustituir sin problemas un almacén de datos y contribuye a garantizar que sus datos estén disponibles en caso de desastre.
+
+--
+.CLI
+--
+. Especifique la información de configuración de la StorageGRID mediante el `storage aggregate object-store config create` con el `-provider-type` `SGWS` parámetro.
++
+** La `storage aggregate object-store config create` Error del comando si ONTAP no puede acceder a StorageGRID con la información proporcionada.
+** Utilice la `-access-key` Parámetro para especificar la clave de acceso para autorizar solicitudes al almacén de objetos StorageGRID.
+** Utilice la `-secret-password` Parámetro para especificar la contraseña (clave de acceso secreta) para autenticar solicitudes en el almacén de objetos StorageGRID.
+** Si se cambia la contraseña de StorageGRID, debe actualizar inmediatamente la contraseña correspondiente almacenada en ONTAP.
++
+De esta manera, ONTAP puede acceder a los datos en StorageGRID sin interrupciones.
+
+** Ajuste de `-is-certificate-validation-enabled` parámetro a. `false` Deshabilita la comprobación de certificados para StorageGRID.
+
+
++
+[listing]
+----
+cluster1::> storage aggregate object-store config create
+-object-store-name mySGWS -provider-type SGWS -server mySGWSserver
+-container-name mySGWScontainer -access-key mySGWSkey
+-secret-password mySGWSpass
+----
+. Muestre y verifique la información de configuración de la StorageGRID mediante el `storage aggregate object-store config show` comando.
++
+La `storage aggregate object-store config modify` Command le permite modificar la información de configuración de StorageGRID para FabricPool.
+
+
+
+--
+====

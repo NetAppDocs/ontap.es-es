@@ -1,0 +1,130 @@
+---
+permalink: nfs-admin/configure-number-group-ids-allowed-nfs-users-task.html 
+sidebar: sidebar 
+keywords:  
+summary: 'De forma predeterminada, ONTAP admite hasta 32 ID de grupo al gestionar las credenciales de usuario NFS mediante la autenticación Kerberos \(RPCSEC_GSS\). Cuando se utiliza la autenticación AUTH_SYS, el número máximo predeterminado de ID de grupo es 16, tal como se define en RFC 5531. Puede aumentar el máximo hasta 1,024 si tiene usuarios que son miembros de más del número predeterminado de grupos.' 
+---
+= Configure el número de ID de grupo permitidos para los usuarios NFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+De forma predeterminada, ONTAP admite hasta 32 identificadores de grupo al gestionar credenciales de usuario de NFS mediante la autenticación Kerberos (RPCSEC_GSS). Cuando se utiliza la autenticación AUTH_SYS, el número máximo predeterminado de ID de grupo es 16, tal como se define en RFC 5531. Puede aumentar el máximo hasta 1,024 si tiene usuarios que son miembros de más del número predeterminado de grupos.
+
+.Acerca de esta tarea
+Si un usuario tiene más de la cantidad predeterminada de identificadores de grupo en sus credenciales, los ID de grupo restantes se truncarán y el usuario podría recibir errores al intentar acceder a los archivos desde el sistema de almacenamiento. Debe establecer el número máximo de grupos, por SVM, en un número que represente los grupos máximos en su entorno.
+
+En la siguiente tabla se muestran los dos parámetros del `vserver nfs modify` Comando que determina el número máximo de ID de grupo en tres configuraciones de ejemplo:
+
+[cols="40,30,30"]
+|===
+
+
+| Parámetros | Configuración | Límite de ID de grupo resultante 
+
+
+ a| 
+`-extended-groups-limit`
+
+`-auth-sys-extended-groups`
+ a| 
+`32`
+
+`disabled`
+
+Esta es la configuración predeterminada.
+ a| 
+RPCSEC_GSS: 32
+
+AUTH_SYS: 16
+
+
+
+ a| 
+`-extended-groups-limit`
+
+`-auth-sys-extended-groups`
+ a| 
+`256`
+
+`disabled`
+ a| 
+RPCSEC_GSS: 256
+
+AUTH_SYS: 16
+
+
+
+ a| 
+`-extended-groups-limit`
+
+`-auth-sys-extended-groups`
+ a| 
+`512`
+
+`enabled`
+ a| 
+RPCSEC_GSS: 512
+
+AUTH_SYS: 512
+
+|===
+[NOTE]
+====
+Es posible que algunos clientes de NFS antiguos no sean compatibles con los grupos extendidos AUTH_SYS.
+
+====
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+`set -privilege advanced`
+
+. Realice la acción deseada:
++
+|===
+
+
+| Si desea establecer el número máximo de grupos auxiliares permitidos... | Introduzca el comando... 
+
+
+ a| 
+Sólo para RPCSEC_GSS y deje AUTH_SYS establecido en el valor predeterminado de 16
+ a| 
+`+vserver nfs modify -vserver vserver_name -extended-groups-limit {32-1024} -auth-sys-extended-groups disabled+`
+
+
+
+ a| 
+Para RPCSEC_GSS y AUTH_SYS
+ a| 
+`+vserver nfs modify -vserver vserver_name -extended-groups-limit {32-1024} -auth-sys-extended-groups enabled+`
+
+|===
+. Compruebe el `-extended-groups-limit` Value y verifique si AUTH_SYS utiliza grupos extendidos: `vserver nfs show -vserver vserver_name -fields auth-sys-extended-groups,extended-groups-limit`
+. Vuelva al nivel de privilegio de administrador:
++
+`set -privilege admin`
+
+
+
+.Ejemplo
+En el ejemplo siguiente se habilitan grupos extendidos para la autenticación AUTH_SYS y se establece el número máximo de grupos extendidos en 512 para la autenticación AUTH_SYS y RPCSEC_GSS. Estos cambios se realizan solo para los clientes que acceden al SVM denominado vs1:
+
+[listing]
+----
+vs1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use
+         them only when directed to do so by NetApp personnel.
+Do you want to continue? {y|n}: y
+
+vs1::*> vserver nfs modify -vserver vs1 -auth-sys-extended-groups enabled -extended-groups-limit 512
+
+vs1::*> vserver nfs show -vserver vs1 -fields auth-sys-extended-groups,extended-groups-limit
+vserver auth-sys-extended-groups extended-groups-limit
+------- ------------------------ ---------------------
+vs1     enabled                  512
+
+vs1::*> set -privilege admin
+----

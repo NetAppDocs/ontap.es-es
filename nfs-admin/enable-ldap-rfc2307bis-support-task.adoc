@@ -1,0 +1,54 @@
+---
+permalink: nfs-admin/enable-ldap-rfc2307bis-support-task.html 
+sidebar: sidebar 
+keywords: enable, ldap, rfc2307bis, support 
+summary: Si desea utilizar LDAP y necesita la capacidad adicional para utilizar pertenencias a grupos anidados, puede configurar ONTAP para habilitar la compatibilidad con RFC2307bis LDAP. 
+---
+= Active la compatibilidad con LDAP RFC2307bis
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si desea utilizar LDAP y necesita la capacidad adicional para utilizar pertenencias a grupos anidados, puede configurar ONTAP para habilitar la compatibilidad con RFC2307bis LDAP.
+
+.Lo que necesitará
+Debe haber creado una copia de uno de los esquemas de cliente LDAP predeterminados que desea utilizar.
+
+.Acerca de esta tarea
+En los esquemas de cliente LDAP, los objetos de grupo utilizan el atributo memberUid. Este atributo puede contener varios valores y enumera los nombres de los usuarios que pertenecen a ese grupo. En los esquemas de cliente LDAP habilitados para RFC2307bis, los objetos de grupo utilizan el atributo uniqueMember. Este atributo puede contener el nombre completo (DN) de otro objeto del directorio LDAP. Esto le permite utilizar grupos anidados porque los grupos pueden tener otros grupos como miembros.
+
+El usuario no debe ser miembro de más de 256 grupos, incluidos los grupos anidados. ONTAP ignora los grupos por encima del límite de 256 grupos.
+
+De forma predeterminada, la compatibilidad con RFC2307bis está desactivada.
+
+[NOTE]
+====
+La compatibilidad con RFC2307bis se habilita automáticamente en ONTAP cuando se crea un cliente LDAP con el esquema MS-AD-BIS.
+
+====
+Para obtener más información, consulte https://www.netapp.com/pdf.html?item=/media/19423-tr-4835.pdf["Informe técnico de NetApp 4835: Cómo configurar LDAP en ONTAP"].
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+`set -privilege advanced`
+
+. Modifique el esquema de cliente LDAP RFC2307 copiado para habilitar la compatibilidad con RFC2307bis:
++
+`vserver services name-service ldap client schema modify -vserver vserver_name -schema schema-name -enable-rfc2307bis true`
+
+. Modifique el esquema para que coincida con la clase de objeto admitida en el servidor LDAP:
++
+`vserver services name-service ldap client schema modify -vserver vserver-name -schema schema_name -group-of-unique-names-object-class object_class`
+
+. Modifique el esquema para que coincida con el nombre de atributo admitido en el servidor LDAP:
++
+`vserver services name-service ldap client schema modify -vserver vserver-name -schema schema_name -unique-member-attribute attribute_name`
+
+. Vuelva al nivel de privilegio de administrador:
++
+`set -privilege admin`
+
+

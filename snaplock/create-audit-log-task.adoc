@@ -1,0 +1,71 @@
+---
+permalink: snaplock/create-audit-log-task.html 
+sidebar: sidebar 
+keywords: create, audit, log, snaplock, protected, administrator, accounts 
+summary: Debe crear un registro de auditoría protegido en SnapLock antes de realizar un movimiento de volúmenes de SnapLock o eliminación con privilegios. El registro de auditoría registra la creación y eliminación de cuentas de administrador de SnapLock, las modificaciones realizadas en el volumen de registro, si la eliminación con privilegios está habilitada, las operaciones de eliminación con privilegios y las operaciones de movimiento de volúmenes SnapLock. 
+---
+= Cree un registro de auditoría
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe crear un registro de auditoría protegido en SnapLock antes de realizar un movimiento de volúmenes de SnapLock o eliminación con privilegios. El registro de auditoría registra la creación y eliminación de cuentas de administrador de SnapLock, las modificaciones realizadas en el volumen de registro, si la eliminación con privilegios está habilitada, las operaciones de eliminación con privilegios y las operaciones de movimiento de volúmenes SnapLock.
+
+.Lo que necesitará
+Debe ser un administrador de clústeres para crear un agregado de SnapLock.
+
+.Acerca de esta tarea
+No se puede eliminar un registro de auditoría hasta que haya transcurrido el período de retención del archivo de registro. No es posible modificar un registro de auditoría incluso después de transcurrido el período de retención. Esto es así tanto para el modo de cumplimiento de normativas SnapLock como para el modo de empresa.
+
+[NOTE]
+====
+En ONTAP 9.4 y versiones anteriores, no se puede usar un volumen de empresa SnapLock para el registro de auditoría. Se debe usar un volumen de cumplimiento de normativas de SnapLock. En ONTAP 9.5 y versiones posteriores, se puede usar un volumen de empresa SnapLock o un volumen de cumplimiento de SnapLock para el registro de auditoría. En todos los casos, el volumen de registro de auditoría debe montarse en la ruta de unión `/snaplock_audit_log`. Ningún otro volumen puede utilizar esta ruta de unión.
+
+====
+Los registros de auditoría de SnapLock se pueden encontrar en la `/snaplock_log` directorio en la raíz del volumen de registro de auditoría, en subdirectorios denominados `privdel_log` (operaciones de eliminación con privilegios) y. `system_log` (todo lo demás). Los nombres de archivos de registro de auditoría contienen la Marca de hora de la primera operación de registro, lo que facilita la búsqueda de registros en el momento aproximado en que se ejecutaron las operaciones.
+
+* Puede utilizar el `snaplock log file show` comando para ver los archivos de registro en el volumen del registro de auditoría.
+* Puede utilizar el `snaplock log file archive` para archivar el archivo de registro actual y crear uno nuevo, lo que resulta útil en los casos en los que se necesita registrar la información del registro de auditoría en un archivo independiente.
+
+
+Para obtener más información, consulte las páginas de manual de los comandos.
+
+[NOTE]
+====
+No se puede usar un volumen de protección de datos como volumen de registro de auditoría de SnapLock.
+
+====
+.Pasos
+. Cree un agregado de SnapLock.
++
+xref:create-snaplock-aggregate-task.adoc[Cree un agregado de SnapLock]
+
+. En la SVM que desee configurar para el registro de auditoría, cree un volumen de SnapLock.
++
+xref:create-snaplock-volume-task.adoc[Cree un volumen de SnapLock]
+
+. Configure la SVM para el registro de auditoría:
++
+`*snaplock log create -vserver _SVM_name_ -volume _snaplock_volume_name_ -max-file-size _size_ -retention-period _default_retention_period_*`
+
++
+[NOTE]
+====
+El período de retención mínimo predeterminado para archivos de registro de auditoría es de seis meses. Si el período de retención de un archivo afectado es más largo que el período de retención del registro de auditoría, el período de retención del registro hereda el período de retención del archivo. Por lo tanto, si el período de retención de un archivo eliminado mediante eliminación privilegiada es de 10 meses y el período de retención del registro de auditoría de 8 meses, el período de retención del registro se extiende a 10 meses. Para obtener más información sobre el tiempo de retención y el período de retención predeterminado, consulte link:https://docs.netapp.com/us-en/ontap/snaplock/set-retention-period-task.html["Establezca el tiempo de retención"].
+
+====
++
+Se configura el siguiente comando `SVM1` Para el registro de auditoría mediante el volumen SnapLock `logVol`. El registro de auditoría tiene un tamaño máximo de 20 GB y se conserva durante ocho meses.
+
++
+[listing]
+----
+SVM1::> snaplock log create -vserver SVM1 -volume logVol -max-file-size 20GB -retention-period 8months
+----
+. En la SVM que haya configurado para el registro de auditoría, monte el volumen SnapLock en la ruta de unión `/snaplock_audit_log`.
++
+xref:mount-snaplock-volume-task.adoc[Montar un volumen de SnapLock]
+
+

@@ -1,0 +1,68 @@
+---
+permalink: san-admin/restore-single-lun-snapshot-copy-task.html 
+sidebar: sidebar 
+keywords: restore, single lun, snapshot copy 
+summary: Puede restaurar un único LUN a partir de una copia Snapshot sin restaurar todo el volumen que contiene la única LUN. Puede restaurar el LUN en su lugar o a una nueva ruta en el volumen. La operación restaura solo el LUN único sin que se vean afectados otros archivos o LUN del volumen. También puede restaurar archivos con secuencias. 
+---
+= Restaure un solo LUN de una copia Snapshot
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede restaurar un único LUN a partir de una copia Snapshot sin restaurar todo el volumen que contiene la única LUN. Puede restaurar el LUN en su lugar o a una nueva ruta en el volumen. La operación restaura solo el LUN único sin que se vean afectados otros archivos o LUN del volumen. También puede restaurar archivos con secuencias.
+
+.Lo que necesitará
+* Debe tener suficiente espacio en el volumen para completar la operación de restauración:
++
+** Si va a restaurar una LUN con la reserva de espacio donde la reserva fraccionaria es 0%, necesitará un tamaño más que el de la LUN restaurada.
+** Si va a restaurar una LUN con la reserva de espacio donde la reserva fraccionaria es del 100%, necesitará el doble del tamaño de la LUN restaurada.
+** Si va a restaurar una LUN que no tiene espacio reservado, solo necesita el espacio real utilizado para la LUN restaurada.
+
+
+* Se debe haber creado una copia Snapshot de la LUN de destino.
++
+Si la operación de restauración falla, es posible que la LUN de destino se trunque. En estos casos, puede usar la copia Snapshot para evitar la pérdida de datos.
+
+* Se debe haber creado una copia Snapshot de la LUN de origen.
++
+En raras ocasiones, la restauración de LUN puede generar un error y, con ello, la LUN de origen no se puede utilizar. Si esto sucede, puede usar la copia Snapshot para devolver la LUN al estado justo antes del intento de restauración.
+
+* La LUN de destino y la LUN de origen deben tener el mismo tipo de SO.
++
+Si la LUN de destino tiene un tipo de sistema operativo diferente de la LUN de origen, el host puede perder el acceso a los datos a la LUN de destino después de la operación de restauración.
+
+
+
+.Pasos
+. Desde el host, detenga todo el acceso del host a la LUN.
+. Desmonte la LUN en su host para que el host no pueda acceder a la LUN.
+. Desasigne la LUN:
++
+`lun mapping delete -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -igroup _igroup_name_`
+
+. Determine la copia Snapshot en la que desea restaurar la LUN:
++
+`volume snapshot show -vserver _vserver_name_ -volume _volume_name_`
+
+. Cree una copia Snapshot de la LUN antes de restaurar la LUN:
++
+`volume snapshot create -vserver _vserver_name_ -volume _volume_name_ -snapshot _snapshot_name_`
+
+. Restaure el LUN especificado en un volumen:
++
+`volume snapshot restore-file -vserver _vserver_name_ -volume _volume_name_ -snapshot _snapshot_name_ -path _lun_path_`
+
+. Siga los pasos de la pantalla.
+. Si es necesario, conectar la LUN:
++
+`lun modify -vserver _vserver_name_ -path _lun_path_ -state online`
+
+. Si es necesario, reasigne la LUN:
++
+`lun mapping create -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -igroup _igroup_name_`
+
+. Desde el host, vuelva a montar la LUN.
+. Desde el host, reinicie el acceso a la LUN.
+

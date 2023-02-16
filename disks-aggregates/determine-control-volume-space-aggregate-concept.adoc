@@ -1,0 +1,100 @@
+---
+permalink: disks-aggregates/determine-control-volume-space-aggregate-concept.html 
+sidebar: sidebar 
+keywords: determine, control. volume, space usage, aggregate 
+summary: 'Puede determinar qué volúmenes de FlexVol utilizan más espacio en un nivel local (agregado) y específicamente qué funciones dentro del volumen.' 
+---
+= Determinar y controlar el uso de espacio de un volumen en un nivel local (agregado)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede determinar qué volúmenes de FlexVol utilizan más espacio en un nivel local (agregado) y específicamente qué funciones dentro del volumen.
+
+La `volume show-footprint` el comando proporciona información sobre el espacio físico de un volumen o el uso que ocupa el espacio dentro del agregado que lo contiene.
+
+La `volume show-footprint` el comando muestra detalles sobre el uso de espacio de cada volumen en un agregado, incluidos los volúmenes sin conexión. Este comando suple la separación entre la salida del `volume show-space` y.. `aggregate show-space` comandos. Todos los porcentajes se calculan como un porcentaje del tamaño del agregado.
+
+En el siguiente ejemplo se muestra el `volume show-footprint` resultado de comando para un volumen denominado testvol:
+
+....
+cluster1::> volume show-footprint testvol
+
+      Vserver : thevs
+      Volume  : testvol
+
+      Feature                                   Used    Used%
+      --------------------------------    ----------    -----
+      Volume Data Footprint                  120.6MB       4%
+      Volume Guarantee                        1.88GB      71%
+      Flexible Volume Metadata               11.38MB       0%
+      Delayed Frees                           1.36MB       0%
+      Total Footprint                         2.01GB      76%
+....
+En la siguiente tabla se explican algunas de las filas clave de la salida del `volume show-footprint` comando y lo que puede hacer para intentar reducir el uso de espacio con esa función:
+
+|===
+
+
+| Nombre de fila/operación | Descripción/contenido de la fila | Algunas maneras de disminuir 
+
+
+ a| 
+`Volume Data Footprint`
+ a| 
+Cantidad total de espacio usado en el agregado contenedor por los datos de un volumen en el sistema de archivos activo y el espacio usado por las copias de Snapshot del volumen. Esta fila no incluye espacio reservado.
+ a| 
+* Eliminación de datos del volumen.
+* Eliminar copias Snapshot del volumen.
+
+
+
+
+ a| 
+`Volume Guarantee`
+ a| 
+La cantidad de espacio reservado por el volumen en el agregado para futuras escrituras. La cantidad de espacio reservado depende del tipo de garantía del volumen.
+ a| 
+Cambie el tipo de garantía para el volumen a. `none`.
+
+
+
+ a| 
+`Flexible Volume Metadata`
+ a| 
+La cantidad total de espacio usado en el agregado por los archivos de metadatos del volumen.
+ a| 
+No hay un método directo para controlar.
+
+
+
+ a| 
+`Delayed Frees`
+ a| 
+Los bloques que ONTAP utilizó para el rendimiento y no se pueden liberar inmediatamente. Para destinos de SnapMirror, esta fila tiene el valor de `0` y no se muestra.
+ a| 
+No hay un método directo para controlar.
+
+
+
+ a| 
+`File Operation Metadata`
+ a| 
+La cantidad total de espacio reservado para los metadatos de las operaciones de archivos.
+ a| 
+No hay un método directo para controlar.
+
+
+
+ a| 
+`Total Footprint`
+ a| 
+La cantidad total de espacio que el volumen utiliza en el agregado. Es la suma de todas las filas.
+ a| 
+Cualquiera de los métodos utilizados para reducir el espacio utilizado por un volumen.
+
+|===
+.Información relacionada
+http://www.netapp.com/us/media/tr-3483.pdf["Informe técnico de NetApp 3483: Thin Provisioning en un entorno empresarial SAN o SAN IP DE NetApp"^]

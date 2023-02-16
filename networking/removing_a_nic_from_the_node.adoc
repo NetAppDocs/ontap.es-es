@@ -1,0 +1,51 @@
+---
+sidebar: sidebar 
+permalink: networking/removing_a_nic_from_the_node.html 
+keywords: delete, deleting, remove, removing, nic, network, interface, card, slot, maintenance, faulty, error, bad, failed, fail, node, remove a faulty NIC from its slot or move the NIC to another slot for maintenance purposes, removing a nic from the node on ontap 9.8 or later, controller-replacement, network displaced-vlans, displaced-vlans show, displaced-vlans restore, 
+summary: ONTAP 9.8 y posteriores, retire una NIC defectuosa de su ranura o mueva la NIC a otra ranura para realizar tareas de mantenimiento 
+---
+= Quitar un NIC del nodo en ONTAP 9.8 o posterior
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Este tema se aplica a ONTAP 9.8 o posterior. Es posible que tenga que extraer una NIC defectuosa de su ranura o mover la NIC a otra ranura para realizar tareas de mantenimiento.
+
+.Pasos
+. Apague el nodo.
+. Extraiga físicamente la NIC de su ranura.
+. Encienda el nodo.
+. Compruebe que el puerto se ha eliminado:
++
+....
+network port show
+....
++
+
+NOTE: ONTAP quita automáticamente el puerto de cualquier grupo de interfaces. Si el puerto era el único miembro de un grupo de interfaces, se elimina el grupo de interfaces.
+
+. Si el puerto tenía alguna VLAN configurada en él, se desplazarán. Las VLAN desplazadas se pueden ver mediante el siguiente comando:
++
+....
+cluster controller-replacement network displaced-vlans show
+....
++
+
+NOTE: La `displaced-interface show`, `displaced-vlans show`, y. `displaced-vlans restore` los comandos son únicos y no requieren el nombre del comando completo, que comienza con `cluster controller-replacement network`.
+
+. Estas VLAN se eliminan, pero se pueden restaurar mediante el siguiente comando:
++
+....
+displaced-vlans restore
+....
+. Si el puerto tenía alguna LIF configurada en él, ONTAP elige automáticamente nuevos puertos raíz para esas LIF en otro puerto del mismo dominio de retransmisión. Si no se encuentra ningún puerto de inicio adecuado en el mismo servidor de almacenamiento, se considera que esos LIF están desplazados. Puede ver las LIF desplazadas mediante el siguiente comando:
++
+`displaced-interface show`
+
+. Cuando se agrega un nuevo puerto al dominio de retransmisión en el mismo nodo, los puertos iniciales para las LIF se restauran automáticamente. Como alternativa, puede establecer el puerto de inicio mediante `network interface modify -home-port -home-node or use the displaced- interface restore` comando.
+

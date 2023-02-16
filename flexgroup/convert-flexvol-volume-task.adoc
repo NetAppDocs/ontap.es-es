@@ -1,0 +1,85 @@
+---
+permalink: flexgroup/convert-flexvol-volume-task.html 
+sidebar: sidebar 
+keywords: convert, flexvol, volume, flexgroup, conversion, flex vol, flex group, transitioned, 
+summary: A partir de ONTAP 9.7, se puede realizar una conversión sin movimiento de un volumen FlexVol a un volumen FlexGroup sin necesidad de una copia de datos ni de espacio en disco adicional. 
+---
+= Convertir un volumen de FlexVol en un volumen de FlexGroup
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.7, se puede realizar una conversión sin movimiento de un volumen FlexVol a un volumen FlexGroup sin necesidad de una copia de datos ni de espacio en disco adicional.
+
+.Lo que necesitará
+* Los volúmenes en transición se pueden convertir a volúmenes FlexGroup a partir de ONTAP 9.8. Si va a convertir un volumen que ha realizado la transición a FlexGroup, consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_To_Convert_a_Transitioned_FlexVol_to_FlexGroup["Cómo convertir un FlexVol en FlexGroup que se ha realizado la transición"] si quiere más información.
+* El volumen FlexVol que se está convirtiendo debe estar en línea.
+* Las operaciones y configuraciones del volumen FlexVol deben ser compatibles con el proceso de conversión.
++
+Se genera un mensaje de error si el volumen FlexVol tiene alguna incompatibilidad y se anula la conversión de volumen. Puede tomar acciones correctivas y volver a intentar la conversión.
+
+* Si un volumen FlexVol es muy grande (por ejemplo, de 80 a 100 TB) y muy completo (de 80 a 100 %), debe copiar los datos en lugar de convertirlos.
++
+[NOTE]
+====
+La conversión de un volumen FlexGroup de gran tamaño provoca un componente de volumen FlexGroup muy completo, que puede provocar problemas de rendimiento. Para obtener más información, consulte la sección titulada "Cuándo no crear un volumen de FlexGroup" en el informe técnico TR link:https://www.netapp.com/media/12385-tr4571.pdf["FlexGroup Volumes: Guía de prácticas recomendadas y de implementación"].
+
+====
+
+
+.Pasos
+. Compruebe que el volumen FlexVol esté en línea: `volume show vol_name -volume-style-extended,state`
++
+[listing]
+----
+cluster-1::> volume show my_volume -fields volume-style-extended,state
+vserver volume    state  volume-style-extended
+------- --------- ------ ---------------------
+vs0     my_volume online flexvol
+----
+. Compruebe si el volumen FlexVol se puede convertir sin problemas:
++
+.. Inicie sesión en el modo de privilegio avanzado: `set -privilege advanced`
+.. Compruebe el proceso de conversión: `volume conversion start -vserver vs1 -volume flexvol -check-only true`
++
+Debe rectificar todos los errores antes de convertir el volumen.
+
++
+[NOTE]
+====
+No se puede volver a convertir un volumen de FlexGroup en un volumen de FlexVol.
+
+====
+
+
+. Inicie la conversión: `volume conversion start -vserver svm_name -volume vol_name`
++
+[listing]
+----
+cluster-1::*> volume conversion start -vserver vs0 -volume my_volume
+
+Warning: Converting flexible volume "my_volume" in Vserver "vs0" to a FlexGroup
+         will cause the state of all Snapshot copies from the volume to be set
+         to "pre-conversion". Pre-conversion Snapshot copies cannot be
+         restored.
+Do you want to continue? {y|n}: y
+[Job 57] Job succeeded: success
+----
+. Compruebe que la conversión se ha realizado correctamente: `volume show vol_name -fields -volume-style-extended,state`
++
+[listing]
+----
+cluster-1::*> volume show my_volume -fields volume-style-extended,state
+vserver volume    state  volume-style-extended
+------- --------- ------ ---------------------
+vs0     my_volume online flexgroup
+----
+
+
+.Resultados
+El volumen FlexVol se convierte en un volumen FlexGroup miembro único.
+
+.Después de terminar
+Puede expandir el volumen de FlexGroup según sea necesario.

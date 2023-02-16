@@ -1,0 +1,43 @@
+---
+permalink: san-admin/move-san-lifs-task.html 
+sidebar: sidebar 
+keywords: move, san, lifs 
+summary: 'Si un nodo tiene que desconectarse, puede mover un LIF SAN para conservar la información de configuración, como su WWPN, y evitar volver a dividir en zonas la estructura de switches. Como hay que desconectar un LIF SAN antes de trasladarlo, el tráfico del host debe depender de software multivía del host para ofrecer un acceso no disruptivo a la LUN. Puede mover LIF SAN a cualquier nodo de un clúster, pero no puede mover estas entre máquinas virtuales de almacenamiento (SVM).' 
+---
+= Mover un LIF SAN
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si un nodo tiene que desconectarse, puede mover un LIF SAN para conservar la información de configuración, como su WWPN, y evitar volver a dividir en zonas la estructura de switches. Como hay que desconectar un LIF SAN antes de trasladarlo, el tráfico del host debe depender de software multivía del host para ofrecer un acceso no disruptivo a la LUN. Puede mover LIF SAN a cualquier nodo de un clúster, pero no puede mover estas entre máquinas virtuales de almacenamiento (SVM).
+
+.Lo que necesitará
+Si el LIF es miembro de un conjunto de puertos, es necesario haber eliminado el LIF del conjunto de puertos antes de poder mover el LIF a un nodo diferente.
+
+.Acerca de esta tarea
+El nodo de destino y el puerto físico de un LIF que desee mover deben estar en la misma estructura de FC o red Ethernet. Si mueve un LIF a otra estructura que no haya tenido una zona adecuada o si mueve un LIF a una red Ethernet que no tenga conectividad entre un iniciador iSCSI y un destino, no será posible acceder a la LUN cuando vuelva a estar en línea.
+
+.Pasos
+. Vea el estado administrativo y operativo de la LIF:
++
+`network interface show -vserver _vserver_name_`
+
+. Cambie el estado de la LIF a. `down` (sin conexión):
++
+`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -status-admin down`
+
+. Asigne a la LIF un nodo y un puerto nuevos:
++
+`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -home-node _node_name_ -home-port _port_name_`
+
+. Cambie el estado de la LIF a. `up` (en línea):
++
+`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -status-admin up`
+
+. Compruebe los cambios:
++
+`network interface show -vserver _vserver_name_`
+
+

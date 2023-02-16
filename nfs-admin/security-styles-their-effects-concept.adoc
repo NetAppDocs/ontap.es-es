@@ -1,0 +1,61 @@
+---
+permalink: nfs-admin/security-styles-their-effects-concept.html 
+sidebar: sidebar 
+keywords: security, style, effect, unix, ntfs, mixed, unified 
+summary: 'Hay cuatro estilos de seguridad diferentes: UNIX, NTFS, mixto y unificado. Cada estilo de seguridad tiene un efecto diferente sobre cómo se gestionan los permisos para los datos. Debe comprender los diferentes efectos para asegurarse de que selecciona el estilo de seguridad adecuado para sus propósitos.' 
+---
+= Cuáles son los estilos de seguridad y sus efectos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Hay cuatro estilos de seguridad diferentes: UNIX, NTFS, mixto y unificado. Cada estilo de seguridad tiene un efecto diferente sobre cómo se gestionan los permisos para los datos. Debe comprender los diferentes efectos para asegurarse de que selecciona el estilo de seguridad adecuado para sus propósitos.
+
+Es importante entender que los estilos de seguridad no determinan qué tipos de clientes pueden o no pueden tener acceso a los datos. Los estilos de seguridad sólo determinan el tipo de permisos que ONTAP utiliza para controlar el acceso a los datos y qué tipo de cliente puede modificar estos permisos.
+
+Por ejemplo, si un volumen utiliza el estilo de seguridad UNIX, los clientes SMB todavía pueden acceder a los datos (siempre y cuando estos se autentiquen y autoricen correctamente) debido a la naturaleza multiprotocolo de ONTAP. Sin embargo, ONTAP utiliza permisos UNIX que sólo los clientes UNIX pueden modificar mediante herramientas nativas.
+
+[cols="5*"]
+|===
+| Estilo de seguridad | Clientes que pueden modificar permisos | Permisos que pueden utilizar los clientes | El estilo de seguridad efectivo resultante | Clientes que pueden acceder a los ficheros 
+
+
+.2+| UNIX .2+| NFS | Bits del modo NFSv3 .2+| UNIX .9+| NFS y SMB 
+
+
+| NFSv4.x ACL 
+
+
+| NTFS | SMB | ACL de NTFS | NTFS 
+
+
+.3+| Mixto .3+| NFS o SMB | Bits del modo NFSv3 .2+| UNIX 
+
+
+| NFSv4.ACL 
+
+
+| ACL de NTFS | NTFS 
+
+
+.3+| Unificado (solo para Infinite Volume, en ONTAP 9.4 y versiones anteriores). .3+| NFS o SMB | Bits del modo NFSv3 .2+| UNIX 
+
+
+| ACL de NFSv4.1 
+
+
+| ACL de NTFS | NTFS 
+|===
+Los volúmenes de FlexVol son compatibles con UNIX, NTFS y estilos de seguridad mixtos. Cuando el estilo de seguridad es mixto o unificado, los permisos efectivos dependen del tipo de cliente que modificó por última vez los permisos porque los usuarios establecen el estilo de seguridad de forma individual. Si el último cliente que modificó permisos era un cliente NFSv3, los permisos son bits del modo NFSv3 de UNIX. Si el último cliente era un cliente NFSv4, los permisos son ACL de NFSv4. Si el último cliente era un cliente SMB, los permisos son ACL de Windows NTFS.
+
+El estilo de seguridad unificado solo está disponible en Infinite Volume, que ya no son compatibles con ONTAP 9.5 y versiones posteriores. Para obtener más información, consulte xref:../flexgroup/index.html[Información general de gestión de volúmenes de FlexGroup].
+
+A partir de ONTAP 9.2, el `show-effective-permissions` parámetro de la `vserver security file-directory` El comando le permite mostrar permisos efectivos otorgados a un usuario de Windows o UNIX en la ruta de archivo o carpeta especificada. Además, el parámetro opcional `-share-name` permite mostrar el permiso de uso compartido efectivo.
+
+[NOTE]
+====
+ONTAP establece inicialmente algunos permisos de archivo predeterminados. De forma predeterminada, el estilo de seguridad efectivo de todos los datos de los volúmenes de estilo de seguridad mixto y unificado es UNIX y el tipo de permisos efectivos es bits de modo UNIX (0755 a menos que se especifique lo contrario) hasta que un cliente lo configure como permite el estilo de seguridad predeterminado. De forma predeterminada, el estilo de seguridad efectivo en todos los datos de los volúmenes de estilo de seguridad NTFS es NTFS y tiene una ACL que permite un control total para todos.
+
+====

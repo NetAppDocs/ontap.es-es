@@ -1,0 +1,81 @@
+---
+permalink: encryption-at-rest/return-self-encrypting-disks-keys-not-available-task.html 
+sidebar: sidebar 
+keywords: returning, fips, drive, sed, service, authentication, keys, lost 
+summary: El sistema trata una unidad FIPS o SED como rota si se pierden las claves de autenticación de ella de forma permanente y no pueden recuperarla del servidor KMIP. Aunque no puede acceder o recuperar los datos en el disco, puede tomar medidas para que el espacio sin usar del SED esté disponible de nuevo para los datos. 
+---
+= Devuelva una unidad FIPS o SED a servicio cuando se pierdan las claves de autenticación
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El sistema trata una unidad FIPS o SED como rota si se pierden las claves de autenticación de ella de forma permanente y no pueden recuperarla del servidor KMIP. Aunque no puede acceder o recuperar los datos en el disco, puede tomar medidas para que el espacio sin usar del SED esté disponible de nuevo para los datos.
+
+.Antes de empezar
+Para realizar esta tarea, debe ser un administrador de clústeres.
+
+.Acerca de esta tarea
+Debe utilizar este proceso solo si tiene la seguridad de que las claves de autenticación de la unidad FIPS o SED se pierden de forma permanente y que no puede recuperarlos.
+
+Si los discos se particionan, primero deben desparticionarse para poder iniciar este proceso. incluya:../_include/unpartition-disk.adoc[]
+
+.Pasos
+. Devolver una unidad FIPS o SED a servicio:
++
+[cols="25,75"]
+|===
+
+
+| Si el SEDS es... | Utilice estos pasos... 
+
+
+ a| 
+No en el modo de cumplimiento de FIPS ni en el modo de cumplimiento de FIPS y la clave FIPS está disponible
+ a| 
+.. Configure el nivel de privilegio en Advanced:
+`set -privilege advanced`
+.. Restablezca la clave FIPS al ID seguro de fabricación predeterminado 0x0:
+`storage encryption disk modify -fips-key-id 0x0 -disk _disk_id_`
+.. Compruebe que la operación se ha realizado correctamente:
+`storage encryption disk show-status`Si la operación falló, use el proceso de PSID en este tema.
+.. Desinfecte el disco roto:
+`storage encryption disk sanitize -disk _disk_id_`Compruebe que la operación se ha realizado correctamente con el comando `storage encryption disk show-status` antes de continuar con el siguiente paso.
+.. Elimine el error del disco sanitizado:
+`storage disk unfail -spare true -disk _disk_id_`
+.. Compruebe si el disco tiene un propietario:
+`storage disk show -disk _disk_id_`
+.. Si el disco no tiene propietario, asigne uno y vuelva a anular la conmutación del disco:
+`storage disk assign -owner node -disk _disk_id_`
+`storage disk unfail -spare true -disk _disk_id_`
+.. Compruebe que el disco se ha convertido en un repuesto y que está listo para su uso en un agregado:
+`storage disk show -disk _disk_id_`
+
+
+
+
+ a| 
+En el modo de cumplimiento de normativas FIPS, la clave FIPS no está disponible y el SED tiene un PSID impreso en la etiqueta
+ a| 
+.. Obtenga el PSID del disco de la etiqueta del disco.
+.. Configure el nivel de privilegio en Advanced:
+`set -privilege advanced`
+.. Restablezca el disco a sus ajustes configurados de fábrica:
+`storage encryption disk revert-to-original-state -disk _disk_id_ -psid _disk_physical_secure_id_`Compruebe que la operación se ha realizado correctamente con el comando `storage encryption disk show-status` antes de continuar con el siguiente paso.
+.. Elimine el error del disco sanitizado:
+`storage disk unfail -spare true -disk _disk_id_`
+.. Compruebe si el disco tiene un propietario:
+`storage disk show -disk _disk_id_`
+.. Si el disco no tiene propietario, asigne uno y vuelva a anular la conmutación del disco:
+`storage disk assign -owner node -disk _disk_id_`
+`storage disk unfail -spare true -disk _disk_id_`
+.. Compruebe que el disco se ha convertido en un repuesto y que está listo para su uso en un agregado:
+`storage disk show -disk _disk_id_`
+
+
+|===
+
+
+Para obtener una sintaxis de comando completa, consulte las páginas man.

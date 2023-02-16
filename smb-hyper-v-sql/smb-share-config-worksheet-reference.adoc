@@ -1,0 +1,138 @@
+---
+permalink: smb-hyper-v-sql/smb-share-config-worksheet-reference.html 
+sidebar: sidebar 
+keywords: complete, smb, share, configuration, worksheet, information, settings 
+summary: Utilice esta hoja de datos para registrar los valores necesarios cuando cree recursos compartidos SMB disponibles de forma continua para configuraciones de SQL Server y Hyper-V en SMB. 
+---
+= Complete la hoja de datos de configuración de recursos compartidos de SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Utilice esta hoja de datos para registrar los valores necesarios cuando cree recursos compartidos SMB disponibles de forma continua para configuraciones de SQL Server y Hyper-V en SMB.
+
+
+
+== Información acerca de las propiedades de los recursos compartidos de SMB y las opciones de configuración
+
+Debe especificar la siguiente información para cada recurso compartido:
+
+* El nombre de la máquina virtual de almacenamiento (SVM)
++
+El nombre de SVM es el mismo para todos los recursos compartidos
+
+* Nombre del recurso compartido
+* Ruta
+* Comparta propiedades
++
+Debe configurar las siguientes dos propiedades compartidas:
+
++
+** `oplocks`
+** `continuously-available`
+
+
+
+
+No deben configurarse las siguientes propiedades compartidas:
+
+* `homedirectory attributecache`
+* `branchcache`
+* `access-based-enumeration`
++
+[NOTE]
+====
+Con el aviso de cambios desactivado, Windows 2012 Server no actualiza la ventana del Explorador, lo que provoca una vista incoherente del contenido del directorio.
+
+====
++
+** Los enlaces simbólicos deben estar desactivados (el valor de `-symlink-properties` el parámetro debe ser nulo [""]).
+
+
+
+
+
+
+== Información sobre las rutas de recursos compartidos
+
+Si utiliza VSS remoto para realizar backups de archivos de Hyper-V, la opción de rutas de uso compartido a la hora de realizar conexiones SMB desde los servidores de Hyper-V a las ubicaciones de almacenamiento en las que están almacenados los archivos de la máquina virtual es importante. Aunque los recursos compartidos se pueden crear en cualquier punto del espacio de nombres, las rutas de los recursos compartidos que utilizan los servidores de Hyper-V no deben contener volúmenes que se han Unido. No se pueden realizar operaciones de copia de sombra en rutas de uso compartido que contienen puntos de unión.
+
+SQL Server no puede cruzar uniones al crear la estructura de directorio de la base de datos. No debe crear rutas de acceso compartidas para SQL Server que contengan puntos de unión.
+
+Por ejemplo, en el espacio de nombres que se muestra, si desea almacenar archivos de máquina virtual o archivos de base de datos en los volúmenes «'vol1'», «'vol2'», «'vol3'» y «'vol4'», deberá crear recursos compartidos para los servidores de aplicaciones en las rutas siguientes: `/data1/vol1`, `/data1/vol2`, `/data2/vol3`, y. `/data2/vol4`.
+
+[listing]
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     data1         true     /data1               RW_volume
+vs1     vol1          true     /data1/vol1          RW_volume
+vs1     vol2          true     /data1/vol2          RW_volume
+vs1     data2         true     /data2               RW_volume
+vs1     vol3          true     /data2/vol3          RW_volume
+vs1     vol4          true     /data2/vol4          RW_volume
+----
+[NOTE]
+====
+Aunque puede crear recursos compartidos en la `/data1` y.. `/data2` rutas de acceso para la administración administrativa, no debe configurar los servidores de aplicaciones para que utilicen esos recursos compartidos para almacenar datos.
+
+====
+
+
+== Hoja de trabajo de planificación
+
+|===
+| Tipos de información | Valores 
+
+
+ a| 
+_Volume 1: Nombre y ruta_ del recurso compartido del SMB
+ a| 
+
+
+
+ a| 
+_Volume 2: Nombre y ruta_ del recurso compartido del SMB
+ a| 
+
+
+
+ a| 
+_Volume 3: Nombre y ruta_ del recurso compartido del SMB
+ a| 
+
+
+
+ a| 
+_Volume 4: Nombre y ruta_ del recurso compartido del SMB
+ a| 
+
+
+
+ a| 
+_Volume 5: Nombre y ruta_ del recurso compartido del SMB
+ a| 
+
+
+
+ a| 
+_Volume 6: Nombre y ruta_ del recurso compartido del SMB
+ a| 
+
+
+
+ a| 
+_Volume 7: Nombre y ruta_ del recurso compartido del SMB
+ a| 
+
+
+
+ a| 
+_Volúmenes adicionales: Nombres de recursos compartidos SMB y rutas_
+ a| 
+
+|===

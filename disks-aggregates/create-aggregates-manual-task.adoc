@@ -1,0 +1,110 @@
+---
+permalink: disks-aggregates/create-aggregates-manual-task.html 
+sidebar: sidebar 
+keywords: ontap 9, create, aggregates, manually, manual, add, local tier 
+summary: 'Si no desea añadir un nivel local (crear un agregado) con las recomendaciones de prácticas recomendadas de ONTAP, puede llevar a cabo el proceso de forma manual.' 
+---
+= Añada niveles locales (cree agregados) manualmente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si no desea añadir un nivel local (crear un agregado) con las recomendaciones de prácticas recomendadas de ONTAP, puede llevar a cabo el proceso de forma manual.
+
+El proceso que siga depende de la interfaz que utilice: System Manager o CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager para agregar un nivel local manualmente*
+
+A partir de ONTAP 9.11.1, si no desea usar la configuración recomendada por System Manager para crear un nivel local, puede especificar la configuración que desea.
+
+.Pasos
+. En System Manager, haga clic en *almacenamiento > niveles*.
+. En la página *Tiers*, haga clic en image:icon-add-local-tier.png["Añada un icono de nivel local"] para crear un nuevo nivel local:
++
+La página *Agregar nivel local* muestra el número recomendado de niveles locales que se pueden crear en los nodos y el almacenamiento utilizable disponible.
+
+. Cuando System Manager muestre la recomendación de almacenamiento para el nivel local, haga clic en *Cambiar a creación manual de nivel local* en la sección *discos de repuesto*.
++
+La página *Agregar nivel local* muestra los campos que utiliza para configurar el nivel local.
+
+. En la primera sección de la página *Agregar nivel local*, complete lo siguiente:
++
+.. Introduzca el nombre del nivel local.
+.. (Opcional): Marque la casilla de verificación *reflejar este nivel local* si desea duplicar el nivel local.
+.. Seleccione un tipo de disco.
+.. Seleccione la cantidad de discos.
+
+
+. En la sección *Configuración RAID*, lleve a cabo lo siguiente:
++
+.. Seleccione el tipo de RAID.
+.. Seleccione el tamaño del grupo RAID.
+.. Haga clic en asignación de RAID para ver cómo se asignan los discos en el grupo.
+
+
+. (Opcional): Si se ha instalado el Administrador de claves incorporado, puede configurarlo para su cifrado en la sección *cifrado* de la página. Active la casilla de verificación *Configurar el Administrador de claves incorporado para cifrado*.
++
+.. Introduzca una frase de contraseña.
+.. Introduzca una vez más la contraseña para confirmarla.
+.. Guarde la frase de acceso para su uso futuro en caso de que el sistema necesite recuperarse.
+.. Realice un backup de la base de datos clave para usarlo en el futuro.
+
+
+. Haga clic en *Guardar* para crear el nivel local y añadirlo a su solución de almacenamiento.
+
+
+--
+.CLI
+--
+*Utilice la CLI para crear un agregado manualmente*
+
+Antes de crear agregados manualmente, debe revisar las opciones de configuración de discos y simular la creación.
+
+Entonces puede emitir el `storage aggregate create` command y verifique los resultados.
+
+.Lo que necesitará
+Debe haber determinado la cantidad de discos y la cantidad de discos de repuesto que necesita en el agregado.
+
+.Acerca de esta tarea
+Si se habilita la partición de datos raíz y tiene 24 unidades de estado sólido (SSD) o menos en la configuración, se recomienda asignar sus particiones de datos a diferentes nodos.
+
+El procedimiento para crear agregados en sistemas con partición de datos raíz y partición de datos raíz activada es el mismo que el procedimiento para crear agregados en sistemas que utilizan discos sin particiones. Si la partición de datos raíz está activada en el sistema, debe usar el número de particiones de disco para `-diskcount` opción. Para la partición de datos raíz, la `-diskcount` la opción especifica el número de discos que se van a utilizar.
+
+
+NOTE: Cuando se crean múltiples agregados para su uso con FlexGroups, los agregados deben tener el mayor tamaño posible.
+
+La `storage aggregate create` la página de manual contiene más información sobre las opciones y requisitos de creación de agregados.
+
+.Pasos
+. Vea la lista de particiones de disco de repuesto para verificar que tiene suficiente para crear su agregado:
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
+
++
+Las particiones de datos se muestran en `Local Data Usable`. No se puede utilizar una partición raíz como reserva.
+
+. Simule la creación del agregado:
++
+`storage aggregate create -aggregate _aggregate_name_ -node _node_name_ -raidtype raid_dp -diskcount _number_of_disks_or_partitions_ -simulate true`
+
+. Si se muestra alguna advertencia desde el comando simulado, ajuste el comando y repita la simulación.
+. Cree el agregado:
++
+`storage aggregate create -aggregate _aggr_name_ -node _node_name_ -raidtype raid_dp -diskcount _number_of_disks_or_partitions_`
+
+. Mostrar el agregado para verificar que se ha creado:
++
+`storage aggregate show-status _aggregate_name_`
+
+
+
+--
+====
+.Información relacionada
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Comandos de ONTAP 9"^]

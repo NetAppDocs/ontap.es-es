@@ -1,0 +1,112 @@
+---
+permalink: encryption-at-rest/enable-onboard-key-management-95-earlier-nve-task.html 
+sidebar: sidebar 
+keywords: enabling, onboard key management, ontap 9.5, earlier, nve 
+summary: Puede usar el administrador de claves incorporado para proteger las claves que el clúster utiliza para acceder a los datos cifrados. Debe habilitar el gestor de claves incorporado en cada clúster que acceda a un volumen cifrado o un disco de autocifrado. 
+---
+= Habilitar la gestión de claves incorporada en ONTAP 9.5 y versiones anteriores (NVE)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede usar el administrador de claves incorporado para proteger las claves que el clúster utiliza para acceder a los datos cifrados. Debe habilitar el gestor de claves incorporado en cada clúster que acceda a un volumen cifrado o un disco de autocifrado.
+
+.Lo que necesitará
+* Si utiliza NSE con un servidor de gestión de claves externa (KMIP), debe haber eliminado la base de datos de gestor de claves externo.
++
+link:delete-key-management-database-task.html["Transición a la gestión de claves incorporada desde la gestión de claves externas"]
+
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* Debe configurar el entorno de MetroCluster antes de configurar el gestor de claves incorporado.
+
+
+.Acerca de esta tarea
+Debe ejecutar el `security key-manager setup` cada vez que añada un nodo al clúster.
+
+Si tiene una configuración de MetroCluster, revise las siguientes directrices:
+
+* En ONTAP 9.5, debe ejecutar `security key-manager setup` en el clúster local y. `security key-manager setup -sync-metrocluster-config yes` en el clúster remoto, utilizando la misma clave de acceso en cada uno.
+* Antes de ONTAP 9.5, debe ejecutar `security key-manager setup` en el clúster local, espere aproximadamente 20 segundos y después ejecute `security key-manager setup` en el clúster remoto, utilizando la misma clave de acceso en cada uno.
+
+
+De forma predeterminada, no es necesario introducir la clave de acceso del administrador de claves cuando se reinicia un nodo. A partir de ONTAP 9.4, puede utilizar la `-enable-cc-mode yes` opción para solicitar que los usuarios introduzcan la frase de contraseña después de un reinicio.
+
+Para NVE, si estableció `-enable-cc-mode yes`, volúmenes creados con `volume create` y.. `volume move start` los comandos se cifran automáticamente. Para `volume create`, no es necesario especificar `-encrypt true`. Para `volume move start`, no es necesario especificar `-encrypt-destination true`.
+
+[NOTE]
+====
+Después de un intento de clave de acceso con errores, debe reiniciar el nodo de nuevo.
+
+====
+.Pasos
+. Inicie la configuración del gestor de claves:
++
+`security key-manager setup -enable-cc-mode yes|no`
+
++
+[NOTE]
+====
+A partir de ONTAP 9.4, puede utilizar la `-enable-cc-mode yes` opción para solicitar que los usuarios introduzcan la frase de contraseña del administrador de claves después de un reinicio. Para NVE, si estableció `-enable-cc-mode yes`, volúmenes creados con `volume create` y.. `volume move start` los comandos se cifran automáticamente.
+
+====
++
+En el siguiente ejemplo, se inicia la configuración del gestor de claves en cluster1 sin necesidad de introducir la clave de acceso después de cada reinicio:
+
++
+[listing]
+----
+cluster1::> security key-manager setup
+Welcome to the key manager setup wizard, which will lead you through
+the steps to add boot information.
+
+...
+
+Would you like to use onboard key-management? {yes, no} [yes]:
+Enter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+Reenter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+----
+. Introduzca `yes` en el símbolo del sistema de para configurar la gestión integrada de claves.
+. En el indicador de frase de contraseña, introduzca una frase de paso entre 32 y 256 caracteres, o bien, para "'cc-mode'", una frase de paso entre 64 y 256 caracteres.
++
+[NOTE]
+====
+Si la frase de paso "'cc-mode'" especificada es menor de 64 caracteres, hay un retraso de cinco segundos antes de que la operación de configuración del gestor de claves vuelva a mostrar la indicación de contraseña.
+
+====
+. En la solicitud de confirmación de contraseña, vuelva a introducir la frase de contraseña.
+. Compruebe que las claves estén configuradas para todos los nodos:
++
+`security key-manager key show`
+
++
+Para obtener la sintaxis completa del comando, consulte la página man.
+
++
+[listing]
+----
+cluster1::> security key-manager key show
+
+Node: node1
+Key Store: onboard
+Key ID                                                           Used By
+---------------------------------------------------------------- --------
+0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722 NSE-AK
+000000000000000002000000000001008C07CC0AF1EF49E0105300EFC83004BF NSE-AK
+
+Node: node2
+Key Store: onboard
+Key ID                                                           Used By
+---------------------------------------------------------------- --------
+0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722 NSE-AK
+000000000000000002000000000001008C07CC0AF1EF49E0105300EFC83004BF NSE-AK
+----
+
+
+.Después de terminar
+Copie la clave de acceso en una ubicación segura fuera del sistema de almacenamiento para usarla en el futuro.
+
+Se realiza automáticamente un backup de toda la información de gestión de claves en la base de datos replicada (RDB) del clúster.
+
+Siempre que configure la clave de acceso de Onboard Key Manager, también debe realizar un backup manual de la información en una ubicación segura fuera del sistema de almacenamiento para usarla en caso de desastre. Consulte link:backup-key-management-information-manual-task.html["Realice un backup manual de la información de gestión de claves incorporada"].

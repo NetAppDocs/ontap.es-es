@@ -1,0 +1,70 @@
+---
+sidebar: sidebar 
+permalink: networking/change_subnet_properties.html 
+keywords: change, changing, modify, modifying, gateway, ip, address, internet, protocol, mask, value, subnet, address, range, property, properties, change subnet properties, network subnet modify, subnet-name, -ipspace, -subnet, -gateway, -ip-ranges, -force-update-lif-associations 
+summary: Cambie la dirección de subred, el valor de máscara, la dirección de puerta de enlace o el rango de direcciones IP 
+---
+= Cambie las propiedades de la subred
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Es posible cambiar la dirección de subred y el valor de la máscara, la dirección de la puerta de enlace o el rango de direcciones IP en una subred existente.
+
+.Acerca de esta tarea
+* Al modificar direcciones IP, debe asegurarse de que no haya direcciones IP superpuestas en la red, de modo que distintas subredes, o hosts, no intente utilizar la misma dirección IP.
+* Si añade o cambia la dirección IP de puerta de enlace, la puerta de enlace modificada se aplica a las nuevas SVM cuando se crea una LIF en ellas mediante la subred. Se crea una ruta predeterminada a la puerta de enlace para la SVM si aún no existe la ruta. Puede que deba añadir manualmente una nueva ruta a la SVM cuando cambie la dirección IP de puerta de enlace.
+
+
+El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*A partir de ONTAP 9.12.0, puede utilizar System Manager para cambiar las propiedades de subred*
+
+.Pasos
+. Seleccione *Red > Descripción general > subredes*.
+. Seleccione image:icon_kabob.gif["icono de kabob"]*> Editar* junto a la subred que desea cambiar.
+. Realice cambios.
+. Guarde los cambios.
++
+.. Si la dirección IP o el rango introducido ya están en uso por una interfaz, se muestra el siguiente mensaje:
+`An IP address in this range is already in use by a LIF. Associate the LIF with this subnet?`
+.. Al hacer clic en *Aceptar*, la LIF existente se asociará a la subred.
+
+
+
+
+--
+.CLI
+--
+*Utilice la CLI para cambiar las propiedades de subred*
+
+.Paso
+Modificar propiedades de subred:
+
+....
+network subnet modify -subnet-name <subnet_name> [-ipspace <ipspace_name>] [-subnet <subnet_address>] [-gateway <gateway_address>] [-ip-ranges <ip_address_list>] [-force-update-lif-associations <true>]
+....
+* `subnet_name` es el nombre de la subred que desea modificar.
+* `ipspace` Es el nombre del espacio IP en el que reside la subred.
+* `subnet` es la nueva dirección y máscara de la subred, si procede; por ejemplo, 192.0.2.0/24.
+* `gateway` es la nueva puerta de enlace de la subred, si corresponde; por ejemplo, 192.0.2.1. Al introducir *"* se elimina la entrada de la puerta de enlace.
+* `ip_ranges` Es la nueva lista o rango de direcciones IP que se asignarán a la subred, si corresponde. Las direcciones IP pueden ser direcciones individuales, un rango o direcciones IP, o una combinación de ambas. El intervalo especificado aquí sustituye a las direcciones IP existentes.
+* `force-update-lif-associations` Cuando cambie el rango de direcciones IP, será necesario. Puede establecer el valor en *verdadero* para esta opción al modificar el rango de direcciones IP. Este comando falla si cualquier procesador de servicios o interfaz de red están usando las direcciones IP del rango especificado. Al establecer este valor en *true*, se asocia cualquier interfaz de dirección manual con la subred actual y se permite que el comando tenga éxito.
+
+
+El siguiente comando modifica la dirección IP de la puerta de enlace de la subred sub3:
+
+....
+network subnet modify -subnet-name <sub3> -gateway <192.0.3.1>
+....
+--
+====

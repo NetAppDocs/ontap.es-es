@@ -1,0 +1,104 @@
+---
+permalink: smb-hyper-v-sql/verify-lif-status-task.html 
+sidebar: sidebar 
+keywords: verify, lif, status, storage, virtual, machine, hyper, v, sql, server, smb, configuration, cluster 
+summary: 'Aunque configure máquinas virtuales de almacenamiento (SVM) con Hyper-V y SQL Server en configuraciones de SMB para tener LIF en cada nodo de un clúster, durante las operaciones diarias, algunas LIF se pueden mover a puertos de otro nodo. Debe verificar el estado de LIF y realizar las acciones correctivas que sean necesarias.' 
+---
+= Comprobar el estado de la LIF
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Aunque configure máquinas virtuales de almacenamiento (SVM) con Hyper-V y SQL Server en configuraciones de SMB para tener LIF en cada nodo de un clúster, durante las operaciones diarias, algunas LIF se pueden mover a puertos de otro nodo. Debe verificar el estado de LIF y realizar las acciones correctivas que sean necesarias.
+
+.Acerca de esta tarea
+Para proporcionar soporte de operaciones no disruptivas y fluido, cada nodo de un clúster debe tener al menos un LIF para la SVM y todos los LIF deben estar asociados a un puerto de inicio. Si algunos de los LIF configurados actualmente no están asociados a su puerto de inicio, debe solucionar cualquier problema de los puertos y, a continuación, revertir los LIF a su puerto de inicio.
+
+.Pasos
+. Muestra información acerca de las LIF configuradas para la SVM:
++
+`*network interface show -vserver _vserver_name_*`
+
++
+En este ejemplo, "'lif1'" no se encuentra en el puerto de origen.
+
++
+`network interface show -vserver vs1`
+
++
+[listing]
+----
+
+            Logical    Status     Network          Current    Current Is
+Vserver     Interface  Admin/Oper Address/Mask     Node       Port    Home
+----------- ---------- ---------- ---------------- ---------- ------- ----
+vs1
+            lif1         up/up    10.0.0.128/24    node2      e0d     false
+            lif2         up/up    10.0.0.129/24    node2      e0d     true
+----
+. Si algunas de las LIF no están en sus puertos raíz, realice los pasos siguientes:
++
+.. Para cada LIF, determine en qué puerto de inicio de la LIF se encuentra:
++
+`*network interface show -vserver _vserver_name_ -lif _lif_name_ -fields home-node,home-port*`
+
++
+`*network interface show -vserver vs1 -lif lif1 -fields home-node,home-port*`
+
++
+[listing]
+----
+
+vserver lif  home-node  home-port
+------- ---- ---------- ---------
+vs1     lif1 node1      e0d
+----
+.. Para cada LIF, determine si el puerto de inicio del LIF está activo:
++
+`*network port show -node _node_name_ -port _port_ -fields port,link*`
+
++
+`network port show -node node1 -port e0d -fields port,link`
+
++
+[listing]
+----
+
+node       port link
+---------- ---- ----
+node1      e0d  up
+----
++
+En este ejemplo, «'lia1'» debería ser trasladado de vuelta a su puerto de origen, `node1:e0d`.
+
+
+
+. Si alguna de las interfaces de red del puerto de inicio a las que se deberían asociar las LIF no está en la `up` state, resuelva el problema para que estas interfaces estén en funcionamiento.
+. Si es necesario, revierte las LIF a sus puertos de inicio:
++
+`*network interface revert -vserver _vserver_name_ -lif _lif_name_*`
+
++
+`*network interface revert -vserver vs1 -lif lif1*`
+
+. Compruebe que cada nodo del clúster tiene un LIF activo para la SVM:
++
+`*network interface show -vserver _vserver_name_*`
+
++
+`*network interface show -vserver vs1*`
+
++
+[listing]
+----
+
+            Logical    Status     Network          Current    Current Is
+Vserver     Interface  Admin/Oper Address/Mask     Node       Port    Home
+----------- ---------- ---------- ---------------- ---------- ------- ----
+vs1
+            lif1         up/up    10.0.0.128/24    node1      e0d     true
+            lif2         up/up    10.0.0.129/24    node2      e0d     true
+----
+

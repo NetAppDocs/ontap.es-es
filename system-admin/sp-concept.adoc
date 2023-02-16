@@ -1,0 +1,79 @@
+---
+permalink: system-admin/sp-concept.html 
+sidebar: sidebar 
+keywords: understand, sp, service, processor, remote, management, device, access, monitor, troubleshoot, node 
+summary: 'Service Processor (SP) es un dispositivo de gestión remota que le permite acceder, supervisar y solucionar problemas de un nodo de forma remota.' 
+---
+= Acerca del SP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Service Processor (SP) es un dispositivo de gestión remota que le permite acceder, supervisar y solucionar problemas de un nodo de forma remota.
+
+Las funcionalidades clave del SP incluyen lo siguiente:
+
+* SP le permite acceder a un nodo remotamente para realizar diagnósticos, apagarlo, restablecerlo o reiniciarlo, al margen del estado de la controladora del nodo.
++
+SP recibe alimentación de un voltaje de reserva, que está disponible siempre que el nodo tenga alimentación de entrada de al menos una de sus fuentes de alimentación.
+
++
+Puede iniciar sesión en SP con una aplicación cliente Secure Shell desde un host de administración. A continuación, puede usar la interfaz de línea de comandos de SP para supervisar el nodo y solucionar remotamente los problemas. Además, puede usar SP para acceder a la consola de serie y ejecutar comandos de ONTAP de manera remota.
+
++
+Puede acceder al SP desde la consola de serie o acceder a la consola de serie desde el SP. SP le permite abrir una sesión de CLI de SP y una sesión de la consola independiente de manera simultánea.
+
++
+Por ejemplo, cuando un sensor de temperatura se vuelve extremadamente alto o bajo, ONTAP activa el SP para apagar la placa base correctamente. La consola de serie deja de responder, pero puede pulsar Ctrl-G en la consola para acceder a la CLI de SP. A continuación, puede utilizar la `system power on` o. `system power cycle` Desde el SP para encender o apagar y encender el nodo.
+
+* El SP supervisa los sensores de entorno y registra los eventos para ayudarle a realizar acciones de servicio eficaces y oportunas.
++
+El SP supervisa los sensores de entorno como las temperaturas de los nodos, las tensiones, las corrientes y las velocidades del ventilador. Cuando un sensor medioambiental ha alcanzado una condición fuera de lo normal, el SP registra las lecturas anormales, notifica al ONTAP del problema y envía alertas y notificaciones «de sistema inactivo» según sea necesario a través de un mensaje de AutoSupport, independientemente de si el nodo puede enviar mensajes de AutoSupport.
+
++
+El SP también registra eventos como el progreso del arranque, los cambios de la unidad reemplazable del sector (FRU), los eventos generados por ONTAP y el historial de comandos de SP. Puede invocar manualmente un mensaje de AutoSupport para incluir los archivos de registro de SP que se recopilan desde un nodo especificado.
+
++
+Además de generar estos mensajes en nombre de un nodo que está inactivo y asociar información de diagnóstico adicional a mensajes de AutoSupport, el SP no tiene ningún efecto en la funcionalidad AutoSupport. La configuración de AutoSupport y el comportamiento del contenido de los mensajes se heredan de ONTAP.
+
++
+[NOTE]
+====
+El SP no confía en el `-transport` ajuste de parámetros de `system node autosupport modify` comando para enviar notificaciones. El SP solo utiliza el protocolo simple de transporte de correo (SMTP) y requiere que la configuración de AutoSupport del host incluya la información del host de correo.
+
+====
++
+Si SNMP está activado, el SP genera capturas SNMP a los hosts de capturas configurados para todos los eventos de «sistema inactivo».
+
+* El SP tiene un búfer de memoria no volátil que almacena hasta 4,000 eventos en un registro de eventos del sistema (SEL) para ayudarle a diagnosticar problemas.
++
+El SEL almacena cada entrada del registro de auditoría como evento de auditoría. Se almacena en la memoria flash integrada del SP. El SP envía automáticamente la lista de eventos desde el SEL a los destinatarios especificados a través de un mensaje de AutoSupport.
+
++
+El SEL contiene la información siguiente:
+
++
+** Eventos de hardware detectados por el SP: Por ejemplo, estado del sensor acerca de suministros de energía, voltaje u otros componentes
+** Errores detectados por el SP: Por ejemplo, un error de comunicación, un fallo en el ventilador o un error de memoria o CPU
+** Eventos de software críticos enviados al SP por el nodo, por ejemplo, un pánico, un error de comunicación, un error de arranque o un «sistema inactivo» activado por el usuario como resultado de la emisión del SP `system reset` o. `system power cycle` comando
+
+
+* El SP supervisa la consola de serie independientemente de si los administradores han iniciado sesión o están conectados a la consola.
++
+Cuando se envían mensajes a la consola, el SP los almacena en el registro de la consola. El registro de la consola se mantiene siempre que el SP reciba energía de alguno de los suministros del nodo. Dado que el SP funciona con voltaje de reserva, permanece disponible incluso si se somete al nodo a un ciclo de encendido y apagado, o si directamente se apaga.
+
+* La toma de control asistida por hardware está disponible si el SP está configurado.
+* El servicio API del SP permite a ONTAP comunicarse con el SP a través de la red.
++
+El servicio mejora la gestión de ONTAP del SP gracias a la compatibilidad con las funcionalidades basadas en la red, como el uso de la interfaz de red para la actualización del firmware del SP, lo cual permite a un nodo acceder a la funcionalidad del SP de otro nodo o a la consola del sistema, y cargar el registro de SP desde otro nodo.
+
++
+Para modificar la configuración del servicio API del SP, es posible cambiar el puerto que utiliza el servicio, renovar los certificados SSL y SSH que utiliza el servicio para la comunicación interna o deshabilitar el servicio por completo.
+
+
+
+En el siguiente diagrama se muestra el acceso a ONTAP y al SP de un nodo. Para acceder a la interfaz del SP a través del puerto Ethernet (indicado con un icono de llave en la parte posterior del chasis):
+
+image::../media/drw-sp-netwk.gif[Este gráfico se describe con el texto circundante.]

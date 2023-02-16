@@ -1,0 +1,26 @@
+---
+permalink: smb-hyper-v-sql/witness-protocol-concept.html 
+sidebar: sidebar 
+keywords: witness, protocol, node, sfo, partner, failure, smb, client 
+summary: ONTAP implementa el protocolo testigo utilizando como testigo al socio de la OFS de un nodo. En caso de fallo, el partner detecta rápidamente el fallo y notifica al cliente SMB. 
+---
+= Cómo funciona el protocolo de testigos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP implementa el protocolo Witness mediante el uso del partner SFO de un nodo como testigo. En caso de fallo, el partner detecta rápidamente el fallo y notifica al cliente SMB.
+
+El protocolo Witness proporciona una recuperación tras fallos mejorada mediante el siguiente proceso:
+
+. Cuando el servidor de aplicaciones establece una conexión SMB de disponibilidad continua a Node1, el servidor CIFS informa al servidor de aplicaciones que el testigo está disponible.
+. El servidor de aplicaciones solicita las direcciones IP del servidor testigo de Node1 y recibe una lista de direcciones IP de LIF de datos Node2 (el partner SFO) asignadas a la máquina virtual de almacenamiento (SVM).
+. El servidor de aplicaciones elige una de las direcciones IP, crea una conexión de testigo a Node2 y se registra para recibir una notificación si la conexión disponible continuamente en Node1 se debe mover.
+. Si se produce un evento de conmutación por error en Node1, el testigo facilita los eventos de conmutación por error, pero no se ve involucrado en la devolución.
+. Witness detecta el evento de conmutación por error y notifica al servidor de aplicaciones a través de la conexión de testigos que la conexión SMB debe moverse a Node2.
+. El servidor de aplicaciones mueve la sesión SMB a Node2 y recupera la conexión sin interrupción del acceso del cliente.
+
+
+image::../media/how-witness-works.gif[cómo funciona el testigo]

@@ -1,0 +1,91 @@
+---
+permalink: fabricpool/create-volume-task.html 
+sidebar: sidebar 
+keywords: creating, volume, fabricpool, tiering, policy, policies, create, snap shot, snapshot, aggregate, flexgroup, cloud retrieval 
+summary: Al crear un volumen para FabricPool, tiene la opción de especificar una política de organización en niveles. Si no se especifica ninguna política de organización en niveles, el volumen creado utiliza la política de organización en niveles predeterminada de solo Snapshot. Para un volumen con la política de organización automática en niveles o solo de snapshots, también se puede especificar el período de refrigeración mínimo de organización en niveles. 
+---
+= Cree un volumen para FabricPool
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede añadir volúmenes a FabricPool creando volúmenes nuevos directamente en el agregado habilitado para FabricPool o moviendo los volúmenes existentes de otro agregado al agregado habilitado para FabricPool.
+
+Al crear un volumen para FabricPool, tiene la opción de especificar una política de organización en niveles. Si no se especifica ninguna política de organización en niveles, el volumen creado utiliza el valor predeterminado `snapshot-only` política de organización en niveles. Para un volumen con `snapshot-only` o. `auto` la política de organización en niveles, también puede especificar el período de enfriamiento mínimo de organización en niveles.
+
+.Lo que necesitará
+* Configurar un volumen para usar el `auto` La política de organización en niveles o especificar el período de enfriamiento mínimo de organización en niveles requiere ONTAP 9.4 o posterior.
+* El uso de volúmenes de FlexGroup requiere ONTAP 9.5 o posterior.
+* Configurar un volumen para usar el `all` La política de organización en niveles requiere ONTAP 9.6 o posterior.
+* Configurar un volumen para usar el `-cloud-retrieval-policy` El parámetro requiere ONTAP 9.8 o posterior.
+
+
+.Pasos
+. Cree un nuevo volumen para FabricPool mediante el `volume create` comando.
++
+** La `-tiering-policy` el parámetro opcional permite especificar la política de organización en niveles del volumen.
++
+Se puede especificar una de las siguientes políticas de organización en niveles:
+
++
+*** `snapshot-only` (predeterminado)
+*** `auto`
+*** `all`
+*** `backup` (en desuso)
+*** `none`
++
+link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies["Tipos de políticas de organización en niveles de FabricPool"]
+
+
+
+** La `-cloud-retrieval-policy` el parámetro opcional permite que los administradores de clústeres con el nivel de privilegios avanzado anulen el comportamiento de migración o recuperación de cloud predeterminado controlado por la política de organización en niveles.
++
+Puede especificar una de las siguientes políticas de recuperación en el cloud:
+
++
+*** `default`
++
+La política de organización en niveles determina con qué datos se devuelven, de modo que no hay cambio en la recuperación de datos en el cloud `default` política de recuperación de cloud. Esto significa que el comportamiento es el mismo que en las versiones anteriores a ONTAP 9.8:
+
++
+**** Si la política de organización en niveles es `none` o. `snapshot-only`, por lo tanto, «predeterminado» significa que toda lectura de datos condicionada por el cliente se extrae del nivel de cloud al nivel de rendimiento.
+**** Si la política de organización en niveles es `auto`, entonces cualquier lectura aleatoria conducida por el cliente se tira pero no lecturas secuenciales.
+**** Si la política de organización en niveles es `all` entonces, ningún dato dirigido por el cliente se extrae del nivel de cloud.
+
+
+*** `on-read`
++
+Todas las lecturas de datos condicionadas por el cliente se envían del nivel de cloud al nivel de rendimiento.
+
+*** `never`
++
+No se datos controlados por el cliente que pase del nivel de cloud al nivel de rendimiento
+
+*** `promote`
++
+**** Para la política de organización en niveles `none`, todos los datos de la nube se obtienen del nivel de la nube al nivel de rendimiento
+**** Para la política de organización en niveles `snapshot-only`, todos los datos activos del sistema de archivos se envían del nivel de la nube al nivel de rendimiento.
+
+
+
+
+** La `-tiering-minimum-cooling-days` el parámetro opcional del nivel de privilegio avanzado permite especificar el período de refrigeración mínimo de organización en niveles para un volumen que utiliza la `snapshot-only` o. `auto` política de organización en niveles.
++
+A partir de ONTAP 9.8, puede especificar un valor entre 2 y 183 para los días de refrigeración mínima de organización en niveles. Si utiliza una versión de ONTAP anterior a 9.8, puede especificar un valor entre 2 y 63 para los días de refrigeración mínima de organización en niveles.
+
+
+
+
+
+.Ejemplo de creación de un volumen para FabricPool
+En el siguiente ejemplo se crea un volumen denominado «myvol1» en el agregado «myFabricPool» habilitado para FabricPool. La política de organización en niveles se establece en `auto` además, el período de enfriamiento mínimo de organización en niveles se establece en 45 días:
+
+[listing]
+----
+cluster1::*> volume create -vserver myVS -aggregate myFabricPool
+-volume myvol1 -tiering-policy auto -tiering-minimum-cooling-days 45
+----
+.Información relacionada
+link:../flexgroup/index.html["Gestión de volúmenes de FlexGroup"]

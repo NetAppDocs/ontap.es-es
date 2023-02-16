@@ -1,0 +1,64 @@
+---
+permalink: system-admin/manage-ip-addresses-access-sp-task.html 
+sidebar: sidebar 
+keywords: manage, ip, addresses, access, sp, ssh, connection, node, cluster 
+summary: De forma predeterminada, el SP acepta solicitudes de conexión SSH de los hosts de administración de cualquier dirección IP. Puede configurar el SP para aceptar solicitudes de conexión SSH desde solo los hosts de administración que tienen las direcciones IP especificadas. Los cambios que haga se aplican al acceso SSH al SP de cualquier nodo del clúster. 
+---
+= Gestione las direcciones IP que pueden acceder al SP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+De forma predeterminada, el SP acepta solicitudes de conexión SSH de los hosts de administración de cualquier dirección IP. Puede configurar el SP para aceptar solicitudes de conexión SSH desde solo los hosts de administración que tienen las direcciones IP especificadas. Los cambios que haga se aplican al acceso SSH al SP de cualquier nodo del clúster.
+
+.Pasos
+. Conceda acceso a SP a únicamente las direcciones IP que especifique mediante el `system service-processor ssh add-allowed-addresses` con el `-allowed-addresses` parámetro.
++
+** El valor de `-allowed-addresses` el parámetro debe especificarse en el formato de `address`/`netmask`, y múltiple `address`/`netmask` los pares deben estar separados por comas; por ejemplo, `10.98.150.10/24, fd20:8b1e:b255:c09b::/64`.
++
+Ajuste de `-allowed-addresses` parámetro a. `0.0.0.0/0, ::/0` Habilita todas las direcciones IP para acceder al SP (predeterminado).
+
+** Cuando cambia el valor predeterminado limitando el acceso a SP a sólo las direcciones IP especificadas, ONTAP le solicita que confirme que desea que las direcciones IP especificadas sustituyan el valor predeterminado «'allow all'» (`0.0.0.0/0, ::/0`).
+** La `system service-processor ssh show` Command muestra las direcciones IP que permiten acceder al SP.
+
+
+. Si desea bloquear que una dirección IP concreta acceda al SP, utilice el `system service-processor ssh remove-allowed-addresses` con el `-allowed-addresses` parámetro.
++
+Si bloquea todas las direcciones IP para acceder al SP, no se puede acceder al SP desde cualquier host de administración.
+
+
+
+.Ejemplos de gestionar las direcciones IP que pueden acceder al SP
+Los siguientes ejemplos muestran el valor predeterminado para el acceso SSH al SP, cambian el valor predeterminado limitando el acceso de SP a únicamente las direcciones IP especificadas, quitan las direcciones IP especificadas de la lista de acceso y, a continuación, restaure el acceso a SP para todas las direcciones IP:
+
+[listing]
+----
+cluster1::> system service-processor ssh show
+  Allowed Addresses: 0.0.0.0/0, ::/0
+
+cluster1::> system service-processor ssh add-allowed-addresses -allowed-addresses 192.168.1.202/24, 192.168.10.201/24
+
+Warning: The default "allow all" setting (0.0.0.0/0, ::/0) will be replaced
+         with your changes. Do you want to continue? {y|n}: y
+
+cluster1::> system service-processor ssh show
+  Allowed Addresses: 192.168.1.202/24, 192.168.10.201/24
+
+cluster1::> system service-processor ssh remove-allowed-addresses -allowed-addresses 192.168.1.202/24, 192.168.10.201/24
+
+Warning: If all IP addresses are removed from the allowed address list, all IP
+         addresses will be denied access. To restore the "allow all" default,
+         use the "system service-processor ssh add-allowed-addresses
+         -allowed-addresses 0.0.0.0/0, ::/0" command. Do you want to continue?
+          {y|n}: y
+
+cluster1::> system service-processor ssh show
+  Allowed Addresses: -
+
+cluster1::> system service-processor ssh add-allowed-addresses -allowed-addresses 0.0.0.0/0, ::/0
+
+cluster1::> system service-processor ssh show
+  Allowed Addresses: 0.0.0.0/0, ::/0
+----

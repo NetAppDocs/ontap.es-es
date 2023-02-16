@@ -1,0 +1,56 @@
+---
+permalink: smb-admin/create-volumes-specified-junction-task.html 
+sidebar: sidebar 
+keywords: specify, junction, point, create, data, volume, resultant, automatic, mount, configure, nas, access, create data volumes with specified junction points 
+summary: Puede especificar el punto de unión cuando crea un volumen de datos. El volumen resultante se monta automáticamente en el punto de unión y se puede configurar inmediatamente para el acceso NAS. 
+---
+= Cree volúmenes de datos con puntos de unión especificados
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede especificar el punto de unión cuando crea un volumen de datos. El volumen resultante se monta automáticamente en el punto de unión y se puede configurar inmediatamente para el acceso NAS.
+
+.Antes de empezar
+El agregado en el que desea crear el volumen ya debe existir.
+
+[NOTE]
+====
+Los siguientes caracteres no se pueden utilizar en la ruta de unión: * # " > < | ? \
+
+Además, la longitud de la ruta de unión no puede ser superior a 255 caracteres.
+
+====
+.Pasos
+. Cree el volumen con un punto de unión: `volume create -vserver _vserver_name_ -volume _volume_name_ -aggregate _aggregate_name_ -size {integer[KB|MB|GB|TB|PB]} -security-style {ntfs|unix|mixed} -junction-path _junction_path_`
++
+La ruta de unión debe comenzar con la raíz (/) y puede contener tanto directorios como volúmenes con conexiones. No es necesario que la ruta de unión contenga el nombre del volumen. Las rutas de unión son independientes del nombre del volumen.
+
++
+Es opcional especificar un estilo de seguridad del volumen. Si no se especifica un estilo de seguridad, ONTAP crea el volumen con el mismo estilo de seguridad que se aplica al volumen raíz de la máquina virtual de almacenamiento (SVM). Sin embargo, es posible que el estilo de seguridad del volumen raíz no sea el estilo de seguridad que se desea aplicar al volumen de datos que se crea. La recomendación es especificar el estilo de seguridad al crear el volumen para minimizar los problemas de acceso a archivos difíciles de solucionar.
+
++
+La ruta de unión no distingue mayúsculas y minúsculas; `/ENG` es igual que `/eng`. Si crea un recurso compartido CIFS, Windows trata la ruta de unión como si fuera sensible a mayúsculas de minúsculas. Por ejemplo, si la unión es `/ENG`, La ruta de acceso de un recurso compartido CIFS debe comenzar con `/ENG`, no `/eng`.
+
++
+Existen muchos parámetros opcionales que se pueden usar para personalizar un volumen de datos. Para aprender más sobre ellos, consulte las páginas de manual de `volume create` comando.
+
+. Compruebe que el volumen se ha creado con el punto de unión deseado: `volume show -vserver _vserver_name_ -volume _volume_name_ -junction`
+
+
+.Ejemplo
+En el siguiente ejemplo se crea un volumen denominado «'home4'» ubicado en la SVM vs1 que tiene una ruta de unión `/eng/home`:
+
+[listing]
+----
+cluster1::> volume create -vserver vs1 -volume home4 -aggregate aggr1 -size 1g -junction-path /eng/home
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1 -volume home4 -junction
+                  Junction                 Junction
+Vserver   Volume  Active   Junction Path   Path Source
+--------- ------- -------- --------------- -----------
+vs1       home4   true     /eng/home       RW_volume
+----

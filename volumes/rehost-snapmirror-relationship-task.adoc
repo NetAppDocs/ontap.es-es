@@ -1,0 +1,83 @@
+---
+permalink: volumes/rehost-snapmirror-relationship-task.html 
+sidebar: sidebar 
+keywords: rehost, volumes, snapmirror, relationship 
+summary: Es posible volver a alojar volúmenes en una relación de SnapMirror. 
+---
+= Vuelva a alojar volúmenes en una relación de SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible volver a alojar volúmenes en una relación de SnapMirror.
+
+.Lo que necesitará
+* El volumen debe estar en línea.
+* No se deben ejecutar las operaciones de gestión de volúmenes, como movimientos de volúmenes o movimientos de LUN.
+* Se debe detener el acceso a los datos al volumen que se está realojando.
+* La configuración de los servicios de nombres y ns-switch de la SVM objetivo debe configurarse para admitir el acceso a los datos del volumen de realojamiento.
+* El ID de usuario y el ID de grupo del volumen deben estar disponibles en la SVM objetivo o cambiarse en el volumen de host.
+
+
+.Acerca de esta tarea
+* El realojamiento es una operación disruptiva.
+* Si la operación de realojamiento falla, es posible que deba volver a configurar las políticas de volumen y las reglas asociadas en el volumen de origen.
+* Tras la operación de realojamiento, se pierden las siguientes políticas de volumen, reglas de política y configuraciones en el volumen de origen y se deben reconfigurar manualmente en el volumen realojado:
++
+** Políticas de exportación de volúmenes y qtrees
+** Directivas de antivirus
+** Política de eficiencia de volúmenes
+** Políticas de calidad de servicio (QoS)
+** Políticas de Snapshot
+** Reglas de cuotas
+** reglas y políticas de exportación de configuración de ns-switch y servicios de nombres
+** ID de usuario y de grupo
+
+
+
+
+.Pasos
+. Registre el tipo de relación SnapMirror:
++
+`snapmirror show`
+
++
+Este es un paso preventivo para evitar perder información sobre el tipo de relación SnapMirror en caso de que se produzca un error en el rehost del volumen.
+
+. En el clúster de destino, elimine la relación SnapMirror:
++
+`snapmirror delete`
+
++
+No debe interrumpir la relación de SnapMirror; de lo contrario, la funcionalidad de protección de datos del volumen de destino se pierde y la relación no se puede restablecer después de la operación de realojamiento.
+
+. En el clúster de origen, quite la información sobre relaciones de SnapMirror:
++
+`snapmirror release relationship-info-only true`
+
++
+Ajuste de `relationship-info-only` parámetro a. `true` Elimina la información de relaciones de origen sin eliminar las copias Snapshot.
+
+. Cambie al nivel de privilegio avanzado:
++
+`set -privilege advanced`
+
+. Vuelva a alojar el volumen en la SVM de destino:
++
+`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+
+. Si no hay ninguna relación entre iguales de SVM, cree la relación entre iguales de SVM entre la SVM de origen y la SVM de destino:
++
+`vserver peer create`
+
+. Cree la relación de SnapMirror entre el volumen de origen y el de destino:
++
+`snapmirror create`
+
++
+Debe ejecutar el `snapmirror create` Comando desde la SVM que aloja el volumen de DP. El volumen realojado puede ser el origen o el destino de la relación de SnapMirror.
+
+. Resincronice la relación SnapMirror.
+

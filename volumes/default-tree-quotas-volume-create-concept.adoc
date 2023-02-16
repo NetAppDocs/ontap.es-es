@@ -1,0 +1,48 @@
+---
+permalink: volumes/default-tree-quotas-volume-create-concept.html 
+sidebar: sidebar 
+keywords: how, default, tree quotas, flexvol volume, create, derived tree quotas 
+summary: Cuando se crea una cuota de árbol predeterminada en un volumen de FlexVol, las cuotas de árbol derivadas correspondientes se crean automáticamente para cada qtree de ese volumen. 
+---
+= Cómo crean las cuotas de árbol predeterminadas en un volumen FlexVol las cuotas de árbol derivadas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando se crea una cuota de árbol predeterminada en un volumen de FlexVol, las cuotas de árbol derivadas correspondientes se crean automáticamente para cada qtree de ese volumen.
+
+Estas cuotas de árbol derivadas tienen los mismos límites que la cuota de árbol predeterminada. Si no existen cuotas adicionales, los límites tienen los siguientes efectos:
+
+* Los usuarios pueden utilizar tanto espacio en un qtree como se asignan para todo el volumen (siempre y cuando no hayan superado el límite del volumen utilizando el espacio en la raíz u otro qtree).
+* Cada uno de los qtrees puede crecer para consumir el volumen completo.
+
+
+La existencia de una cuota de árbol predeterminada en un volumen sigue afectando a todos los qtrees nuevos que se agregan al volumen. Cada vez que se crea un qtree nuevo, también se crea una cuota de árbol derivada.
+
+Al igual que todas las cuotas derivadas, las cuotas de árbol derivadas muestran los siguientes comportamientos:
+
+* Sólo se crean si el destino no tiene una cuota explícita.
+* Aparecen en los informes de cuotas pero no aparecen cuando se muestran las reglas de cuota con `volume quota policy rule show` comando.
+
+
+.Ejemplo de cuotas de árbol derivadas
+Tiene un volumen con tres qtrees (proyecto 1, proyecto 2 y proyecto 3) y la única cuota de árbol es una cuota explícita en el qtree del proyecto 1 que limita su tamaño de disco a 10 GB. Si crea una cuota de árbol predeterminada en el volumen y reinicializa cuotas en el volumen, el informe de cuota ahora contiene cuatro cuotas de árbol:
+
+[listing]
+----
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     proj1     tree    1           0B   10GB       1       -   proj1
+vol1               tree    *           0B   20GB       0       -   *
+vol1     proj2     tree    2           0B   20GB       1       -   proj2
+vol1     proj3     tree    3           0B   20GB       1       -   proj3
+...
+----
+La primera línea muestra la cuota explícita original en el qtree del proyecto 1. Esta cuota permanece sin cambios.
+
+La segunda línea muestra la nueva cuota de árbol predeterminada en el volumen. El especificador de cuota asterisco (*) indica que es una cuota predeterminada. Esta cuota es el resultado de la regla de cuota que ha creado.
+
+Las dos últimas líneas muestran nuevas cuotas de árboles derivadas para los qtrees proja2 y proy3. ONTAP creó automáticamente estas cuotas como resultado de la cuota de árbol predeterminada en el volumen. Estas cuotas de árbol derivadas tienen el mismo límite de disco de 20 GB que la cuota de árbol predeterminada del volumen. ONTAP no creó una cuota de árbol derivada para el qtree del proyecto 1 porque el qtree del proyecto 1 ya tenía una cuota explícita.

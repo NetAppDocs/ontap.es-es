@@ -1,0 +1,54 @@
+---
+permalink: nas-audit/auditing-limitations-size-audit-records-concept.html 
+sidebar: sidebar 
+keywords: limitations, size, audit records, stage files 
+summary: El tamaño de un registro de auditoría en un archivo provisional no puede ser superior a 32 KB. 
+---
+= Limitaciones del tamaño de los registros de auditoría en los archivos de almacenamiento provisional
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El tamaño de un registro de auditoría en un archivo provisional no puede ser superior a 32 KB.
+
+
+
+== Cuando se pueden producir registros de auditoría grandes
+
+Los registros de auditoría de gran tamaño pueden producirse durante la auditoría de gestión en uno de los siguientes casos:
+
+* Agregar o eliminar usuarios a o de grupos con un gran número de usuarios.
+* Adición o eliminación de una lista de control de acceso (ACL) de recurso compartido de archivos en un recurso compartido de archivos con un gran número de usuarios de recursos compartidos de archivos.
+* Otros escenarios.
+
+
+Deshabilite la auditoría de gestión para evitar este problema. Para ello, modifique la configuración de auditoría y elimine lo siguiente de la lista de tipos de eventos de auditoría:
+
+* recurso compartido de archivos
+* cuenta de usuario
+* grupo de seguridad
+* autorización-cambio de política
++
+Tras la eliminación, el subsistema de auditoría de servicios de archivos no los auditará.
+
+
+
+
+
+== Los efectos de los registros de auditoría que son demasiado grandes
+
+* Si el tamaño de un registro de auditoría es demasiado grande (más de 32 KB), no se crea el registro de auditoría y el subsistema de auditoría genera un mensaje de sistema de gestión de eventos (EMS) similar al siguiente:
++
+`File Services Auditing subsystem failed the operation or truncated an audit record because it was greater than max_audit_record_size value. Vserver UUID=%s, event_id=%u, size=%u`
+
++
+Si la auditoría está garantizada, la operación de archivo falla porque no se puede crear su registro de auditoría.
+
+* Si el tamaño del registro de auditoría es superior a 9,999 bytes, se muestra el mismo mensaje EMS que se ha mencionado anteriormente. Se crea un registro de auditoría parcial y falta el valor de clave mayor.
+* Si el registro de auditoría supera los 2,000 caracteres, aparece el siguiente mensaje de error en lugar del valor real:
++
+`The value of this field was too long to display.`
+
+

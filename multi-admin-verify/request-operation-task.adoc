@@ -1,0 +1,159 @@
+---
+sidebar: sidebar 
+permalink: multi-admin-verify/request-operation-task.html 
+keywords: ontap, mav, multi, admin, verification, administrator, protected, operation, rules, request, cluster, approve, rbac 
+summary: 'Cuando inicia una operación protegida en un clúster habilitado para la verificación de varios administradores (MAV), ONTAP intercepta automáticamente la operación y solicita generar una solicitud, que debe ser aprobada por uno o más administradores de un grupo de aprobación de MAV (administradores de MAV).' 
+---
+= Solicite la ejecución de operaciones protegidas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando inicia una operación o comando protegido en un clúster habilitado para la verificación de varios administradores (MAV), ONTAP intercepta automáticamente la operación y solicita generar una solicitud, que debe ser aprobada por uno o más administradores de un grupo de aprobación de MAV (administradores de MAV). También puede crear una solicitud MAV sin el diálogo.
+
+Si se aprueba, deberá responder a la consulta para completar la operación dentro del período de caducidad de la solicitud. Si se ha vetado o si se han superado los períodos de solicitud o caducidad, debe eliminar la solicitud y volver a enviarla.
+
+La funcionalidad MAV cumple la configuración de RBAC existente. Es decir, la función de administrador debe tener privilegios suficientes para ejecutar una operación protegida sin tener en cuenta la configuración de MAV. link:https://docs.netapp.com/us-en/ontap/authentication/create-svm-user-accounts-task.html["Más información acerca de RBAC"].
+
+Si es administrador de MAV, sus solicitudes de ejecución de operaciones protegidas también deben ser aprobadas por un administrador de MAV.
+
+
+
+== Procedimiento de System Manager
+
+Cuando un usuario hace clic en un elemento de menú para iniciar una operación y la operación está protegida, se genera una solicitud de aprobación y el usuario recibe una notificación similar a la siguiente:
+
+[listing]
+----
+Approval request to delete the volume was sent.
+Track the request ID 356 from Events & Jobs > Multi-Admin Requests.
+----
+La ventana *solicitudes de administrador múltiple* está disponible cuando MAV está activado, mostrando solicitudes pendientes basadas en el ID de inicio de sesión del usuario y la función MAV (aprobador o no). Para cada solicitud pendiente, se muestran los siguientes campos:
+
+* Funcionamiento
+* Índice (número)
+* Estado (pendiente, aprobado, rechazado, ejecutado o caducado)
++
+Si un aprobador rechaza una solicitud, no es posible realizar ninguna otra acción.
+
+* Consulta (cualquier parámetro o valor para la operación solicitada)
+* Usuario solicitante
+* La solicitud caduca el
+* (Número de) aprobadores pendientes
+* (Número de) posibles aprobadores
+
+
+Una vez aprobada la solicitud, el usuario solicitante puede volver a intentar la operación dentro del período de caducidad.
+
+Si el usuario vuelve a intentar la operación sin aprobación, se muestra una notificación similar a la siguiente:
+
+[listing]
+----
+Request to perform delete operation is pending approval.
+Retry the operation after request is approved.
+----
+
+
+== Procedimiento de la CLI
+
+. Introduzca la operación protegida directamente o mediante el comando MAV Request.
++
+*Ejemplos: Para eliminar un volumen, introduzca uno de los siguientes comandos:*
+
++
+** `volume delete`
++
+[listing]
+----
+cluster-1::*> volume delete -volume vol1 -vserver vs0
+
+Warning: This operation requires multi-admin verification. To create a
+         verification request use "security multi-admin-verify request
+         create".
+
+         Would you like to create a request for this operation?
+          {y|n}: y
+
+Error: command failed: The security multi-admin-verify request (index 3) is
+       auto-generated and requires approval.
+----
+** `security multi-admin-verify request create “volume delete”`
++
+[listing]
+----
+Error: command failed: The security multi-admin-verify request (index 3)
+       requires approval.
+----
+
+
+. Compruebe el estado de la solicitud y responda al aviso de MAV.
++
+.. Si se aprueba la solicitud, responda al mensaje de la CLI para completar la operación.
++
+*Ejemplo:*
+
++
+[listing]
+----
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -vserver vs0 -volume vol1
+             State: approved
+Required Approvers: 1
+ Pending Approvers: 0
+   Approval Expiry: 2/25/2022 14:32:03
+  Execution Expiry: 2/25/2022 14:35:36
+         Approvals: admin2
+       User Vetoed: -
+           Vserver: cluster-1
+    User Requested: admin
+      Time Created: 2/25/2022 13:32:03
+     Time Approved: 2/25/2022 13:35:36
+           Comment: -
+   Users Permitted: -
+
+cluster-1::*> volume delete -volume vol1 -vserver vs0
+
+Info: Volume "vol1" in Vserver "vs0" will be marked as deleted and placed in the volume recovery queue. The space used by the volume will be recovered only after the retention period of 12 hours has completed. To recover the space immediately, get the volume name using (privilege:advanced) "volume recovery-queue show vol1_*" and then "volume recovery-queue purge -vserver vs0 -volume <volume_name>" command. To recover the volume use the (privilege:advanced) "volume recovery-queue recover -vserver vs0       -volume <volume_name>" command.
+
+Warning: Are you sure you want to delete volume "vol1" in Vserver "vs0" ?
+{y|n}: y
+----
+.. Si se vetó la solicitud o el período de caducidad ha pasado, elimine la solicitud y vuelva a enviarla o póngase en contacto con el administrador de MAV.
++
+*Ejemplo:*
+
++
+[listing]
+----
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -vserver vs0 -volume vol1
+             State: vetoed
+Required Approvers: 1
+ Pending Approvers: 1
+   Approval Expiry: 2/25/2022 14:38:47
+  Execution Expiry: -
+         Approvals: -
+       User Vetoed: admin2
+           Vserver: cluster-1
+    User Requested: admin
+      Time Created: 2/25/2022 13:38:47
+     Time Approved: -
+           Comment: -
+   Users Permitted: -
+
+cluster-1::*> volume delete -volume vol1 -vserver vs0
+
+Error: command failed: The security multi-admin-verify request (index 3) hasbeen vetoed. You must delete it and create a new verification request.
+To delete, run "security multi-admin-verify request delete 3".
+----
+
+
+

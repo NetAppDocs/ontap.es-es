@@ -1,0 +1,73 @@
+---
+permalink: snaplock/move-snaplock-volume-concept.html 
+sidebar: sidebar 
+keywords: move, snaplock, volume, aggregate, security, role, enterprise, compliance, create, administrator, support, user, cluster, destination, command 
+summary: A partir de ONTAP 9.8, puede mover un volumen SnapLock a un agregado de destino del mismo tipo, ya sea de empresa a empresa o de cumplimiento de normativas. Debe tener asignado el rol de seguridad SnapLock para mover un volumen de SnapLock. 
+---
+= Mover un volumen de SnapLock
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.8, puede mover un volumen SnapLock a un agregado de destino del mismo tipo, ya sea de empresa a empresa o de cumplimiento de normativas. Debe tener asignado el rol de seguridad SnapLock para mover un volumen de SnapLock.
+
+
+
+== Cree una cuenta de administrador de seguridad de SnapLock
+
+Debe tener privilegios de administrador de seguridad de SnapLock para realizar un movimiento de volúmenes de SnapLock. Este privilegio se le concede con el rol _SnapLock_, introducido en ONTAP 9.8. Si todavía no ha recibido ese rol, puede solicitar al administrador del clúster que cree un usuario de seguridad SnapLock con este rol de seguridad SnapLock.
+
+.Lo que necesitará
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* Debe haber iniciado sesión en una conexión segura (SSH, Console o ZAPI).
+
+
+.Acerca de esta tarea
+El rol SnapLock se asocia con la SVM de administrador, a diferencia del rol vsadmin-snaplock, que está asociada con la SVM de datos.
+
+.Paso
+. Cree una cuenta de administrador de SVM con el rol de administrador de SnapLock:
++
+`*security login create -vserver _SVM_name_ -user-or-group-name _user_or_group_name_ -application _application_ -authmethod _authentication_method_ -role _role_ -comment _comment_*`
+
++
+El siguiente comando habilita la cuenta de administrador de SVM `SnapLockAdmin` con los predefinidos `snaplock` Rol para acceder a la SVM de administrador `cluster1` con una contraseña:
+
++
+[listing]
+----
+cluster1::> security login create -vserver cluster1 -user-or-group-name SnapLockAdmin -application ssh -authmethod password -role snaplock
+----
+
+
+
+
+== Mover un volumen de SnapLock
+
+Puede utilizar el `volume move` Comando para mover un volumen de SnapLock a un agregado de destino.
+
+.Lo que necesitará
+* Debe haber creado un registro de auditoría protegido en SnapLock antes de ejecutar el movimiento de volúmenes de SnapLock.
++
+link:create-audit-log-task.html["Cree un registro de auditoría"].
+
+* Si utiliza una versión de ONTAP anterior a ONTAP 9.10.1, el agregado de destino debe ser el mismo tipo de SnapLock que el volumen de SnapLock que desea mover: Compliance to Compliance o Enterprise to Enterprise. A partir de ONTAP 9.10.1, esta restricción se elimina y un agregado puede incluir volúmenes SnapLock de Compliance y Enterprise, así como volúmenes que no son de SnapLock.
+* Debe haberse registrado como usuario con el rol de seguridad SnapLock.
+
+
+.Pasos
+. Con una conexión segura, inicie sesión en la LIF de gestión de clústeres de ONTAP:
++
+`*ssh snaplock_user@cluster_mgmt_ip*`
+
+. Mover un volumen de SnapLock:
++
+`*volume move start -vserver _SVM_name_ -volume _SnapLock_volume_name_ -destination-aggregate _destination_aggregate_name_*`
+
+. Compruebe el estado de la operación de movimiento de volúmenes:
++
+`*volume move show -volume _SnapLock_volume_name_ -vserver _SVM_name_ -fields volume,phase,vserver*`
+
+

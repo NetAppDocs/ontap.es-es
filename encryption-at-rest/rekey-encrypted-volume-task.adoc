@@ -1,0 +1,77 @@
+---
+permalink: encryption-at-rest/rekey-encrypted-volume-task.html 
+sidebar: sidebar 
+keywords: changing, encryption key, volume encryption rekey start, command 
+summary: Es una práctica recomendada para cambiar la clave de cifrado de un volumen periódicamente. A partir de ONTAP 9.3, se puede usar el comando volume Encryption rekey start para cambiar la clave de cifrado. 
+---
+= Cambie la clave de cifrado de un volumen con el comando volume Encryption rekey start
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es una práctica recomendada para cambiar la clave de cifrado de un volumen periódicamente. A partir de ONTAP 9.3, puede utilizar la `volume encryption rekey start` para cambiar la clave de cifrado.
+
+.Acerca de esta tarea
+Una vez que se inicia una operación de reclave, ésta debe completarse. No hay vuelta a la llave antigua. Si se encuentra con un problema de rendimiento durante la operación, puede ejecutar el `volume encryption rekey pause` para pausar la operación y el `volume encryption rekey resume` comando para reanudar la operación.
+
+Hasta que finalice la operación de reclave, el volumen tendrá dos teclas. Las nuevas escrituras y sus lecturas correspondientes utilizarán la nueva clave. De lo contrario, las lecturas utilizarán la clave antigua.
+
+[NOTE]
+====
+No puede utilizar `volume encryption rekey start` Para volver a introducir un volumen de SnapLock.
+
+====
+.Pasos
+. Cambiar una clave de cifrado:
++
+`volume encryption rekey start -vserver SVM_name -volume volume_name`
+
++
+El comando siguiente cambia la clave de cifrado de `vol1` En SVM``vs1``:
+
++
+[listing]
+----
+cluster1::> volume encryption rekey start -vserver vs1 -volume vol1
+----
+. Verificar el estado de la operación de rellave:
++
+`volume encryption rekey show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+El siguiente comando muestra el estado de la operación de nueva clave:
+
++
+[listing]
+----
+cluster1::> volume encryption rekey show
+
+Vserver   Volume   Start Time           Status
+-------   ------   ------------------   ---------------------------
+vs1       vol1     9/18/2017 17:51:41   Phase 2 of 2 is in progress.
+----
+. Una vez finalizada la operación de nueva clave, compruebe que el volumen esté habilitado para el cifrado:
++
+`volume show -is-encrypted true`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los volúmenes cifrados en `cluster1`:
+
++
+[listing]
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+

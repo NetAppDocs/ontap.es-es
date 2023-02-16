@@ -1,0 +1,109 @@
+---
+permalink: system-admin/configure-saml-authentication-task.html 
+sidebar: sidebar 
+keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, lanaguage, active, directory 
+summary: 'A partir de ONTAP 9.3, puede configurar la autenticación del lenguaje de marcado de aserción de seguridad (SAML) para los servicios web. Cuando se configura y se habilita la autenticación SAML, los usuarios se autentican mediante un proveedor de identidades (IDP) externo en lugar de los proveedores de servicio de directorio, como Active Directory y LDAP.' 
+---
+= Configurar la autenticación SAML
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.3, puede configurar la autenticación del lenguaje de marcado de aserción de seguridad (SAML) para los servicios web. Cuando se configura y se habilita la autenticación SAML, los usuarios se autentican mediante un proveedor de identidades (IDP) externo en lugar de los proveedores de servicio de directorio, como Active Directory y LDAP.
+
+.Lo que necesitará
+* Configuró el IDP para la autenticación SAML.
+* Debe tener el URI de IDP.
+
+
+.Acerca de esta tarea
+* La autenticación SAML solo se aplica a `http` y.. `ontapi` más grandes.
++
+La `http` y.. `ontapi` Las aplicaciones se utilizan en los siguientes servicios web: Infraestructura de procesador de servicio, API de ONTAP o System Manager.
+
+* La autenticación SAML solo se aplica para acceder a la SVM de administrador.
+
+
+.Pasos
+. Cree una configuración de SAML para que ONTAP pueda acceder a los metadatos de IDP:
++
+`*security saml-sp create -idp-uri _idp_uri_ -sp-host _ontap_host_name_*`
+
++
+`idp_uri` Es la dirección FTP o HTTP del host IDP desde el que se pueden descargar los metadatos de IDP.
+
++
+`ontap_host_name` Es el nombre de host o la dirección IP del host del proveedor de servicios SAML que, en este caso, es el sistema ONTAP. De manera predeterminada, se utiliza la dirección IP de la LIF de administración del clúster.
+
++
+Opcionalmente, puede proporcionar la información de certificado del servidor ONTAP. De manera predeterminada, se utiliza la información de certificado de servidor web ONTAP.
+
++
+[listing]
+----
+cluster_12::> security saml-sp create -idp-uri https://scspr0235321001.gdl.englab.netapp.com/idp/shibboleth -verify-metadata-server false
+
+Warning: This restarts the web server. Any HTTP/S connections that are active
+         will be disrupted.
+Do you want to continue? {y|n}: y
+[Job 179] Job succeeded: Access the SAML SP metadata using the URL:
+https://10.63.56.150/saml-sp/Metadata
+
+Configure the IdP and Data ONTAP users for the same directory server domain to ensure that users are the same for different authentication methods. See the "security login show" command for the Data ONTAP user configuration.
+----
++
+Se muestra la URL para acceder a los metadatos del host ONTAP.
+
+. Desde el host IDP, configure el IDP con los metadatos del host ONTAP.
++
+Para obtener más información sobre cómo configurar el IDP, consulte la documentación de IDP.
+
+. Habilitar la configuración de SAML:
++
+`*security saml-sp modify -is-enabled true*`
+
++
+Cualquier usuario existente que acceda a `http` o. `ontapi` La aplicación se configura automáticamente para la autenticación SAML.
+
+. Si desea crear usuarios para `http` o. `ontapi` Aplicación después de configurar SAML, especifique SAML como método de autenticación de los nuevos usuarios.
++
+.. Cree un método de inicio de sesión para usuarios nuevos con autenticación SAML: +
+`*security login create -user-or-group-name _user_name_ -application [http | ontapi] -authentication-method saml -vserver _svm_name_*`
++
+[listing]
+----
+cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver  cluster_12
+----
+.. Compruebe que se ha creado la entrada de usuario:
++
+`*security login show*`
+
++
+[listing]
+----
+cluster_12::> security login show
+
+Vserver: cluster_12
+                                                                 Second
+User/Group                 Authentication                 Acct   Authentication
+Name           Application Method        Role Name        Locked Method
+-------------- ----------- ------------- ---------------- ------ --------------
+admin          console     password      admin            no     none
+admin          http        password      admin            no     none
+admin          http        saml          admin            -      none
+admin          ontapi      password      admin            no     none
+admin          ontapi      saml          admin            -      none
+admin          service-processor
+                           password      admin            no     none
+admin          ssh         password      admin            no     none
+admin1         http        password      backup           no     none
+**admin1         http        saml          backup           -      none**
+----
+
+
+
+
+.Información relacionada
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Comandos de ONTAP 9"^]

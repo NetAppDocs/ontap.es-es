@@ -1,0 +1,45 @@
+---
+permalink: smb-admin/case-sensitivity-file-directory-multiprotocol-concept.html 
+sidebar: sidebar 
+keywords: file, directory, name, case-sensitive, nfs, client, case-preserving, preserve, implication, multiprotocol, environment, action, case-sensitivity of file and directory names in a multiprotocol environment 
+summary: Los nombres de archivo y directorio distinguen mayúsculas y minúsculas para los clientes NFS y no distinguen entre mayúsculas y minúsculas, pero sí lo hacen para los clientes SMB. Debe comprender las implicaciones que tiene en un entorno multiprotocolo y las acciones que podría tener que tomar al especificar la ruta al crear recursos compartidos de SMB y al acceder a datos dentro de los recursos compartidos. 
+---
+= Distinción entre mayúsculas y minúsculas de nombres de archivos y directorios en un entorno multiprotocolo
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Los nombres de archivo y directorio distinguen mayúsculas y minúsculas para los clientes NFS y no distinguen entre mayúsculas y minúsculas, pero sí lo hacen para los clientes SMB. Debe comprender las implicaciones que tiene en un entorno multiprotocolo y las acciones que podría tener que tomar al especificar la ruta al crear recursos compartidos de SMB y al acceder a datos dentro de los recursos compartidos.
+
+Si un cliente SMB crea un directorio llamado `testdir`, Tanto los clientes SMB como NFS muestran el nombre de archivo como `testdir`. Sin embargo, si un usuario SMB posteriormente intenta crear un nombre de directorio `TESTDIR`, El nombre no está permitido porque, para el cliente SMB, ese nombre existe actualmente. Si un usuario NFS crea más adelante un directorio llamado `TESTDIR`, Los clientes NFS y SMB muestran el nombre del directorio de forma diferente, de la siguiente manera:
+
+* En los clientes NFS, se ven los dos nombres de directorio tal como se crearon, por ejemplo `testdir` y.. `TESTDIR`, porque los nombres de directorio distinguen entre mayúsculas y minúsculas.
+* Los clientes SMB utilizan los nombres 8.3 para distinguir entre los dos directorios. Un directorio tiene el nombre del archivo base. A directorios adicionales se les asigna un nombre de archivo 8.3.
++
+** En los clientes SMB, consulte `testdir` y.. `TESTDI~1`.
+** ONTAP creará el `TESTDI~1` nombre de directorio para diferenciar los dos directorios.
++
+En este caso, debe usar el nombre 8.3 al especificar una ruta de recurso compartido mientras crea o modifica un recurso compartido en una máquina virtual de almacenamiento (SVM).
+
+
+
+
+
+Del mismo modo para los archivos, si un cliente SMB crea `test.txt`, Tanto los clientes SMB como NFS muestran el nombre de archivo como `text.txt`. Sin embargo, si un usuario SMB posteriormente intenta crear `Test.txt`, El nombre no está permitido porque, para el cliente SMB, ese nombre existe actualmente. Si más adelante un usuario NFS crea un archivo llamado `Test.txt`, Los clientes NFS y SMB muestran el nombre del archivo de forma diferente, de la siguiente manera:
+
+* En los clientes NFS, se ven los dos nombres de archivo tal como se crearon, `test.txt` y.. `Test.txt`, porque los nombres de archivo distinguen entre mayúsculas y minúsculas.
+* Los clientes SMB utilizan los nombres 8.3 para distinguir entre los dos archivos. Un archivo tiene el nombre del archivo base. Se asigna un nombre de archivo 8.3 a archivos adicionales.
++
+** En los clientes SMB, consulte `test.txt` y.. `TEST~1.TXT`.
+** ONTAP creará el `TEST~1.TXT` nombre de archivo para diferenciar los dos archivos.
+
+
+
+
+[NOTE]
+====
+Si ha habilitado o modificado la asignación de caracteres mediante los comandos de asignación de caracteres CIFS del Vserver, una búsqueda de Windows normalmente no distingue mayúsculas y minúsculas se convierte en sensible a mayúsculas y minúsculas.
+
+====

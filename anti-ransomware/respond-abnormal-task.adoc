@@ -1,0 +1,154 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/respond-abnormal-task.html 
+keywords: Respond to abnormal activity, anti-ransomware abnormal activity, data entropy, unusual file extensions, potential ransomware attack, false positive, suspected ransomware attack, abnormal activity notification, security, ransomware alert message, detected abnormal volume, suspected file types, attack report, anti-ransomware attack, autonomous, ransomware, protection, arp 
+summary: 'Cuando la protección de ransomware autónoma (ARP) detecta actividad anormal en un volumen protegido, emite una advertencia. Debe evaluar la notificación para determinar si la actividad es esperada y aceptable, o si se está llevando a cabo un ataque.' 
+---
+= Responda a actividades anormales.
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Cuando la protección de ransomware autónoma (ARP) detecta actividad anormal en un volumen protegido, emite una advertencia. Debe evaluar la notificación para determinar si la actividad es esperada y aceptable, o si se está llevando a cabo un ataque.
+
+.Lo que necesitará
+* ARP se está ejecutando en modo activo.
+
+
+.Acerca de esta tarea
+ARP muestra una lista de archivos sospechosos cuando detecta cualquier combinación de alta entropía de datos, actividad de volumen anormal con cifrado de datos y extensiones de archivo inusuales.
+
+Cuando se emite la advertencia, puede responder marcando la actividad de archivo de dos maneras:
+
+* Falso positivo
++
+Se espera el tipo de archivo identificado en la carga de trabajo y se puede ignorar.
+
+* Ataque potencial de ransomware
++
+El tipo de archivo identificado no es esperado en su carga de trabajo y debe tratarse como un ataque potencial.
+
+
+
+En ambos casos, la supervisión normal se reanuda después de actualizar y borrar los avisos; ARP registra la evaluación, los registros se actualizan con los nuevos tipos de archivos y los utilizan para análisis futuros. Sin embargo, en el caso de un ataque sospechoso, debe determinar si se trata de un ataque, responder si es así y restaurar datos protegidos antes de borrar los avisos. link:index.html#how-to-recover-hdata-in-ontap-after-a-ransomware-attack["Obtenga más información sobre cómo recuperarse de un ataque de ransomware"].
+
+
+NOTE: No hay avisos que borrar si restauró un volumen completo.
+
+.Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Cuando reciba una notificación de “actividad anómala”, haga clic en el enlace o vaya a la pestaña *Seguridad* de la descripción general de *Volumes*.
++
+Las advertencias se muestran en el panel Descripción general de la ventana Eventos.
+
+. Cuando aparezca un mensaje de “actividad de volumen anormal detectada”, consulte los archivos sospechosos.
++
+En la ficha *Seguridad*, haga clic en Ver *tipos de archivo sospechosos*.
+
+. En el cuadro de diálogo *tipos de archivo sospechosos*, examine cada tipo de archivo y márquelo como “falso positivo” o “ataque potencial de ransomware”.
+
+
+[cols="25,75"]
+|===
+
+
+| Si seleccionó este valor... | Realice esta acción… 
+
+
+| Falso positivo | Haga clic en *Actualizar* y *Borrar tipos de archivo sospechosos* para registrar su decisión y reanudar la supervisión antiransomware normal. 
+
+
+| Posible ataque de ransomware | Responda al ataque y restaure datos protegidos. A continuación, haga clic en *Actualizar* y *Borrar tipos de archivo sospechosos* para registrar su decisión y reanudar la supervisión normal de ARP. + no hay ningún tipo de archivo sospechoso que borrar si ha restaurado todo un volumen. 
+|===
+--
+.CLI
+--
+. Cuando reciba una notificación de un ataque de ransomware sospechoso, compruebe la hora y la gravedad del ataque:
++
+`security anti-ransomware volume show -vserver _svm_name_ -volume _vol_name_`
+
++
+Salida de muestra:
+
++
+....
+Vserver Name: vs0
+Volume Name: vol1
+State: enabled
+Attack Probability: moderate
+Attack Timeline: 9/14/2021 01:03:23
+Number of Attacks: 1
+....
++
+También puede comprobar los mensajes de EMS:
+
++
+`event log show -message-name callhome.arw.activity.seen`
+
+. Generar un informe de ataque y anotar la ubicación de salida:
++
+`security anti-ransomware volume attack generate-report -volume _vol_name_ -dest-path _file_location_/`
+
++
+Salida de muestra:
+
++
+`Report "report_file_vs0_vol1_14-09-2021_01-21-08" available at path "vs0:vol1/"`
+
+. Ver el informe en un sistema cliente de administración. Por ejemplo:
++
+....
+[root@rhel8 mnt]# cat report_file_vs0_vol1_14-09-2021_01-21-08
+
+19  "9/14/2021 01:03:23"   test_dir_1/test_file_1.jpg.lckd
+20  "9/14/2021 01:03:46"   test_dir_2/test_file_2.jpg.lckd
+21  "9/14/2021 01:03:46"   test_dir_3/test_file_3.png.lckd`
+....
+. Realice una de las siguientes acciones en función de su evaluación de las extensiones de archivo:
++
+** Falso positivo
++
+Introduzca el siguiente comando para registrar la decisión, añadiendo la nueva extensión a la lista de los permitidos y reanude la supervisión normal antiransomware:
+`anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive true`
+
++
+Utilice uno de los siguientes parámetros para identificar las extensiones:
+`[-seq-no _integer_]` Número de secuencia del archivo en la lista de sospechosos.
+`[-extension _text_, … ]` Extensiones de archivo
+`[-start-time _date_time_ -end-time _date_time_]` Horas de inicio y finalización del intervalo de archivos que se van a borrar, con el formato "MM/DD/AAAA HH:MM:SS".
+
+** Ataque potencial de ransomware
++
+Responda a los datos de ataque y restauración. A continuación, introduzca el siguiente comando para registrar la decisión y reanudar la supervisión normal de ARP:
+
++
+`anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive false`
+
++
+Utilice uno de los siguientes parámetros para identificar las extensiones:
+`[-seq-no _integer_]` Número de secuencia del archivo en la lista de sospechosos
+`[-extension _text_, … ]` Extensión de archivo
+`[-start-time _date_time_ -end-time _date_time_]` Horas de inicio y finalización del intervalo de archivos que se van a borrar, con el formato "MM/DD/AAAA HH:MM:SS".
+
++
+No hay ningún tipo de archivo sospechoso que borrar si se restaura un volumen completo.
+
+
+
+
+
+--
+====

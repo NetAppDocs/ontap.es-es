@@ -1,0 +1,32 @@
+---
+permalink: s3-multiprotocol/nas-data-requirements-client-access-reference.html 
+sidebar: sidebar 
+keywords: s3, mapping, directory, access, configuration, object, nas, bucket 
+summary: Es importante comprender que la asignación de directorios y archivos NAS para el acceso S3 altera algún comportamiento NAS estándar. 
+---
+= Requisitos de datos NAS para el acceso de clientes S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es importante comprender que hay algunas incompatibilidades inherentes a la asignación de archivos y directorios NAS para el acceso S3. Puede que sea necesario ajustar las jerarquías de archivos NAS antes de servirles mediante bloques NAS de S3.
+
+Un bloque NAS de S3 proporciona acceso de S3 a un directorio NAS al asignar ese directorio mediante la sintaxis de bloque de S3, y los archivos del árbol de directorios se consideran objetos. Los nombres de objeto son los nombres de ruta delimitados por barras de los archivos en relación con el directorio especificado en la configuración de bloque de S3.
+
+Este mapa impone algunos requisitos cuando se sirven archivos y directorios mediante bloques NAS de S3:
+
+* Los nombres de S3 están limitados a 1024 bytes, de modo que no se puede acceder a los archivos con nombres de ruta más largos mediante S3.
+* Los nombres de archivo y directorio están limitados a 255 caracteres, por lo que el nombre de objeto no puede tener más de 255 caracteres consecutivos que no sean de barra (“b/”)
+* En su lugar, un nombre de ruta SMB delimitado por caracteres de barra diagonal inversa ('\') aparecerá en s3 como nombre de objeto que contiene caracteres de barra diagonal ('/').
+* Algunas parejas de nombres de objeto S3 legales no pueden coexistir en el árbol de directorios NAS asignados. Por ejemplo, los nombres de objetos legales S3 “part1/part2” y “part1/part2/part3” se asignan a archivos que no pueden existir simultáneamente en el árbol de directorios NAS, ya que “part1/part2” es un archivo en el nombre y un directorio en el otro.
++
+** Si “part1/part2” es un archivo existente, una creación S3 de “part1/part2/part3” fallará.
+** Si “part1/part2/part3” es un archivo existente, se producirá un error en la creación o eliminación de S3 de “part1/part2”.
+** Una creación de objetos S3 que se ajuste al nombre de un objeto existente sustituye al objeto preexistente (en bloques sin versiones), que se conserva en NAS pero requiere una coincidencia exacta. Los ejemplos anteriores no provocarán la eliminación del objeto existente porque mientras los nombres chocan, no coinciden.
+
+
+
+
+Mientras que un almacén de objetos está diseñado para admitir un número muy grande de nombres arbitrarios, una estructura de directorio NAS puede experimentar problemas de rendimiento si se coloca un número muy grande de nombres en un directorio. En particular, los nombres sin caracteres de barra diagonal (“pies/”) se colocarán en el directorio raíz de la asignación NAS. Las aplicaciones que hacen un uso extensivo de nombres que no son “fáciles de usar para NAS” se hospedarían mejor en un cubo de almacén de objetos real en lugar de en un mapeo NAS.

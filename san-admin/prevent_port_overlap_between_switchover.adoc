@@ -1,0 +1,86 @@
+---
+permalink: san-admin/prevent_port_overlap_between_switchover.html 
+sidebar: sidebar 
+keywords: metrocluster environments, considerations, san configuration, metrocluster, environments, san, configurations, cisco switch, brocade switch, 
+summary: Para evitar la superposición cuando el puerto antiguo se desconecta y el nuevo puerto se conecta, puede configurar los switches de interfaz. 
+---
+= Evite la superposición de puertos entre la conmutación de sitios y la conmutación de estado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En un entorno SAN, puede configurar los switches de interfaz para evitar la superposición cuando el puerto antiguo se desconecta y el nuevo puerto se conecta.
+
+Durante la conmutación de sitios, el puerto FC del sitio superviviente podría iniciar sesión en la estructura antes de que la estructura haya detectado que el puerto FC del sitio de desastre está sin conexión y ha eliminado este puerto de los servicios de nombre y directorio.
+
+Si el puerto FC del desastre aún no se ha eliminado, el intento de inicio de sesión estructural del puerto FC del sitio superviviente podría ser rechazado debido a un WWPN duplicado. Este comportamiento de los switches FC puede cambiarse para respetar el inicio de sesión del dispositivo anterior y no el existente. Debe comprobar los efectos de este comportamiento en otros dispositivos de estructura. Póngase en contacto con el proveedor de switches para obtener más información.
+
+Elija el procedimiento correcto según el tipo de interruptor.
+
+.Pasos
+[role="tabbed-block"]
+====
+.Switch Cisco
+--
+. Conéctese al switch e inicie sesión.
+. Entrar al modo de configuración:
++
+....
+switch# config t
+switch(config)#
+....
+. Sobrescribir la primera entrada del dispositivo en la base de datos del servidor de nombres con el nuevo dispositivo:
++
+[listing]
+----
+switch(config)# no fcns reject-duplicate-pwwn vsan 1
+----
+. En los switches que ejecutan NX-OS 8.x, confirme que el tiempo de espera de inactividad de flogi está configurado en cero:
++
+.. Visualizar la temporeral de inactividad:
++
+`switch(config)# show flogi interval info \| i quiesce`
+
++
+....
+ Stats:  fs flogi quiesce timerval:  0
+....
+.. Si la salida en el paso anterior no indica que el tiempo es cero, entonces configúrelo en cero:
++
+`switch(config)# flogi scale enable`
+
++
+`switch(config)$ flogi quiesce timeout 0`
+
+
+
+
+
+--
+.Switch Brocade
+--
+. Conéctese al switch e inicie sesión.
+. Introduzca el `switchDisable` comando.
+. Introduzca el `configure` y pulse `y` en el prompt de.
++
+....
+ F-Port login parameters (yes, y, no, n): [no] y
+....
+. Seleccione el ajuste 1:
++
+....
+- 0: First login take precedence over the second login (default)
+- 1: Second login overrides first login.
+- 2: the port type determines the behavior
+Enforce FLOGI/FDISC login: (0..2) [0] 1
+....
+. Responda a las preguntas restantes o pulse *Ctrl + D*.
+. Introduzca el `switchEnable` comando.
+
+
+--
+====
+.Información relacionada
+link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/task_perform_switchover_for_tests_or_maintenance.html["Realizar la conmutación de sitios para pruebas o mantenimiento"^]

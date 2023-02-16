@@ -1,0 +1,79 @@
+---
+permalink: smb-hyper-v-sql/verify-continuously-available-share-config-task.html 
+sidebar: sidebar 
+keywords: verify, continuously, available, smb, share, configuration, hyper, v, sql, server, nondisruptive, application 
+summary: Para admitir operaciones no disruptivas, los recursos compartidos de Hyper-V y SQL Server SMB deben configurarse como recursos compartidos constantemente disponibles. Además, hay otros ajustes de recursos compartidos que debe comprobar. Debe verificar que los recursos compartidos están correctamente configurados para proporcionar operaciones sin interrupciones para los servidores de aplicaciones, en caso de que se produzcan eventos de interrupción planificados o no planificados. 
+---
+= Compruebe la configuración de recursos compartidos de SMB continuamente disponible
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para admitir operaciones no disruptivas, los recursos compartidos de Hyper-V y SQL Server SMB deben configurarse como recursos compartidos constantemente disponibles. Además, hay otros ajustes de recursos compartidos que debe comprobar. Debe verificar que los recursos compartidos están correctamente configurados para proporcionar operaciones sin interrupciones para los servidores de aplicaciones, en caso de que se produzcan eventos de interrupción planificados o no planificados.
+
+.Acerca de esta tarea
+Debe verificar que los dos parámetros de recursos compartidos siguientes estén configurados correctamente:
+
+* La `-offline-files` el parámetro está establecido en cualquiera de los dos `manual` (el valor predeterminado) o. `none`.
+* Los enlaces simbólicos deben estar desactivados.
+
+
+Para que las operaciones sean correctas no disruptivas, debe configurarse las siguientes propiedades compartidas:
+
+* `continuously-available`
+* `oplocks`
+
+
+No deben configurarse las siguientes propiedades compartidas:
+
+* `homedirectory`
+* `attributecache`
+* `branchcache`
+* `access-based-enumeration`
+
+
+.Pasos
+. Compruebe que los archivos sin conexión están establecidos en `manual` o. `disabled` y que los enlaces simbólicos están desactivados:
++
+`*vserver cifs shares show -vserver _vserver_name_*`
+
+. Compruebe que los recursos compartidos de SMB están configurados para una disponibilidad continua:
++
+`*vserver cifs shares properties show -vserver _vserver_name_*`
+
+
+
+.Ejemplos
+En el siguiente ejemplo, se muestra la configuración de recurso compartido para un recurso compartido llamado «shara1» en la máquina virtual de almacenamiento (SVM, antes denominada Vserver) vs1. Los archivos sin conexión se establecen en `manual` y los enlaces simbólicos están desactivados (designados por un guión en el `Symlink Properties` salida de campo):
+
+[listing]
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name share1
+                      Vserver: vs1
+                        Share: share1
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data/share1
+             Share Properties: oplocks
+                               continuously-available
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+En el siguiente ejemplo, se muestran las propiedades de uso compartido de un recurso compartido denominado «shara1» en la SVM vs1:
+
+[listing]
+----
+cluster1::> vserver cifs share properties show -vserver vs1 -share-name share1
+Vserver    Share   Properties
+---------  ------  ----------
+vs1        share1  oplocks
+                   continuously-available
+----

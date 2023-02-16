@@ -1,0 +1,142 @@
+---
+permalink: smb-admin/configure-unix-symbolic-link-support-shares-task.html 
+sidebar: sidebar 
+keywords: configure, unix, symbol, link, support, smb, share, share-property, setting, create, modify, exist, configure unix symbolic link support, on smb shares 
+summary: Puede configurar la compatibilidad de vínculos simbólicos de UNIX en recursos compartidos de SMB especificando una configuración de propiedad de recurso compartido de vínculo simbólico al crear recursos compartidos de SMB o en cualquier momento mediante la modificación de recursos compartidos de SMB existentes. La compatibilidad con el enlace simbólico de UNIX está habilitada de forma predeterminada. También puede deshabilitar la compatibilidad con enlaces simbólicos de UNIX en un recurso compartido. 
+---
+= Configurar la compatibilidad del enlace simbólico de UNIX en los recursos compartidos de SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede configurar la compatibilidad de vínculos simbólicos de UNIX en recursos compartidos de SMB especificando una configuración de propiedad de recurso compartido de vínculo simbólico al crear recursos compartidos de SMB o en cualquier momento mediante la modificación de recursos compartidos de SMB existentes. La compatibilidad con el enlace simbólico de UNIX está habilitada de forma predeterminada. También puede deshabilitar la compatibilidad con enlaces simbólicos de UNIX en un recurso compartido.
+
+.Acerca de esta tarea
+Al configurar la compatibilidad de enlaces simbólicos de UNIX para recursos compartidos de SMB, puede elegir una de las siguientes opciones de configuración:
+
+|===
+| Ajuste | Descripción 
+
+
+ a| 
+`enable` (EN DESUSO*)
+ a| 
+Especifica que los enlaces simbólicos están habilitados para el acceso de lectura y escritura.
+
+
+
+ a| 
+`read_only` (EN DESUSO*)
+ a| 
+Especifica que los enlaces simbólicos están habilitados para el acceso de sólo lectura. Esta configuración no se aplica a las tintas widelinks. El acceso a Widelink siempre es de lectura y escritura.
+
+
+
+ a| 
+`hide` (EN DESUSO*)
+ a| 
+Especifica que los clientes SMB no pueden ver enlaces simbólicos.
+
+
+
+ a| 
+`no-strict-security`
+ a| 
+Especifica que los clientes siguen enlaces simbólicos fuera de los límites de recursos compartidos.
+
+
+
+ a| 
+`symlinks`
+ a| 
+Especifica que los enlaces simbólicos están habilitados localmente para el acceso de lectura y escritura. Los anuncios DFS no se generan aunque la opción CIFS sea `is-advertise-dfs-enabled` se establece en `true`. Esta es la configuración predeterminada.
+
+
+
+ a| 
+`symlinks-and-widelinks`
+ a| 
+Especifica que tanto los enlaces simbólicos locales como los widelinks para el acceso de lectura y escritura. Los anuncios DFS se generan tanto para symlink local como para widelinks aunque la opción CIFS `is-advertise-dfs-enabled` se establece en `false`.
+
+
+
+ a| 
+`disable`
+ a| 
+Especifica que los enlaces simbólicos y las tintas widelinks están desactivados. Los anuncios DFS no se generan aunque la opción CIFS sea `is-advertise-dfs-enabled` se establece en `true`.
+
+
+
+ a| 
+`""` (nulo, no establecido)
+ a| 
+Deshabilita los enlaces simbólicos en el recurso compartido.
+
+
+
+ a| 
+`-` (no configurado)
+ a| 
+Deshabilita los enlaces simbólicos en el recurso compartido.
+
+|===
+[NOTE]
+====
+*Los parámetros _enable_, _ocultar_ y _Read-only_ están obsoletos y se pueden eliminar en una futura versión de ONTAP.
+
+====
+.Pasos
+. Configure o deshabilite el soporte de enlaces simbólicos:
++
+|===
+| Si es... | Introduzca... 
+
+
+ a| 
+Un nuevo recurso compartido de SMB
+ a| 
+`+vserver cifs share create -vserver vserver_name -share-name share_name -path path -symlink-properties {enable|hide|read-only|""|-|symlinks|symlinks-and-widelinks|disable},...]+`
+
+
+
+ a| 
+Un recurso compartido de SMB existente
+ a| 
+`+vserver cifs share modify -vserver vserver_name -share-name share_name -symlink-properties {enable|hide|read-only|""|-|symlinks|symlinks-and-widelinks|disable},...]+`
+
+|===
+. Compruebe que la configuración de recursos compartidos de SMB es correcta: `vserver cifs share show -vserver vserver_name -share-name share_name -instance`
+
+
+.Ejemplo
+El siguiente comando crea un recurso compartido SMB denominado «data1» con la configuración de enlace simbólico de UNIX establecida a. `enable`:
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name data1 -path /data1 -symlink-properties enable
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: -
+     Directory Mode Creation Mask: -
+                    Share Comment: -
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: manual
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+.Información relacionada
+xref:create-symbolic-link-mappings-task.adoc[Creación de asignaciones de enlace simbólico para los recursos compartidos de SMB]

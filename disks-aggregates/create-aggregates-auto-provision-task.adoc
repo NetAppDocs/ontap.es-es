@@ -1,0 +1,164 @@
+---
+permalink: disks-aggregates/create-aggregates-auto-provision-task.html 
+sidebar: sidebar 
+keywords: ontap 9, create, aggregates, auto-provision, add, local tier, automatic, automatically 
+summary: 'Si la recomendación de prácticas recomendadas que ONTAP proporciona para añadir automáticamente un nivel local (crear un agregado con aprovisionamiento automático) es adecuada en su entorno, puede aceptar la recomendación y dejar que ONTAP añada el nivel local.' 
+---
+= Añada niveles locales automáticamente (cree agregados con aprovisionamiento automático).
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si la recomendación de prácticas recomendadas que ONTAP proporciona para añadir automáticamente un nivel local (crear un agregado con aprovisionamiento automático) es adecuada en su entorno, puede aceptar la recomendación y dejar que ONTAP añada el nivel local.
+
+El proceso que siga depende de la interfaz que utilice: System Manager o CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager para agregar automáticamente un nivel local*
+
+.Pasos
+. En System Manager, haga clic en *almacenamiento > niveles*.
+. En la página *Tiers*, haga clic en image:icon-add-local-tier.png["Añadir el icono de nivel local"] para crear un nuevo nivel local:
++
+La página *Agregar nivel local* muestra el número recomendado de niveles locales que se pueden crear en los nodos y el almacenamiento utilizable disponible.
+
+. Haga clic en *Detalles recomendados* para ver la configuración recomendada por System Manager.
++
+System Manager muestra la siguiente información a partir de ONTAP 9.8:
+
++
+** *Nombre de nivel local* (puede editar el nombre de nivel local comenzando por ONTAP 9.10.1)
+** *Nombre de nodo*
+** *Tamaño útil*
+** *Tipo de almacenamiento*
+
+
++
+A partir de ONTAP 9.10.1, se muestra información adicional:
+
++
+** *Discos*: Muestra el número, tamaño y tipo de los discos
+** *Diseño*: Muestra la disposición del grupo RAID, incluyendo qué discos son de paridad o datos y qué ranuras no se utilizan.
+** *Discos de repuesto*: Muestra el nombre del nodo, el número y el tamaño de los discos de repuesto y el tipo de almacenamiento.
+
+
+. Realice uno de los siguientes pasos:
++
+|===
+
+
+| Si desea… | Haga esto… 
+
+
+ a| 
+Acepte las recomendaciones de System Manager.
+ a| 
+Vaya a. <<step5-okm-encrypt,El paso para configurar el gestor de claves incorporado para el cifrado>>.
+
+
+
+ a| 
+Configurar manualmente los niveles locales y *_not_* utilizar las recomendaciones de System Manager.
+ a| 
+Vaya a. link:create-aggregates-manual-task.html["Añada un nivel local (crear agregado) manualmente"]:
+
+** Para ONTAP 9.10.1 y versiones anteriores, siga los pasos para usar la CLI.
+** A partir de ONTAP 9.11.1, siga los pasos para usar System Manager.
+
+
+|===
+. [[step5-okm-encrypt]] (opcional): Si se ha instalado el Administrador de claves incorporado, puede configurarlo para su cifrado. Active la casilla de verificación *Configurar el Administrador de claves incorporado para cifrado*.
++
+.. Introduzca una frase de contraseña.
+.. Introduzca una vez más la contraseña para confirmarla.
+.. Guarde la frase de acceso para su uso futuro en caso de que el sistema necesite recuperarse.
+.. Realice un backup de la base de datos clave para usarlo en el futuro.
+
+
+. Haga clic en *Guardar* para crear el nivel local y añadirlo a su solución de almacenamiento.
+
+
+--
+.CLI
+--
+*Utilice la CLI para crear un agregado con aprovisionamiento automático*
+
+Usted ejecuta el `storage aggregate auto-provision` comando para generar recomendaciones de distribución de agregados. A continuación, se pueden crear agregados después de revisar y aprobar las recomendaciones de ONTAP.
+
+.Lo que necesitará
+ONTAP 9.2 o una versión posterior debe estar en ejecución en el clúster.
+
+.Acerca de esta tarea
+El resumen predeterminado generado con `storage aggregate auto-provision` comando enumera los agregados recomendados que se van a crear, incluidos los nombres y el tamaño útil. Puede ver la lista y determinar si desea crear los agregados recomendados cuando se le solicite.
+
+También puede mostrar un resumen detallado utilizando la `-verbose` opción, que muestra los siguientes informes:
+
+* Por nodo, un resumen de los nuevos agregados que se van a crear, se han detectado repuestos y demás discos y particiones de repuesto tras la creación del agregado
+* Nuevos agregados de datos que se crearán con un número total de discos y particiones que se utilizarán
+* Distribución de grupos RAID que muestra cómo se usarán los discos y las particiones de reserva en los nuevos agregados de datos para crear
+* Detalles sobre los discos de repuesto y las particiones restantes tras la creación del agregado
+
+
+Si está familiarizado con el método de aprovisionamiento automático y su entorno esté preparado correctamente, puede utilizar el `-skip-confirmation` opción para crear el agregado recomendado sin mostrar ni confirmar. La `storage aggregate auto-provision` El comando no se ve afectado por la sesión CLI `-confirmations` ajuste.
+
+La[`storage aggregate auto-provision` manual page] contiene más información acerca de las recomendaciones de diseño de agregado.
+
+.Pasos
+. Ejecute el `storage aggregate auto-provision` comando con las opciones de visualización deseadas.
++
+** Sin opciones: Mostrar resumen estándar
+** `-verbose` Opción: Mostrar resumen detallado
+** `-skip-confirmation` Opción: Cree agregados recomendados sin mostrar ni confirmar
+
+
+. Realice uno de los siguientes pasos:
++
+[cols="35,65"]
+|===
+
+
+| Si desea… | Haga esto… 
+
+
+ a| 
+Acepte las recomendaciones de ONTAP.
+ a| 
+Revise la visualización de agregados recomendados y responda al símbolo del sistema para crear los agregados recomendados.
+
+[listing]
+----
+myA400-44556677::> storage aggregate auto-provision
+Node               New Data Aggregate            Usable Size
+------------------ ---------------------------- ------------
+myA400-364        myA400_364_SSD_1                    3.29TB
+myA400-363        myA400_363_SSD_1                    1.46TB
+------------------ ---------------------------- ------------
+Total:             2   new data aggregates            4.75TB
+
+Do you want to create recommended aggregates? {y|n}: y
+
+Info: Aggregate auto provision has started. Use the "storage aggregate
+      show-auto-provision-progress" command to track the progress.
+
+myA400-44556677::>
+
+----
+
+
+ a| 
+Configure manualmente los niveles locales y *_not_* use las recomendaciones de ONTAP.
+ a| 
+Vaya a. link:create-aggregates-manual-task.html["Añada un nivel local (crear agregado) manualmente"].
+
+|===
+
+
+--
+====
+.Información relacionada
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Comandos de ONTAP 9"^]

@@ -1,0 +1,54 @@
+---
+permalink: nfs-admin/perform-access-check-netgroups-verify-domains-task.html 
+sidebar: sidebar 
+keywords: perform, strict, access, check, netgroup, verify, domain 
+summary: 'De forma predeterminada, ONTAP realiza una verificación adicional al evaluar el acceso de cliente para un grupo de red. La comprobación adicional garantiza que el dominio del cliente coincida con la configuración de dominio de la máquina virtual de almacenamiento (SVM). De lo contrario, ONTAP niega el acceso del cliente.' 
+---
+= Realice una comprobación de acceso más estricta para los grupos de red mediante la verificación de dominios
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+De forma predeterminada, ONTAP realiza una verificación adicional al evaluar el acceso de cliente para un grupo de red. La comprobación adicional garantiza que el dominio del cliente coincida con la configuración de dominio de la máquina virtual de almacenamiento (SVM). De lo contrario, ONTAP niega el acceso del cliente.
+
+.Acerca de esta tarea
+Cuando ONTAP evalúa las reglas de política de exportación para el acceso de cliente y una regla de política de exportación contiene un grupo de red, ONTAP debe determinar si la dirección IP de un cliente pertenece al grupo de redes. Con este fin, ONTAP convierte la dirección IP del cliente en un nombre de host mediante DNS y obtiene un nombre de dominio completo (FQDN).
+
+Si el archivo netgroup sólo enumera un nombre corto para el host y el nombre corto para el host existe en varios dominios, es posible que un cliente de un dominio diferente obtenga acceso sin esta comprobación.
+
+Para evitar esto, ONTAP compara el dominio que ha devuelto el DNS del host con la lista de nombres de dominio DNS configurados para la SVM. Si coincide, se permite el acceso. Si no coincide, se deniega el acceso.
+
+Esta verificación está habilitada de forma predeterminada. Puede gestionarlo modificando el `-netgroup-dns-domain-search` parámetro, que está disponible en el nivel de privilegios avanzado.
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+`set -privilege advanced`
+
+. Realice la acción deseada:
++
+[cols="2*"]
+|===
+| Si desea que la verificación del dominio para los grupos de red sea... | Introduzca... 
+
+
+ a| 
+Activado
+ a| 
+`vserver nfs modify -vserver vserver_name -netgroup-dns-domain-search enabled`
+
+
+
+ a| 
+Deshabilitado
+ a| 
+`vserver nfs modify -vserver vserver_name -netgroup-dns-domain-search disabled`
+
+|===
+. Configure el nivel de privilegio en admin:
++
+`set -privilege admin`
+
+

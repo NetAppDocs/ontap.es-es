@@ -1,0 +1,164 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_test_takeover_giveback.html 
+keywords: ontap, high, availability, ha, pair, test, testing, takeover, giveback 
+summary: Después de configurar todos los aspectos de su par de alta disponibilidad, debe verificar que funciona como se espera para mantener un acceso ininterrumpido al almacenamiento de ambos nodos durante las operaciones de toma de control y devolución 
+---
+= Prueba de toma de control y retorno al nodo primario
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Después de configurar todos los aspectos de su par de alta disponibilidad, debe verificar que funciona como se espera para mantener un acceso ininterrumpido al almacenamiento de ambos nodos durante las operaciones de toma de control y devolución. Durante el proceso de toma de control, el nodo local (o de toma de control) debe seguir prestando servicio a los datos que normalmente proporciona el nodo del partner. Durante la devolución, el control y la entrega del almacenamiento del partner deben volver al nodo del partner.
+
+.Pasos
+. Revise el cableado en los cables de interconexión de alta disponibilidad para asegurarse de que sean seguros.
+. Compruebe que puede crear y recuperar archivos en ambos nodos para cada protocolo con licencia.
+. Introduzca el siguiente comando:
++
+`storage failover takeover -ofnode partnernode`
+
++
+Consulte la página man para obtener más detalles del comando.
+
+. Escriba uno de los siguientes comandos para confirmar que se ha producido la conmutación por error:
++
+`storage failover show-takeover`
+
++
+`storage failover show`
+
++
+--
+Si tiene `storage failover` de comandos `-auto-giveback` opción habilitada:
+
+|===
+
+
+| Nodo | Como partner | Toma de control posible | Descripción del estado 
+
+
+| nodo 1 | nodo 2 | - | Esperando devolución 
+
+
+| nodo 2 | nodo 1 | falso | Durante la toma de control, la devolución automática se iniciará en número de segundos 
+|===
+Si tiene `storage failover` de comandos `-auto-giveback` opción deshabilitada:
+
+|===
+
+
+| Nodo | Como partner | Toma de control posible | Descripción del estado 
+
+
+| nodo 1 | nodo 2 | - | Esperando devolución 
+
+
+| nodo 2 | nodo 1 | falso | Durante la toma de control 
+|===
+--
+. Muestre todos los discos que pertenecen al nodo asociado (Node2) que el nodo de toma de control (Node1) puede detectar:
++
+`storage disk show -home node2 -ownership`
+
++
+--
+El siguiente comando muestra todos los discos que pertenecen a Node2 que Node1 puede detectar:
+`cluster::> storage disk show -home node2 -ownership`
+
+|===
+
+
+| Disco | Agregado | Inicio | Propietario | Recuperación ante desastres en casa | ID de casa | ID del propietario | ID de inicio de recuperación ante desastres | Reservador | Piscina 
+
+
+| 1.0.2 | - | 2 | 2 | - | 4078312453 | 4078312453 | - | 4078312452 | Piscina 0 
+
+
+| 1.0.3 | - | 2 | 2 | - | 4078312453 | 4078312453 | - | 4078312452 | Piscina 0 
+|===
+--
+. CConfirm que el nodo de respaldo (Node1) controla los agregados del nodo principal (Node2):
++
+`aggr show ‑fields home‑id,home‑name,is‑home`
+
++
+--
+|===
+
+
+| agregado | id de casa | casa-nameh | es-casa 
+
+
+ a| 
+aggr0_1
+ a| 
+2014942045
+ a| 
+nodo 1
+ a| 
+verdadero
+
+
+
+ a| 
+aggr0_2
+ a| 
+4078312453
+ a| 
+2
+ a| 
+falso
+
+
+
+ a| 
+aggr1_1
+ a| 
+2014942045
+ a| 
+nodo 1
+ a| 
+verdadero
+
+
+
+| aggr1_2 | 4078312453 | 2  a| 
+falso
+
+|===
+Durante la toma de control, el valor «'is-home'» de los agregados del nodo partner es FALSE.
+
+--
+. Devolver el servicio de datos del nodo del partner cuando muestre el mensaje «'esperando devolución»:
++
+`storage failover giveback -ofnode partnernode`
+
+. Escriba uno de los siguientes comandos para observar el progreso de la operación de devolución del nodo:
++
+`storage failover show-giveback`
+
++
+`storage failover show`
+
+. Continúe, dependiendo de si ha visto el mensaje de que la devolución se ha completado correctamente:
++
+--
+|===
+
+
+| Si toma de control y retorno al nodo primario... | Realice lo siguiente... 
+
+
+| Se han completado correctamente | Repita del paso 2 al paso 8 en el nodo asociado. 
+
+
+| Error | Corrija el fallo de toma de control o devolución y repita este procedimiento. 
+|===
+--
+

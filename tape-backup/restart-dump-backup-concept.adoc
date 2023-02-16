@@ -1,0 +1,57 @@
+---
+permalink: tape-backup/restart-dump-backup-concept.html 
+sidebar: sidebar 
+keywords: restart, dump, backup, internal, external, tape, write, errors, power, outages, accidental, user, interruptions, internal, inconsistency 
+summary: En ocasiones, un backup de volcado no finaliza a causa de errores internos o externos, como errores de escritura en cinta, interrupciones del suministro eléctrico, interrupciones accidentales de los usuarios o incoherencias internas en el sistema de almacenamiento. Si falla el backup por uno de estos motivos, puede reiniciarlo. 
+---
+= Cuándo reiniciar una copia de seguridad de volcado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En ocasiones, un backup de volcado no finaliza a causa de errores internos o externos, como errores de escritura en cinta, interrupciones del suministro eléctrico, interrupciones accidentales de los usuarios o incoherencias internas en el sistema de almacenamiento. Si falla el backup por uno de estos motivos, puede reiniciarlo.
+
+Puede optar por interrumpir y reiniciar un backup para evitar periodos de gran tráfico en el sistema de almacenamiento o competir por otros recursos limitados del sistema de almacenamiento, como una unidad de cinta. Puede interrumpir una copia de seguridad larga y reiniciarla más tarde si una restauración (o copia de seguridad) más urgente requiere la misma unidad de cinta. Los backups reiniciables persisten durante los reinicios. Sólo puede reiniciar una copia de seguridad anulada en cinta si se cumplen las siguientes condiciones:
+
+* La copia de seguridad anulada se encuentra en la fase IV
+* Están disponibles todas las copias Snapshot asociadas que estaban bloqueadas por el comando dump.
+* El historial de archivos debe estar activado.
+
+
+Cuando se cancela una operación de volcado y se deja en un estado reiniciable, las copias Snapshot asociadas se bloquean. Estas copias Snapshot se liberan después de que se elimine el contexto de los backups. Puede ver la lista de contextos de copia de seguridad mediante la `vserver services ndmp restartable backup show` comando.
+
+[listing]
+----
+cluster::> vserver services ndmpd restartable-backup show
+Vserver     Context Identifier                   Is Cleanup Pending?
+----------- ------------------------------------ -------------------
+vserver1 330e6739-0179-11e6-a299-005056bb4bc9 false
+vserver1 481025c1-0179-11e6-a299-005056bb4bc9 false
+vserver2 5cf10132-0179-11e6-a299-005056bb4bc9 false
+3 entries were displayed.
+
+cluster::> vserver services ndmpd restartable-backup show -vserver vserver1 -context-id 330e6739-0179-11e6-a299-005056bb4bc9
+
+                       Vserver: vserver1
+            Context Identifier: 330e6739-0179-11e6-a299-005056bb4bc9
+                   Volume Name: /vserver1/vol1
+           Is Cleanup Pending?: false
+            Backup Engine Type: dump
+Is Snapshot Copy Auto-created?: true
+                     Dump Path: /vol/vol1
+   Incremental Backup Level ID: 0
+                     Dump Name: /vserver1/vol1
+     Context Last Updated Time: 1460624875
+               Has Offset Map?: true
+                 Offset Verify: true
+       Is Context Restartable?: true
+              Is Context Busy?: false
+                  Restart Pass: 4
+              Status of Backup: 2
+            Snapshot Copy Name: snapshot_for_backup.1
+          State of the Context: 7
+
+cluster::>"
+----

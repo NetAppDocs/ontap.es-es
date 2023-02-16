@@ -1,0 +1,96 @@
+---
+permalink: san-admin/configure-flexvol-delete-flexclone-files-luns-task.html 
+sidebar: sidebar 
+keywords: configure, flexvol, volume, automatically, delete, flexclone, files, flexclone, luns 
+summary: Es posible habilitar un volumen FlexVol para eliminar automáticamente archivos de FlexClone y LUN FlexClone con la eliminación automática habilitada cuando el espacio libre en el volumen disminuye por debajo de un umbral en particular. 
+---
+= Configurar un volumen FlexVol para que elimine automáticamente archivos FlexClone y LUN FlexClone
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible habilitar un volumen FlexVol para eliminar automáticamente archivos de FlexClone y LUN FlexClone con la eliminación automática habilitada cuando el espacio libre en el volumen disminuye por debajo de un umbral en particular.
+
+.Lo que necesitará
+* El volumen FlexVol debe contener archivos FlexClone y LUN FlexClone, y debe estar en línea.
+* El volumen FlexVol no debe ser un volumen de solo lectura.
+
+
+.Pasos
+. Permita la eliminación automática de archivos de FlexClone y LUN de FlexClone en el volumen de FlexVol mediante el `volume snapshot autodelete modify` comando.
++
+** Para la `-trigger` parámetro, puede especificar `volume` o. `snap_reserve`.
+** Para la `-destroy-list` parámetro, debe especificar siempre `lun_clone,file_clone` independientemente de si desea eliminar solo un tipo de clon. + el ejemplo siguiente muestra cómo habilitar volume vol1 para activar la eliminación automática de archivos FlexClone y LUN de FlexClone para la reclamación de espacio hasta que el 25% del volumen consta de espacio libre:
++
+[listing]
+----
+cluster1::> volume snapshot autodelete modify -vserver vs1 -volume vol1 -enabled true -commitment disrupt -trigger volume -target-free-space 25 -destroy-list lun_clone,file_clone
+
+Volume modify successful on volume:vol1
+----
++
+[NOTE]
+====
+Al habilitar la eliminación automática de volúmenes de FlexVol, si establece el valor de `-commitment` parámetro a. `destroy`, Todos los archivos FlexClone y las LUN FlexClone con `-autodelete` parámetro establecido en `true` puede eliminarse cuando el espacio libre en el volumen disminuya por debajo del valor de umbral especificado. Sin embargo, los archivos FlexClone y las LUN FlexClone con el `-autodelete` parámetro establecido en `false` no se eliminará.
+
+====
+
+
+. Compruebe que la eliminación automática de archivos FlexClone y LUN de FlexClone está activada en el volumen de FlexVol mediante el `volume snapshot autodelete show` comando.
++
+El siguiente ejemplo muestra que el volumen vol1 está activado para la eliminación automática de archivos FlexClone y LUN FlexClone:
+
++
+[listing]
+----
+cluster1::> volume snapshot autodelete show -vserver vs1 -volume vol1
+
+         Vserver Name: vs1
+          Volume Name: vol1
+          Enabled: true
+           Commitment: disrupt
+         Defer Delete: user_created
+         Delete Order: oldest_first
+  Defer Delete Prefix: (not specified)*
+    Target Free Space: 25%
+              Trigger: volume
+     Destroy List: lun_clone,file_clone
+Is Constituent Volume: false
+----
+. Asegúrese de que la eliminación automática esté habilitada para los archivos de FlexClone y las LUN FlexClone del volumen que desea eliminar siguiendo estos pasos:
++
+.. Permitir la eliminación automática de un archivo FlexClone o una LUN FlexClone concretos mediante el `volume file clone autodelete` comando.
++
+Puede forzar la eliminación automática de un archivo FlexClone o una LUN de FlexClone mediante la `volume file clone autodelete` con el `-force` parámetro.
+
++
+El ejemplo siguiente muestra que la eliminación automática de la LUN de FlexClone lun1_clone contenida en el volumen vol1 está habilitada:
+
++
+[listing]
+----
+cluster1::> volume file clone autodelete -vserver vs1 -clone-path /vol/vol1/lun1_clone -enabled true
+----
++
+Puede activar la eliminación automática cuando crea archivos FlexClone y LUN de FlexClone.
+
+.. Compruebe que el archivo FlexClone o la LUN de FlexClone están activados para eliminación automática mediante la `volume file clone show-autodelete` comando.
++
+El ejemplo siguiente muestra que la LUN de FlexClone lun1_clone está habilitada para eliminación automática:
+
++
+[listing]
+----
+cluster1::> volume file clone show-autodelete -vserver vs1 -clone-path vol/vol1/lun1_clone
+															Vserver Name: vs1
+															Clone Path: vol/vol1/lun1_clone
+															**Autodelete Enabled: true**
+----
+
+
++
+Para obtener más información acerca del uso de los comandos, consulte las páginas man correspondientes.
+
+

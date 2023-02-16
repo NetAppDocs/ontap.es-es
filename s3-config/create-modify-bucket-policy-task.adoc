@@ -1,0 +1,117 @@
+---
+permalink: s3-config/create-modify-bucket-policy-task.html 
+sidebar: sidebar 
+keywords: modify, bucket, policy 
+summary: Puede agregar reglas de acceso a la política de bloque predeterminada. El ámbito de su control de acceso es el cucharón que contiene, por lo que resulta más adecuado cuando hay un único cucharón. 
+---
+= Modificar una política de bloques
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede agregar reglas de acceso a la política de bloque predeterminada. El ámbito de su control de acceso es el cucharón que contiene, por lo que resulta más adecuado cuando hay un único cucharón.
+
+.Antes de empezar
+Debe haber una SVM habilitada para S3 que contenga un servidor S3 y un bloque.
+
+Debe haber creado usuarios o grupos antes de conceder permisos.
+
+.Acerca de esta tarea
+Puede agregar nuevas sentencias para usuarios y grupos nuevos o modificar los atributos de las sentencias existentes. Para obtener más opciones, consulte `vserver object-store-server bucket policy` páginas de manual.
+
+Los permisos de usuario y grupo se pueden otorgar cuando se crea el bloque o cuando se necesite más adelante. También puede modificar la asignación de capacidad de los bloques y del grupo de políticas de calidad de servicio.
+
+A partir de ONTAP 9.9.1 y versiones posteriores, si tiene pensado admitir la funcionalidad de etiquetado de objetos de cliente de AWS con el servidor ONTAP S3, las acciones `GetObjectTagging`, `PutObjectTagging`, y. `DeleteObjectTagging` debe permitirse el uso de las políticas de bloque o grupo.
+
+El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Pasos
+. Edite la cuchara: Haga clic en *almacenamiento > Cuchos*, haga clic en la cuchara deseada y, a continuación, haga clic en *Editar*. Al agregar o modificar permisos, puede especificar los siguientes parámetros:
++
+** *Principal*: El usuario o grupo al que se concede acceso.
+** *Efecto*: Permite o deniega el acceso a un usuario o grupo.
+** *Acciones*: Acciones permitidas en el cucharón para un usuario o grupo determinado.
+** *Recursos*: Rutas y nombres de objetos dentro del bloque para los cuales se concede o deniega el acceso.
++
+Los valores predeterminados *_bucketname_* y *_bucketname/*_* conceden acceso a todos los objetos del bloque. También puede otorgar acceso a objetos individuales; por ejemplo, *_bucketname/_*_readme.txt*.
+
+** *Condiciones* (opcional): Expresiones que se evalúan cuando se intenta acceder. Por ejemplo, puede especificar una lista de direcciones IP para las que se permitirá o deniega el acceso.
+
+
+
+
+--
+.CLI
+--
+.Pasos
+. Agregar una sentencia a una política de bloque:
++
+`vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid text] [-index integer]`
+
++
+Los siguientes parámetros definen los permisos de acceso:
+
++
+[cols="1,3"]
+|===
+
+
+ a| 
+`-effect`
+ a| 
+La declaración puede permitir o denegar el acceso
+
+
+
+ a| 
+`-action`
+ a| 
+Puede especificar `*` para indicar todas las acciones, o una lista de una o varias de las siguientes: `GetObject, PutObject, DeleteObject, ListBucket, GetBucketAcl,GetObjectAcl, ListBucketMultipartUploads,` y.. `ListMultipartUploadParts`.
+
+
+
+ a| 
+`-principal`
+ a| 
+Una lista de uno o más grupos o usuarios de S3.
+
+** Se puede especificar un máximo de 10 usuarios o grupos.
+** Si se especifica un grupo de S3, debe estar en el formulario `group/group_name.`
+** `*` se puede especificar que significa acceso público; es decir, acceso sin clave de acceso y clave secreta.
+** Si no se especifica ningún director, se concede acceso a todos los usuarios de S3 de la SVM.
+
+
+
+
+ a| 
+`-resource`
+ a| 
+El bloque y cualquier objeto que contenga. Los caracteres comodín `*` y.. `?` se puede utilizar para formar una expresión regular para especificar un recurso.
+
+|===
++
+Opcionalmente, puede especificar una cadena de texto como comentario con el `-sid` opción.
+
+
+
+.Ejemplos
+En el siguiente ejemplo, se crea una sentencia de política de bloque de servidor del almacén de objetos para SVM svm1.example.com y bucket1, que especifica el acceso permitido a una carpeta léame para el usuario del servidor del almacén de objetos usuario1.
+
+[listing]
+----
+cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal user1 -resource bucket1/readme/* -sid "fullAccessToReadmeForUser1"
+----
+En el siguiente ejemplo, se crea una sentencia de política de bloque de servidor del almacén de objetos para la SVM svm1.example.com y bucket1, que especifica el acceso permitido a todos los objetos para el grupo de servidores del almacén de objetos grupo1.
+
+[listing]
+----
+cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
+----
+--
+====

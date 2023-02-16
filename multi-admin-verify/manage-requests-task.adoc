@@ -1,0 +1,172 @@
+---
+sidebar: sidebar 
+permalink: multi-admin-verify/manage-requests-task.html 
+keywords: ontap, mav, multi, admin, verification, administrator, protected, operation, rules, request, cluster, approve, rbac, manage, cli, system, manager 
+summary: 'Cuando se notifica a los administradores de un grupo de aprobación MAV (administradores MAV) de una solicitud de ejecución de operación pendiente, deben responder con un mensaje de aprobación o de veto dentro de un período de tiempo fijo (caducidad de la aprobación).' 
+---
+= Gestione solicitudes de operaciones protegidas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando se notifica a los administradores de un grupo de aprobación MAV (administradores MAV) de una solicitud de ejecución de operación pendiente, deben responder con un mensaje de aprobación o de veto dentro de un período de tiempo fijo (caducidad de la aprobación). Si no se recibe un número suficiente de aprobaciones, el solicitante debe eliminar la solicitud y realizar otra.
+
+.Acerca de esta tarea
+Las solicitudes de aprobación se identifican con números de índice, que se incluyen en los mensajes de correo electrónico y se muestran en la cola de solicitudes.
+
+Se puede mostrar la siguiente información de la cola de solicitudes:
+
+Funcionamiento:: La operación protegida para la que se crea la solicitud.
+Consulta:: El objeto (u objetos) sobre el que el usuario desea aplicar la operación.
+Estado:: El estado actual de la solicitud; pendiente, aprobado, rechazado, caducado, ejecutado. Si un aprobador rechaza una solicitud, no es posible realizar ninguna otra acción.
+Autorizadores requeridos:: El número de administradores de MAV que se necesitan para aprobar la solicitud. Un usuario puede establecer el parámetro aprobadores requeridos para la regla de operación. Si un usuario no establece los aprobadores requeridos en la regla, se aplican los autorizadores requeridos de la configuración global.
+Aprobadores pendientes:: El número de administradores de MAV que todavía deben aprobar la solicitud para que se marque como aprobada.
+Caducidad de la aprobación:: El período dentro del cual un administrador MAV debe responder a una solicitud de aprobación. Cualquier usuario autorizado puede definir la fecha de caducidad de la aprobación de una regla de operación. Si no se ha establecido la fecha de caducidad de la regla, se aplicará la fecha de caducidad de la aprobación del valor global.
+Caducidad de la ejecución:: El período en el que el administrador solicitante debe completar la operación. Cualquier usuario autorizado puede establecer la caducidad de la ejecución de una regla de operación. Si no se ha definido la caducidad de la ejecución para la regla, se aplicará la caducidad de la ejecución desde el valor global.
+Usuarios aprobados:: Los administradores de MAV que han aprobado la solicitud.
+El usuario ha vetado:: Los administradores de MAV que han vetado la solicitud.
+VM de almacenamiento (Vserver):: La SVM con la que se asocia la solicitud. Solo esta versión admite la SVM de administrador.
+Usuario solicitado:: Nombre de usuario del usuario que creó la solicitud.
+Hora de creación:: Hora a la que se crea la solicitud.
+Tiempo aprobado:: Hora a la que el estado de la solicitud cambió a aprobado.
+Comentar:: Cualquier comentario asociado a la solicitud.
+Se permiten usuarios:: Lista de usuarios autorizados para realizar la operación protegida para la que se aprueba la solicitud. Si `users-permitted` está vacío y, a continuación, cualquier usuario con los permisos adecuados puede realizar la operación.
+
+
+Todas las solicitudes vencidas o ejecutadas se eliminan cuando se alcanza un límite de 1000 solicitudes o cuando el tiempo de vencimiento es superior a 8 horas para las solicitudes caducadas. Las solicitudes de vetoed se eliminan una vez marcadas como caducadas.
+
+
+
+== Procedimiento de System Manager
+
+Los administradores de MAV reciben mensajes de correo electrónico con detalles sobre la solicitud de aprobación, el período de caducidad de la solicitud y un vínculo para aprobar o rechazar la solicitud. Pueden acceder a un diálogo de aprobación haciendo clic en el enlace del correo electrónico o navegue hasta *Eventos y trabajos>solicitudes* en System Manager.
+
+La ventana *Requests* está disponible cuando está habilitada la verificación de varios administradores, mostrando solicitudes pendientes basadas en el ID de inicio de sesión del usuario y la función MAV (aprobador o no).
+
+* Funcionamiento
+* Índice (número)
+* Estado (pendiente, aprobado, rechazado, ejecutado o caducado)
++
+Si un aprobador rechaza una solicitud, no es posible realizar ninguna otra acción.
+
+* Consulta (cualquier parámetro o valor para la operación solicitada)
+* Usuario solicitante
+* La solicitud caduca el
+* (Número de) aprobadores pendientes
+* (Número de) posibles aprobadores
+
+
+Los administradores de MAV tienen controles adicionales en esta ventana; pueden aprobar, rechazar o eliminar operaciones individuales o grupos de operaciones seleccionados. Sin embargo, si el administrador MAV es el usuario solicitante, no puede aprobar, rechazar o eliminar sus propias solicitudes.
+
+
+
+== Procedimiento de la CLI
+
+. Cuando se le notifique por correo electrónico acerca de las solicitudes pendientes, anote el número de índice y el período de caducidad de la aprobación de la solicitud. El número de índice también se puede mostrar utilizando las opciones *show* o *show-anPending* que se mencionan a continuación.
+. Aprobar o vetar la solicitud.
++
+[cols="50,50"]
+|===
+| Si desea… | Introduzca este comando 
+
+
+ a| 
+Aprobar una solicitud
+ a| 
+`security multi-admin-verify request approve _nn_`
+
+
+
+ a| 
+Vetar una solicitud
+ a| 
+`security multi-admin-verify request veto _nn_`
+
+
+
+ a| 
+Mostrar todas las solicitudes, solicitudes pendientes o una sola solicitud
+ a| 
+`security multi-admin-verify request { show | show-pending } [_nn_]
+{ -fields _field1_[,_field2_...] |  [-instance ]  }`
+
+Puede mostrar todas las solicitudes de la cola o sólo las solicitudes pendientes. Si introduce el número de índice, solo se mostrará la información correspondiente. Puede mostrar información sobre campos específicos (mediante la `-fields` parámetro) o todos los campos (mediante el `-instance` parámetro).
+
+
+
+ a| 
+Eliminar una solicitud
+ a| 
+`security multi-admin-verify request delete _nn_`
+
+|===
+
+
+.Ejemplo:
+La siguiente secuencia aprueba una solicitud después de que el administrador de MAV haya recibido el correo electrónico de solicitud con el número de índice 3, que ya tiene una aprobación.
+
+[listing]
+----
+          cluster1::> security multi-admin-verify request show-pending
+                                   Pending
+Index Operation      Query State   Approvers Requestor
+----- -------------- ----- ------- --------- ---------
+    3 volume delete  -     pending 1         julia
+
+
+cluster-1::> security multi-admin-verify request approve 3
+
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -
+             State: approved
+Required Approvers: 2
+ Pending Approvers: 0
+   Approval Expiry: 2/25/2022 14:32:03
+  Execution Expiry: 2/25/2022 14:35:36
+         Approvals: mav-admin2
+       User Vetoed: -
+           Vserver: cluster-1
+    User Requested: julia
+      Time Created: 2/25/2022 13:32:03
+     Time Approved: 2/25/2022 13:35:36
+           Comment: -
+   Users Permitted: -
+----
+.Ejemplo:
+En la siguiente secuencia se vetará una solicitud después de que el administrador MAV haya recibido el correo electrónico de solicitud con el número de índice 3, que ya tiene una aprobación.
+
+[listing]
+----
+      cluster1::> security multi-admin-verify request show-pending
+                                   Pending
+Index Operation      Query State   Approvers Requestor
+----- -------------- ----- ------- --------- ---------
+    3 volume delete  -     pending 1         pavan
+
+
+cluster-1::> security multi-admin-verify request veto 3
+
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -
+             State: vetoed
+Required Approvers: 2
+ Pending Approvers: 0
+   Approval Expiry: 2/25/2022 14:32:03
+  Execution Expiry: 2/25/2022 14:35:36
+         Approvals: mav-admin1
+       User Vetoed: mav-admin2
+           Vserver: cluster-1
+    User Requested: pavan
+      Time Created: 2/25/2022 13:32:03
+     Time Approved: 2/25/2022 13:35:36
+           Comment: -
+   Users Permitted: -
+----

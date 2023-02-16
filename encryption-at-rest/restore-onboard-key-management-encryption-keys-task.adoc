@@ -1,0 +1,84 @@
+---
+permalink: encryption-at-rest/restore-onboard-key-management-encryption-keys-task.html 
+sidebar: sidebar 
+keywords: restoring, onboard, key management encryption 
+summary: En ocasiones, es posible que deba restaurar una clave de cifrado de gestión de claves incorporada. Una vez que haya verificado que es necesario restaurar una clave, puede configurar el gestor de claves incorporado para restaurar la clave. 
+---
+= Restaure las claves de cifrado de gestión de claves incorporadas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si necesita restaurar una clave de cifrado de gestión de claves incorporada, primero compruebe que sea necesario restaurar una clave, puede configurar el gestor de claves incorporado para restaurar la clave.
+
+.Antes de empezar
+* Si utiliza NSE con un servidor de gestión de claves externa (KMIP), debe haber eliminado la base de datos de gestor de claves externo.
++
+link:delete-key-management-database-task.html["Transición a la gestión de claves incorporada desde la gestión de claves externas"]
+
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+
+
+
+
+== Pasos para ONTAP 9.6 y posteriores
+
+. Compruebe que es necesario restaurar la clave: +
+`security key-manager key query -node _node_`
+. Si ejecuta ONTAP 9.8 y versiones posteriores y el volumen raíz está cifrado, complete <<root_volume_encrypted>>.
++
+Si ejecuta ONTAP 9.6 o 9.7, o si está ejecutando ONTAP 9.8 o una versión posterior y el volumen raíz no está cifrado, omita este paso.
+
+. Restaure la clave: +
+`security key-manager onboard sync`
++
+Para obtener una sintaxis de comando completa, consulte las páginas man.
+
++
+El siguiente comando de ONTAP 9.6 sincroniza las claves de la jerarquía de claves integradas:
+
++
+[listing]
+----
+cluster1::> security key-manager onboard sync
+
+Enter the cluster-wide passphrase for onboard key management in Vserver "cluster1"::    <32..256 ASCII characters long text>
+----
+. En la solicitud de contraseña, introduzca la clave de acceso de gestión de claves incorporada para el clúster.
+
+
+
+
+== Pasos para ONTAP 9.5 y versiones anteriores
+
+. Compruebe que es necesario restaurar la clave: +
+`security key-manager key show`
+. Si ejecuta ONTAP 9.8 y versiones posteriores y se cifra el volumen raíz, complete los siguientes pasos:
++
+Si ejecuta ONTAP 9.6 o 9.7, o si está ejecutando ONTAP 9.8 o una versión posterior y el volumen raíz no está cifrado, omita este paso.
+
+. Restaure la clave: +
+`security key-manager setup -node _node_`
++
+Para obtener una sintaxis de comando completa, consulte las páginas man.
+
+. En la solicitud de contraseña, introduzca la clave de acceso de gestión de claves incorporada para el clúster.
+
+
+
+
+== Los pasos si el volumen raíz se cifra
+
+Si ejecuta ONTAP 9.8 y versiones posteriores y el volumen raíz está cifrado, debe configurar una clave de recuperación de gestión de claves incorporada con el menú de arranque. Este proceso también es necesario si realiza un reemplazo del soporte de arranque.
+
+. Arranque el nodo en el menú de arranque y seleccione opción `(10) Set onboard key management recovery secrets`.
+. Introduzca `y` para utilizar esta opción.
+. En el aviso de, introduzca la clave de acceso de gestión de claves incorporada para el clúster.
+. En el aviso, introduzca los datos de la clave de backup.
++
+El nodo vuelve al menú de arranque.
+
+. En el menú de inicio, seleccione opción `(1) Normal Boot`.
+

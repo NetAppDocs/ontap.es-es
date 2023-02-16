@@ -1,0 +1,90 @@
+---
+permalink: san-admin/improve-vmware-vaai-performance-esx-hosts-concept.html 
+sidebar: sidebar 
+keywords: improve, vmware, vaai, performance, esx, hosts 
+summary: 'ONTAP admite algunas funciones de VMware vStorage APIs for Array Integration (VAAI) cuando el host ESX ejecuta ESX 4.1 o posterior. Estas funciones ayudan a descargar las operaciones del host ESX al sistema de almacenamiento y aumentan el rendimiento de la red. El host ESX habilita las funciones automáticamente en el entorno correcto.' 
+---
+= Mejore el rendimiento de VMware VAAI para los hosts ESX
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP admite algunas funciones de VMware vStorage APIs for Array Integration (VAAI) cuando el host ESX ejecuta ESX 4.1 o posterior. Estas funciones ayudan a descargar las operaciones del host ESX al sistema de almacenamiento y aumentan el rendimiento de la red. El host ESX habilita las funciones automáticamente en el entorno correcto.
+
+La función VAAI admite los siguientes comandos SCSI:
+
+* `EXTENDED_COPY`
++
+Esta función permite que el host inicie la transferencia de datos entre las LUN o dentro de una LUN sin implicar al host en la transferencia de datos. El resultado es guardar los ciclos de CPU de ESX y aumentar el rendimiento de la red. La función de copia ampliada, también conocida como "descarga de copias", se utiliza en situaciones como el clonado de una máquina virtual. Cuando el host ESX lo invoca, la función de descarga de copias copia copia copia copia copia copia los datos del sistema de almacenamiento en lugar de pasar por la red host. La descarga de copias transfiere datos de las siguientes formas:
+
++
+** Dentro de una LUN
+** Entre las LUN de un volumen
+** Entre LUN en diferentes volúmenes dentro de una máquina virtual de almacenamiento (SVM)
+** Entre las LUN de diferentes SVM dentro de un clúster Si no puede invocarse esta función, el host ESX utiliza automáticamente los comandos estándar de LECTURA y ESCRITURA para la operación de copia.
+
+
+* `WRITE_SAME`
++
+Esta función libera el trabajo de escribir un patrón repetido, como todos los ceros, a una cabina de almacenamiento. El host ESX utiliza esta función en operaciones como rellenar un archivo sin ceros.
+
+* `COMPARE_AND_WRITE`
++
+Esta función omite ciertos límites de concurrencia de acceso a archivos, lo que acelera operaciones como el arranque de máquinas virtuales.
+
+
+
+
+
+== Requisitos para usar el entorno VAAI
+
+Las funciones VAAI forman parte del sistema operativo ESX y las invoca automáticamente el host ESX cuando se configura el entorno correcto.
+
+Los requisitos del entorno son los siguientes:
+
+* El host ESX debe ejecutar ESX 4.1 o una versión posterior.
+* El sistema de almacenamiento de NetApp que aloja el almacén de datos de VMware debe ejecutar ONTAP.
+* (Solo copia de liberación de sobrecarga) el origen y el destino de la operación de copia de VMware se deben alojar en el mismo sistema de almacenamiento dentro del mismo clúster.
++
+[NOTE]
+====
+La función de descarga de copias no admite en este momento la copia de datos entre almacenes de datos VMware alojados en diferentes sistemas de almacenamiento.
+
+====
+
+
+
+
+== Determinar si ESX admite las funciones de VAAI
+
+Para confirmar si el sistema operativo ESX admite las funciones VAAI, puede comprobar vSphere Client o utilizar cualquier otro medio para acceder al host. ONTAP admite los comandos SCSI de forma predeterminada.
+
+Puede comprobar la configuración avanzada del host ESX para determinar si las funciones de VAAI están habilitadas. La tabla indica qué comandos SCSI corresponden a los nombres de control ESX.
+
+[cols="2*"]
+|===
+| Comando SCSI | Nombre del control ESX (función VAAI) 
+
+
+ a| 
+EXTENDED_COPY
+ a| 
+`HardwareAcceleratedMove`
+
+
+
+ a| 
+WRITE_SAME
+ a| 
+`HardwareAcceleratedInit`
+
+
+
+ a| 
+COMPARE_Y_WRITE
+ a| 
+`HardwareAcceleratedLocking`
+
+|===

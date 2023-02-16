@@ -1,0 +1,32 @@
+---
+permalink: smbc/resume-protection-fan-out-configuration.html 
+sidebar: sidebar 
+keywords: fan out, asynchronous, restore, third site, MirrorAllSnapshots, MirrorAndVault 
+summary: SM-BC admite configuraciones de salida de ventilador. Tras una conmutación por error en el extremo SM-BC, debe reanudar la conexión con el extremo de salida de ventilador asíncrono. 
+---
+= Reanude la protección en una configuración de salida de ventilador con SM-BC
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Soportes SM-BC xref:../data-protection/supported-deployment-config-concept.html[configuraciones de dispersión]. El volumen de origen se puede reflejar en un extremo de destino de SM-BC y en una o varias relaciones asíncronas de SnapMirror.
+
+Las configuraciones de dispersión se admiten con el `MirrorAllSnapshots` Policy y, a partir de ONTAP 9.11.1, el `MirrorAndVault` política. A partir de ONTAP 9.11.1, las configuraciones de salida de ventilador en SM-BC no son compatibles con el `XDPDefault` política.
+
+Si experimenta una conmutación al nodo de respaldo en el destino SM-BC, el destino asíncrono de SnapMirror quedará en mal estado y debe restaurar manualmente la protección eliminando y volviendo a crear la relación con el extremo asíncrono de SnapMirror.
+
+.Reanude la protección en una configuración de dispersión
+. Compruebe que la conmutación por error se ha realizado correctamente:
+`snapmirror failover show`
+. En el extremo asíncrono de SnapMirror, elimine el extremo de dispersión:
+`snapmirror delete -destination-path _destination_path_`
+. En el tercer sitio, cree una relación asíncrona de SnapMirror entre el nuevo volumen primario de SM-BC y el volumen de destino de dispersión asíncrono:
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -policy MirrorAllSnapshots -schedule _schedule_`
+. Resincronice la relación:
+`SnapMirror resync -destination-path _destination_path_`
+. Verifique el estado y el estado de la relación:
+`snapmirror show`
+

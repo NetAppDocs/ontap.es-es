@@ -1,0 +1,50 @@
+---
+permalink: fabricpool/move-volume-task.html 
+sidebar: sidebar 
+keywords: moving, volume, fabricpool, fabric pool, tiering, policy, policies, block, capacity, cold data, 
+summary: Cuando mueve un volumen a FabricPool, tiene la opción de especificar o cambiar la política de organización en niveles del volumen con el movimiento. A partir de ONTAP 9.8, cuando se mueve un volumen que no es de FabricPool con la función de generación de informes de datos inactivos habilitada, FabricPool utiliza una asignación de calor para leer bloques que pueden organizar los niveles de datos fríos en el nivel de capacidad del destino de FabricPool. 
+---
+= Mueva un volumen a FabricPool
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando mueve un volumen a FabricPool, tiene la opción de especificar o cambiar la política de organización en niveles del volumen con el movimiento. A partir de ONTAP 9.8, cuando se mueve un volumen que no es de FabricPool con la función de generación de informes de datos inactivos habilitada, FabricPool utiliza una asignación de calor para leer bloques que pueden organizar los niveles de datos fríos en el nivel de capacidad del destino de FabricPool.
+
+.Lo que necesitará
+Debe comprender cómo el cambio de la política de organización en niveles puede afectar el tiempo que tardan los datos en dejar de estar activos y moverse al nivel de cloud.
+
+link:tiering-policies-concept.html#what-happens-to-the-tiering-policy-when-you-move-a-volume["Qué sucede con la política de organización en niveles al mover un volumen"]
+
+.Acerca de esta tarea
+Si un volumen que no pertenece a FabricPool tiene habilitada la generación de informes de datos inactivos, al mover un volumen con política de organización en niveles `auto` o. `snapshot-only` Para un FabricPool, FabricPool lee los bloques que pueden aumentar la temperatura desde un archivo de mapa de calor y utiliza esa temperatura para mover los datos inactivos directamente al nivel de capacidad del destino de FabricPool.
+
+No debe utilizar el `-tiering-policy` La opción para mover el volumen si se usa ONTAP 9.8 y desea que FabricPool use la información de generación de informes de datos inactivos para mover datos directamente al nivel de capacidad. Al usar esta opción, los FabricPool ignoran los datos de temperatura y siguen el comportamiento de movimiento de las versiones antes de ONTAP 9.8.
+
+.Paso
+. Utilice la `volume move start` Comando para mover un volumen a FabricPool.
++
+La `-tiering-policy` el parámetro opcional permite especificar la política de organización en niveles del volumen.
+
++
+Se puede especificar una de las siguientes políticas de organización en niveles:
+
++
+** `snapshot-only` (predeterminado)
+** `auto`
+** `all`
+** `none`+link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies["Tipos de políticas de organización en niveles de FabricPool"]
+
+
+
+
+.Ejemplo de traslado de un volumen a FabricPool
+En el siguiente ejemplo, se mueve un volumen denominado «myvol2» de la SVM «vs1» al agregado «dest_FabricPool» habilitado para FabricPool. El volumen se establece explícitamente para usar el `none` política de organización en niveles:
+
+[listing]
+----
+cluster1::> volume move start -vserver vs1 -volume myvol2
+-destination-aggregate dest_FabricPool -tiering-policy none
+----

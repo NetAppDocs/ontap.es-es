@@ -1,0 +1,95 @@
+---
+permalink: encryption-at-rest/sanitize-fips-drive-sed-task.html 
+sidebar: sidebar 
+keywords: sanitizing, fips, drive, sed 
+summary: Si desea que los datos de una unidad FIPS o SED sean inaccesibles permanentemente y utilice la unidad para los datos nuevos, puede utilizar el comando puritize del disco de cifrado del almacenamiento para desinfectar la unidad. 
+---
+= Desinfecte una unidad FIPS o SED
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si desea hacer que los datos en una unidad FIPS o SED sean inaccesibles de forma permanente y utilizar la unidad para datos nuevos, puede utilizar la `storage encryption disk sanitize` comando para desinfectar la unidad.
+
+.Lo que necesitará
+Para realizar esta tarea, debe ser un administrador de clústeres.
+
+.Acerca de esta tarea
+Cuando se limpia una unidad de autocifrado, el sistema cambia la clave de cifrado de disco a un nuevo valor aleatorio, restablece el estado de bloqueo de encendido a FALSE y establece el ID de clave en un valor predeterminado, es decir, el ID seguro de fabricante 0x0 (unidades SAS) o una clave nula (unidades NVMe). Si lo hace, los datos del disco son inaccesibles y es imposible recuperarlos. Puede reutilizar discos sanitizados como discos de repuesto no ceros.
+
+.Pasos
+. Migre los datos que se deben conservar a un agregado en otro disco.
+. Elimine el agregado de la unidad FIPS o SED para que se sanean:
++
+`storage aggregate delete -aggregate _aggregate_name_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[listing]
+----
+cluster1::> storage aggregate delete -aggregate aggr1
+----
+. Identifique el ID de disco para la unidad FIPS o SED para sanitización:
++
+`storage encryption disk show -fields data-key-id,fips-key-id,owner`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[listing]
+----
+cluster1::> storage encryption disk show
+Disk    Mode Data Key ID
+-----   ---- ----------------------------------------------------------------
+0.0.0   data F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+0.0.1   data F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+1.10.2  data F1CB30AFF1CB30B00101000000000000CF0EFD81EA9F6324EA97B369351C56AC
+[...]
+----
+. Si una unidad FIPS se ejecuta en el modo de cumplimiento de normativas FIPS, establezca el ID de clave de autenticación FIPS del nodo nuevamente en el ID de MSID 0x0 predeterminado:
++
+`storage encryption disk modify -disk _disk_id_ -fips-key-id 0x0`
+
++
+Puede utilizar el `security key-manager query` Comando para ver los ID clave.
+
++
+[listing]
+----
+cluster1::> storage encryption disk modify -disk 1.10.2 -fips-key-id 0x0
+
+Info: Starting modify on 1 disk.
+      View the status of the operation by using the
+      storage encryption disk show-status command.
+----
+. Desinfecte la unidad:
++
+`storage encryption disk sanitize -disk _disk_id_`
+
++
+Puede utilizar este comando para desinfectar solo los discos duros o los discos rotos. Para desinfectar todos los discos independientemente del tipo, utilice `-force-all-state` opción. Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+Se le pedirá que introduzca una frase de confirmación antes de continuar. Introduzca la frase exactamente como se muestra en la pantalla.
+
+====
++
+[listing]
+----
+cluster1::> storage encryption disk sanitize -disk 1.10.2
+
+Warning: This operation will cryptographically sanitize 1 spare or broken self-encrypting disk on 1 node.
+         To continue, enter sanitize disk: sanitize disk
+
+Info: Starting sanitize on 1 disk.
+      View the status of the operation using the
+      storage encryption disk show-status command.
+----
+

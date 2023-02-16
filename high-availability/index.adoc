@@ -1,0 +1,45 @@
+---
+sidebar: sidebar 
+permalink: high-availability/index.html 
+keywords: high availability, ha, overview 
+summary: La toma de control es el proceso en el que un nodo asume el control sobre el almacenamiento de su partner. La devolución es el proceso en el que el almacenamiento se devuelve al partner. 
+---
+= Información general sobre la gestión de parejas de HA
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Los nodos de clúster están configurados en pares de alta disponibilidad para tolerancia a fallos y operaciones no disruptivas. Si un nodo falla o si necesita desconectar un nodo para realizar un mantenimiento rutinario, su partner puede tomar el control de su almacenamiento y seguir sirviendo datos. El partner devuelve el almacenamiento cuando el nodo vuelve a estar online.
+
+La configuración de controladoras de parejas de alta disponibilidad consta de un par de controladoras de almacenamiento FAS/AFF coincidentes (nodo local y nodo asociado). Cada uno de estos nodos está conectado a las bandejas de discos del otro. Cuando uno de los nodos de una pareja de alta disponibilidad encuentra un error y detiene el procesamiento de datos, su compañero detecta el estado fallido del partner y asume todo el procesamiento de los datos de esa controladora.
+
+_Takeover_ es el proceso en el que un nodo asume el control sobre el almacenamiento de su partner.
+
+_Giveback_ es el proceso en el que el almacenamiento se devuelve al partner.
+
+De forma predeterminada, las adquisiciones se realizan automáticamente en cualquiera de las siguientes situaciones:
+
+* Se produce un fallo del sistema o software en un nodo que provoca una caída en alarma. Las controladoras de parejas de alta disponibilidad conmutan automáticamente al nodo de su partner. Una vez que el partner se ha recuperado de la alarma y se ha iniciado, el nodo realiza automáticamente una devolución, devolviendo al partner al funcionamiento normal.
+* Se produce un fallo del sistema en un nodo y el nodo no se puede reiniciar. Por ejemplo, cuando un nodo falla debido a una pérdida de alimentación, las controladoras de parejas de alta disponibilidad conmuta automáticamente a su nodo de partner y sirven los datos de la controladora de almacenamiento superviviente.
+
+
+
+NOTE: Si el almacenamiento para un nodo también pierde potencia al mismo tiempo, no será posible una toma de control estándar.
+
+* No se reciben mensajes de latido del compañero del nodo. Esto podría suceder si el partner experimentó un error de hardware o software (por ejemplo, un fallo de interconexión) que no dio lugar a una situación de pánico, pero todavía impidió que funcionara correctamente.
+* Detenga uno de los nodos sin usar el `-f` o. `-inhibit-takeover true` parámetro.
+
+
+
+NOTE: En un clúster de dos nodos con un clúster de alta disponibilidad habilitado, detener o reiniciar un nodo mediante el `‑inhibit‑takeover true` El parámetro hace que ambos nodos dejen de servir datos a menos que deshabilite primero el clúster de alta disponibilidad y asigne un valor épsilon al nodo que desee permanecer en línea.
+
+* Uno de los nodos se reinicia sin usar el `‑inhibit‑takeover true` parámetro. (La `‑onboot` parámetro de `storage failover` el comando está habilitado de forma predeterminada.)
+* El dispositivo de gestión remota (Service Processor) detecta un fallo del nodo asociado. Esto no es aplicable si deshabilita la toma de control asistida por hardware.
+
+
+También puede iniciar manualmente tomas de control con el `storage failover takeover` comando.

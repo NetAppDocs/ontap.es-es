@@ -1,0 +1,262 @@
+---
+permalink: snaplock/commit-files-worm-state-manual-task.html 
+sidebar: sidebar 
+keywords: commit, file, worm, manually, nfs, cifs, read, only, automatically, program, appendable, nfs, cifs, chunk, vam 
+summary: 'Puede confirmar archivos a WORM (escritura única y lectura múltiple) o bien manualmente, o bien conserva los archivos automáticamente. También puede crear archivos flexibles WORM.' 
+---
+= Los archivos cumplen CON WORM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede confirmar archivos a WORM (escritura única y lectura múltiple) o bien manualmente, o bien conserva los archivos automáticamente. También puede crear archivos flexibles WORM.
+
+
+
+== Confirmar los archivos a WORM manualmente
+
+Los archivos se comprometen a WORM manualmente haciendo que el archivo sea de solo lectura. Puede utilizar cualquier comando o programa adecuado a través de NFS o CIFS para cambiar el atributo de lectura y escritura de un archivo a sólo lectura. Puede optar por confirmar los archivos manualmente si desea garantizar que una aplicación haya terminado de escribir en un archivo de modo que el archivo no se confirme prematuramente o si hay problemas de escalado para el analizador de compromiso automático debido a un gran número de volúmenes.
+
+.Lo que necesitará
+* El archivo que desea confirmar debe residir en un volumen de SnapLock.
+* El archivo debe ser editable.
+
+
+.Acerca de esta tarea
+El tiempo de la instancia de ComplianceClock del volumen se escribe en `ctime` campo del archivo cuando se ejecuta el comando o el programa. La hora de la instancia de ComplianceClock determina cuándo se ha alcanzado el tiempo de retención del archivo.
+
+.Pasos
+. Utilice un comando o programa adecuado para cambiar el atributo de lectura y escritura de un archivo a sólo lectura.
++
+En un shell UNIX, utilice el siguiente comando para crear un archivo denominado `document.txt` solo lectura:
+
++
+[listing]
+----
+chmod -w document.txt
+----
++
+En un shell de Windows, utilice el siguiente comando para crear un archivo denominado `document.txt` solo lectura:
+
++
+[listing]
+----
+attrib +r document.txt
+----
+
+
+
+
+== Confirmar archivos a WORM automáticamente
+
+La función de compromiso automático de SnapLock le permite confirmar los archivos automáticamente a WORM. La función de compromiso automático confirma el estado DE un archivo CON EL estado WORM en un volumen SnapLock si el archivo no cambió durante el período de compromiso automático. La función de compromiso automático está deshabilitada de forma predeterminada.
+
+.Lo que necesitará
+* Los archivos que desea confirmar automáticamente deben residir en un volumen de SnapLock.
+* El volumen SnapLock debe estar en línea.
+* El volumen SnapLock debe ser un volumen de lectura/escritura.
+
+
+[NOTE]
+====
+La función SnapLock autocommit analiza todos los archivos del volumen y confirma un archivo si cumple con el requisito de compromiso automático. Es posible que haya un intervalo de tiempo entre cuando el archivo esté listo para la confirmación automática y cuando el escáner de confirmación automática de SnapLock lo confirme realmente. Sin embargo, el sistema de archivos sigue protegiendo el archivo de las modificaciones y eliminaciones en cuanto sea apto para la confirmación automática.
+
+====
+.Acerca de esta tarea
+El _autocommit Period_ especifica la cantidad de tiempo que los archivos deben permanecer sin cambios antes de que se autocomprometan. Al cambiar un archivo antes de que haya transcurrido el período de compromiso automático, se reinicia el período de compromiso automático del archivo.
+
+En la siguiente tabla se muestran los posibles valores para el período de compromiso automático:
+
+|===
+| Valor | Unidad | Notas 
+
+
+ a| 
+ninguno
+ a| 
+-
+ a| 
+El valor predeterminado.
+
+
+
+ a| 
+5 - 5256000
+ a| 
+minutos
+ a| 
+-
+
+
+
+ a| 
+1 - 87600
+ a| 
+horas
+ a| 
+-
+
+
+
+ a| 
+1 - 3650
+ a| 
+días
+ a| 
+-
+
+
+
+ a| 
+1 - 120
+ a| 
+meses
+ a| 
+-
+
+
+
+ a| 
+1 - 10
+ a| 
+años
+ a| 
+-
+
+|===
+[NOTE]
+====
+El valor mínimo es de 5 minutos y el valor máximo es de 10 años.
+
+====
+.Pasos
+. Los archivos de confirmación automática en un volumen SnapLock a WORM:
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -autocommit-period _autocommit_period_*`
+
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+El siguiente comando confirma automáticamente los archivos en el volumen `vol1` De SVM vs1, siempre y cuando los archivos permanezcan inalterados durante 5 horas:
+
++
+[listing]
+----
+cluster1::>volume snaplock modify -vserver vs1 -volume vol1 -autocommit-period 5hours
+----
+
+
+
+
+== Crear un archivo ampliable WORM
+
+Un archivo ampliable WORM conserva los datos escritos de forma incremental, como las entradas del registro. Puede utilizar cualquier comando o programa adecuado para crear un archivo que pueda adaptarse A WORM o la función SnapLock _volume append mode_ para crear archivos WORM adaptados de forma predeterminada.
+
+
+
+== Utilice un comando o programa para crear un archivo que puede adaptarse A WORM
+
+Puede utilizar cualquier comando o programa adecuado a través de NFS o CIFS para crear un archivo ampliable WORM. Un archivo ampliable WORM conserva los datos escritos de forma incremental, como las entradas del registro. Los datos se agregan al archivo en fragmentos de 256 KB. A medida que se escribe cada fragmento, el fragmento anterior se convierte en CON protección WORM. No se puede eliminar el archivo hasta que haya transcurrido el período de retención.
+
+.Lo que necesitará
+El archivo ampliable WORM debe residir en un volumen SnapLock.
+
+.Acerca de esta tarea
+Los datos no tienen que escribirse secuencialmente en el fragmento de 256 KB activo. Cuando se escriben datos en el byte n×256KB+1 del archivo, el segmento de 256 KB anterior se protege WORM.
+
+.Pasos
+. Utilice un comando o programa adecuado para crear un archivo de longitud cero con el tiempo de retención deseado.
++
+En un shell de UNIX, utilice el comando siguiente para establecer una hora de retención de 21 de noviembre de 2020 6:00 a.m. en un archivo de longitud cero denominado `document.txt`:
+
++
+[listing]
+----
+touch -a -t 202011210600 document.txt
+----
+. Utilice un comando o programa adecuado para cambiar el atributo de lectura y escritura del archivo a sólo lectura.
++
+En un shell UNIX, utilice el siguiente comando para crear un archivo denominado `document.txt` solo lectura:
+
++
+[listing]
+----
+chmod 444 document.txt
+----
+. Utilice un comando o programa adecuado para cambiar el atributo de lectura y escritura del archivo a grabable.
++
+[NOTE]
+====
+Este paso no se considera un riesgo de cumplimiento de normativas porque no hay datos en el archivo.
+
+====
++
+En un shell UNIX, utilice el siguiente comando para crear un archivo denominado `document.txt` modificable:
+
++
+[listing]
+----
+chmod 777 document.txt
+----
+. Utilice un comando o programa adecuado para iniciar la escritura de datos en el archivo.
++
+En un shell UNIX, utilice el comando siguiente para escribir datos en `document.txt`:
+
++
+[listing]
+----
+echo test data >> document.txt
+----
++
+[NOTE]
+====
+Vuelva a cambiar los permisos de archivo a sólo lectura cuando ya no necesite agregar datos al archivo.
+
+====
+
+
+
+
+== Use el modo de adición de volúmenes para crear archivos WORM flexibles
+
+A partir de ONTAP 9.3, se puede utilizar la función SnapLock _volume append mode_ (VAM) para crear archivos WORM flexibles de forma predeterminada. Un archivo ampliable WORM conserva los datos escritos de forma incremental, como las entradas del registro. Los datos se agregan al archivo en fragmentos de 256 KB. A medida que se escribe cada fragmento, el fragmento anterior se convierte en CON protección WORM. No se puede eliminar el archivo hasta que haya transcurrido el período de retención.
+
+.Lo que necesitará
+* El archivo ampliable WORM debe residir en un volumen SnapLock.
+* El volumen SnapLock debe estar desmontado y vacío de las copias Snapshot y los archivos creados por el usuario.
+
+
+.Acerca de esta tarea
+Los datos no tienen que escribirse secuencialmente en el fragmento de 256 KB activo. Cuando se escriben datos en el byte n×256KB+1 del archivo, el segmento de 256 KB anterior se protege WORM.
+
+Si especifica un período de compromiso automático para el volumen, se comprometen a WORM los archivos flexibles que no se modifican durante un período superior al período de compromiso automático a WORM.
+
+[NOTE]
+====
+No se admite el VAM en los volúmenes de registros de auditoría de SnapLock.
+
+====
+.Pasos
+. Activar VAM:
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -is-volume-append-mode-enabled true|false*`
+
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+El siguiente comando habilita VAM sobre el volumen `vol1` De SVM``vs1``:
+
++
+[listing]
+----
+cluster1::>volume snaplock modify -vserver vs1 -volume vol1 -is-volume-append-mode-enabled true
+----
+. Utilice un comando o programa adecuado para crear archivos con permisos de escritura.
++
+De forma predeterminada, los archivos se pueden APPWORM.
+
+

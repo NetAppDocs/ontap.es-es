@@ -1,0 +1,64 @@
+---
+permalink: s3-audit/create-enable-config-task.html 
+sidebar: sidebar 
+keywords: consistency groups, consistency group, application protection, parent, child, configure 
+summary: Para implementar la auditoría de S3, primero se debe crear una configuración de auditoría del almacén de objetos persistente en una SVM habilitada para S3 y, luego, habilitar la configuración. 
+---
+= Cree y habilite una configuración de auditoría de S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para implementar la auditoría de S3, primero se debe crear una configuración de auditoría del almacén de objetos persistente en una SVM habilitada para S3 y, luego, habilitar la configuración.
+
+.Lo que necesitará
+* Una SVM habilitada para S3.
+* Espacio suficiente para organizar temporalmente volúmenes en el agregado.
+
+
+.Acerca de esta tarea
+Se requiere una configuración de auditoría para cada SVM que contenga bloques de S3 que se desee auditar. Puede habilitar la auditoría de S3 en servidores S3 nuevos o existentes. Las configuraciones de auditoría persisten en un entorno S3 hasta que se elimina mediante el comando *vserver object-store-Server audit delete*.
+
+La configuración de auditoría de S3 se aplica a todos los bloques de la SVM que seleccione para auditoría. Una SVM habilitada para auditoría puede contener bloques auditados y no auditados.
+
+Se recomienda configurar la auditoría de S3 para la rotación automática del registro, determinada por el tamaño del registro o una programación. Si no configura la rotación automática del registro, todos los archivos de registro se conservan de forma predeterminada. También puede rotar los archivos de registro S3 manualmente mediante el comando *VServer objeto-almacén-auditoría rotate-log*.
+
+Si la SVM es un origen de recuperación ante desastres de SVM, la ruta de destino no puede estar en el volumen raíz.
+
+.Procedimiento
+. Cree la configuración de auditoría para rotar los registros de auditoría según el tamaño del registro o un programa.
++
+[cols="2,4"]
+|===
+| Si desea rotar registros de auditoría en... | Introduzca... 
+
+
+| Tamaño del registro | `vserver object-store-server audit create -vserver _svm_name_ -destination _path_ [[-events] {data{vbar}management}, ...] {[-rotate-limit _integer_] {vbar} [-retention-duration [_integer_d] [_integer_h][_integer_m][_integers_]]} [-rotate-size {_integer_[KB{vbar}MB{vbar}GB{vbar}TB{vbar}PB]}]` 
+
+
+| Un programa  a| 
+`vserver object-store-server audit create -vserver _svm_name_ -destination path [[-events] {data{vbar}management}, ...] {[-rotate-limit _integer_] {vbar} [-retention-duration [_integerd_][_integerh_] [_integerm_][_integers_]] } [-rotate-schedule-month _chron_month_] [-rotate-schedule-dayofweek _chron_dayofweek_] [-rotate-schedule-day _chron_dayofmonth_] [-rotate-schedule-hour _chron_hour_] -rotate-schedule-minute _chron_minute_`
+
+La `-rotate-schedule-minute` el parámetro es necesario si se configura la rotación del registro de auditoría basado en tiempo.
+
+|===
+. Habilitar auditoría de S3:
++
+`vserver object-store-server audit enable -vserver _svm_name_`
+
+
+
+.Ejemplos
+En el siguiente ejemplo, se crea una configuración de auditoría que audita todos los eventos de S3 (los valores predeterminados) mediante la rotación basada en tamaño. Los registros se almacenan en el directorio /audit_log. El límite de tamaño del archivo de registro es de 200 MB. Los registros se rotan cuando alcanzan los 200 MB de tamaño.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-size 200MB`
+
+En el siguiente ejemplo, se crea una configuración de auditoría que audita todos los eventos de S3 (los valores predeterminados) mediante la rotación basada en tamaño. El límite de tamaño del archivo de registro es 100 MB (el valor predeterminado) y los registros se conservan durante 5 días antes de eliminarse.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -retention-duration 5d0h0m`
+
+El siguiente ejemplo crea una configuración de auditoría que audita los eventos de gestión de S3 y eventos de configuración de políticas de acceso central mediante rotación basada en el tiempo. Los registros de auditoría se rotan mensualmente, a las 12:30 p.m. en todos los días de la semana. El límite de rotación del registro es 5.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -events management -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30 -rotate-limit 5`

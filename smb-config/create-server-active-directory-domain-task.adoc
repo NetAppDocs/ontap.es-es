@@ -1,0 +1,127 @@
+---
+permalink: smb-config/create-server-active-directory-domain-task.html 
+sidebar: sidebar 
+keywords: vserver, cifs, create, command, smb, server, svm, specify, active, directory, ad, domain, create an smb server in an active directory domain 
+summary: 'Puede usar el comando vserver cifs create para crear un servidor SMB en la SVM y especificar el dominio de Active Directory (AD) al que pertenece.' 
+---
+= Cree un servidor SMB en un dominio de Active Directory
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar el `vserver cifs create` Para crear un servidor SMB en la SVM y especificar el dominio de Active Directory (AD) al que pertenece.
+
+.Antes de empezar
+Las SVM y los LIF que utiliza para servir datos deben haberse configurado para permitir el protocolo SMB. Las LIF deben poder conectarse a los servidores DNS configurados en la SVM y a un controlador de dominio AD del dominio al que desea unirse al servidor SMB.
+
+Cualquier usuario con autorización para crear cuentas de máquina en el dominio de AD al que se va a unir el servidor SMB puede crear el servidor SMB en la SVM. Esto puede incluir usuarios de otros dominios.
+
+A partir de ONTAP 9.7, el administrador de AD puede proporcionarle un URI a un archivo keytab como alternativa a proporcionarle un nombre y una contraseña a una cuenta de Windows con privilegios. Cuando reciba el URI, inclúyalo en el `-keytab-uri` con el `vserver cifs` comandos.
+
+.Acerca de esta tarea
+Al crear un servidor SMB en un dominio de directorio de actividades:
+
+* Debe usar el nombre de dominio completo (FQDN) al especificar el dominio.
+* La configuración predeterminada es agregar la cuenta de máquina del servidor SMB al objeto CN=Computer de Active Directory.
+* Puede optar por agregar el servidor SMB a una unidad organizativa (OU) diferente mediante el `-ou` opción.
+* Opcionalmente, puede elegir agregar una lista delimitada por comas de uno o más alias NetBIOS (hasta 200) para el servidor SMB.
++
+La configuración de alias NetBIOS para un servidor SMB puede ser útil cuando está consolidando datos de otros servidores de archivos en el servidor SMB y desea que el servidor SMB responda a los nombres de los servidores originales.
+
+
+
+La `vserver cifs` las páginas de manual contienen parámetros opcionales y requisitos de nomenclatura adicionales.
+
+[NOTE]
+====
+A partir de ONTAP 9.1, puede habilitar SMB versión 2.0 para conectarse a un controlador de dominio (DC). Hacerlo es necesario si ha deshabilitado SMB 1.0 en controladores de dominio. A partir de ONTAP 9.2, SMB 2.0 está habilitado de forma predeterminada.
+
+====
+A partir de ONTAP 9.8, puede especificar que se cifren las conexiones a los controladores de dominio. ONTAP requiere cifrado para las comunicaciones del controlador de dominio cuando el `-encryption-required-for-dc-connection` opción establecida en `true`; el valor predeterminado es `false`. Cuando se establece la opción, solo se utilizará el protocolo SMB3 para las conexiones ONTAP-DC, ya que el cifrado solo es compatible con SMB3. .
+
+link:../smb-admin/index.html["Gestión de SMB"] Contiene más información acerca de las opciones de configuración del servidor SMB.
+
+.Pasos
+. Compruebe que SMB tiene licencia en el clúster: `system license show -package cifs`
++
+Si no lo está, póngase en contacto con su representante de ventas.
+
++
+No se requiere una licencia de CIFS si el servidor SMB se usará solo para autenticación.
+
+. Cree el servidor SMB en un dominio de AD: `+vserver cifs create -vserver vserver_name -cifs-server smb_server_name -domain FQDN [-ou organizational_unit][-netbios-aliases NetBIOS_name, ...][-keytab-uri {(ftp|http)://hostname|IP_address}][-comment text]+`
++
+Al unirse a un dominio, este comando puede tardar varios minutos en completarse.
+
++
+El siguiente comando crea el servidor SMB «s' mb_server01» en el dominio "'example.com`":
+
++
+[listing]
+----
+cluster1::> vserver cifs create -vserver vs1.example.com -cifs-server smb_server01 -domain example.com
+----
++
+El siguiente comando crea el servidor SMB «smemoria_servidor 2» en el dominio «mydomain.com`" y autentica al administrador ONTAP con un archivo keytab:
+
++
+[listing]
+----
+cluster1::> vserver cifs create -vserver vs1.mydomain.com -cifs-server smb_server02 -domain mydomain.com -keytab-uri http://admin.mydomain.com/ontap1.keytab
+----
+. Compruebe la configuración del servidor SMB mediante el `vserver cifs show` comando.
++
+En este ejemplo, el resultado del comando muestra que se creó en SVM vs1.example.com un servidor SMB denominado "MB_SERVER01", que se unió al dominio "'example.com`".
+
++
+[listing]
+----
+cluster1::> vserver cifs show -vserver vs1
+
+                                          Vserver: vs1.example.com
+                         CIFS Server NetBIOS Name: SMB_SERVER01
+                    NetBIOS Domain/Workgroup Name: EXAMPLE
+                      Fully Qualified Domain Name: EXAMPLE.COM
+Default Site Used by LIFs Without Site Membership:
+                             Authentication Style: domain
+                CIFS Server Administrative Status: up
+                          CIFS Server Description: -
+                          List of NetBIOS Aliases: -
+----
+. Si lo desea, habilite la comunicación cifrada con el controlador de dominio (ONTAP 9.8 y posterior): `vserver cifs security modify -vserver svm_name -encryption-required-for-dc-connection true`
+
+
+.Ejemplos
+El siguiente comando crea un servidor SMB denominado «mb_server02» en la SVM vs2.example.com en el dominio «'example.com`". La cuenta de equipo se crea en el contenedor "'OU=eng,OU=corp,DC=example,DC=com'". Al servidor SMB se le asigna un alias NetBIOS.
+
+[listing]
+----
+cluster1::> vserver cifs create -vserver vs2.example.com –cifs-server smb_server02 -domain example.com –ou OU=eng,OU=corp -netbios-aliases old_cifs_server01
+
+cluster1::> vserver cifs show -vserver vs1
+                                          Vserver: vs2.example.com
+                         CIFS Server NetBIOS Name: SMB_SERVER02
+                    NetBIOS Domain/Workgroup Name: EXAMPLE
+                      Fully Qualified Domain Name: EXAMPLE.COM
+Default Site Used by LIFs Without Site Membership:
+                             Authentication Style: domain
+                CIFS Server Administrative Status: up
+                          CIFS Server Description: -
+                          List of NetBIOS Aliases: OLD_CIFS_SERVER01
+----
+El siguiente comando permite a un usuario de un dominio diferente, en este caso un administrador de un dominio de confianza, crear un servidor SMB denominado «smemoria_servidor03» en la SVM vs3.example.com. La `-domain` La opción especifica el nombre del dominio principal (especificado en la configuración DNS) en el que desea crear el servidor SMB. La `username` la opción especifica el administrador del dominio de confianza.
+
+* Dominio principal: example.com
+* Dominio de confianza: trust.lab.com
+* Nombre de usuario del dominio de confianza: Administrador1
+
+
+[listing]
+----
+cluster1::> vserver cifs create -vserver vs3.example.com -cifs-server smb_server03 -domain example.com
+
+Username: Administrator1@trust.lab.com
+Password: . . .
+----

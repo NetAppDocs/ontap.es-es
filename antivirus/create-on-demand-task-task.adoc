@@ -1,0 +1,73 @@
+---
+permalink: antivirus/create-on-demand-task-task.html 
+sidebar: sidebar 
+keywords: create, on-demand, task 
+summary: Una tarea bajo demanda define el alcance de un análisis bajo demanda. Puede especificar el tamaño máximo de los archivos que se van a analizar, las extensiones y rutas de acceso de los archivos que se van a incluir en el análisis, así como las extensiones y rutas de acceso de los archivos que se van a excluir del análisis. Los archivos de los subdirectorios se analizan de forma predeterminada. 
+---
+= Crear una tarea bajo demanda
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Una tarea bajo demanda define el alcance de un análisis bajo demanda. Puede especificar el tamaño máximo de los archivos que se van a analizar, las extensiones y rutas de acceso de los archivos que se van a incluir en el análisis, así como las extensiones y rutas de acceso de los archivos que se van a excluir del análisis. Los archivos de los subdirectorios se analizan de forma predeterminada.
+
+.Pasos
+. Crear una tarea bajo demanda:
++
+`vserver vscan on-demand-task create -vserver data_SVM -task-name task_name -scan-paths paths_of_files_to_scan -report-directory report_directory_path -report-expiry-time expiration_time_for_report -schedule cron_schedule -max-file-size max_size_of_files_to_scan -paths-to-exclude paths_of_files_to_exclude -file-ext-to-exclude extensions_of_files_to_exclude -file-ext-to-include extensions_of_files_to_include -scan-files-with-no-ext true|false -directory-recursion true|false`
+
++
+** La `-file-ext-to-exclude` el ajuste anula la `-file-ext-to-include` ajuste.
+** Configurado `-scan-files-with-no-ext` true para analizar archivos sin extensiones. Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
+
++
+El siguiente comando crea una tarea en tiempo de acceso denominada `Task1` en la ``vs1``SVM:
+
++
+[listing]
+----
+cluster1::> vserver vscan on-demand-task create -vserver vs1 -task-name Task1 -scan-paths "/vol1/","/vol2/cifs/" -report-directory "/report" -schedule daily -max-file-size 5GB -paths-to-exclude "/vol1/cold-files/" -file-ext-to-include "vmdk?","mp*" -file-ext-to-exclude "mp3","mp4" -scan-files-with-no-ext false
+[Job 126]: Vscan On-Demand job is queued. Use the "job show -id 126" command to view the status.
+----
++
+[NOTE]
+====
+Puede utilizar el `job show` comando para ver el estado del trabajo. Puede utilizar el `job pause` y.. `job resume` comandos para pausar y reiniciar el trabajo o el `job stop` comando para finalizar el trabajo.
+
+====
+. Compruebe que la tarea bajo demanda se ha creado: `vserver vscan on-demand-task show -instance data_SVM -task-name task_name`
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los detalles de `Task1` tarea:
+
++
+[listing]
+----
+cluster1::> vserver vscan on-demand-task show -instance vs1 -task-name Task1
+
+                           Vserver: vs1
+                         Task Name: Task1
+                List of Scan Paths: /vol1/, /vol2/cifs/
+             Report Directory Path: /report
+                      Job Schedule: daily
+Max File Size Allowed for Scanning: 5GB
+            File Paths Not to Scan: /vol1/cold-files/
+       File Extensions Not to Scan: mp3, mp4
+           File Extensions to Scan: vmdk?, mp*
+      Scan Files with No Extension: false
+           Request Service Timeout: 5m
+                    Cross Junction: true
+               Directory Recursion: true
+                     Scan Priority: low
+                  Report Log Level: info
+        Expiration Time for Report: -
+----
+
+
+.Después de terminar
+Debe habilitar el análisis en la SVM antes de que se ejecute la tarea programada.

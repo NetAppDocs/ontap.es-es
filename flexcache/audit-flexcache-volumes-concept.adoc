@@ -1,0 +1,33 @@
+---
+permalink: flexcache/audit-flexcache-volumes-concept.html 
+sidebar: sidebar 
+keywords: considerations, auditing, flexcache, volumes 
+summary: A partir de ONTAP 9.7, puede auditar eventos de acceso a archivos NFS en relaciones de FlexCache mediante la auditoría de ONTAP nativa y la gestión de políticas de archivos con FPolicy. No se admite FPolicy para FlexCache Volumes con SMB. La auditoría nativa y FPolicy se configuran y gestionan con los mismos comandos de la CLI que se utilizan para volúmenes de FlexVol. Sin embargo, FlexCache Volumes tiene un comportamiento diferente. 
+---
+= Consideraciones para auditar volúmenes de FlexCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.7, puede auditar eventos de acceso a archivos NFS en relaciones de FlexCache mediante la auditoría de ONTAP nativa y la gestión de políticas de archivos con FPolicy. No se admite FPolicy para FlexCache Volumes con SMB. La auditoría nativa y FPolicy se configuran y gestionan con los mismos comandos de la CLI que se utilizan para volúmenes de FlexVol. Sin embargo, FlexCache Volumes tiene un comportamiento diferente.
+
+* *Auditoría nativa*
++
+** No se puede usar un volumen de FlexCache como destino de los registros de auditoría.
+** Si desea auditar operaciones de lectura y escritura en volúmenes FlexCache, debe configurar la auditoría tanto en la SVM de caché como en la SVM de origen.
++
+Esto se debe a que las operaciones del sistema de archivos se auditan donde se procesan. Es decir, las lecturas se auditan en la SVM caché y las escrituras se auditan en la SVM de origen.
+
+** Para realizar el seguimiento del origen de las operaciones de escritura, el UUID de SVM y el MSID se agregan en el registro de auditoría para identificar el volumen FlexCache a partir del que se originó la escritura.
+** Aunque es posible establecer listas de control de acceso del sistema (SACL) en un archivo con los protocolos NFSv4 o SMB, los volúmenes de FlexCache solo admiten NFSv3. Por lo tanto, SACL sólo se puede establecer en el volumen de origen.
+
+
+* *FPolicy*
++
+** Aunque las escrituras en un volumen FlexCache se realizan en el volumen de origen, las configuraciones de FPolicy supervisan las escrituras en el volumen de caché. Esto es distinto a la auditoría nativa, en la que las escrituras se auditan en el volumen de origen.
+** Aunque ONTAP no requiere la misma configuración de FPolicy en SVM de caché y de origen, se recomienda poner en marcha dos configuraciones similares. Para ello, puede crear una nueva política de FPolicy para la caché, configurada como la de la SVM de origen, pero con el ámbito de la nueva política limitada a la SVM de caché.
+
+
+

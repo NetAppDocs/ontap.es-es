@@ -1,0 +1,42 @@
+---
+permalink: system-admin/ontap-implements-audit-logging-concept.html 
+sidebar: sidebar 
+keywords: ontap, implement, audit, logging, management, autosupport, ems, messages, log, cli, web, browser 
+summary: Las actividades de gestión registradas en el registro de auditoría se incluyen en los informes estándar de AutoSupport y determinadas actividades de registro se incluyen en los mensajes de EMS. También puede reenviar el registro de auditoría a los destinos que especifique y mostrar los archivos de registro de auditoría mediante la CLI o un explorador web. 
+---
+= Cómo implementa ONTAP el registro de auditoría
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Las actividades de gestión registradas en el registro de auditoría se incluyen en los informes estándar de AutoSupport y determinadas actividades de registro se incluyen en los mensajes de EMS. También puede reenviar el registro de auditoría a los destinos que especifique y mostrar los archivos de registro de auditoría mediante la CLI o un explorador web.
+
+A partir de ONTAP 9.11.1, es posible mostrar contenido del registro de auditoría mediante System Manager.
+
+A partir de la versión 9.12.1, los registros de auditoría están a prueba de manipulaciones, es decir, cualquier archivo de registro que registre una acción de administrador no se puede cambiar ni eliminar, ni siquiera las cuentas de administrador del clúster.
+
+ONTAP registra las actividades de gestión que se realizan en el clúster; por ejemplo, qué solicitud se emitió, el usuario que activó la solicitud, el método de acceso del usuario y la hora de la solicitud.
+
+Las actividades de gestión pueden ser uno de los siguientes tipos:
+
+* SET Requests, que suelen aplicarse a comandos o operaciones que no son de visualización
++
+** Estas solicitudes se emiten cuando se ejecuta un `create`, `modify`, o. `delete` por ejemplo.
+** Las solicitudes SET se registran de forma predeterminada.
+
+
+* OBTENGA solicitudes, que recuperan información y la muestran en la interfaz de gestión
++
+** Estas solicitudes se emiten cuando se ejecuta un `show` por ejemplo.
+** LAS solicitudes GET no se registran de forma predeterminada, pero puede controlar si GET Requests enviadas desde la CLI de ONTAP (`-cliget`) O desde las API de ONTAP (`-ontapiget`) se registran en el archivo.
+
+
+
+
+ONTAP actividades de gestión de registros en el `/mroot/etc/log/mlog/audit.log` archivo de un nodo. Los comandos de los tres shell para los comandos de la CLI -el clustershell, el nodeshell y el shell del sistema no interactivo (los comandos de shell del sistema interactivos no se registran)- así como los comandos de la API se registran aquí. Los registros de auditoría incluyen marcas de tiempo para mostrar si todos los nodos de un clúster están sincronizados con la hora.
+
+La `audit.log` El archivo es enviado por la herramienta AutoSupport a los destinatarios especificados. También es posible reenviar el contenido de manera segura a destinos externos que especifique; por ejemplo, un servidor de Splunk o syslog.
+
+La `audit.log` el archivo se gira diariamente. La rotación también ocurre cuando alcanza los 100 MB de tamaño y se conservan las 48 copias anteriores (con un máximo de 49 archivos). Cuando el archivo de auditoría realiza su rotación diaria, no se genera ningún mensaje EMS. Si el archivo de auditoría gira porque se supera el límite de tamaño de archivo, se genera un mensaje EMS.

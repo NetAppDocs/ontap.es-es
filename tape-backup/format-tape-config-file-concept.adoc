@@ -1,0 +1,166 @@
+---
+permalink: tape-backup/format-tape-config-file-concept.html 
+sidebar: sidebar 
+keywords: format, tape, configuration, file, vendor, id, product, compression, type, drive 
+summary: El formato de archivo de configuración de cinta consta de campos como el ID de proveedor, el ID de producto y los detalles de los tipos de compresión de una unidad de cinta. Este archivo también consta de campos opcionales para activar la función de carga automática de una unidad de cinta y cambiar los valores de tiempo de espera de comando de una unidad de cinta. 
+---
+= Formato del archivo de configuración de cinta
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El formato de archivo de configuración de cinta consta de campos como el ID de proveedor, el ID de producto y los detalles de los tipos de compresión de una unidad de cinta. Este archivo también consta de campos opcionales para activar la función de carga automática de una unidad de cinta y cambiar los valores de tiempo de espera de comando de una unidad de cinta.
+
+La siguiente tabla muestra el formato del archivo de configuración de cinta:
+
+|===
+| Elemento | Tamaño | Descripción 
+
+
+ a| 
+`vendor_id` (cadena)
+ a| 
+hasta 8 bytes
+ a| 
+El ID del proveedor según lo informa la `SCSI Inquiry` comando.
+
+
+
+ a| 
+`product_id`(cadena)
+ a| 
+hasta 16 bytes
+ a| 
+El ID de producto indicado por la `SCSI Inquiry` comando.
+
+
+
+ a| 
+`id_match_size`(número)
+ a| 
+ a| 
+El número de bytes del ID de producto que se va a utilizar para la coincidencia para detectar la unidad de cinta que se va a identificar, comenzando por el primer carácter del ID de producto en los datos de consulta.
+
+
+
+ a| 
+`vendor_pretty` (cadena)
+ a| 
+hasta 16 bytes
+ a| 
+Si este parámetro está presente, se especifica mediante la cadena mostrada por el comando, `storage tape show -device-names`; De lo contrario, se mostrará INQ_VENDOR_ID.
+
+
+
+ a| 
+`product_pretty`(cadena)
+ a| 
+hasta 16 bytes
+ a| 
+Si este parámetro está presente, se especifica mediante la cadena mostrada por el comando, `storage tape show -device-names`; De lo contrario, aparecerá INQ_PRODUCT_ID.
+
+|===
+[NOTE]
+====
+La `vendor_pretty` y.. `product_pretty` los campos son opcionales, pero si uno de estos campos tiene un valor, el otro también debe tener un valor.
+
+====
+En la siguiente tabla se explica la descripción, el código de densidad y el algoritmo de compresión de los distintos tipos de compresión, como `l`, `m`, `h`, y. `a`:
+
+|===
+| Elemento | Tamaño | Descripción 
+
+
+ a| 
+`{l | m | h | a}_description=(string)`
+ a| 
+hasta 24 bytes
+ a| 
+La cadena que se va a imprimir para el comando nodeshell, `sysconfig -t`, que describe las características de la configuración de densidad determinada.
+
+
+
+ a| 
+`{l | m | h | a}_density=(hex codes)`
+ a| 
+ a| 
+El código de densidad que se va a establecer en el descriptor de bloque de página del modo SCSI correspondiente al código de densidad deseado para l, m, h o a..
+
+
+
+ a| 
+`{l | m | h | a}_algorithm=(hex codes)`
+ a| 
+ a| 
+El algoritmo de compresión que se establecerá en la página del modo de compresión SCSI correspondiente al código de densidad y la característica de densidad deseada.
+
+|===
+En la siguiente tabla se describen los campos opcionales disponibles en el archivo de configuración de cinta:
+
+|===
+| Campo | Descripción 
+
+
+ a| 
+`autoload=(Boolean yes/no)`
+ a| 
+Este campo está establecido en `yes` si la unidad de cinta tiene una función de carga automática, es decir, después de insertar el cartucho de cinta, la unidad de cinta estará lista sin necesidad de ejecutar un `SCSI load` (unidad de arranque/parada). El valor predeterminado de este campo es `no`.
+
+
+
+ a| 
+`cmd_timeout_0x`
+ a| 
+Valor de tiempo de espera individual. Debe utilizar este campo sólo si desea especificar un valor de tiempo de espera diferente del que está utilizando como valor predeterminado el controlador de cinta. El archivo de ejemplo enumera los valores de tiempo de espera predeterminados del comando SCSI que utiliza la unidad de cinta. El valor de tiempo de espera puede expresarse en minutos (m), segundos (s) o milisegundos (ms).
+
+[NOTE]
+====
+No debe cambiar este campo.
+
+====
+|===
+Puede descargar y ver el archivo de configuración de cinta desde el sitio de soporte de NetApp.
+
+.Ejemplo de formato de archivo de configuración de cinta
+El formato de archivo de configuración de cinta para la unidad de cinta HP LTO5 ULTRIUM es el siguiente:
+
+`vendor_id`="HP"
+
+`product_id`="Ultrium 5-SCSI"
+
+`id_match_size`=9
+
+`vendor_pretty`="Hewlett-Packard"
+
+`product_pretty`="LTO-5"
+
+`l_description`="LTO-3(ro)/4 4/800 GB"
+
+`l_density`=0x00
+
+`l_algorithm`=0x00
+
+`m_description`="LTO-3(ro)/4 8/1600 GB cmp"
+
+`m_density`=0x00
+
+`m_algorithm`=0x01
+
+`h_description`="LTO-5 1600 GB"
+
+`h_density`=0x58
+
+`h_algorithm`=0x00
+
+`a_description`="LTO-5 3200 GB cmp"
+
+`a_density`=0x58
+
+`a_algorithm`=0x01
+
+`autoload`="sí"
+
+.Información relacionada
+https://mysupport.netapp.com/site/tools/tool-eula/5f4d322319c1ab1cf34fd063["Herramientas de NetApp: Archivos de configuración de dispositivos de cinta"]

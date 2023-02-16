@@ -1,0 +1,76 @@
+---
+permalink: encryption-at-rest/enable-external-key-management-96-later-hw-task.html 
+sidebar: sidebar 
+keywords: enabling, external key management, ontap 9.6, later, hw-based 
+summary: Puede utilizar uno o varios servidores KMIP para proteger las claves que utiliza el clúster para acceder a los datos cifrados. Se pueden conectar hasta cuatro servidores KMIP a un nodo. Se recomienda un mínimo de dos servidores para la redundancia y la recuperación ante desastres. 
+---
+= Habilitar gestión de claves externa en ONTAP 9.6 y posterior (basada en hardware)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar uno o varios servidores KMIP para proteger las claves que utiliza el clúster para acceder a los datos cifrados. Se pueden conectar hasta cuatro servidores KMIP a un nodo. Se recomienda un mínimo de dos servidores para la redundancia y la recuperación ante desastres.
+
+A partir de ONTAP 9.11.1, puede agregar hasta 3 servidores de claves secundarios por servidor de claves primario para crear un servidor de claves en clúster. Para obtener más información, consulte xref:configure-cluster-key-server-task.html[Configurar servidores de claves externas en cluster].
+
+.Antes de empezar
+* Deben haberse instalado el cliente KMIP SSL y los certificados de servidor.
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* Debe configurar el entorno de MetroCluster antes de configurar un gestor de claves externo.
+* En un entorno de MetroCluster, debe instalar el certificado SSL KMIP en ambos clústeres.
+
+
+.Pasos
+. Configure la conectividad del gestor de claves para el clúster:
++
+`+security key-manager external enable -vserver admin_SVM -key-servers host_name|IP_address:port,... -client-cert client_certificate -server-ca-cert server_CA_certificates+`
+
++
+[NOTE]
+====
+** La `security key-manager external enable` el comando sustituye al `security key-manager setup` comando. Puede ejecutar el `security key-manager external modify` comando para cambiar la configuración de gestión de claves externas. Para obtener una sintaxis de comando completa, consulte las páginas man.
+** En un entorno de MetroCluster, si va a configurar la gestión de claves externa para la SVM de administrador, debe repetir el `security key-manager external enable` en el clúster de partners.
+
+
+====
++
+El siguiente comando habilita la gestión de claves externas para `cluster1` con tres servidores de claves externas. El primer servidor de claves se especifica mediante su nombre de host y puerto, el segundo se especifica mediante una dirección IP y el puerto predeterminado, y el tercero se especifica mediante una dirección IPv6 y un puerto:
+
++
+[listing]
+----
+clusterl::> security key-manager external enable -key-servers ks1.local:15696,10.0.0.10,[fd20:8b1e:b255:814e:32bd:f35c:832c:5a09]:1234 -client-cert AdminVserverClientCert -server-ca-certs AdminVserverServerCaCert
+----
+. Compruebe que todos los servidores KMIP configurados están conectados:
++
+`security key-manager external show-status -node node_name -vserver SVM -key-server host_name|IP_address:port -key-server-status available|not-responding|unknown`
+
++
+[NOTE]
+====
+La `security key-manager external show-status` el comando sustituye al `security key-manager show -status` comando. Para obtener una sintaxis de comando completa, consulte la página man.
+
+====
++
+[listing]
+----
+cluster1::> security key-manager external show-status
+
+Node  Vserver  Key Server                                     Status
+----  -------  ---------------------------------------        -------------
+node1
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+node2
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+
+6 entries were displayed.
+----
+

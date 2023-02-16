@@ -1,0 +1,74 @@
+---
+sidebar: sidebar 
+permalink: s3-snapmirror/restore-remote-destination-task.html 
+keywords: restore a bucket from the destination storage VM remote cluster, source bucket data lost or corrupt, snapmirror restore, restore data, restore to destination bucket, remote cluster, snapmirror restore back up, snapmirror, bucket, restore to new bucket, storage vm, snapmirror data loss 
+summary: Si se pierden o dañan datos de un bloque de origen, se volverán a rellenar los datos mediante la restauración a partir de un bloque de destino. 
+---
+= Restaurar un bloque a partir de la máquina virtual de almacenamiento de destino (clúster remoto)
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+:toc-position: content
+
+
+[role="lead"]
+Si se pierden o dañan datos de un bloque de origen, se volverán a rellenar los datos mediante la restauración a partir de un bloque de destino.
+
+.Acerca de esta tarea
+Puede restaurar el bloque de destino en un bloque existente o en un bloque nuevo. El bloque de destino para la operación de restauración debe ser mayor que el espacio lógico usado del cucharón de destino.
+
+Si utiliza un bloque existente, debe estar vacío al iniciar una operación de restauración. La restauración no "rollback" de un bloque en el tiempo; más bien, rellena un bloque vacío con su contenido anterior.
+
+La operación de restauración debe iniciarse desde el clúster remoto.
+
+
+
+== Procedimiento de System Manager
+
+Restaure los datos de backup:
+
+. Haga clic en *Protección > Relaciones* y seleccione *S3 SnapMirror*.
+. Haga clic en image:icon_kabob.gif["icono más"] Y, a continuación, seleccione *Restaurar*.
+. En *Fuente*, seleccione *cucharón existente* (predeterminado) o *Nuevo cucharón*.
++
+** Para restaurar a un *segmento existente* (valor predeterminado), lleve a cabo las siguientes acciones:
++
+*** Seleccione la máquina virtual de almacenamiento y clúster para buscar el bloque existente.
+*** Seleccione el bloque existente.
+*** Copie y pegue el contenido del certificado de CA del servidor _destination_ S3.
+
+
+** Para restaurar a un *New Bucket*, introduzca los siguientes valores:
++
+*** El equipo virtual de clúster y almacenamiento para alojar el nuevo bloque.
+*** El nombre, la capacidad y el nivel de servicio de rendimiento del nuevo cucharón. Consulte link:../s3-config/storage-service-definitions-reference.html["Los niveles de servicio de almacenamiento"] si quiere más información.
+*** El contenido del certificado de CA del servidor _Destination_ S3.
+
+
+
+
+. En *destino*, copie y pegue el contenido del certificado de CA del servidor _source_ S3.
+. Haga clic en *Protección > Relaciones* para supervisar el progreso de la restauración.
+
+
+
+
+== Procedimiento de la CLI
+
+. Si va a restaurar a un nuevo bloque, cree el nuevo bloque. Para obtener más información, consulte link:create-cloud-backup-new-bucket-task.html["Crear una relación de backup para un bloque nuevo (destino cloud)"].
+. Inicie una operación de restauración para el bloque de destino:
+`snapmirror restore -source-path _svm_name_:/bucket/_bucket_name_  -destination-path _svm_name_:/bucket/_bucket_name_`
+
+
+.Ejemplo
+[listing]
+----
+dest_cluster::> snapmirror restore -source-path src_vs1:/bucket/test-bucket -destination-path dest_vs1:/bucket/test-bucket-mirror
+----

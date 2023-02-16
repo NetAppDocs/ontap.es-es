@@ -1,0 +1,51 @@
+---
+permalink: nas-audit/fpolicy-passthrough-read-enhances-usability-concept.html 
+sidebar: sidebar 
+keywords: fpolicy, passthrough-read, enhances, usability, hierarchical, storage management 
+summary: 'La lectura de paso a través permite que el servidor FPolicy (funcionando como servidor de gestión de almacenamiento jerárquico (HSM) proporcione acceso de lectura a archivos sin tener que recuperar el archivo desde el sistema de almacenamiento secundario al sistema de almacenamiento primario.' 
+---
+= Cómo la lectura de traspaso de FPolicy mejora la capacidad de uso para la gestión de almacenamiento jerárquica
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La lectura de paso a través permite que el servidor FPolicy (funcionando como servidor de gestión de almacenamiento jerárquico (HSM) proporcione acceso de lectura a archivos sin tener que recuperar el archivo desde el sistema de almacenamiento secundario al sistema de almacenamiento primario.
+
+Cuando un servidor FPolicy se configura para proporcionar HSM a archivos que residen en un servidor SMB, la migración de archivos basada en políticas se produce cuando los archivos se almacenan sin conexión en un almacenamiento secundario y solo queda un archivo stub en el almacenamiento principal. Aunque un archivo stub aparece como un archivo normal para los clientes, en realidad es un archivo sparse que tiene el mismo tamaño del archivo original. El archivo sparse tiene el bit de SMB sin conexión y apunta al archivo real que se ha migrado al almacenamiento secundario.
+
+Normalmente, cuando se recibe una solicitud de lectura de un archivo sin conexión, el contenido solicitado debe volver a recuperarse en el almacenamiento principal y, a continuación, acceder a él a través del almacenamiento principal. La necesidad de recuperar los datos en el almacenamiento primario produce varios efectos no deseados. Entre los efectos no deseables se encuentra el aumento de la latencia a las solicitudes de los clientes, debido a la necesidad de recuperar el contenido antes de responder a la solicitud y al aumento del consumo de espacio necesario para los ficheros recuperados del almacenamiento primario.
+
+La lectura de paso a través de FPolicy permite al servidor HSM (el servidor FPolicy) proporcionar acceso de lectura a archivos sin tener que recuperar el archivo del sistema de almacenamiento secundario al sistema de almacenamiento principal. En lugar de recuperar los ficheros de nuevo al almacenamiento primario, las solicitudes de lectura se pueden atender directamente desde un almacenamiento secundario.
+
+[NOTE]
+====
+La operación de lectura pasada de FPolicy no admite la descarga de copias (ODX).
+
+====
+La lectura a través de la contraseña mejora la facilidad de uso, ya que proporciona las siguientes ventajas:
+
+* Se pueden atender las solicitudes de lectura incluso si el almacenamiento primario no tiene espacio suficiente para recuperar los datos solicitados de vuelta al almacenamiento primario.
+* Mejor gestión de la capacidad y el rendimiento cuando se puede producir un aumento de la recuperación de datos, como si un script o una solución de backup necesitan acceder a numerosos ficheros sin conexión.
+* Se pueden atender las solicitudes de lectura de archivos sin conexión en copias snapshot.
++
+Debido a que las copias Snapshot son de sólo lectura, el servidor FPolicy no puede restaurar el archivo original si el archivo stub se encuentra en una copia snapshot. El uso de la lectura de paso a través elimina este problema.
+
+* Las políticas se pueden configurar para controlar cuándo se atienden las solicitudes de lectura a través del acceso al archivo en el almacenamiento secundario y cuándo debe recuperarse el archivo sin conexión en el almacenamiento primario.
++
+Por ejemplo, se puede crear una directiva en el servidor HSM que especifique el número de veces que se puede acceder al archivo sin conexión en un periodo de tiempo especificado antes de que se vuelva a migrar al almacenamiento primario. Este tipo de directiva evita recuperar archivos a los que rara vez se accede.
+
+
+
+
+
+== Cómo se gestionan las solicitudes de lectura cuando se habilita la lectura de traspaso de FPolicy
+
+Debe comprender cómo se gestionan las solicitudes de lectura cuando se habilita FPolicy de paso a través de lectura para que pueda configurar de forma óptima la conectividad entre la máquina virtual de almacenamiento (SVM) y los servidores FPolicy.
+
+Cuando la lectura de paso a través de FPolicy está habilitada y la SVM recibe una solicitud de archivo sin conexión, FPolicy envía una notificación al servidor FPolicy (servidor HSM) a través del canal de conexión estándar.
+
+Después de recibir la notificación, el servidor FPolicy lee los datos de la ruta de archivo enviada en la notificación y envía los datos solicitados a la SVM a través de la conexión de datos con privilegios de lectura de paso a paso establecida entre la SVM y el servidor FPolicy.
+
+Una vez enviados los datos, el servidor FPolicy responde a la solicitud de lectura como UN PERMISO o DENEGACIÓN. En función de si se permite o deniega la solicitud de lectura, ONTAP enviará la información solicitada o enviará un mensaje de error al cliente.

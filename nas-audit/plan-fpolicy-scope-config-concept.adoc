@@ -1,0 +1,173 @@
+---
+permalink: nas-audit/plan-fpolicy-scope-config-concept.html 
+sidebar: sidebar 
+keywords: plan, fpolicy, scope, configuration 
+summary: Antes de configurar el ámbito de FPolicy, debe comprender qué significa para crear un ámbito. Debe comprender qué contiene la configuración del ámbito. También debe comprender cuáles son las reglas de alcance de prioridad. Esta información puede ayudarle a planificar los valores que desea establecer. 
+---
+= Planifique la información general de configuración del alcance de FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de configurar el ámbito de FPolicy, debe comprender qué significa para crear un ámbito. Debe comprender qué contiene la configuración del ámbito. También debe comprender cuáles son las reglas de alcance de prioridad. Esta información puede ayudarle a planificar los valores que desea establecer.
+
+
+
+== Qué significa crear un alcance de FPolicy
+
+Crear el ámbito de FPolicy significa definir los límites en los que se aplica la política de FPolicy. La máquina virtual de almacenamiento (SVM) es el límite básico. Cuando se crea un alcance para una política de FPolicy, debe definir la política de FPolicy a la que se aplicará y debe designar a las SVM que desee aplicar el alcance.
+
+Hay una serie de parámetros que restringen aún más el ámbito dentro de la SVM especificada. Puede restringir el ámbito especificando qué incluir en el ámbito o especificando qué excluir del ámbito. Después de aplicar un ámbito a una política habilitada, las comprobaciones de eventos de política se aplican al ámbito definido por este comando.
+
+Se generan notificaciones para eventos de acceso a archivos en los que se encuentran coincidencias en las opciones de «incluir». No se generan notificaciones para eventos de acceso a archivos en los que se encuentran coincidencias en las opciones "'exclude'".
+
+La configuración del alcance de FPolicy define la siguiente información de configuración:
+
+* Nombre de SVM
+* Nombre de la política
+* Los recursos compartidos que se van a incluir o excluir de lo que se supervisa
+* Las políticas de exportación que se van a incluir o excluir de lo que se supervise
+* Los volúmenes que se van a incluir o excluir de lo que se supervise
+* Extensiones de archivo que se van a incluir o excluir de lo que se supervisa
+* Si se realizan comprobaciones de extensión de archivo en objetos de directorio
+
+
+[NOTE]
+====
+Existen consideraciones especiales para el ámbito de una política de FPolicy de clúster. La política de FPolicy del clúster es una política que el administrador de clúster crea para la SVM de administrador. Si el administrador de clúster también crea el ámbito para esa política de FPolicy de clúster, el administrador de SVM no puede crear un ámbito para esa misma política. Sin embargo, si el administrador de clúster no crea un ámbito para la política de FPolicy de clúster, todos los administradores de SVM pueden crear el ámbito para esa política de clúster. Si el administrador de SVM crea un ámbito para esa política de FPolicy de clúster, el administrador de clúster no podrá crear posteriormente un alcance de clúster para esa misma política de clúster. Esto se debe a que el administrador de clúster no puede anular el ámbito de la misma política de clúster.
+
+====
+
+
+== Cuáles son las reglas de alcance de prioridad
+
+Las siguientes reglas de prioridad se aplican a las configuraciones del ámbito:
+
+* Cuando se incluye un recurso compartido en la `-shares-to-include` el parámetro y el volumen principal del recurso compartido se incluyen en la `-volumes-to-exclude` parámetro, `-volumes-to-exclude` tiene precedencia `-shares-to-include`.
+* Cuando se incluye una política de exportación en la `-export-policies-to-include` el parámetro y el volumen principal de la política de exportación se incluyen en la `-volumes-to-exclude` parámetro, `-volumes-to-exclude` tiene precedencia `-export-policies-to-include`.
+* Un administrador puede especificar ambas opciones `-file-extensions-to-include` y.. `-file-extensions-to-exclude` listas.
++
+La `-file-extensions-to-exclude` el parámetro se comprueba antes de la `-file-extensions-to-include` el parámetro está seleccionado.
+
+
+
+
+
+== Lo que contiene la configuración del alcance de FPolicy
+
+Es posible usar la siguiente lista de parámetros de configuración del ámbito de FPolicy disponibles para ayudar a planificar la configuración:
+
+[NOTE]
+====
+Al configurar qué recursos compartidos, políticas de exportación, volúmenes y extensiones de archivo incluir o excluir del ámbito, los parámetros incluir y excluir pueden contener expresiones regulares y pueden incluir metacaracteres como ""?`" and "`*'".
+
+====
+[cols="70,30"]
+|===
+
+
+| Tipo de información | Opción 
+
+
+ a| 
+_SVM_
+
+Especifica el nombre de la SVM donde desea crear un alcance de FPolicy.
+
+Cada configuración de FPolicy se define dentro de una única SVM. El motor externo, el evento de políticas, el ámbito de políticas y la política que se combinan para crear una configuración de políticas de FPolicy deben estar todos asociados con la misma SVM.
+ a| 
+`-vserver` `vserver_name`
+
+
+
+ a| 
+_Nombre de directiva_
+
+Especifica el nombre de la política de FPolicy a la que desea asociar el ámbito. Debe haber la política de FPolicy.
+ a| 
+`-policy-name` `policy_name`
+
+
+
+ a| 
+_Acciones a incluir_
+
+Especifica una lista de recursos compartidos delimitados por comas que se van a supervisar la política de FPolicy a la que se aplica el ámbito.
+ a| 
+`-shares-to-include` `share_name`, ...
+
+
+
+ a| 
+_Acciones para excluir_
+
+Especifica una lista de recursos compartidos delimitados por comas que se van a excluir de la supervisión de la política de FPolicy a la que se aplica el ámbito.
+ a| 
+`-shares-to-exclude` `share_name`, ...
+
+
+
+ a| 
+_Volumes to include_ especifica una lista de volúmenes delimitada por comas que supervisar la política de FPolicy a la que se aplica el ámbito.
+ a| 
+`-volumes-to-include` `volume_name`, ...
+
+
+
+ a| 
+_Volúmenes para excluir_
+
+Especifica una lista delimitada por comas de volúmenes que se van a excluir de la supervisión de la política de FPolicy a la que se aplica el ámbito.
+ a| 
+`-volumes-to-exclude` `volume_name`, ...
+
+
+
+ a| 
+_Export Policies to include_
+
+Especifica una lista delimitada por comas de políticas de exportación que se deben supervisar para la directiva de FPolicy a la que se aplica el ámbito.
+ a| 
+`-export-policies-to-include` `export_policy_name`, ...
+
+
+
+ a| 
+_Exportar directivas para excluir_
+
+Especifica una lista delimitada por comas de políticas de exportación que se van a excluir de la supervisión de la directiva de FPolicy a la que se aplica el ámbito.
+ a| 
+`-export-policies-to-exclude` `export_policy_name`, ...
+
+
+
+ a| 
+_Extensiones de archivo para incluir_
+
+Especifica una lista delimitada por comas de extensiones de archivo que se va a supervisar para la directiva de FPolicy a la que se aplica el ámbito.
+ a| 
+`-file-extensions-to-include` `file_extensions`, ...
+
+
+
+ a| 
+_Extensión de archivo para excluir_
+
+Especifica una lista delimitada por comas de extensiones de archivo que se van a excluir de la supervisión de la directiva de FPolicy a la que se aplica el ámbito.
+ a| 
+`-file-extensions-to-exclude` `file_extensions`, ...
+
+
+
+ a| 
+_Es la comprobación de la extensión del archivo en el directorio activado ?_
+
+Especifica si las comprobaciones de extensión de nombre de archivo también se aplican a los objetos de directorio. Si este parámetro se establece en `true`, los objetos de directorio están sujetos a las mismas comprobaciones de extensión que los archivos normales. Si este parámetro se establece en `false`, los nombres de directorio no coinciden para las extensiones y las notificaciones se envían para los directorios aunque sus extensiones de nombre no coincidan.
+
+Si la política de FPolicy a la que se asigna el ámbito está configurada para usar el motor nativo, este parámetro debe configurarse en `true`.
+ a| 
+`-is-file-extension-check-on-directories-enabled` {`true`| `false`|}
+
+|===

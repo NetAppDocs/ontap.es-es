@@ -1,0 +1,101 @@
+---
+permalink: antivirus/create-scanner-pools-disaster-recovery-mcc-task.html 
+sidebar: sidebar 
+keywords: create, scanner pools, metrocluster, configurations 
+summary: Debe crear pools de análisis primarios y secundarios en cada clúster en una configuración de MetroCluster que corresponda a las SVM primarias y secundarias en el clúster. 
+---
+= Crear grupos de escáneres en configuraciones de MetroCluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe crear pools de análisis primarios y secundarios en cada clúster en una configuración de MetroCluster que corresponda a las SVM primarias y secundarias en el clúster.
+
+.Lo que necesitará
+* Los SVM y los servidores Vscan deben estar en el mismo dominio o en dominios de confianza.
+* Para los pools de análisis definidos para una SVM individual, debe haber configurado el conector antivirus ONTAP con la LIF de gestión de SVM o la LIF de datos de SVM.
+* Para los pools de análisis definidos para todas las SVM de un clúster, debe haber configurado el conector antivirus de ONTAP con la LIF de gestión del clúster.
+
+
+.Acerca de esta tarea
+Las configuraciones de MetroCluster protegen los datos mediante la implementación de dos clústeres reflejados físicamente independientes. Cada clúster replica de forma síncrona los datos y la configuración de SVM del otro. Una SVM primaria en el clúster local proporciona datos cuando el clúster está en línea. Una SVM secundaria en el clúster local proporciona datos cuando el clúster remoto está sin conexión.
+
+Esto significa que debe crear pools de análisis primarios y secundarios en cada clúster de una configuración de MetroCluster que correspondan a las SVM primaria y secundaria en el clúster. El pool secundario pasa a estar activo cuando el clúster comienza a servir datos de la SVM secundaria. En la siguiente ilustración, se muestra una configuración de MetroCluster típica.
+
+image::../media/metrocluster-av-config.gif[MetroCluster av config]
+
+[NOTE]
+====
+La lista de usuarios con privilegios debe incluir la cuenta de usuario de dominio que el servidor Vscan utiliza para conectarse a la SVM.
+
+====
+.Pasos
+. Crear un grupo de escáneres:
++
+`vserver vscan scanner-pool create -vserver _data_SVM|cluster_admin_SVM_ -scanner-pool _scanner_pool_ -hostnames _Vscan_server_hostnames_ -privileged-users _privileged_users_`
+
++
+** Especifique una SVM de datos para un pool definido para una SVM individual y especifique una SVM de administrador de clúster para un pool definido para todas las SVM de un clúster.
+** Especifique una dirección IP o FQDN para cada nombre de host del servidor Vscan.
+** Especifique el dominio y el nombre de usuario de cada usuario con privilegios.
+
+
++
+[NOTE]
+====
+Debe crear todos los pools de escáner desde el clúster que contiene la SVM principal.
+
+====
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+Los siguientes comandos crean pools de análisis principales y secundarios en cada clúster en una configuración de MetroCluster:
+
++
+[listing]
+----
+cluster1::> vserver vscan scanner-pool create -vserver cifssvm1 -
+scanner-pool pool1_for_site1 -hostnames scan1 -privileged-users cifs
+\u1,cifs\u2
+
+cluster1::> vserver vscan scanner-pool create -vserver cifssvm1 -
+scanner-pool pool1_for_site2 -hostnames scan1 -privileged-users cifs
+\u1,cifs\u2
+
+cluster1::> vserver vscan scanner-pool create -vserver cifssvm1 -
+scanner-pool pool2_for_site1 -hostnames scan2 -privileged-users cifs
+\u1,cifs\u2
+
+cluster1::> vserver vscan scanner-pool create -vserver cifssvm1 -
+scanner-pool pool2_for_site2 -hostnames scan2 -privileged-users cifs
+\u1,cifs\u2
+----
+. Compruebe que se han creado los grupos de escáneres: `vserver vscan scanner-pool show -vserver _data_SVM|cluster_admin_SVM_ -scanner-pool _scanner_pool_`
++
+Para obtener una lista completa de las opciones, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los detalles del grupo de escáneres `pool1`:
+
++
+[listing]
+----
+cluster1::> vserver vscan scanner-pool show -vserver cifssvm1 -scanner-pool pool1_for_site1
+
+                                    Vserver: cifssvm1
+                               Scanner Pool: pool1_for_site1
+                             Applied Policy: idle
+                             Current Status: off
+         Cluster on Which Policy Is Applied: -
+                  Scanner Pool Config Owner: vserver
+       List of IPs of Allowed Vscan Servers:
+List of Host Names of Allowed Vscan Servers: scan1
+                   List of Privileged Users: cifs\u1,cifs\u2
+----
++
+También puede utilizar el `vserver vscan scanner-pool show` Comando para ver todos los pools de análisis de una SVM. Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
+

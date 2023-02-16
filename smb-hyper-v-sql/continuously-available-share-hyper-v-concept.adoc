@@ -1,0 +1,62 @@
+---
+permalink: smb-hyper-v-sql/continuously-available-share-hyper-v-concept.html 
+sidebar: sidebar 
+keywords: share, requirements, continuously, share, consideration, hyper, v, smb, nondiruptive, operation 
+summary: Debe tener en cuenta ciertos requisitos y consideraciones a la hora de configurar recursos compartidos disponibles de forma continua para configuraciones de Hyper-V en SMB que admiten operaciones no disruptivas. 
+---
+= Disponibilidad continua de los requisitos de recursos compartidos y consideraciones para Hyper-V en SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe tener en cuenta ciertos requisitos y consideraciones a la hora de configurar recursos compartidos disponibles de forma continua para configuraciones de Hyper-V en SMB que admiten operaciones no disruptivas.
+
+
+
+== Comparta los requisitos
+
+* Los recursos compartidos utilizados por los servidores de aplicaciones deben configurarse con el conjunto de propiedades continuamente disponibles.
++
+Los servidores de aplicaciones que se conectan a recursos compartidos disponibles de forma continua reciben controladores persistentes que les permiten volver a conectarse de forma no disruptiva a recursos compartidos de SMB y reclamar bloqueos de archivos tras eventos disruptivos como la toma de control, el retorno al nodo primario y la reubicación de agregados.
+
+* Si desea utilizar los servicios de backup habilitados para VSS remoto, no podrá colocar los archivos Hyper-V en los recursos compartidos que contienen uniones.
++
+En el caso de recuperación automática, se produce un error en la creación de instantáneas si se encuentra una unión mientras se pasa por el recurso compartido. En el caso no de recuperación automática, la creación de copias redundantes no falla, pero la unión no apunta a nada.
+
+* Si desea utilizar servicios de backup habilitados para VSS remoto con recuperación automática, no puede colocar los archivos de Hyper-V en recursos compartidos que contengan lo siguiente:
++
+** Enlaces simbólicos, enlaces duros o enlaces con cables
+** Archivos no regulares
++
+La creación de instantáneas falla si hay vínculos o archivos no regulares en el recurso compartido a instantáneas. Este requisito solo se aplica a copias instantáneas con recuperación automática.
+
+** Para que las operaciones de copia oculta se realicen correctamente, debe tener suficiente espacio disponible en el volumen (solo para Hyper-V en SMB).
++
+El espacio disponible debe ser al menos tan grande como el espacio combinado utilizado por todos los archivos, directorios y subdirectorios contenidos en los recursos compartidos incluidos en el conjunto de copia de seguridad de instantánea. Este requisito solo se aplica a copias instantáneas con recuperación automática.
+
+
+
+* Las siguientes propiedades compartidas no deben definirse en recursos compartidos disponibles continuamente que utilizan los servidores de aplicaciones:
++
+** Directorio inicial
+** Almacenamiento de atributos en caché
+** BranchCache
+
+
+
+
+
+
+== Consideraciones
+
+* Las cuotas están soportadas por recursos compartidos constantemente disponibles.
+* La siguiente funcionalidad no es compatible con las configuraciones de Hyper-V mediante SMB:
++
+** Auditoría
+** FPolicy
+
+
+* La detección de virus no se realiza en recursos compartidos de SMB con el `continuously-availability` parámetro establecido en `Yes`.
+

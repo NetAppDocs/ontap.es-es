@@ -1,0 +1,114 @@
+---
+permalink: data-protection/create-custom-replication-policy-concept.html 
+sidebar: sidebar 
+keywords: create, custom, replication, policy 
+summary: Puede crear una directiva de replicación personalizada si la directiva predeterminada para una relación no es adecuada. Puede que desee comprimir datos en una transferencia de red, por ejemplo, o modificar el número de intentos que realiza SnapMirror para transferir copias Snapshot. 
+---
+= Cree una política de replicación personalizada
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede crear una directiva de replicación personalizada si la directiva predeterminada para una relación no es adecuada. Puede que desee comprimir datos en una transferencia de red, por ejemplo, o modificar el número de intentos que realiza SnapMirror para transferir copias Snapshot.
+
+Puede usar una directiva predeterminada o personalizada al crear una relación de replicación. Para un archivo personalizado (anteriormente SnapVault) o una política de replicación unificada, debe definir una o más _rules_ que determinen qué copias Snapshot se transfieren durante la inicialización y la actualización. También es posible que desee definir una programación para crear copias Snapshot locales en el destino.
+
+El _policy type_ de la directiva de replicación determina el tipo de relación que admite. En la siguiente tabla se muestran los tipos de directivas disponibles.
+
+[cols="2*"]
+|===
+
+
+| Tipo de política | Tipo de relación 
+
+
+ a| 
+reflejo asíncrono
+ a| 
+Recuperación ante desastres de SnapMirror
+
+
+
+ a| 
+almacén
+ a| 
+SnapVault
+
+
+
+ a| 
+mirror-vault
+ a| 
+Replicación unificada
+
+
+
+ a| 
+estricto-síncrono-mirror
+ a| 
+SnapMirror Synchronous en el modo StrictSync (compatible empezando con ONTAP 9.5)
+
+
+
+ a| 
+reflejo síncrono
+ a| 
+SnapMirror Synchronous en el modo Sync (admitido empezando por ONTAP 9.5)
+
+|===
+[TIP]
+====
+Al crear una directiva de replicación personalizada, es una buena idea modelar la directiva después de una directiva predeterminada.
+
+====
+.Paso
+. Cree una política de replicación personalizada:
++
+`snapmirror policy create -vserver _SVM_ -policy _policy_ -type async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror -comment _comment_ -tries _transfer_tries_ -transfer-priority low|normal -is-network-compression-enabled true|false`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+A partir de ONTAP 9.5, puede especificar la programación para crear una programación de copia Snapshot común para relaciones de SnapMirror síncrono mediante la `-common-snapshot-schedule` parámetro. De forma predeterminada, la programación común de copias de Snapshot para relaciones de SnapMirror síncrono es una hora. Puede especificar un valor de 30 minutos a dos horas para la programación de la copia de Snapshot para las relaciones de SnapMirror Synchronous.
+
++
+En el ejemplo siguiente se crea una política de replicación personalizada para la recuperación ante desastres de SnapMirror que permite la compresión de red para las transferencias de datos:
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy DR_compressed -type async-mirror -comment “DR with network compression enabled” -is-network-compression-enabled true
+----
++
+En el ejemplo siguiente se crea una política de replicación personalizada para SnapVault:
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy my_snapvault -type vault
+----
++
+En el ejemplo siguiente se crea una política de replicación personalizada para la replicación unificada:
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy my_unified -type mirror-vault
+----
++
+En el ejemplo siguiente se crea una política de replicación personalizada para la relación de SnapMirror Synchronous en el modo StrictSync:
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy my_strictsync -type strict-sync-mirror -common-snapshot-schedule my_sync_schedule
+----
+
+
+.Después de terminar
+En el caso de los tipos de políticas «'vault» y «mercado», deberá definir las reglas que determinen las copias snapshot que se transfieren durante la inicialización y actualización.
+
+Utilice la `snapmirror policy show` Comando para comprobar que la política de SnapMirror se ha creado. Para obtener una sintaxis de comando completa, consulte la página man.

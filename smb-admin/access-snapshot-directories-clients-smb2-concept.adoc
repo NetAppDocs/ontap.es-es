@@ -1,0 +1,53 @@
+---
+permalink: smb-admin/access-snapshot-directories-clients-smb2-concept.html 
+sidebar: sidebar 
+keywords: method, access, snapshot, directory, windows, client, smb, data, store, copies, copy, how to access the snapshot directory from windows clients using smb 2.x 
+summary: El método que utiliza para acceder al directorio ~snapshot desde clientes de Windows que utilizan SMB 2.x difiere del método utilizado para SMB 1.0. Necesita comprender cómo acceder al directorio ~Snapshot cuando se utilizan conexiones SMB 2.x para acceder correctamente a los datos almacenados en copias de Snapshot. 
+---
+= Acceda al directorio ~snapshot desde clientes de Windows mediante SMB 2.x.
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El método que utiliza para acceder a `~snapshot` el directorio de clientes de Windows que utilizan SMB 2.x difiere del método utilizado para SMB 1.0. Debe comprender cómo acceder al `~snapshot` directorio al utilizar las conexiones SMB 2.x para acceder correctamente a los datos almacenados en copias Snapshot.
+
+El administrador de SVM controla si los usuarios de clientes de Windows pueden ver y acceder a `~snapshot` active o desactive el directorio en un recurso compartido `showsnapshot` comparta la propiedad mediante comandos de las familias de propiedades compartidas cifs del vserver.
+
+Cuando la `showsnapshot` La propiedad Share está deshabilitada, un usuario de un cliente Windows que utilice SMB 2.x no puede ver la `~snapshot` Y no puede acceder a las copias Snapshot dentro de la `~snapshot` directorio, incluso cuando se introduce manualmente la ruta de acceso al `~snapshot` directorio o a copias Snapshot específicas dentro del directorio.
+
+Cuando la `showsnapshot` La propiedad Share está habilitada; un usuario de un cliente Windows que utilice SMB 2.x todavía no puede ver la `~snapshot` directorio en la raíz del recurso compartido o dentro de cualquier unión o directorio debajo de la raíz del recurso compartido. Sin embargo, después de conectarse a un recurso compartido, el usuario puede acceder al oculto `~snapshot` directorio anexando manualmente `\~snapshot` al final de la ruta de uso compartido. El oculto `~snapshot` se puede acceder al directorio desde dos puntos de entrada:
+
+* En la raíz del recurso compartido
+* En cada punto de unión del espacio compartido
+
+
+El oculto `~snapshot` no se puede acceder al directorio desde los subdirectorios que no son de unión dentro del recurso compartido.
+
+.Ejemplo
+Con la configuración que se muestra en el ejemplo siguiente, un usuario de un cliente Windows con una conexión SMB 2.x al recurso compartido «'eng'» puede acceder al `~snapshot` directorio anexando manualmente `\~snapshot` a la ruta de uso compartido en la raíz del recurso compartido y en cada punto de unión del camino. El oculto `~snapshot` se puede acceder al directorio desde las tres rutas siguientes:
+
+* `\\vs1\eng\~snapshot`
+* `\\vs1\eng\projects1\~snapshot`
+* `\\vs1\eng\projects2\~snapshot`
+
+
+[listing]
+----
+cluster1::> volume show -vserver vs1 -fields volume,junction-path
+vserver volume       junction-path
+------- ------------ ----------------------------------------
+vs1     vs1_root      /
+vs1     vs1_vol1      /eng
+vs1     vs1_vol2      /eng/projects1
+vs1     vs1_vol3      /eng/projects2
+
+cluster1::> vserver cifs share show
+Vserver  Share   Path     Properties    Comment  ACL
+-------- ------  -------  ----------    -------- ----------
+vs1      eng     /eng     oplocks       -        Everyone / Full Control
+                          changenotify
+                          browsable
+                          showsnapshot
+----

@@ -1,0 +1,163 @@
+---
+permalink: element-replication/reactivate-original-source-volume-task.html 
+sidebar: sidebar 
+keywords: reactivate. original, source, volume 
+summary: Puede restablecer la relación de protección de datos original entre los volúmenes de origen y destino cuando ya no necesite servir datos desde el destino. 
+---
+= Vuelva a activar el volumen de origen original
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede restablecer la relación de protección de datos original entre los volúmenes de origen y destino cuando ya no necesite servir datos desde el destino.
+
+.Acerca de esta tarea
+En el siguiente procedimiento se asume que la línea base del volumen de origen original está intacta. Si la base de referencia no está intacta, debe crear e inicializar la relación entre el volumen desde el que se sirven datos y el volumen de origen original antes de realizar el procedimiento.
+
+Debe especificar la ruta de origen del elemento en el formulario `_hostip:_/lun/_name_`, donde «'lun'» es la cadena real «'lun'» y. `name` Es el nombre del volumen de Element.
+
+A partir de ONTAP 9.4, las copias Snapshot de una LUN creada mientras ofrece datos del destino de ONTAP se replican automáticamente cuando la fuente de Element se reactiva.
+
+Las reglas de replicación son las siguientes:
+
+* Solo se admiten LUN iSCSI.
+* No es posible replicar más de un LUN desde un volumen de ONTAP a un volumen de Element.
+* No es posible replicar un LUN desde un volumen de ONTAP a varios volúmenes de Element.
+
+
+.Pasos
+. Elimine la relación de protección de datos original:
++
+`snapmirror delete -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _hostip:_/lun/_name_ -policy _policy_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se elimina la relación entre el volumen de origen original, `0005` En la dirección IP 10.0.0.11 y el volumen desde el que se proporcionan datos, `volA_dst` encendido `svm_backup`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror delete -source-path 10.0.0.11:/lun/0005 -policy MirrorLatest -destination-path svm_backup:volA_dst
+----
+. Invierta la relación de protección de datos original:
++
+`snapmirror resync -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _hostip:_/lun/_name_ -policy _policy_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+Aunque la resincronización no requiere una transferencia básica, puede requerir mucho tiempo. Puede que desee ejecutar la resincronización en horas de menor actividad.
+
++
+En el siguiente ejemplo, se revierte la relación entre el volumen de origen original, `0005` En la dirección IP 10.0.0.11 y el volumen desde el que se proporcionan datos, `volA_dst` encendido `svm_backup`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror resync -source-path svm_backup:volA_dst -destination-path 10.0.0.11:/lun/0005 -policy MirrorLatest
+----
+. Actualice la relación de inversión:
++
+`snapmirror update -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _hostip:_/lun/_name_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[NOTE]
+====
+El comando genera errores si no existe una copia Snapshot común en el origen y el destino. Uso `snapmirror initialize` para volver a inicializar la relación.
+
+====
++
+En el siguiente ejemplo, se actualiza la relación entre el volumen desde el que se proporcionan datos, `volA_dst` encendido `svm_backup`, y el volumen de origen original, `0005` En la dirección IP 10.0.0.11:
+
++
+[listing]
+----
+cluster_dst::> snapmirror update -source-path svm_backup:volA_dst -destination-path 10.0.0.11:/lun/0005
+----
+. Detenga las transferencias programadas para la relación de inversión:
++
+`snapmirror quiesce -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _hostip:_/lun/_name_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se detienen las transferencias programadas entre el volumen desde el que se proporcionan datos: `volA_dst` encendido `svm_backup`, y el volumen de origen original, `0005` En la dirección IP 10.0.0.11:
+
++
+[listing]
+----
+cluster_dst::> snapmirror quiesce -source-path svm_backup:volA_dst -destination-path 10.0.0.11:/lun/0005
+----
+. Detenga las transferencias continuas para la relación de inversión:
++
+`snapmirror abort -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _hostip:_/lun/_name_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+El ejemplo siguiente detiene las transferencias continuas entre el volumen desde el que ofrece datos, `volA_dst` encendido `svm_backup`, y el volumen de origen original, `0005` En la dirección IP 10.0.0.11:
+
++
+[listing]
+----
+cluster_dst::> snapmirror abort -source-path svm_backup:volA_dst -destination-path 10.0.0.11:/lun/0005
+----
+. Rompa la relación inversa:
++
+`snapmirror break -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _hostip:_/lun/_name_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se rompe la relación entre el volumen desde el que se proporcionan datos, `volA_dst` encendido `svm_backup`, y el volumen de origen original, `0005` En la dirección IP 10.0.0.11:
+
++
+[listing]
+----
+cluster_dst::> snapmirror break -source-path svm_backup:volA_dst -destination-path 10.0.0.11:/lun/0005
+----
+. Elimine las relaciones de protección de datos revertidas:
++
+`snapmirror delete -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _hostip_:/lun/_name_ -policy _policy_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se elimina la relación inversa entre el volumen de origen original, `0005` En la dirección IP 10.0.0.11 y el volumen desde el que se proporcionan datos, `volA_dst` encendido `svm_backup`:
+
++
+[listing]
+----
+cluster_src::> snapmirror delete -source-path svm_backup:volA_dst -destination-path 10.0.0.11:/lun/0005 -policy MirrorLatest
+----
+. Restablezca la relación de protección de datos original:
++
+`snapmirror resync -source-path _hostip_:/lun/_name_ -destination-path _SVM:volume|cluster://SVM/volume_`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+En el siguiente ejemplo, se restablece la relación entre el volumen de origen original, `0005` En la dirección IP 10.0.0.11, y el volumen de destino original, `volA_dst` encendido `svm_backup`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror resync -source-path 10.0.0.11:/lun/0005 -destination-path svm_backup:volA_dst
+----
+
+
+.Después de terminar
+Utilice la `snapmirror show` Comando para verificar que la relación de SnapMirror se ha creado. Para obtener una sintaxis de comando completa, consulte la página man.

@@ -1,0 +1,48 @@
+---
+permalink: smb-admin/disallow-users-groups-bypass-directory-traverse-task.html 
+sidebar: sidebar 
+keywords: user, traverse, directories, directory, path, file, permission, sechangenotifyprivilege, privilege, local, smb, group, storage, virtual, machine, svm, disallow users or groups from bypassing directory traverse checking 
+summary: 'Si no desea que un usuario atraviese todos los directorios de la ruta de acceso a un archivo porque el usuario no tiene permisos en el directorio trafversado, puede quitar el privilegio SeChangeNotifyPrivilege de los usuarios o grupos SMB locales de las máquinas virtuales de almacenamiento (SVM).' 
+---
+= No permitir a los usuarios o grupos omitir la comprobación de recorrido del directorio
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si no desea que un usuario atraviese todos los directorios de la ruta de acceso a un archivo porque el usuario no tiene permisos en el directorio atravesado, puede quitar el `SeChangeNotifyPrivilege` Privilegios de usuarios o grupos de SMB locales en máquinas virtuales de almacenamiento (SVM).
+
+.Antes de empezar
+Debe haber ya el usuario o grupo local o de dominio del que se eliminarán los privilegios.
+
+.Acerca de esta tarea
+Al eliminar privilegios de un usuario o grupo de dominio, ONTAP puede validar el usuario o grupo de dominio poniéndose en contacto con el controlador de dominio. Es posible que se produzca un error en el comando si ONTAP no puede comunicarse con la controladora de dominio.
+
+.Pasos
+. Desactivar la comprobación de recorrido de derivación: `vserver cifs users-and-groups privilege remove-privilege -vserver _vserver_name_ -user-or-group-name _name_ -privileges SeChangeNotifyPrivilege`
++
+El comando quita el `SeChangeNotifyPrivilege` privilegio del usuario o grupo de dominio o local que especifique con el valor para `-user-or-group-name _name_` parámetro.
+
+. Compruebe que el usuario o grupo especificado tiene desactivada la comprobación de recorrido de derivación: `vserver cifs users-and-groups privilege show -vserver _vserver_name_ ‑user-or-group-name _name_`
+
+
+.Ejemplo
+El siguiente comando evita que los usuarios que pertenecen al grupo "'EXAMPLE\eng'" pasen por alto la comprobación de recorrido del directorio:
+
+[listing]
+----
+cluster1::> vserver cifs users-and-groups privilege show -vserver vs1
+Vserver   User or Group Name    Privileges
+--------- --------------------- -----------------------
+vs1       EXAMPLE\eng           SeChangeNotifyPrivilege
+
+cluster1::> vserver cifs users-and-groups privilege remove-privilege -vserver vs1 -user-or-group-name EXAMPLE\eng -privileges SeChangeNotifyPrivilege
+
+cluster1::> vserver cifs users-and-groups privilege show -vserver vs1
+Vserver   User or Group Name    Privileges
+--------- --------------------- -----------------------
+vs1       EXAMPLE\eng           -
+----
+.Información relacionada
+xref:allow-users-groups-bypass-directory-traverse-task.adoc[Permitir a usuarios o grupos omitir la comprobación de recorrido del directorio]

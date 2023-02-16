@@ -1,0 +1,33 @@
+---
+permalink: smb-admin/enable-ldap-over-ssl-tls-task.html 
+sidebar: sidebar 
+keywords: cifs, smb, server, tls, secure, communication, active, directory, ldap, security, enable ldap over tls on the cifs server 
+summary: Antes de que el servidor SMB pueda utilizar TLS para obtener comunicación segura con un servidor LDAP de Active Directory, debe modificar la configuración de seguridad del servidor SMB para habilitar LDAP over TLS. 
+---
+= Habilite LDAP sobre TLS en el servidor
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de que el servidor SMB pueda utilizar TLS para obtener comunicación segura con un servidor LDAP de Active Directory, debe modificar la configuración de seguridad del servidor SMB para habilitar LDAP over TLS.
+
+A partir de ONTAP 9.10.1, el enlace de canal LDAP se admite de forma predeterminada tanto para las conexiones LDAP de Active Directory (AD) como de los servicios de nombres. ONTAP intentará establecer la vinculación de canal con las conexiones LDAP solo si Start-TLS o LDAPS está habilitado junto con la seguridad de la sesión establecida en Sign o Seal. Para deshabilitar o volver a habilitar el enlace de canal LDAP con servidores AD, utilice `-try-channel-binding-for-ad-ldap` con el `vserver cifs security modify` comando.
+
+Para obtener más información, consulte:
+
+* link:../nfs-admin/using-ldap-concept.html["Información general sobre LDAP"]
+* link:https://support.microsoft.com/en-us/topic/2020-ldap-channel-binding-and-ldap-signing-requirements-for-windows-ef185fb8-00f7-167d-744c-f299a66fc00a["2020 requisitos de enlace de canal LDAP y firma LDAP para Windows"^].
+
+
+.Pasos
+. Configure la opción de seguridad del servidor SMB que permite una comunicación LDAP segura con servidores LDAP de Active Directory: `vserver cifs security modify -vserver _vserver_name_ -use-start-tls-for-ad-ldap true`
+. Compruebe que la configuración de seguridad de LDAP over TLS está establecida en `true`: `vserver cifs security show -vserver _vserver_name_`
++
+[NOTE]
+====
+Si la SVM utiliza el mismo servidor LDAP para consultar la asignación de nombres u otra información de UNIX (como usuarios, grupos y grupos de red), también debe modificar el `-use-start-tls` mediante el `vserver services name-service ldap client modify` comando.
+
+====
+

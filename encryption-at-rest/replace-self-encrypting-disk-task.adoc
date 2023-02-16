@@ -1,0 +1,86 @@
+---
+permalink: encryption-at-rest/replace-self-encrypting-disk-task.html 
+sidebar: sidebar 
+keywords: replacing, fips drive, sed 
+summary: Puede reemplazar una unidad FIPS o SED de la misma manera que reemplaza un disco normal. Asegúrese de asignar nuevas claves de autenticación de datos a la unidad de reemplazo. Para una unidad FIPS, puede asignar también una nueva clave de autenticación FIPS 140-2. 
+---
+= Sustituya una unidad FIPS o SED
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede reemplazar una unidad FIPS o SED de la misma manera que reemplaza un disco normal. Asegúrese de asignar nuevas claves de autenticación de datos a la unidad de reemplazo. Para una unidad FIPS, puede asignar también una nueva clave de autenticación FIPS 140-2.
+
+
+NOTE: Si un par de alta disponibilidad está usando link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/support-storage-encryption-concept.html["Cifrar unidades SAS o NVMe (SED, NSE, FIPS)"], debe seguir las instrucciones del tema link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/return-seds-unprotected-mode-task.html["Devolver una unidad FIPS o SED al modo sin protección"] Para todas las unidades dentro de la pareja de ha antes de inicializar el sistema (opciones de arranque 4 o 9). Si las unidades se reasignan, es posible que no se produzcan pérdidas de datos futuras.
+
+.Lo que necesitará
+* Debe conocer el ID de clave de la clave de autenticación que utiliza la unidad.
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+
+
+.Pasos
+. Asegúrese de que el disco se ha marcado como erróneo:
++
+`storage disk show -broken`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[listing]
+----
+cluster1::> storage disk show -broken
+Original Owner: cluster1-01
+  Checksum Compatibility: block
+                                                                 Usable Physical
+    Disk   Outage Reason HA Shelf Bay Chan   Pool  Type    RPM     Size     Size
+    ------ ---- ------------ ---- --- ---- ------ -----  -----  -------  -------
+    0.0.0  admin  failed  0b    1   0    A  Pool0  FCAL  10000  132.8GB  133.9GB
+    0.0.7  admin  removed 0b    2   6    A  Pool1  FCAL  10000  132.8GB  134.2GB
+[...]
+----
+. Quite el disco con error y sustitúyalo por una nueva unidad FIPS o SED siguiendo las instrucciones de la guía de hardware para su modelo de bandeja de discos.
+. Asigne la propiedad del disco recién sustituido:
++
+`storage disk assign -disk disk_name -owner node`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[listing]
+----
+cluster1::> storage disk assign -disk 2.1.1 -owner cluster1-01
+----
+. Confirme que se ha asignado el disco nuevo:
++
+`storage encryption disk show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página man.
+
++
+[listing]
+----
+cluster1::> storage encryption disk show
+Disk    Mode Data Key ID
+-----   ---- ----------------------------------------------------------------
+0.0.0   data F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+0.0.1   data F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+1.10.0  data F1CB30AFF1CB30B00101000000000000CF0EFD81EA9F6324EA97B369351C56AC
+1.10.1  data F1CB30AFF1CB30B00101000000000000CF0EFD81EA9F6324EA97B369351C56AC
+2.1.1   open 0x0
+[...]
+----
+. Asigne las claves de autenticación de datos a la unidad FIPS o SED.
++
+link:assign-authentication-keys-seds-external-task.html["Asignar una clave de autenticación de datos a una unidad FIPS o SED (gestión de claves externa)"]
+
+. Si es necesario, asigne una clave de autenticación FIPS 140-2 a la unidad FIPS.
++
+link:assign-fips-140-2-authentication-key-task.html["Asignar una clave de autenticación FIPS 140-2 a una unidad FIPS"]
+
+

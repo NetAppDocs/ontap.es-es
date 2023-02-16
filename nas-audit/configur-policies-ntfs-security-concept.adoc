@@ -1,0 +1,173 @@
+---
+permalink: nas-audit/configur-policies-ntfs-security-concept.html 
+sidebar: sidebar 
+keywords: configure, audit policies, ntfs security-style files, directories 
+summary: Para poder auditar operaciones de archivo y directorio, debe configurar políticas de auditoría en los archivos y directorios para los que desea recopilar información de auditoría. Esto se suma a la configuración y habilitación de la auditoría. Puede configurar políticas de auditoría de NTFS mediante la ficha Seguridad de Windows o mediante la interfaz de línea de comandos de ONTAP. 
+---
+= Configurar directivas de auditoría en directorios y archivos de seguridad NTFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para poder auditar operaciones de archivo y directorio, debe configurar políticas de auditoría en los archivos y directorios para los que desea recopilar información de auditoría. Esto se suma a la configuración y habilitación de la auditoría. Puede configurar políticas de auditoría de NTFS mediante la ficha Seguridad de Windows o mediante la interfaz de línea de comandos de ONTAP.
+
+
+
+== Configuración de directivas de auditoría NTFS mediante la ficha Seguridad de Windows
+
+[role="lead"]
+Puede configurar directivas de auditoría NTFS en archivos y directorios mediante la ficha *Seguridad de Windows* de la ventana Propiedades de Windows. Este es el mismo método que se utiliza al configurar directivas de auditoría en datos que residen en un cliente de Windows, lo que permite utilizar la misma interfaz gráfica de usuario que está acostumbrado a utilizar.
+
+.Lo que necesitará
+La auditoría debe configurarse en la máquina virtual de almacenamiento (SVM) que contenga los datos a los que se aplican las listas de control de acceso del sistema (SACL).
+
+.Acerca de esta tarea
+La configuración de directivas de auditoría NTFS se realiza agregando entradas a SACL NTFS que están asociadas con un descriptor de seguridad NTFS. El descriptor de seguridad se aplica entonces a los archivos y directorios NTFS. La interfaz gráfica de usuario de Windows se encarga automáticamente de estas tareas. El descriptor de seguridad puede contener listas de control de acceso discrecional (DACL) para aplicar permisos de acceso a archivos y carpetas, SACL para auditoría de archivos y carpetas o SACL y DACL.
+
+Para establecer directivas de auditoría NTFS mediante la ficha Seguridad de Windows , siga los pasos que se indican a continuación en un host de Windows:
+
+.Pasos
+. En el menú *Herramientas* del Explorador de Windows, seleccione *asignar unidad de red*.
+. Complete el cuadro *Unidad de red de mapas*:
++
+.. Seleccione una letra *Unidad*.
+.. En el cuadro *carpeta*, escriba el nombre del servidor SMB que contiene el recurso compartido, manteniendo los datos que desea auditar y el nombre del recurso compartido.
++
+Puede especificar la dirección IP de la interfaz de datos para el servidor SMB en lugar del nombre del servidor SMB.
+
++
+Si el nombre de su servidor SMB es «MMB_SERVER» y su cuota se denomina «shara1», debe introducir `\\SMB_SERVER\share1`.
+
+.. Haga clic en *Finalizar*.
+
+
++
+La unidad seleccionada está montada y lista con la ventana del Explorador de Windows que muestra archivos y carpetas contenidos en el recurso compartido.
+
+. Seleccione el archivo o directorio para el que desea habilitar el acceso de auditoría.
+. Haga clic con el botón secundario del ratón en el archivo o directorio y seleccione *Propiedades*.
+. Seleccione la ficha *Seguridad*.
+. Haga clic en *Avanzado*.
+. Seleccione la ficha *Auditoría*.
+. Realice las acciones deseadas:
++
+[cols="35,65"]
+|===
+
+
+| Si quieres | Haga lo siguiente 
+
+
+ a| 
+Configurar la auditoría para un nuevo usuario o grupo
+ a| 
+.. Haga clic en *Agregar*.
+.. En el cuadro Escriba el nombre del objeto que desea seleccionar , escriba el nombre del usuario o grupo que desea agregar.
+.. Haga clic en *Aceptar*.
+
+
+
+
+ a| 
+Quitar la auditoría de un usuario o grupo
+ a| 
+.. En el cuadro Escriba el nombre del objeto que desea seleccionar , seleccione el usuario o el grupo que desea eliminar.
+.. Haga clic en *Quitar*.
+.. Haga clic en *Aceptar*.
+.. Omitir el resto de este procedimiento.
+
+
+
+
+ a| 
+Auditoría de cambios para un usuario o grupo
+ a| 
+.. En el cuadro Escriba el nombre del objeto que desea seleccionar , seleccione el usuario o el grupo que desea cambiar.
+.. Haga clic en *Editar*.
+.. Haga clic en *Aceptar*.
+
+
+|===
++
+Si va a configurar la auditoría de un usuario o grupo o si va a cambiar la auditoría de un usuario o grupo existente, se abre el cuadro Entrada de auditoría de <object>.
+
+. En el cuadro *aplicar a*, seleccione cómo desea aplicar esta entrada de auditoría.
++
+Puede seleccionar una de las siguientes opciones:
+
++
+** *Esta carpeta, subcarpetas y archivos*
+** *Esta carpeta y subcarpetas*
+** *Sólo esta carpeta*
+** *Esta carpeta y archivos*
+** *Sólo subcarpetas y archivos*
+** *Sólo subcarpetas*
+** *Sólo archivos* Si está configurando la auditoría en un solo archivo, el cuadro *aplicar a* no está activo. El valor del cuadro *aplicar a* se establece de forma predeterminada en *este objeto sólo*.
+
+
++
+[NOTE]
+====
+Dado que la auditoría requiere recursos de SVM, seleccione solo el nivel mínimo que proporciona los eventos de auditoría que cumplen sus requisitos de seguridad.
+
+====
+. En el cuadro *Access*, seleccione lo que desea auditar y si desea auditar eventos, eventos de error o ambos correctos.
++
+** Para auditar eventos correctos, seleccione el cuadro éxito.
+** Para auditar eventos de error, seleccione el cuadro error.
+
+
++
+Seleccione sólo las acciones que necesite supervisar para cumplir sus requisitos de seguridad. Para obtener más información acerca de estos eventos auditables, consulte la documentación de Windows. Puede auditar los siguientes eventos:
+
++
+** *Control total*
+** *Carpeta Traverse / archivo de ejecución*
+** *Lista de carpetas / lectura de datos*
+** *Leer atributos*
+** *Leer atributos extendidos*
+** *Crear archivos / escribir datos*
+** *Crear carpetas / anexar datos*
+** *Escribir atributos*
+** *Escriba atributos extendidos*
+** *Eliminar subcarpetas y archivos*
+** *Eliminar*
+** *Leer permisos*
+** *Cambiar permisos*
+** *Tome la propiedad*
+
+
+. Si no desea que la configuración de auditoría se propague a los archivos y carpetas posteriores del contenedor original, seleccione la casilla *aplicar estas entradas de auditoría a objetos y/o contenedores dentro de este contenedor únicamente* .
+. Haga clic en *aplicar*.
+. Cuando termine de agregar, eliminar o editar entradas de auditoría, haga clic en *Aceptar*.
++
+Se cierra el cuadro Entrada de auditoría para <object>.
+
+. En el cuadro *Auditoría*, seleccione la configuración de herencia de esta carpeta.
++
+Seleccione sólo el nivel mínimo que proporciona los eventos de auditoría que cumplen sus requisitos de seguridad. Puede elegir una de las siguientes opciones:
+
++
+** Seleccione incluir entradas de auditoría heredables en el cuadro primario de este objeto.
+** Seleccione el cuadro Reemplazar todas las entradas de auditoría heredables existentes en todos los descendientes con entradas de auditoría heredables de este objeto.
+** Seleccione ambas casillas.
+** Seleccione ninguna casilla. Si está configurando SACL en un único archivo, el cuadro Reemplazar todas las entradas de auditoría heredables existentes en todos los descendientes con entradas de auditoría heredables de este objeto no está presente en el cuadro Auditoría .
+
+
+. Haga clic en *Aceptar*.
++
+Se cierra el cuadro Auditoría.
+
+
+
+
+
+== Configurar políticas de auditoría de NTFS mediante la interfaz de línea de comandos de ONTAP
+
+Puede configurar políticas de auditoría en archivos y carpetas mediante la interfaz de línea de comandos de ONTAP. Esto le permite configurar políticas de auditoría NTFS sin necesidad de conectarse a los datos mediante un recurso compartido SMB en un cliente Windows.
+
+Puede configurar directivas de auditoría NTFS mediante el `vserver security file-directory` familia de comandos.
+
+Sólo puede configurar SACL NTFS mediante la CLI. La configuración de SACL de NFSv4 no es compatible con esta familia de comandos de ONTAP. Consulte las páginas del manual para obtener más información acerca del uso de estos comandos para configurar y agregar SACL NTFS a archivos y carpetas.

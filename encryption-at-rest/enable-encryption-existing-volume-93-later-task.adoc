@@ -1,0 +1,84 @@
+---
+permalink: encryption-at-rest/enable-encryption-existing-volume-93-later-task.html 
+sidebar: sidebar 
+keywords: enabling, encryption, existing, volume encryption conversion start, command 
+summary: 'A partir de ONTAP 9.3, se puede usar el comando volume Encryption Conversion start para habilitar el cifrado de un volumen existente "en el lugar", sin tener que mover el volumen a una ubicación diferente.' 
+---
+= Habilite el cifrado en un volumen existente con el comando volume Encryption conversion start
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.3, puede utilizar la `volume encryption conversion start` comando para habilitar el cifrado de un volumen existente «in situ», sin necesidad de mover el volumen a otra ubicación.
+
+.Acerca de esta tarea
+Una vez que se inicia una operación de conversión, ésta debe completarse. Si se encuentra con un problema de rendimiento durante la operación, puede ejecutar el `volume encryption conversion pause` para pausar la operación y el `volume encryption conversion resume` comando para reanudar la operación.
+
+[NOTE]
+====
+No puede utilizar `volume encryption conversion start` Para convertir un volumen de SnapLock.
+
+====
+.Pasos
+. Habilitar el cifrado en un volumen existente:
++
+`volume encryption conversion start -vserver SVM_name -volume volume_name`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+El siguiente comando habilita el cifrado en el volumen existente `vol1`:
+
++
+[listing]
+----
+cluster1::> volume encryption conversion start -vserver vs1 -volume vol1
+----
++
+El sistema crea una clave de cifrado para el volumen. Los datos del volumen se cifran.
+
+. Compruebe el estado de la operación de conversión:
++
+`volume encryption conversion show`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+El siguiente comando muestra el estado de la operación de conversión:
+
++
+[listing]
+----
+cluster1::> volume encryption conversion show
+
+Vserver   Volume   Start Time           Status
+-------   ------   ------------------   ---------------------------
+vs1       vol1     9/18/2017 17:51:41   Phase 2 of 2 is in progress.
+----
+. Una vez completada la operación de conversión, compruebe que el volumen esté habilitado para el cifrado:
++
+`volume show -is-encrypted true`
+
++
+Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+
++
+El siguiente comando muestra los volúmenes cifrados en `cluster1`:
+
++
+[listing]
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+
+
+.Resultado
+Si utiliza un servidor KMIP para almacenar las claves de cifrado de un nodo, ONTAP inserta automáticamente una clave de cifrado en el servidor al cifrar un volumen.

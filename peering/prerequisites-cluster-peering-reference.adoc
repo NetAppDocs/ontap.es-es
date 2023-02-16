@@ -1,0 +1,83 @@
+---
+permalink: peering/prerequisites-cluster-peering-reference.html 
+sidebar: sidebar 
+keywords: prerequisites, cluster, peering. connectivity, requirements, port, firewall 
+summary: Antes de configurar cluster peering, debe confirmar que la conectividad, el puerto, la dirección IP, subred, firewall, y se cumplen los requisitos de nomenclatura de los clústeres. 
+---
+= Requisitos previos para la relación de clústeres entre iguales
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de configurar cluster peering, debe confirmar que la conectividad, el puerto, la dirección IP, subred, firewall, y se cumplen los requisitos de nomenclatura de los clústeres.
+
+
+
+== Requisitos de conectividad
+
+Todas las LIF de interconexión de clústeres del clúster local deben poder comunicarse con todas las LIF de interconexión de clústeres del clúster remoto.
+
+Aunque no es necesario, generalmente es más fácil configurar las direcciones IP que se usan para las LIF de interconexión de clústeres de la misma subred. Las direcciones IP pueden residir en la misma subred que las LIF de datos, o en una subred diferente. La subred que se utiliza en cada clúster debe cumplir los siguientes requisitos:
+
+* La subred debe pertenecer al dominio de retransmisión que contenga los puertos que se utilizan para la comunicación entre clústeres.
+* La subred debe tener suficientes direcciones IP disponibles para asignar a una LIF de interconexión de clústeres por nodo.
++
+Por ejemplo, en un clúster de cuatro nodos, la subred que se usa para la comunicación entre clústeres debe tener cuatro direcciones IP disponibles. Cada nodo debe tener una LIF de interconexión de clústeres con una dirección IP en la red de interconexión de clústeres.
+
+
+
+Las LIF entre clústeres pueden tener una dirección IPv4 o IPv6.
+
+[NOTE]
+====
+ONTAP 9 le permite migrar las redes entre iguales de IPv4 a IPv6 de forma opcional, lo que permite que ambos protocolos estén presentes simultáneamente en las LIF de interconexión de clústeres. En las versiones anteriores, todas las relaciones de interconexión de clústeres de todo un clúster eran IPv4 o IPv6. Esto significaba que el cambio de protocolos era un evento que podía provocar interrupciones.
+
+====
+
+
+== Requisitos de puertos
+
+Se pueden usar puertos dedicados para la comunicación entre clústeres o para compartir puertos que usa la red de datos. Los puertos deben cumplir con los siguientes requisitos:
+
+* Todos los puertos que se utilizan para comunicarse con un clúster remoto determinado deben estar en el mismo espacio IP.
++
+Se pueden utilizar varios espacios IP para establecer la misma relación entre iguales con varios clústeres. La conectividad de malla completa en par sólo se requiere dentro de un espacio IP.
+
+* El dominio de retransmisión que se usa para la comunicación entre clústeres debe incluir al menos dos puertos por nodo para que la comunicación entre clústeres pueda conmutar por error de un puerto a otro.
++
+Los puertos que se añaden a un dominio de retransmisión pueden ser puertos de red físicos, VLAN o grupos de interfaces (ifgrps).
+
+* Todos los puertos deben estar cableadas.
+* Todos los puertos deben estar en buen estado.
+* La configuración de MTU de los puertos debe ser coherente.
+
+
+
+
+== Requisitos del firewall
+
+Los firewalls y la política de firewall de interconexión de clústeres deben permitir los siguientes protocolos:
+
+* Servicio ICMP
+* TCP a las direcciones IP de todas las LIF de interconexión de clústeres en los puertos 10000, 11104 y 11105
+* HTTPS bidireccional entre las LIF de interconexión de clústeres
++
+Aunque HTTPS no es necesario cuando se configura una relación de clústeres entre iguales con la CLI, se requiere HTTPS más adelante si se utiliza System Manager para configurar la protección de datos.
+
+
+
+El valor predeterminado `intercluster` La directiva de firewall permite el acceso a través del protocolo HTTPS y desde todas las direcciones IP (0.0.0.0/0). Puede modificar o reemplazar la política si es necesario.
+
+
+NOTE: A partir de ONTAP 9.10.1, las políticas de firewall están obsoletas y sustituidas por completo por políticas de servicios LIF. Para obtener más información, consulte link:../networking/configure_firewall_policies_for_lifs.html["Configurar políticas de firewall para LIF"].
+
+
+
+== Requisitos del clúster
+
+Los clústeres deben cumplir los siguientes requisitos:
+
+* No puede haber un clúster en una relación de paridad con más de 255 clústeres.
+

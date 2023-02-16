@@ -1,0 +1,70 @@
+---
+permalink: smb-admin/configure-guest-unix-user-task.html 
+sidebar: sidebar 
+keywords: configuring, configure, guest, unix, user, untrusted, domain, map, connect, cifs, server, configure the guest unix user 
+summary: 'Configurar la opción de usuario UNIX invitado significa que los usuarios que inician sesión desde dominios que no son de confianza se asignan al usuario UNIX invitado y pueden conectarse al servidor CIFS. Como alternativa, si desea que la autenticación de usuarios de dominios que no son de confianza falle, no debe configurar el usuario UNIX invitado. El valor predeterminado es no permitir que los usuarios de dominios que no son de confianza se conecten al servidor CIFS (la cuenta UNIX invitada no está configurada).' 
+---
+= Configure el usuario UNIX invitado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Configurar la opción de usuario UNIX invitado significa que los usuarios que inician sesión desde dominios que no son de confianza se asignan al usuario UNIX invitado y pueden conectarse al servidor CIFS. Como alternativa, si desea que la autenticación de usuarios de dominios que no son de confianza falle, no debe configurar el usuario UNIX invitado. El valor predeterminado es no permitir que los usuarios de dominios que no son de confianza se conecten al servidor CIFS (la cuenta UNIX invitada no está configurada).
+
+.Acerca de esta tarea
+Debe tener en cuenta lo siguiente al configurar la cuenta de UNIX de invitado:
+
+* Si el servidor CIFS no puede autenticar al usuario en un controlador de dominio para el dominio principal, un dominio de confianza o la base de datos local y esta opción está habilitada, el servidor CIFS considera al usuario como un usuario invitado y lo asigna al usuario UNIX especificado.
+* Si esta opción se establece en una cadena nula, el usuario UNIX invitado estará deshabilitado.
+* Debe crear un usuario UNIX para usarlo como usuario UNIX invitado en una de las bases de datos del servicio de nombres de máquina virtual de almacenamiento (SVM).
+* Un usuario que inició sesión como usuario invitado es automáticamente miembro del grupo BUILTIN\guest en el servidor CIFS.
+* La opción 'homedrs-public' se aplica sólo a los usuarios autenticados. Un usuario que ha iniciado sesión como usuario invitado no tiene un directorio principal y no puede acceder a los directorios principales de otros usuarios.
+
+
+.Pasos
+. Ejecute una de las siguientes acciones:
++
+|===
+| Si desea... | Introduzca... 
+
+
+ a| 
+Configure el usuario UNIX invitado
+ a| 
+`vserver cifs options modify -guest-unix-user _unix_name_`
+
+
+
+ a| 
+Deshabilite el usuario UNIX invitado
+ a| 
+`vserver cifs options modify -guest-unix-user ""`
+
+|===
++
+`vserver cifs options modify -guest-unix-user pcuser`
+
+. Verifique que el usuario UNIX invitado esté configurado correctamente: `vserver cifs options show -vserver _vserver_name_`
++
+En el siguiente ejemplo, tanto el usuario UNIX predeterminado como el usuario UNIX invitado en SVM vs1 están configurados para utilizar el usuario UNIX "'pcuser'":
+
++
+`vserver cifs options show -vserver vs1`
+
++
+[listing]
+----
+
+Vserver: vs1
+
+  Client Session Timeout : 900
+  Default Unix Group     : -
+  Default Unix User      : pcuser
+  Guest Unix User        : pcuser
+  Read Grants Exec       : disabled
+  Read Only Delete       : disabled
+  WINS Servers           : -
+----
+

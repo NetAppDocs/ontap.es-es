@@ -1,0 +1,45 @@
+---
+permalink: encryption-at-rest/replace-ssl-certificates-task.html 
+sidebar: sidebar 
+keywords: replacing, ssl, certificates 
+summary: Todos los certificados SSL tienen una fecha de vencimiento. Debe actualizar los certificados antes de que caduquen para evitar la pérdida de acceso a las claves de autenticación. 
+---
+= Reemplace los certificados SSL
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Todos los certificados SSL tienen una fecha de vencimiento. Debe actualizar los certificados antes de que caduquen para evitar la pérdida de acceso a las claves de autenticación.
+
+.Antes de empezar
+* Debe haber obtenido el certificado público de reemplazo y la clave privada para el clúster (certificado de cliente KMIP).
+* Debe haber obtenido el certificado público de reemplazo para el servidor KMIP (certificado de servidor KMIP).
+* Debe ser un administrador de clúster o de SVM para ejecutar esta tarea.
+* En un entorno de MetroCluster, debe reemplazar el certificado SSL KMIP en ambos clústeres.
+
+
+
+NOTE: Puede instalar los certificados de cliente y servidor de repuesto en el servidor KMIP antes o después de instalar los certificados en el clúster.
+
+.Pasos
+. Instale el nuevo certificado de CA de servidor KMIP:
++
+`security certificate install -type server-ca -vserver <>`
+
+. Instale el nuevo certificado de cliente KMIP:
++
+`security certificate install -type client -vserver <>`
+
+. Actualice la configuración del gestor de claves para usar los certificados recién instalados:
++
+`security key-manager external modify -vserver <> -client-cert <> -server-ca-certs <>`
+
++
+Si ejecuta ONTAP 9.6 o una versión posterior en un entorno MetroCluster y desea modificar la configuración de gestor de claves en la SVM de administrador, debe ejecutar el comando en ambos clústeres de la configuración.
+
+
+
+
+NOTE: La actualización de la configuración del gestor de claves para usar los certificados recién instalados devolverá un error si las claves públicas/privadas del nuevo certificado de cliente son diferentes de las instaladas previamente. Consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/The_new_client_certificate_public_or_private_keys_are_different_from_the_existing_client_certificate["Las claves privadas o públicas del nuevo certificado de cliente son diferentes del certificado de cliente existente"^] para obtener instrucciones sobre cómo anular este error.

@@ -1,0 +1,91 @@
+---
+permalink: nas-audit/audit-alternate-ntfs-data-streams-concept.html 
+sidebar: sidebar 
+keywords: considerations, audit, alternate, ntfs data streams 
+summary: Hay ciertas consideraciones que debe tener en cuenta al auditar archivos con flujos de datos alternativos NTFS. 
+---
+= Consideraciones al auditar flujos de datos NTFS alternativos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Hay ciertas consideraciones que debe tener en cuenta al auditar archivos con flujos de datos alternativos NTFS.
+
+La ubicación de un objeto que se va a auditar se registra en un registro de eventos mediante dos etiquetas, la `ObjectName` etiquete (la ruta) y el `HandleID` etiqueta (el asa). Para identificar correctamente qué solicitudes de flujo se están registrando, debe tener en cuenta qué registros de ONTAP hay en estos campos para flujos de datos alternativos NTFS:
+
+* ID DE EVTX: 4656 eventos (abrir y crear eventos de auditoría)
++
+** La ruta de la secuencia de datos alternativa se registra en la `ObjectName` etiquetar.
+** El controlador de la secuencia de datos alternativa se registra en la `HandleID` etiquetar.
+
+
+* ID DE EVTX: 4663 eventos (el resto de eventos de auditoría, como leído, Write, getattr, etc.)
++
+** La ruta del archivo base, no la secuencia de datos alternativa, se registra en la `ObjectName` etiquetar.
+** El controlador de la secuencia de datos alternativa se registra en la `HandleID` etiquetar.
+
+
+
+
+.Ejemplo
+El ejemplo siguiente ilustra cómo identificar EVTX ID: Eventos 4663 para flujos de datos alternativos mediante el `HandleID` etiquetar. Aunque la `ObjectName` etiqueta (ruta) registrada en el evento de auditoría de lectura es en la ruta de acceso del archivo base, la `HandleID` la etiqueta se puede utilizar para identificar el evento como un registro de auditoría para la corriente de datos alternativa.
+
+Los nombres de los archivos de flujo toman el formulario `base_file_name:stream_name`. En este ejemplo, la `dir1` el directorio contiene un archivo base con una secuencia de datos alternativa que tiene las siguientes rutas:
+
+[listing]
+----
+
+/dir1/file1.txt
+/dir1/file1.txt:stream1
+----
+[NOTE]
+====
+El resultado del ejemplo de evento siguiente se truncará como se indica; la salida no muestra todas las etiquetas de salida disponibles para los eventos.
+
+====
+Para un ID de EVTX 4656 (evento de auditoría abierto), la salida de registro de auditoría para la corriente de datos alternativa registra el nombre de la corriente de datos alternativa en `ObjectName` etiqueta:
+
+[listing]
+----
+
+- <Event>
+- <System>
+  <Provider Name="Netapp-Security-Auditing" />
+  <EventID>4656</EventID>
+  <EventName>Open Object</EventName>
+  [...]
+  </System>
+- <EventData>
+  [...]
+  **<Data Name="ObjectType"\>Stream</Data\>
+  <Data Name="HandleID"\>00000000000401;00;000001e4;00176767</Data\>
+  <Data Name="ObjectName"\>\(data1\);/dir1/file1.txt:stream1</Data\>          **
+  [...]
+  </EventData>
+  </Event>
+- <Event>
+----
+Para un ID de EVTX 4663 (evento de auditoría de lectura), la salida de registro de auditoría de la misma corriente de datos alternativa registra el nombre del archivo base en `ObjectName` sin embargo, el asa del `HandleID` tag es el identificador de la secuencia de datos alternativa y se puede utilizar para correlacionar este evento con la secuencia de datos alternativa:
+
+[listing]
+----
+
+- <Event>
+- <System>
+  <Provider Name="Netapp-Security-Auditing" />
+  <EventID>4663</EventID>
+  <EventName>Read Object</EventName>
+  [...]
+  </System>
+- <EventData>
+  [...]
+  **<Data Name="ObjectType"\>Stream</Data\>
+  <Data Name="HandleID"\>00000000000401;00;000001e4;00176767</Data\>
+  <Data Name="ObjectName"\>\(data1\);/dir1/file1.txt</Data\> **
+  [...]
+  </EventData>
+  </Event>
+- <Event>
+----

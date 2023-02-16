@@ -1,0 +1,132 @@
+---
+permalink: system-admin/access-cluster-ssh-task.html 
+sidebar: sidebar 
+keywords: access, ssh, cluster, administrative, task 
+summary: Puede emitir solicitudes SSH al clúster para realizar tareas administrativas. SSH está habilitado de forma predeterminada. 
+---
+= Acceda al clúster mediante SSH
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede emitir solicitudes SSH al clúster para realizar tareas administrativas. SSH está habilitado de forma predeterminada.
+
+.Lo que necesitará
+* Debe tener una cuenta de usuario configurada para usar `ssh` como método de acceso.
++
+La `-application` parámetro de `security login` los comandos especifican el método de acceso para una cuenta de usuario. La `security login` las páginas de manual contienen información adicional.
+
+* Si usa una cuenta de usuario de dominio de Active Directory (AD) para acceder al clúster, debe haberse configurado un túnel de autenticación para el clúster mediante una máquina virtual de almacenamiento (SVM) habilitada para CIFS y la cuenta de usuario de dominio de AD también debe haberse añadido al clúster con `ssh` como método de acceso y. `domain` como método de autenticación.
+* Si utiliza conexiones IPv6, IPv6 ya debe estar configurado y habilitado en el clúster, y las políticas de firewall ya deben estar configuradas con direcciones IPv6.
++
+La `network options ipv6 show` Command muestra si IPv6 está habilitado. La `system services firewall policy show` comando muestra las directivas de firewall.
+
+
+
+.Acerca de esta tarea
+* Debe utilizar un cliente OpenSSH 5.7 o posterior.
+* Solo se admite el protocolo SSH v2; no se admite SSH v1.
+* ONTAP admite un máximo de 64 sesiones de SSH simultáneas por nodo.
++
+Si el LIF de gestión del clúster reside en el nodo, comparte este límite con la LIF de gestión del nodo.
+
++
+Si la tasa de conexiones entrantes es superior a 10 por segundo, el servicio se deshabilitará temporalmente durante 60 segundos.
+
+* ONTAP solo admite los algoritmos de cifrado AES y 3DES (también conocidos como _cifrados_) para SSH.
++
+AES es compatible con una longitud de clave de 128, 192 y 256 bits. 3DES tiene una longitud de clave de 56 bits como EN EL DES original, pero se repite tres veces.
+
+* Cuando el modo FIPS está activado, los clientes SSH deben negociar con los algoritmos de clave pública del algoritmo de firma digital de curva elíptica (ECDSA) para que la conexión sea exitosa.
+* Si desea acceder a la CLI de ONTAP desde un host de Windows, puede utilizar una herramienta de otro proveedor, como PuTTY.
+* Si utiliza un nombre de usuario de Windows AD para iniciar sesión en ONTAP, debe usar las mismas letras mayúsculas o minúsculas que se usaron cuando se crearon el nombre de usuario y el nombre de dominio de AD en ONTAP.
++
+Los nombres de usuario Y de dominio DE AD no distinguen mayúsculas de minúsculas. Sin embargo, los nombres de usuario de ONTAP distinguen mayúsculas de minúsculas. La discrepancia entre el nombre de usuario creado en ONTAP y el nombre de usuario creado en AD provoca un error de inicio de sesión.
+
+* A partir de ONTAP 9.3, puede habilitar la autenticación multifactor en SSH para las cuentas de administrador locales.
++
+Cuando la autenticación multifactor en SSH está habilitada, los usuarios se autentican mediante una clave pública y una contraseña.
+
+* A partir de ONTAP 9.4, puede habilitar la autenticación multifactor SSH para usuarios remotos LDAP y NIS.
+
+
+.Pasos
+. Desde un host de administración, introduzca el `ssh` comando en uno de los siguientes formatos:
++
+** `*ssh _username@hostname_or_IP_ [_command_]*`
+** `*ssh -l _username hostname_or_IP_ [_command_]*`
+
+
+
+
+Si utiliza una cuenta de usuario de dominio de AD, debe especificar `_username_` en el formato de `_domainname\\AD_accountname_` (con barras diagonales dobles después del nombre de dominio) o `"_domainname\AD_accountname_"` (entre comillas dobles y con una sola barra diagonal inversa después del nombre de dominio).
+
+`_hostname_or_IP_` Es el nombre de host o la dirección IP de la LIF de gestión de clústeres o una LIF de gestión de nodos. Se recomienda utilizar la LIF de gestión del clúster. Es posible usar una dirección IPv4 o IPv6.
+
+`_command_` No es necesario para las sesiones interactivas con SSH.
+
+.Ejemplos de solicitudes SSH
+Los siguientes ejemplos muestran cómo la cuenta de usuario denominada «'joe» puede emitir una solicitud SSH para acceder a un clúster cuya LIF de gestión de clústeres sea 10.72.137.28:
+
+[listing]
+----
+$ ssh joe@10.72.137.28
+Password:
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+[listing]
+----
+$ ssh -l joe 10.72.137.28 cluster show
+Password:
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+Los siguientes ejemplos muestran cómo la cuenta de usuario denominada «'john» del dominio denominado «DOMAIN1» puede emitir una solicitud SSH para acceder a un clúster cuya LIF de gestión de clústeres sea 10.72.137.28:
+
+[listing]
+----
+$ ssh DOMAIN1\\john@10.72.137.28
+Password:
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+[listing]
+----
+$ ssh -l "DOMAIN1\john" 10.72.137.28 cluster show
+Password:
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+En el siguiente ejemplo, se muestra cómo la cuenta de usuario llamada «'joe» puede emitir una solicitud MFA de SSH para acceder a un clúster cuyo LIF de gestión de clústeres sea 10.72.137.32:
+
+[listing]
+----
+$ ssh joe@10.72.137.32
+Authenticated with partial success.
+Password:
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+.Información relacionada
+link:../authentication/index.html["Autenticación de administrador y RBAC"]

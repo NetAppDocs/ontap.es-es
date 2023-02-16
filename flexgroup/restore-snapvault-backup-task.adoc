@@ -1,0 +1,43 @@
+---
+permalink: flexgroup/restore-snapvault-backup-task.html 
+sidebar: sidebar 
+keywords: restore, flexgroup, volume, snapvault, backup 
+summary: Es posible realizar una operación de restauración de volumen completo de volúmenes de FlexGroup desde una copia Snapshot en el volumen secundario de SnapVault. Es posible restaurar el volumen de FlexGroup en el volumen de origen original o en un volumen de FlexGroup nuevo. 
+---
+= Restaurar un volumen de FlexGroup a partir de un backup de SnapVault
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible realizar una operación de restauración de volumen completo de volúmenes de FlexGroup desde una copia Snapshot en el volumen secundario de SnapVault. Es posible restaurar el volumen de FlexGroup en el volumen de origen original o en un volumen de FlexGroup nuevo.
+
+.Antes de empezar
+Debe tener en cuenta determinadas consideraciones cuando se restaura desde backups de SnapVault para volúmenes de FlexGroup.
+
+* Solo se admite una restauración básica con copias Snapshot parciales desde un backup de SnapVault. El número de componentes del volumen de destino debe coincidir con el número de componentes del volumen de origen cuando se tomó la copia Snapshot.
+* Si se produce un error en una operación de restauración, no se permiten otras operaciones hasta que se completa la operación de restauración. Puede volver a intentar la operación de restauración o ejecutar la operación de restauración con el `cleanup` parámetro.
+* Un volumen FlexGroup puede ser el volumen de origen de una sola relación de backup o restauración. Un volumen de FlexGroup no puede ser el origen de dos relaciones de SnapVault, dos relaciones de restauración o una relación de SnapVault y una relación de restauración.
+* Las operaciones de backup y restauración de SnapVault no se pueden ejecutar en paralelo. Cuando hay una operación de restauración básica o una operación de restauración incremental en curso, debe desactivar las operaciones de backup.
+* Debe cancelar una operación de restauración de una copia Snapshot parcial del volumen de FlexGroup de destino. No se puede cancelar la operación de restauración de una copia Snapshot parcial desde el volumen de origen.
+* Si se cancela una operación de restauración, se debe reiniciar la operación de restauración con la misma copia Snapshot que se utilizó para la operación de restauración anterior.
+
+
+.Acerca de esta tarea
+Todas las reglas de cuota activas en el volumen de FlexGroup de destino se desactivan antes de que se realice la restauración.
+
+Puede utilizar el `volume quota modify` comando para reactivar las reglas de cuota una vez completada la operación de restauración.
+
+.Pasos
+. Restaure el volumen de FlexGroup: `snapmirror restore -source-path _src_svm:src_flexgroup_ -destination-path _dest_svm:dest_flexgroup_ -snapshot _snapshot_name_`
+`snapshot_name` Es la copia Snapshot que se va a restaurar del volumen de origen al volumen de destino. Si no se especifica la copia de Snapshot, el volumen de destino se restaura de la copia de Snapshot más reciente.
++
+[listing]
+----
+vserverA::> snapmirror restore -source-path vserverB:dstFG -destination-path vserverA:newFG -snapshot daily.2016-07-15_0010
+Warning: This is a disruptive operation and the volume vserverA:newFG will be read-only until the operation completes
+Do you want to continue? {y|n}: y
+----
+

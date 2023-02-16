@@ -1,0 +1,49 @@
+---
+permalink: revert/task_reverting_systems_with_deduplicated_volumes.html 
+sidebar: sidebar 
+keywords: ontap, revert, reverting, reversion, systems, deduplication, deduplicated, volumes 
+summary: Antes de revertir desde cualquier versión de ONTAP 9, debe asegurarse de que los volúmenes contengan espacio libre suficiente para la operación de reversión. 
+---
+= Verifique que los volúmenes deduplicados tengan suficiente espacio libre antes de revertir
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de revertir desde cualquier versión de ONTAP 9, debe asegurarse de que los volúmenes contengan espacio libre suficiente para la operación de reversión.
+
+El volumen debe tener suficiente espacio para acomodar el ahorro que se obtuvo mediante la detección en línea de bloques de ceros. Consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_see_space_savings_from_deduplication%2C_compression%2C_and_compaction_in_ONTAP_9["Cómo observar ahorros de espacio gracias a la deduplicación, la compresión y la compactación en ONTAP 9"].
+
+Si se habilitó tanto la deduplicación como la compresión de datos en un volumen que se desea revertir, se debe revertir la compresión de datos antes de revertir la deduplicación.
+
+. Use el comando volume Efficiency show con la opción -fields para ver el progreso de las operaciones de eficiencia que se están ejecutando en los volúmenes.
++
+El siguiente comando muestra el progreso de las operaciones de eficiencia: `volume efficiency show -fields vserver,volume,progress`
+
+. Use el comando volume Efficiency stop con la opción -all para detener todas las operaciones de deduplicación activas y en cola.
++
+El siguiente comando detiene todas las operaciones de deduplicación activas y en cola en el volumen Vola: `volume efficiency stop -vserver vs1 -volume VolA -all`
+
+. Utilice el comando set -Privilege Advanced para iniciar sesión en el nivel de privilegio avanzado.
+. La eficiencia de volumen se debe usar con la opción -version para degradar los metadatos de eficiencia de un volumen a una versión específica de ONTAP.
++
+El siguiente comando revierte los metadatos de eficiencia del volumen Vola a ONTAP 9.x: `volume efficiency revert-to -vserver vs1 -volume VolA -version 9.x`
+
++
+
+NOTE: El comando de reversión de la eficiencia del volumen revierte los volúmenes presentes en el nodo en el que se ejecuta este comando. Este comando no revierte volúmenes entre nodos.
+
+. El comando volume Efficiency show se utiliza con la opción -op-status para supervisar el progreso de la degradación.
++
+El siguiente comando supervisa y muestra el estado de la degradación: `volume efficiency show -vserver vs1 -op-status Downgrading`
+
+. Si la reversión no se realiza correctamente, use el comando volume Efficiency show con la opción -instance para ver por qué ha fallado la reversión.
++
+El siguiente comando muestra información detallada sobre todos los campos: `volume efficiency show -vserver vs1 -volume vol1 - instance`
+
+. Una vez finalizada la operación de reversión, vuelva al nivel de privilegio de administrador: `set -privilege admin`
++
+link:../volumes/index.html["Gestión de almacenamiento lógico"]
+
+

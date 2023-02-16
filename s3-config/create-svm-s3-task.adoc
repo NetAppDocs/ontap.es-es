@@ -1,0 +1,126 @@
+---
+permalink: s3-config/create-svm-s3-task.html 
+sidebar: sidebar 
+keywords: create, svm, s3 
+summary: Aunque S3 puede coexistir en una SVM con otros protocolos, es posible que desee crear una nueva SVM para aislar el espacio de nombres y la carga de trabajo. 
+---
+= Cree una SVM para S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Aunque S3 puede coexistir con otros protocolos en una SVM, es posible que desee crear una SVM nueva para aislar el espacio de nombres y la carga de trabajo.
+
+.Acerca de esta tarea
+Si solo va a proporcionar almacenamiento de objetos S3 desde una SVM, el servidor S3 no requiere ninguna configuración de DNS. Sin embargo, puede configurar DNS en la SVM si se usan otros protocolos.
+
+Cuando configura el acceso S3 a una nueva máquina virtual de almacenamiento mediante System Manager, se le pedirá que introduzca información de certificados y de redes, y que la máquina virtual de almacenamiento y el servidor de almacenamiento de objetos S3 se crean en una única operación.
+
+.Pasos
+[role="tabbed-block"]
+====
+.CLI
+--
+. Compruebe que S3 tiene licencia en el clúster:
++
+`system license show -package s3`
+
++
+Si no lo está, póngase en contacto con su representante de ventas.
+
+. Cree una SVM:
++
+`vserver create -vserver _svm_name_ -rootvolume _root_volume_name_ -aggregate _aggregate_name_ -rootvolume-security-style unix -language C.UTF-8 -ipspace _ipspace_name_`
+
++
+** Utilice el valor UNIX del `-rootvolume-security-style` opción.
+** Utilice el C.UTF-8 predeterminado `-language` opción.
+** La `ipspace` el ajuste es opcional.
+
+
+. Compruebe la configuración y el estado de la SVM recién creada:
++
+`vserver show -vserver _svm_name_`
+
++
+La `Vserver Operational State` el campo debe mostrar la `running` estado. Si muestra la `initializing` estado, significa que hubo un error en algunas operaciones intermedias, como la creación del volumen raíz, y que debe eliminarse la SVM y volver a crearla.
+
+
+
+.Ejemplos
+El siguiente comando crea una SVM para acceder a los datos en el espacio IP ipspaceA:
+
+[listing]
+----
+cluster-1::> vserver create -vserver svm1.example.com -rootvolume root_svm1 -aggregate aggr1 -rootvolume-security-style unix -language C.UTF-8 -ipspace ipspaceA
+
+[Job 2059] Job succeeded:
+Vserver creation completed
+----
+El siguiente comando muestra que se creó una SVM con un volumen raíz de 1 GB, y se inició automáticamente y está en `running` estado. El volumen raíz tiene una política de exportación predeterminada que no incluye reglas, por lo que el volumen raíz no se exporta tras la creación. De forma predeterminada, la cuenta de usuario de vsadmin se crea y está en la `locked` estado. El rol vsadmin se asigna a la cuenta de usuario de vsadmin predeterminada.
+
+[listing]
+----
+cluster-1::> vserver show -vserver svm1.example.com
+                                    Vserver: svm1.example.com
+                               Vserver Type: data
+                            Vserver Subtype: default
+                               Vserver UUID: b8375669-19b0-11e5-b9d1-00a0983d9736
+                                Root Volume: root_svm1
+                                  Aggregate: aggr1
+                                 NIS Domain: -
+                 Root Volume Security Style: unix
+                                LDAP Client: -
+               Default Volume Language Code: C.UTF-8
+                            Snapshot Policy: default
+                                    Comment:
+                               Quota Policy: default
+                List of Aggregates Assigned: -
+ Limit on Maximum Number of Volumes allowed: unlimited
+                        Vserver Admin State: running
+                  Vserver Operational State: running
+   Vserver Operational State Stopped Reason: -
+                          Allowed Protocols: nfs, cifs
+                       Disallowed Protocols: -
+                           QoS Policy Group: -
+                                Config Lock: false
+                               IPspace Name: ipspaceA
+----
+--
+.System Manager
+--
+Debe estar preparado para introducir el nombre del servidor S3 como un nombre de dominio completo (FQDN), que los clientes usarán para el acceso S3. El FQDN del servidor S3 no debe comenzar por un nombre de bloque.
+
+Debe estar preparado para introducir direcciones IP para los datos de roles de interfaz.
+
+Si utiliza un certificado firmado por una CA externa, se le pedirá que lo introduzca durante este procedimiento, también tendrá la opción de usar un certificado generado por el sistema.
+
+. Habilite S3 en una máquina virtual de almacenamiento.
++
+.. Agregue un nuevo equipo virtual de almacenamiento: Haga clic en *almacenamiento > Storage VMs* y, a continuación, haga clic en *Add*.
++
+Si se trata de un sistema nuevo sin equipos virtuales de almacenamiento existentes: Haga clic en *Panel > Configurar protocolos*.
+
++
+Si va a agregar un servidor S3 a un equipo virtual de almacenamiento existente: Haga clic en *almacenamiento > Storage VMs*, seleccione una máquina virtual de almacenamiento, haga clic en *Configuración* y, a continuación, haga clic en image:icon_gear.gif["icono de ajustes"] En *S3*.
+
+.. Haga clic en *Activar S3* y, a continuación, introduzca el nombre del servidor S3.
+.. Seleccione el tipo de certificado.
++
+Tanto si selecciona un certificado generado por el sistema como uno propio, será necesario para el acceso de los clientes.
+
+.. Introduzca las interfaces de red.
+
+
+. Si seleccionó el certificado generado por el sistema, la información del certificado se muestra cuando se confirma la creación de la máquina virtual de almacenamiento nueva. Haga clic en *Descargar* y guárdelo para acceder a los clientes.
++
+** La clave secreta no se volverá a mostrar.
+** Si necesita de nuevo la información del certificado: Haga clic en *almacenamiento > Storage VMs*, seleccione la VM de almacenamiento y haga clic en *Configuración*.
+
+
+
+
+--
+====

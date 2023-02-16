@@ -1,0 +1,77 @@
+---
+permalink: flexgroup/activate-destination-task.html 
+sidebar: sidebar 
+keywords: activate, destination, flexgroup, volume 
+summary: Si el volumen de FlexGroup de origen no puede servir datos debido a eventos como daños en los datos, eliminación accidental o estado sin conexión, debe activar el volumen de FlexGroup de destino para proporcionar acceso a los datos hasta que recupere los datos en el volumen FlexGroup de origen. La activación implica la detención de futuras transferencias de datos de SnapMirror y la ruptura de la relación de SnapMirror. 
+---
+= Activar el volumen de FlexGroup de destino
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si el volumen de FlexGroup de origen no puede servir datos debido a eventos como daños en los datos, eliminación accidental o estado sin conexión, debe activar el volumen de FlexGroup de destino para proporcionar acceso a los datos hasta que recupere los datos en el volumen FlexGroup de origen. La activación implica la detención de futuras transferencias de datos de SnapMirror y la ruptura de la relación de SnapMirror.
+
+.Acerca de esta tarea
+Debe realizar esta tarea desde el clúster de destino.
+
+.Pasos
+. Deshabilite las futuras transferencias para la relación de SnapMirror para volúmenes de FlexGroup: `snapmirror quiesce dest_svm:dest_flexgroup`
++
+[listing]
+----
+cluster2::> snapmirror quiesce -destination-path vsd:dst
+----
+. Rompa la relación de SnapMirror para volúmenes de FlexGroup: `snapmirror break dest_svm:dest_flexgroup`
++
+[listing]
+----
+cluster2::> snapmirror break -destination-path vsd:dst
+----
+. Consulte el estado de la relación de SnapMirror: `snapmirror show -expand`
++
+[listing]
+----
+cluster2::> snapmirror show -expand
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vss:s       XDP  vsd:dst        Broken-off
+                                      Idle           -         true    -
+vss:s__0001 XDP  vsd:dst__0001  Broken-off
+                                      Idle           -         true    -
+vss:s__0002 XDP  vsd:dst__0002  Broken-off
+                                      Idle           -         true    -
+vss:s__0003 XDP  vsd:dst__0003  Broken-off
+                                      Idle           -         true    -
+vss:s__0004 XDP  vsd:dst__0004  Broken-off
+                                      Idle           -         true    -
+vss:s__0005 XDP  vsd:dst__0005  Broken-off
+                                      Idle           -         true    -
+vss:s__0006 XDP  vsd:dst__0006  Broken-off
+                                      Idle           -         true    -
+vss:s__0007 XDP  vsd:dst__0007  Broken-off
+                                      Idle           -         true    -
+vss:s__0008 XDP  vsd:dst__0008  Broken-off
+                                      Idle           -         true    -
+...
+----
++
+El estado de la relación de SnapMirror de cada componente es `Broken-off`.
+
+. Compruebe que el volumen FlexGroup de destino es de lectura/escritura: `volume show -vserver svm_name`
++
+[listing]
+----
+cluster2::> volume show -vserver vsd
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vsd       dst          -            online     **RW**          2GB     1.54GB   22%
+vsd       d2           -            online     DP          2GB     1.55GB   22%
+vsd       root_vs0     aggr1        online     RW        100MB    94.02MB    5%
+3 entries were displayed.
+----
+. Redirija a los clientes al volumen FlexGroup de destino.
+

@@ -1,0 +1,59 @@
+---
+permalink: smb-admin/delete-local-group-task.html 
+sidebar: sidebar 
+keywords: delete, local, group, storage, virtual, machine, svm, determine, determining, access, right, data, associate, assign, user, privilege, member, delete a local group 
+summary: 'Es posible eliminar un grupo local de la máquina virtual de almacenamiento (SVM) si ya no es necesario para determinar los derechos de acceso a los datos asociados con esa SVM o si ya no es necesario para asignar los derechos de usuario (privilegios) de SVM a los miembros del grupo.' 
+---
+= Eliminar un grupo local
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Es posible eliminar un grupo local de la máquina virtual de almacenamiento (SVM) si ya no es necesario para determinar los derechos de acceso a los datos asociados con esa SVM o si ya no es necesario para asignar los derechos de usuario (privilegios) de SVM a los miembros del grupo.
+
+.Acerca de esta tarea
+Tenga en cuenta lo siguiente al eliminar grupos locales:
+
+* El sistema de archivos no se ha modificado.
++
+Los descriptores de seguridad de Windows de los archivos y directorios que hacen referencia a este grupo no se ajustan.
+
+* Si el grupo no existe, se devuelve un error.
+* El grupo especial _Everyone_ no se puede eliminar.
+* Los grupos integrados como _BUILTIN\Administrators_ _BUILTIN\Users_ no se pueden eliminar.
+
+
+.Pasos
+. Determine el nombre del grupo local que desea eliminar mostrando la lista de grupos locales de la SVM: `vserver cifs users-and-groups local-group show -vserver vserver_name`
+. Elimine el grupo local: `vserver cifs users-and-groups local-group delete -vserver _vserver_name_ ‑group-name _group_name_`
+. Compruebe que el grupo se ha eliminado: `vserver cifs users-and-groups local-user show -vserver _vserver_name_`
+
+
+.Ejemplo
+En el siguiente ejemplo se elimina el grupo local "'CIFS_SERVER\sales'" asociado con SVM vs1:
+
+[listing]
+----
+cluster1::> vserver cifs users-and-groups local-group show -vserver vs1
+Vserver   Group Name                   Description
+--------- ---------------------------- ----------------------------
+vs1       BUILTIN\Administrators       Built-in Administrators group
+vs1       BUILTIN\Backup Operators     Backup Operators group
+vs1       BUILTIN\Power Users          Restricted administrative privileges
+vs1       BUILTIN\Users                All users
+vs1       CIFS_SERVER\engineering
+vs1       CIFS_SERVER\sales
+
+cluster1::> vserver cifs users-and-groups local-group delete -vserver vs1 -group-name CIFS_SERVER\sales
+
+cluster1::> vserver cifs users-and-groups local-group show -vserver vs1
+Vserver   Group Name                   Description
+--------- ---------------------------- ----------------------------
+vs1       BUILTIN\Administrators       Built-in Administrators group
+vs1       BUILTIN\Backup Operators     Backup Operators group
+vs1       BUILTIN\Power Users          Restricted administrative privileges
+vs1       BUILTIN\Users                All users
+vs1       CIFS_SERVER\engineering
+----

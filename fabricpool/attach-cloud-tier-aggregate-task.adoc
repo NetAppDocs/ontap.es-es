@@ -1,0 +1,75 @@
+---
+permalink: fabricpool/attach-cloud-tier-aggregate-task.html 
+sidebar: sidebar 
+keywords: attaching, cloud, tier, aggregate 
+summary: Después de configurar un almacén de objetos como nivel de cloud, especifique el agregado que usará en su asociación con FabricPool. A partir de la versión 9.5 de ONTAP, también puede conectar agregados que contengan componentes de volúmenes de FlexGroup cualificados. 
+---
+= Adjuntar el nivel de cloud a un nivel local (agregado)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Después de configurar un almacén de objetos como nivel de cloud, debe especificar el nivel local (agregado) que usará adjunto a FabricPool. En ONTAP 9.5 y versiones posteriores, también puede conectar niveles locales (agregados) que contengan componentes de volumen FlexGroup cualificados.
+
+.Lo que necesitará
+Cuando utilice la interfaz de línea de comandos de ONTAP para configurar un agregado para FabricPool, este ya debe existir.
+
+[NOTE]
+====
+Cuando se usa System Manager para configurar un nivel local para FabricPool, es posible crear el nivel local y configurarlo para que lo use para FabricPool al mismo tiempo.
+
+====
+
+
+== Procedimientos
+
+Puede asociar un nivel local (agregado) a un almacén de objetos FabricPool con System Manager de ONTAP o la CLI de ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Vaya a *almacenamiento > niveles*, seleccione un nivel en la nube y, a continuación, haga clic en image:icon_kabob.gif["icono de kabob"].
+. Seleccione *Adjuntar niveles locales*.
+. En *Agregar como primario*, compruebe que los volúmenes pueden adjuntar.
+. Si es necesario, seleccione *convertir volúmenes a Thin Provisioning*.
+. Haga clic en *Guardar*.
+
+
+--
+.CLI
+--
+.Para asociar un almacén de objetos a un agregado con la CLI:
+. *Opcional*: Para ver cuántos datos de un volumen están inactivos, siga los pasos de la link:determine-data-inactive-reporting-task.html["Determinar cuántos datos de un volumen están inactivos mediante la generación de informes de datos inactivos"].
++
+Ver la cantidad de datos de un volumen inactivos puede ayudarle a decidir qué agregado utilizar para FabricPool.
+
+. Para adjuntar el almacén de objetos a un agregado mediante el `storage aggregate object-store attach` comando.
++
+Si el agregado no se ha usado nunca con FabricPool y contiene volúmenes existentes, se asignan los volúmenes de forma predeterminada `snapshot-only` política de organización en niveles.
+
++
+[listing]
+----
+cluster1::> storage aggregate object-store attach -aggregate myaggr
+-object-store-name Amazon01B1
+----
++
+Puede utilizar el `allow-flexgroup` `true` Opción para conectar agregados que contienen componentes de volumen FlexGroup.
+
+. Muestre la información del almacén de objetos y compruebe que el almacén de objetos asociado esté disponible mediante el `storage aggregate object-store show` comando.
++
+[listing]
+----
+cluster1::> storage aggregate object-store show
+
+Aggregate    Object Store Name    Availability State
+---------    -----------------    ------------------
+myaggr       Amazon01B1           available
+----
+
+
+--
+====

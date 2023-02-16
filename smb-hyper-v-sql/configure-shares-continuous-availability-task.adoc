@@ -1,0 +1,130 @@
+---
+permalink: smb-hyper-v-sql/configure-shares-continuous-availability-task.html 
+sidebar: sidebar 
+keywords: configure, shares, continuous, availability, hyper, v, sql, server, virutal, machine, database, file 
+summary: Puede modificar los recursos compartidos existentes para que estén siempre disponibles y que los servidores de aplicaciones de Hyper-V y SQL Server utilicen para acceder de forma no disruptiva a los archivos de configuración y de máquinas virtuales de Hyper-V, así como a los archivos de bases de datos de SQL Server. 
+---
+= Configure los recursos compartidos existentes para una disponibilidad continua
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede modificar los recursos compartidos existentes para que estén siempre disponibles y que los servidores de aplicaciones de Hyper-V y SQL Server utilicen para acceder de forma no disruptiva a los archivos de configuración y de máquinas virtuales de Hyper-V, así como a los archivos de bases de datos de SQL Server.
+
+.Acerca de esta tarea
+No puede utilizar un recurso compartido existente como un recurso compartido disponible de forma continua para las operaciones no disruptivas con servidores de aplicaciones a través de SMB si el recurso compartido tiene las siguientes características:
+
+* Si la `homedirectory` la propiedad share se establece en ese recurso compartido
+* Si el recurso compartido contiene enlaces simbólicos activados o enlaces con cables
+* Si el recurso compartido contiene volúmenes juntados por debajo de la raíz del recurso compartido
+
+
+Debe verificar que los dos parámetros de recursos compartidos siguientes estén configurados correctamente:
+
+* La `-offline-files` el parámetro está establecido en cualquiera de los dos `manual` (el valor predeterminado) o. `none`.
+* Los enlaces simbólicos deben estar desactivados.
+
+
+Deben configurarse las siguientes propiedades compartidas:
+
+* `continuously-available`
+* `oplocks`
+
+
+No se deben establecer las siguientes propiedades compartidas. Si están presentes en la lista de propiedades de recursos compartidos actuales, deben eliminarse del recurso compartido continuamente disponible:
+
+* `attributecache`
+* `branchcache`
+
+
+.Pasos
+. Mostrar la configuración actual de los parámetros de recursos compartidos y la lista actual de propiedades de recursos compartidos configuradas:
++
+`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_*`
+
+. Si es necesario, modifique los parámetros del recurso compartido para desactivar los enlaces simbólicos y establezca los archivos offline en manual mediante el `vserver cifs share properties modify` comando.
++
+Puede deshabilitar los enlaces simbólicos estableciendo el valor de `-symlink` parámetro a. `""`.
+
++
+** Puede deshabilitar los enlaces simbólicos estableciendo el valor de `-symlink` parámetro a. `""`.
+** Puede ajustar la `-offline-files` especifique el parámetro en el ajuste correcto `manual`.
+
+
+. Añada el `continuously-available` compartir la propiedad y, si es necesario, la `oplocks` compartir propiedad:
++
+`*vserver cifs share properties add -vserver _vserver_name_ -share-name _share_name_ -share-properties continuously-available[,oplock]*`
+
++
+Si la `oplocks` la propiedad share no está establecida, debe añadirla junto con la `continuously-available` compartir propiedad.
+
+. Quite todas las propiedades de recursos compartidos que no sean compatibles con recursos compartidos disponibles de forma continua:
++
+`*vserver cifs share properties remove -vserver _vserver_name_ -share-name _share_name_ -share-properties properties[,...]*`
+
++
+Puede quitar una o varias propiedades de recursos compartidos si especifica las propiedades de recursos compartidos con una lista delimitada por comas.
+
+. Compruebe que el `-symlink` y.. `-offline-files` los parámetros se ajustan correctamente:
++
+`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_ -fields symlink-properties,offline-files*`
+
+. Compruebe que la lista de propiedades de recursos compartidos configuradas es correcta:
++
+`*vserver cifs shares properties show -vserver _vserver_name_ -share-name share_name*`
+
+
+
+.Ejemplos
+El siguiente ejemplo muestra cómo configurar un recurso compartido existente llamado «shara1» en la máquina virtual de almacenamiento (SVM) vs1 para NDOS con un servidor de aplicaciones en SMB:
+
+* Los enlaces simbólicos se desactivan en el recurso compartido estableciendo la `-symlink` parámetro a "".
+* La `-offline-file` el parámetro se modifica y se establece en `manual`.
+* La `continuously-available` la propiedad share se agrega al recurso compartido.
+* La `oplocks` la propiedad share ya está en la lista de propiedades de recurso compartido; por lo tanto, no es necesario añadirla.
+* La `attributecache` la propiedad share se quita del recurso compartido.
+* La `browsable` La propiedad Share es opcional para un recurso compartido disponible continuamente que se utiliza para NDOS con servidores de aplicaciones en SMB y se conserva como una de las propiedades compartidas.
+
+
+[listing]
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name share1
+
+                      Vserver: vs1
+                        Share: share1
+     CIFS Server NetBIOS Name: vs1
+                         Path: /data
+             Share Properties: oplocks
+                               browsable
+                               attributecache
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: data
+                Offline Files: documents
+Vscan File-Operations Profile: standard
+
+cluster1::> vserver cifs share modify -vserver vs1 -share-name share1 -offline-file manual -symlink ""
+
+cluster1::> vserver cifs share properties add -vserver vs1 -share-name share1 -share-properties continuously-available
+
+cluster1::> vserver cifs share properties remove -vserver vs1 -share-name share1 -share-properties attributecache
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name share1 -fields symlink-properties,offline-files
+vserver  share-name symlink-properties offline-files
+-------- ---------- ------------------ -------------
+vs1      share1    -                  manual
+
+cluster1::> vserver cifs share properties show -vserver vs1 -share-name share1
+
+         Vserver: vs1
+           Share: share1
+Share Properties: oplocks
+                  browsable
+                  continuously-available
+----
