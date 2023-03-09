@@ -14,15 +14,18 @@ summary: Las copias Snapshot denominadas Anti_ransomware_backup se crean cuando 
 :nofooter: 
 :icons: font
 :linkattrs: 
-:imagesdir: ./media/
+:imagesdir: ../media/
 :toc-position: content
 
 
 [role="lead"]
-Las copias Snapshot denominadas “Anti_ransomware_backup” se crean cuando la protección de ransomware autónoma (ARP) detecta un ataque potencial. Puede restaurar datos desde estas copias ARP o otras copias Snapshot.
+Las copias Snapshot denominadas “Anti_ransomware_backup” se crean cuando la protección de ransomware autónoma (ARP) detecta un ataque potencial. Puede restaurar datos desde estas copias ARP o desde otras copias Snapshot.
 
 
 NOTE: Si se produce un ataque de ransomware, consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Ransomware_prevention_and_recovery_in_ONTAP["Prevención y recuperación de ransomware en ONTAP"^] para obtener información adicional sobre la recuperación y la mitigación futura.
+
+.Acerca de esta tarea
+Si el volumen tiene relaciones de SnapMirror, replique manualmente todas las copias de reflejo del volumen inmediatamente después de restaurar desde una copia de Snapshot. Si no lo hace, puede provocar copias reflejadas inutilizables que se deban eliminar y volver a crear.
 
 .Lo que necesitará
 * ARP habilitado
@@ -30,20 +33,105 @@ NOTE: Si se produce un ataque de ransomware, consulte el artículo de la base de
 
 
 .Pasos
+Puede usar System Manager o la interfaz de línea de comandos de ONTAP para restaurar los datos.
+
 [role="tabbed-block"]
 ====
 .System Manager
 --
-. Mostrar las copias Snapshot en volúmenes identificados en un ataque potencial: Haga clic en *almacenamiento > volúmenes*, seleccione el volumen y, a continuación, haga clic en la ficha copias Snapshot.
-. Restaure las copias deseadas de acuerdo con estas instrucciones:link:../task_dp_recover_snapshot.html["Recuperar desde copias Snapshot"]
+. Si desea restaurar datos desde copias Snapshot anteriores, en lugar de desde copias ARP, debe hacer lo siguiente para liberar el bloqueo de Snapshot anti-ransomware. Si desea restaurar desde las copias ARP, no es necesario liberar el bloqueo y puede omitir este paso.
++
+[cols="2"]
+|===
+| Si se identificó un ataque del sistema, haga esto... | Si no se identificó un ataque del sistema, haga esto... 
+
+
+ a| 
+.. Haga clic en *almacenamiento > volúmenes*.
+.. Seleccione *Seguridad* y haga clic en *Ver tipos de archivo sospechosos*
+.. Marque los archivos como "False positive" .
+.. Haga clic en *Actualizar* y *Borrar tipos de archivo sospechosos*
+
+ a| 
+Para liberar el bloqueo de Snapshot, debe restaurar desde las copias ARP antes de restaurar desde copias de Snapshot anteriores.
+
+Siga los pasos 2-3 para restaurar datos desde las copias ARP y, a continuación, repita el proceso para restaurar desde copias Snapshot anteriores.
+
+|===
+. Mostrar las copias Snapshot en los volúmenes:
++
+Haga clic en *almacenamiento > volúmenes*, seleccione el volumen y haga clic en *copias Snapshot*.
+
+. Haga clic en image:icon_kabob.gif["Opción de menú"] Junto a la copia Snapshot que desea restaurar y seleccione *Restaurar*.
 
 
 --
 .CLI
 --
-. Mostrar las copias Snapshot en los volúmenes identificados con un posible ataque:
-`volume snapshot show -vserver _svm_name_ -volume _vol_name_`
-. Restaure las copias deseadas de acuerdo con estas instrucciones:link:../data-protection/restore-contents-volume-snapshot-task.html["Restaurar archivos desde copias snapshot"]
+. Si desea restaurar datos desde copias Snapshot anteriores, en lugar de desde copias ARP, debe hacer lo siguiente para liberar el bloqueo de Snapshot anti-ransomware. Si desea restaurar desde las copias ARP, no es necesario liberar el bloqueo y puede omitir este paso.
++
+[NOTE]
+----
+It is only necessary to release the anti-ransomware Snaplock before restoring from earlier Snapshot copies if you are using the `volume snap restore`` command as outline below.  If you are restoring data using Flex Clone, Single File Snap Restore or other methods, this is not necessary.
+----
++
+[cols="2"]
+|===
+| Si se identificó un ataque del sistema, haga esto... | Si no se identificó un ataque del sistema, haga esto... 
+
+
+ a| 
+Marcar el ataque como "falso positivo" y "claro sospechoso".
+
+`anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive true`
+
+Utilice uno de los siguientes parámetros para identificar las extensiones:
+`[-seq-no _integer_]` Número de secuencia del archivo en la lista de sospechosos.
+`[-extension _text_, … ]` Extensiones de archivo
+`[-start-time _date_time_ -end-time _date_time_]` Horas de inicio y finalización del intervalo de archivos que se van a borrar, con el formato "MM/DD/AAAA HH:MM:SS".
+ a| 
+Para liberar el bloqueo de Snapshot, debe restaurar desde las copias ARP antes de restaurar desde copias de Snapshot anteriores.
+
+Siga los pasos 2-3 para restaurar datos desde las copias ARP y, a continuación, repita el proceso para restaurar desde copias Snapshot anteriores.
+
+|===
+. Enumere las copias Snapshot en un volumen:
++
+`volume snapshot show -vserver _SVM_ -volume _volume_`
+
++
+El ejemplo siguiente muestra las copias Snapshot en `vol1`:
+
++
+[listing]
+----
+
+clus1::> volume snapshot show -vserver vs1 -volume vol1
+
+Vserver Volume Snapshot                State    Size  Total% Used%
+------- ------ ---------- ----------- ------   -----  ------ -----
+vs1	 vol1   hourly.2013-01-25_0005  valid   224KB     0%    0%
+               daily.2013-01-25_0010   valid   92KB      0%    0%
+               hourly.2013-01-25_0105  valid   228KB     0%    0%
+               hourly.2013-01-25_0205  valid   236KB     0%    0%
+               hourly.2013-01-25_0305  valid   244KB     0%    0%
+               hourly.2013-01-25_0405  valid   244KB     0%    0%
+               hourly.2013-01-25_0505  valid   244KB     0%    0%
+
+7 entries were displayed.
+----
+. Restaure el contenido de un volumen de una copia Snapshot:
++
+`volume snapshot restore -vserver _SVM_ -volume _volume_ -snapshot _snapshot_`
+
++
+En el ejemplo siguiente se restaura el contenido de `vol1`:
+
++
+[listing]
+----
+cluster1::> volume snapshot restore -vserver vs0 -volume vol1 -snapshot daily.2013-01-25_0010
+----
 
 
 --
