@@ -36922,7 +36922,7 @@
 <p class="page-details">
   
     
-    <time datetime="2023-02-20 22:37:27 +0000">02/20/2023</time>
+    <time datetime="2023-03-09 18:01:35 +0000">03/09/2023</time>
     
   
 
@@ -36933,7 +36933,7 @@
 </p>
 
 <div class="paragraph lead">
-<p>Las copias Snapshot denominadas “Anti_ransomware_backup” se crean cuando la protección de ransomware autónoma (ARP) detecta un ataque potencial. Puede restaurar datos desde estas copias ARP o otras copias Snapshot.</p>
+<p>Las copias Snapshot denominadas “Anti_ransomware_backup” se crean cuando la protección de ransomware autónoma (ARP) detecta un ataque potencial. Puede restaurar datos desde estas copias ARP o desde otras copias Snapshot.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -36947,6 +36947,10 @@ Si se produce un ataque de ransomware, consulte el artículo de la base de conoc
 </tr>
 </table>
 </div>
+<div class="paragraph">
+<div class="title">Acerca de esta tarea</div>
+<p>Si el volumen tiene relaciones de SnapMirror, replique manualmente todas las copias de reflejo del volumen inmediatamente después de restaurar desde una copia de Snapshot. Si no lo hace, puede provocar copias reflejadas inutilizables que se deban eliminar y volver a crear.</p>
+</div>
 <div class="ulist">
 <div class="title">Lo que necesitará</div>
 <ul>
@@ -36958,8 +36962,11 @@ Si se produce un ataque de ransomware, consulte el artículo de la base de conoc
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<div class="title">Pasos</div>
+<p>Puede usar System Manager o la interfaz de línea de comandos de ONTAP para restaurar los datos.</p>
+</div>
 <div class="exampleblock tabbed-block">
-<div class="title">Ejemplo 1. Pasos</div>
 <div class="content">
 <div class="openblock">
 <div class="title">System Manager</div>
@@ -36967,10 +36974,54 @@ Si se produce un ataque de ransomware, consulte el artículo de la base de conoc
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Mostrar las copias Snapshot en volúmenes identificados en un ataque potencial: Haga clic en <strong>almacenamiento &gt; volúmenes</strong>, seleccione el volumen y, a continuación, haga clic en la ficha copias Snapshot.</p>
+<p>Si desea restaurar datos desde copias Snapshot anteriores, en lugar de desde copias ARP, debe hacer lo siguiente para liberar el bloqueo de Snapshot anti-ransomware. Si desea restaurar desde las copias ARP, no es necesario liberar el bloqueo y puede omitir este paso.</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Si se identificó un ataque del sistema, haga esto&#8230;&#8203;</th>
+<th class="tableblock halign-left valign-top">Si no se identificó un ataque del sistema, haga esto&#8230;&#8203;</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>Haga clic en <strong>almacenamiento &gt; volúmenes</strong>.</p>
 </li>
 <li>
-<p>Restaure las copias deseadas de acuerdo con estas instrucciones:<a href="../task_dp_recover_snapshot.html">"Recuperar desde copias Snapshot"</a></p>
+<p>Seleccione <strong>Seguridad</strong> y haga clic en <strong>Ver tipos de archivo sospechosos</strong></p>
+</li>
+<li>
+<p>Marque los archivos como "False positive" .</p>
+</li>
+<li>
+<p>Haga clic en <strong>Actualizar</strong> y <strong>Borrar tipos de archivo sospechosos</strong></p>
+</li>
+</ol>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Para liberar el bloqueo de Snapshot, debe restaurar desde las copias ARP antes de restaurar desde copias de Snapshot anteriores.</p>
+</div>
+<div class="paragraph">
+<p>Siga los pasos 2-3 para restaurar datos desde las copias ARP y, a continuación, repita el proceso para restaurar desde copias Snapshot anteriores.</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>Mostrar las copias Snapshot en los volúmenes:</p>
+<div class="paragraph">
+<p>Haga clic en <strong>almacenamiento &gt; volúmenes</strong>, seleccione el volumen y haga clic en <strong>copias Snapshot</strong>.</p>
+</div>
+</li>
+<li>
+<p>Haga clic en <span class="image"><img src="../media/icon_kabob.gif" alt="Opción de menú"></span> Junto a la copia Snapshot que desea restaurar y seleccione <strong>Restaurar</strong>.</p>
 </li>
 </ol>
 </div>
@@ -36982,11 +37033,86 @@ Si se produce un ataque de ransomware, consulte el artículo de la base de conoc
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Mostrar las copias Snapshot en los volúmenes identificados con un posible ataque:<br>
-<code>volume snapshot show -vserver <em>svm_name</em> -volume <em>vol_name</em></code></p>
+<p>Si desea restaurar datos desde copias Snapshot anteriores, en lugar de desde copias ARP, debe hacer lo siguiente para liberar el bloqueo de Snapshot anti-ransomware. Si desea restaurar desde las copias ARP, no es necesario liberar el bloqueo y puede omitir este paso.</p>
+<div class="listingblock">
+<div class="content">
+<pre>It is only necessary to release the anti-ransomware Snaplock before restoring from earlier Snapshot copies if you are using the `volume snap restore`` command as outline below.  If you are restoring data using Flex Clone, Single File Snap Restore or other methods, this is not necessary.</pre>
+</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Si se identificó un ataque del sistema, haga esto&#8230;&#8203;</th>
+<th class="tableblock halign-left valign-top">Si no se identificó un ataque del sistema, haga esto&#8230;&#8203;</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Marcar el ataque como "falso positivo" y "claro sospechoso".</p>
+</div>
+<div class="paragraph">
+<p><code>anti-ransomware volume attack clear-suspect -vserver <em>svm_name</em> -volume <em>vol_name</em> [<em>extension identifiers</em>] -false-positive true</code></p>
+</div>
+<div class="paragraph">
+<p>Utilice uno de los siguientes parámetros para identificar las extensiones:<br>
+<code>[-seq-no <em>integer</em>]</code> Número de secuencia del archivo en la lista de sospechosos.<br>
+<code>[-extension <em>text</em>, … ]</code> Extensiones de archivo<br>
+<code>[-start-time <em>date_time</em> -end-time <em>date_time</em>]</code> Horas de inicio y finalización del intervalo de archivos que se van a borrar, con el formato "MM/DD/AAAA HH:MM:SS".</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Para liberar el bloqueo de Snapshot, debe restaurar desde las copias ARP antes de restaurar desde copias de Snapshot anteriores.</p>
+</div>
+<div class="paragraph">
+<p>Siga los pasos 2-3 para restaurar datos desde las copias ARP y, a continuación, repita el proceso para restaurar desde copias Snapshot anteriores.</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
 </li>
 <li>
-<p>Restaure las copias deseadas de acuerdo con estas instrucciones:<a href="../data-protection/restore-contents-volume-snapshot-task.html">"Restaurar archivos desde copias snapshot"</a></p>
+<p>Enumere las copias Snapshot en un volumen:</p>
+<div class="paragraph">
+<p><code>volume snapshot show -vserver <em>SVM</em> -volume <em>volume</em></code></p>
+</div>
+<div class="paragraph">
+<p>El ejemplo siguiente muestra las copias Snapshot en <code>vol1</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>clus1::&gt; volume snapshot show -vserver vs1 -volume vol1
+
+Vserver Volume Snapshot                State    Size  Total% Used%
+------- ------ ---------- ----------- ------   -----  ------ -----
+vs1	 vol1   hourly.2013-01-25_0005  valid   224KB     0%    0%
+               daily.2013-01-25_0010   valid   92KB      0%    0%
+               hourly.2013-01-25_0105  valid   228KB     0%    0%
+               hourly.2013-01-25_0205  valid   236KB     0%    0%
+               hourly.2013-01-25_0305  valid   244KB     0%    0%
+               hourly.2013-01-25_0405  valid   244KB     0%    0%
+               hourly.2013-01-25_0505  valid   244KB     0%    0%
+
+7 entries were displayed.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Restaure el contenido de un volumen de una copia Snapshot:</p>
+<div class="paragraph">
+<p><code>volume snapshot restore -vserver <em>SVM</em> -volume <em>volume</em> -snapshot <em>snapshot</em></code></p>
+</div>
+<div class="paragraph">
+<p>En el ejemplo siguiente se restaura el contenido de <code>vol1</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>cluster1::&gt; volume snapshot restore -vserver vs0 -volume vol1 -snapshot daily.2013-01-25_0010</pre>
+</div>
+</div>
 </li>
 </ol>
 </div>
