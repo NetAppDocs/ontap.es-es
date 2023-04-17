@@ -50,18 +50,33 @@ Se recomienda emitir un mensaje de AutoSupport para notificar al soporte técnic
 *Nota:* no debe realizar operaciones como `cluster remove-node`, `cluster unjoin`, y. `node rename` Cuando hay una actualización automática de ONTAP en curso.
 
 .Acerca de esta tarea
-Si ejecuta un clúster de versión mixta, puede eliminar el último nodo de versión baja con uno de los comandos de privilegio avanzados desde ONTAP 9.3:
+* Si ejecuta un clúster de versión mixta, puede eliminar el último nodo de versión baja con uno de los comandos de privilegio avanzados desde ONTAP 9.3:
++
+** ONTAP 9.3: `cluster unjoin -skip-last-low-version-node-check`
+** ONTAP 9.4 y posteriores: `cluster remove-node -skip-last-low-version-node-check`
 
-* ONTAP 9.3: `cluster unjoin -skip-last-low-version-node-check`
-* ONTAP 9.4 y posteriores: `cluster remove-node -skip-last-low-version-node-check`
+
+* Si desune 2 nodos de un clúster de 4 nodos, la alta disponibilidad de clúster se habilita automáticamente en los dos nodos que quedan.
 
 
-*Nota:* todos los datos del sistema y del usuario, desde todos los discos conectados al nodo, deben ser inaccesibles para los usuarios antes de quitar un nodo del clúster. Si un nodo se desunió incorrectamente desde un clúster, póngase en contacto con el soporte de NetApp para obtener ayuda con las opciones de recuperación.
+
+NOTE: Antes de quitar un nodo del clúster, se deben hacer inaccesibles a todos los datos del sistema y del usuario de todos los discos que están conectados al nodo. Si un nodo se desunió incorrectamente desde un clúster, póngase en contacto con el soporte de NetApp para obtener ayuda con las opciones de recuperación.
 
 .Pasos
 . Cambie el nivel de privilegio a avanzado:
 +
 `*set -privilege advanced*`
+
+. Compruebe si un nodo del clúster tiene épsilon:
++
+`*cluster show -epsilon true*`
+
++
+.. Si un nodo contiene épsilon, cambie su elegibilidad a FALSE.
++
+`*cluster modify -node <node_name> -eligibility false*`
+
+
 
 . Si el nodo que desea quitar es el nodo maestro actual, habilite otro nodo del clúster para que se elija como nodo maestro cambiando la idoneidad del clúster del nodo maestro `false`:
 +
