@@ -13,8 +13,6 @@ summary: Para los sistemas que utilizan el protocolo NVMe, debe crear uno o vari
 [role="lead"]
 Si no hay disponible un procedimiento para el host específico, puede usar estos pasos para crear espacios de nombres y aprovisionar almacenamiento para cualquier host compatible con NVMe.
 
-Los espacios de nombres aparecen en Linux como dispositivos de disco SCSI.
-
 Este procedimiento crea nuevos espacios de nombres en una máquina virtual de almacenamiento existente. La máquina virtual de almacenamiento debe configurarse para NVMe, y ya se debe configurar el transporte FC o TCP.
 
 A partir de ONTAP 9.8, cuando se aprovisiona el almacenamiento, la calidad de servicio se habilita de forma predeterminada. Puede deshabilitar la calidad de servicio o seleccionar una política de calidad de servicio personalizada durante el proceso de aprovisionamiento o más adelante.
@@ -31,8 +29,6 @@ Con System Manager de ONTAP (9.7 y versiones posteriores), cree espacios de nomb
 Si necesita crear un subsistema nuevo, haga clic en *más opciones*.
 
 . Si está ejecutando ONTAP 9.8 o posterior y desea desactivar QoS o elegir una directiva de QoS personalizada, haga clic en *más opciones* y, a continuación, en *almacenamiento y optimización* seleccione *nivel de servicio de rendimiento*.
-
-
 . Dividir los switches de FC en zonas mediante WWPN. Use una zona por iniciador e incluya todos los puertos de destino en cada zona.
 . En el host, detecte los nuevos espacios de nombres.
 . Inicialice el espacio de nombres y formatee el sistema de archivos.
@@ -51,45 +47,59 @@ Si necesita configurar la máquina virtual de almacenamiento para NVMe, consulte
 .Pasos
 . Compruebe que la SVM esté configurada para NVMe:
 +
-`vserver show -vserver _SVM_name_ -fields allowed-protocols`
-
+[source, cli]
+----
+vserver show -vserver <svm_name> -fields allowed-protocols
+----
 +
 `NVMe` debe aparecer debajo de la `allowed-protocols` columna.
 
 . Cree el espacio de nombres NVMe:
 +
-`vserver nvme namespace create -vserver _SVM_name_ -path _path_ -size _size_of_namespace_ -ostype _OS_type_`
-
+[source, cli]
+----
+vserver nvme namespace create -vserver <svm_name> -path <path> -size <size_of_namespace> -ostype <OS_type>
+----
 . Cree el subsistema NVMe:
 +
-`vserver nvme subsystem create -vserver _SVM_name_ -subsystem _name_of_subsystem_ -ostype _OS_type_`
-
+[source, cli]
+----
+vserver nvme subsystem create -vserver <svm_name> -subsystem <name_of_subsystem> -ostype <OS_type>
+----
 +
 El nombre del subsistema NVMe distingue mayúsculas de minúsculas. Debe contener de 1 a 96 caracteres. Se permiten caracteres especiales.
 
 . Compruebe que se ha creado el subsistema:
 +
-`vserver nvme subsystem show -vserver _SVM_name_`
-
+[source, cli]
+----
+vserver nvme subsystem show -vserver <svm_name>
+----
 +
 La `nvme` el subsistema debe aparecer debajo de `Subsystem` columna.
 
 . Obtenga el NQN del host.
 . Añada el NQN del host al subsistema:
 +
-`vserver nvme subsystem host add -vserver _SVM_name_ -subsystem _subsystem_name_ -host-nqn _Host_NQN_:subsystem._subsystem_name_`
-
+[source, cli]
+----
+vserver nvme subsystem host add -vserver <svm_name> -subsystem <subsystem_name> -host-nqn <Host_NQN>
+----
 . Asigne el espacio de nombres al subsistema:
 +
-`vserver nvme subsystem map add -vserver _SVM_name_ -subsystem _subsystem_name_ -path _path_`
-
+[source, cli]
+----
+vserver nvme subsystem map add -vserver <svm_name> -subsystem <subsystem_name> -path <path>
+----
 +
 Un espacio de nombres solo se puede asignar a un subsistema único.
 
 . Compruebe que el espacio de nombres está asignado al subsistema:
 +
-`vserver nvme namespace show -vserver _SVM_name_ -instance`
-
+[source, cli]
+----
+vserver nvme namespace show -vserver <svm_name> -instance
+----
 +
 El subsistema debe aparecer como `Attached subsystem`.
 

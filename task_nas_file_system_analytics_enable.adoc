@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar 
 permalink: task_nas_file_system_analytics_enable.html 
-keywords: capacity analytics, data visualization, File System Analytics, System Manager, storage, explorer 
+keywords: capacity analytics, data visualization, File System Analytics 
 summary: Para recopilar y mostrar datos de uso como análisis de capacidad, debe habilitar File System Analytics. 
 ---
 = Active File System Analytics
@@ -21,7 +21,10 @@ summary: Para recopilar y mostrar datos de uso como análisis de capacidad, debe
 [role="lead"]
 Para recopilar y mostrar datos de uso, como los análisis de capacidad, es necesario habilitar File System Analytics en un volumen.
 
-A partir de ONTAP 9.8, puede habilitar el análisis del sistema de archivos en un volumen nuevo o existente. Si actualiza un sistema a ONTAP 9.8 o posterior, asegúrese de que todos los procesos de actualización se han completado antes de habilitar el análisis del sistema de archivos.
+.Acerca de esta tarea
+* A partir de ONTAP 9.8, puede habilitar el análisis del sistema de archivos en un volumen nuevo o existente. Si actualiza un sistema a ONTAP 9.8 o posterior, asegúrese de que todos los procesos de actualización se han completado antes de habilitar el análisis del sistema de archivos.
+* Según el tamaño y el contenido del volumen, la habilitación del análisis puede llevar tiempo mientras ONTAP procesa los datos existentes en el volumen. System Manager muestra el progreso y presenta datos de análisis cuando se completa. Si necesita información más precisa sobre el progreso de inicialización, puede utilizar el comando CLI de ONTAP `volume analytics show`.
+
 
 .Acerca de esta tarea
 Según el tamaño y el contenido del volumen, la habilitación del análisis puede llevar tiempo mientras ONTAP procesa los datos existentes en el volumen. System Manager muestra el progreso y presenta datos de análisis cuando se completa. Si necesita información más precisa sobre el progreso de inicialización, puede utilizar el comando CLI de ONTAP `volume analytics show`.
@@ -44,10 +47,53 @@ Puede habilitar el análisis del sistema de archivos con el Administrador del si
 --
 .CLI
 --
-.Para habilitar File System Analytics con la CLI:
+.Active File System Analytics con la CLI
 . Ejecute el siguiente comando:
 `volume analytics on -vserver _svm_name_ -volume _volume_name_ [-foreground {true|false}]`De forma predeterminada, el comando se ejecuta en primer plano; ONTAP muestra el progreso y presenta datos de análisis cuando se completa. Si necesita información más precisa, puede ejecutar el comando en segundo plano mediante la `-foreground false` y, a continuación, utilice la `volume analytics show` Comando para mostrar el progreso de inicialización en la CLI.
-. Después de habilitar correctamente el análisis del sistema de archivos, utilice System Manager de ONTAP para mostrar los datos analíticos.
+. Después de habilitar correctamente el análisis del sistema de archivos, utilice System Manager o la API REST DE ONTAP para mostrar los datos analíticos.
+
+
+--
+====
+
+
+== Modificar la configuración predeterminada de análisis del sistema de archivos
+
+A partir de ONTAP 9.13.1, se puede modificar la configuración de SVM o de los clústeres para habilitar el análisis del sistema de archivos de forma predeterminada en los volúmenes nuevos.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Si utiliza System Manager, puede modificar la configuración de la máquina virtual de almacenamiento o del clúster para permitir los análisis de capacidad y el seguimiento de actividad durante la creación del volumen de forma predeterminada. La habilitación predeterminada solo se aplica a los volúmenes creados después de modificar la configuración, no a los volúmenes existentes.
+
+.Modificar la configuración de análisis del sistema de archivos en un clúster
+. En System Manager, vaya a **Configuración del clúster**.
+. En **Configuración del clúster**, revise la pestaña Configuración del sistema de archivos. Para modificar la configuración, seleccione la image:icon_gear.gif["Ajuste la marcha"] .
+. En el campo **Seguimiento de actividad**, introduzca los nombres de las SVM para habilitar Seguimiento de actividad de forma predeterminada. Si deja el campo vacío, el seguimiento de actividad quedará deshabilitado en todas las SVM.
++
+Desactive la casilla **Activar en nuevas máquinas virtuales de almacenamiento** para desactivar el Seguimiento de actividad de forma predeterminada en las nuevas máquinas virtuales de almacenamiento.
+
+. En el campo **Analytics**, introduzca los nombres de las máquinas virtuales de almacenamiento para las que desea habilitar la analítica de capacidad de forma predeterminada. Si deja el campo vacío, los análisis de capacidad quedarán deshabilitados en todas las SVM.
++
+Desactive la casilla **Enable on new storage VMs** para desactivar los análisis de capacidad de forma predeterminada en las nuevas máquinas virtuales de almacenamiento.
+
+. Selecciona **Guardar**.
+
+
+.Modificar la configuración de análisis del sistema de archivos en una SVM
+. Seleccione la SVM que desea modificar, a continuación **Configuración de la máquina virtual de almacenamiento**.
+. En la tarjeta **File System Analytics**, utilice los botones para activar o desactivar el Seguimiento de actividad y el análisis de capacidad para todos los volúmenes nuevos en la máquina virtual de almacenamiento.
+
+
+--
+.CLI
+--
+Puede configurar la máquina virtual de almacenamiento para habilitar el análisis del sistema de archivos de forma predeterminada en los nuevos volúmenes mediante la interfaz de línea de comandos de ONTAP.
+
+.Habilite File System Analytics de forma predeterminada en una SVM
+. Modifique la SVM para habilitar los análisis de capacidad y el seguimiento de actividad de forma predeterminada en todos los volúmenes recién creados:
+`vserver modify -vserver _svm_name_ -auto-enable-activity-tracking true -auto-enable-analytics true`
 
 
 --

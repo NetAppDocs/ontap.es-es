@@ -1,8 +1,8 @@
 ---
 permalink: consistency-groups/protect-task.html 
 sidebar: sidebar 
-keywords: consistency groups, consistency group, application protection, parent, child, configure, two-phase commit, 2 phase 
-summary: Establecer una política de protección para un grupo de coherencia a fin de habilitar el backup de aplicaciones con políticas Snapshot locales o protección SM-BC remota 
+keywords: application protection, two-phase commit, 2 phase, smbc, async snapmirror, local, remote, snapshot 
+summary: 'Proteja el grupo de coherencia con copias Snapshot locales, continuidad del negocio de SnapMirror (SM-BC) o una protección asíncrona con SnapMirror.' 
 ---
 = Proteja un grupo de consistencia
 :hardbreaks:
@@ -14,13 +14,18 @@ summary: Establecer una política de protección para un grupo de coherencia a f
 [role="lead"]
 Los grupos de coherencia ofrecen una protección local y remota de fácil gestión para aplicaciones SAN, NAS y NVMe que abarcan varios volúmenes.
 
-La creación de un grupo de consistencia no habilita la protección automáticamente. Se pueden establecer políticas de protección local o remota en el momento de la creación o después de crear un grupo de consistencia. Las políticas de protección pueden incluir copias Snapshot locales o protección remota de SnapMirror con continuidad empresarial de SnapMirror (SM-BC). Si utiliza grupos de coherencia anidados, puede establecer diferentes políticas de protección para volúmenes individuales.
+La creación de un grupo de consistencia no habilita la protección automáticamente. Las políticas de protección se pueden establecer en el momento de la creación o después de crear el grupo de consistencia. Puede proteger grupos de consistencia mediante:
+
+* Políticas de Snapshot locales
+* Continuidad del negocio de SnapMirror (SM-BC)
+* SnapMirror asíncrono (inicio de 9.13.1)
+
+
+Si utiliza grupos de consistencia anidados, puede establecer políticas de protección distintas para los grupos de coherencia primario y secundario.
 
 A partir de ONTAP 9.11.1, los grupos de consistencia ofrecen <<two-phase,Creación de copias Snapshot de grupo de consistencia en dos fases>>. La copia Snapshot de dos fases ejecuta las comprobaciones previas, lo que garantiza que la copia Snapshot se capture correctamente.
 
 Se puede producir la recuperación de un grupo de consistencia completo, de un solo grupo de consistencia en una configuración jerárquica o de volúmenes individuales en el grupo de consistencia. Para lograr la recuperación, seleccione el grupo de consistencia del que desea recuperar, seleccione el tipo de copia Snapshot y, a continuación, identifique la copia Snapshot en la que se basa la restauración. Para obtener más información acerca de este proceso, consulte link:../task_dp_restore_from_vault.html["Restaurar un volumen de una copia de Snapshot anterior"].
-
-A partir de ONTAP 9.10.1, System Manager visualiza los mapas de LUN en el menú *Protección > Relaciones*. Cuando selecciona una relación de origen, System Manager muestra una visualización de las relaciones de origen. Al seleccionar un volumen, puede profundizar en estas relaciones para ver una lista de las LUN contenidas y las relaciones con el iGroup. Esta información se puede descargar como libro de Excel desde la vista de volumen individual. La tarea se ejecutará en segundo plano.
 
 
 
@@ -42,7 +47,9 @@ Configurar una política de protección Snapshot local permite crear una políti
 
 == Cree snapshots de grupo de consistencia en dos fases
 
-A partir de ONTAP 9.11.1, los grupos de coherencia admiten compromisos de dos fases para la creación de snapshots de grupos de coherencia (CG), que ejecutan las comprobaciones previas antes de realizar la copia Snapshot. Esta función solo está disponible con la API de REST de ONTAP. La creación de snapshots de dos fases de CG solo está disponible para la creación de snapshots, no para el aprovisionamiento de grupos de consistencia ni para la restauración de grupos de consistencia.
+A partir de ONTAP 9.11.1, los grupos de coherencia admiten compromisos de dos fases para la creación de snapshots de grupos de coherencia (CG), que ejecutan las comprobaciones previas antes de realizar la copia Snapshot. Esta función solo está disponible con la API de REST de ONTAP.
+
+La creación de snapshots de dos fases de CG solo está disponible para la creación de snapshots, no para el aprovisionamiento de grupos de consistencia ni para la restauración de grupos de consistencia.
 
 Una creación de copias Snapshot de CG en dos fases rompe el proceso de creación de las copias Snapshot invocando una solicitud POSTERIOR al `/application/consistency-groups/{consistency_group_uuid}/snapshots` extremo en una secuencia de dos fases:
 
@@ -52,7 +59,7 @@ Una creación de copias Snapshot de CG en dos fases rompe el proceso de creació
 
 Para obtener más información sobre la API DE REST de ONTAP, consulte link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html["Referencia de API"^] o visite la link:https://devnet.netapp.com/restapi.php["Página de la API DE REST de ONTAP"^] En la red de desarrolladores de NetApp para obtener una lista completa de los extremos API.
 
-.Consideraciones sobre las snapshots de grupo de consistencia en dos fases
+.Antes de empezar
 * Para utilizar la creación Snapshot de CG de dos fases, todos los nodos del clúster deben ejecutar ONTAP 9.11.1 o una versión posterior.
 * Solo se admite una invocación activa de una operación de creación de snapshot de grupo de consistencia a la vez en una instancia de grupo de consistencia, ya sea una monofase o sea dos fases. Si se intenta invocar una creación de instantánea mientras otra está en curso, se producirá un error.
 * La creación de copias Snapshot de grupos de consistencia en dos fases se puede invocar mediante el `action=start` parámetro.
@@ -61,8 +68,8 @@ Además, puede utilizar la `action_timeout` Parámetro para especificar el núme
 
 
 
-.Cree una snapshot de grupo de coherencia de dos fases
-. Invoque la creación de Snapshot con una solicitud POST al extremo del grupo de consistencia mediante el `action=start` parámetro.
+.Pasos
+. Invoque la creación de la instantánea. Envíe una solicitud POST al extremo del grupo de consistencia mediante el `action=start` parámetro.
 +
 [source, curl]
 ----
@@ -74,7 +81,7 @@ curl -k -X POST 'https://<IP_address>/application/consistency-groups/<cg-uuid>/s
   "snapmirror_label": "<SnapMirror_label>"
 }'
 ----
-. Si la solicitud POSTERIOR se realiza correctamente, el resultado incluirá un UUID de snapshot. Con esta información, envíe una solicitud DE REVISIÓN para confirmar la instantánea.
+. Si la solicitud POSTERIOR se realiza correctamente, el resultado incluirá un UUID de snapshot. Con ese uuid, envíe una solicitud de REVISIÓN para confirmar la instantánea.
 +
 [source, curl]
 ----
@@ -84,30 +91,77 @@ curl -k -X PATCH 'https://<IP_address>/application/consistency-groups/<cg_uuid>/
 
 
 
-== Establezca una directiva SM-BC remota
+== Configurar la protección remota para un grupo de coherencia
 
-Si utiliza la protección remota de SM-BC, para garantizar que las copias de Snapshot de los grupos de consistencia creados en su grupo de consistencia se copien al destino, las etiquetas de política en el clúster de origen y de destino deben coincidir. SM-BC no replicará las copias Snapshot de forma predeterminada a menos que se añada una regla con una etiqueta de SnapMirror al valor predefinido `AutomatedFailOver` La política y las copias de Snapshot se crean con esa etiqueta. Para obtener más información sobre este proceso, consulte link:../task_san_configure_protection_for_business_continuity.html["Configure la protección para la continuidad del negocio"].
+Los grupos de coherencia ofrecen protección remota mediante SM-BC y, a partir de ONTAP 9.13.1, SnapMirror asíncrono.
+
+
+
+=== Configurar la protección con SM-BC
+
+Puede utilizar SM-BC para garantizar que las copias Snapshot de los grupos de consistencia creados en el grupo de consistencia se copien el destino. Para obtener más información sobre SM-BC, consulte xref:../task_san_configure_protection_for_business_continuity.html[Configure la protección para la continuidad del negocio].
+
+.Antes de empezar
+* No se pueden establecer relaciones de SM-BC en volúmenes montados para el acceso NAS.
+* Las etiquetas de políticas del clúster de origen y destino deben coincidir.
+* SM-BC no replicará las copias Snapshot de forma predeterminada a menos que se añada una regla con una etiqueta de SnapMirror al valor predefinido `AutomatedFailOver` La política y las copias de Snapshot se crean con esa etiqueta.
++
+Para obtener más información sobre este proceso, consulte link:../task_san_configure_protection_for_business_continuity.html["Configure la protección para la continuidad del negocio"].
+
+* A partir de ONTAP 9.13.1, se puede sin interrupciones xref:modify-task.html#add-volumes-to-a-consistency-group[añada volúmenes a un grupo de coherencia] Con una relación SM-BC activa. Cualquier otro cambio en un grupo de consistencia requiere que rompa la relación de SM-BC, que modifique el grupo de consistencia y, a continuación, vuelva a establecer y resincronizar la relación.
+
 
 .Pasos
-. Asegúrese de haber cumplido los requisitos previos para usar SM-BC. Consulte link:../smbc/smbc_plan_prerequisites.html["Requisitos previos de SM-BC"]
-+
-
-NOTE: No se pueden establecer relaciones de SM-BC en volúmenes montados para el acceso NAS.
-
+. Asegúrese de haber cumplido con el link:../smbc/smbc_plan_prerequisites.html["Requisitos previos para usar SM-BC"].
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione el grupo de consistencia que ha creado en el menú del grupo de consistencia.
 . En la parte superior derecha de la página de descripción general, seleccione *más* y, a continuación, *proteger*.
-. La información del lado de origen se volverá a rellenar automáticamente. Seleccione la máquina virtual de almacenamiento y clúster apropiado para el destino. Seleccione una política de protección. Asegúrese de que *Initialize Relationship* está activada.
+. System Manager rellena automáticamente la información del origen. Seleccione la máquina virtual de almacenamiento y clúster apropiado para el destino. Seleccione una política de protección. Asegúrese de que *Initialize Relationship* está activada.
 . Seleccione *Guardar*.
-. El grupo de consistencia deberá inicializarse y sincronizarse. Una vez completado este proceso, en *SnapMirror (remoto)*, el estado dirá "'protegido'" junto a image:../media/icon_shield.png["alt=icono de escudo verde"].
+. El grupo de consistencia debe inicializar y sincronizar. Confirme que la sincronización se ha completado correctamente volviendo al menú *Grupo de consistencia*. Se muestra el estado *SnapMirror (Remote)* `Protected` junto a. image:../media/icon_shield.png["alt=icono de escudo verde"].
 
 
-.Siguientes pasos
+
+
+=== Configurar la protección asíncrona de SnapMirror
+
+A partir de ONTAP 9.13.1, puede configurar la protección SnapMirror asíncrona para un único grupo de consistencia.
+
+.Antes de empezar
+* La protección asíncrona SnapMirror solo está disponible para grupos de consistencia individuales. No se admite para grupos de coherencia jerárquicos. Para convertir un grupo de consistencia jerárquico en un grupo de consistencia único, consulte xref:modify-geometry-task.html[modificar la arquitectura del grupo de consistencia].
+* xref:../data-protection/supported-deployment-config-concept.html[Implementaciones en cascada] No son compatibles con SM-BC.
+* Las etiquetas de políticas del clúster de origen y destino deben coincidir.
+* Puede sin interrupciones xref:modify-task.html#add-volumes-to-a-consistency-group[añada volúmenes a un grupo de coherencia] Con una relación de SnapMirror asíncrona activa. Cualquier otro cambio en un grupo de consistencia requiere que rompa la relación de SnapMirror, modifique el grupo de consistencia y, a continuación, vuelva a establecer y vuelva a sincronizar la relación.
+* Si se configuró una relación de protección de SnapMirror asíncrono para varios volúmenes individuales, puede convertir dichos volúmenes en un grupo de coherencia y conservar las snapshots existentes. Para convertir volúmenes correctamente:
+* Debe haber una copia de Snapshot común de los volúmenes.
+* Debe interrumpir la relación de SnapMirror existente. xref:configure-task.html[añada los volúmenes a un único grupo de consistencia], a continuación, vuelva a sincronizar la relación mediante el siguiente flujo de trabajo.
+
+
+.Pasos
+. En el clúster de destino, seleccione *Almacenamiento > Grupos de consistencia*.
+. Seleccione el grupo de consistencia que ha creado en el menú del grupo de consistencia.
+. En la parte superior derecha de la página de descripción general, seleccione *más* y, a continuación, *proteger*.
+. System Manager rellena automáticamente la información del origen. Seleccione la máquina virtual de almacenamiento y clúster apropiado para el destino. Seleccione una política de protección. Asegúrese de que *Initialize Relationship* está activada.
++
+Al seleccionar una política asíncrona, tiene la opción de **Anular horario de transferencia**.
+
+. Seleccione *Guardar*.
+. El grupo de consistencia debe inicializar y sincronizar. Confirme que la sincronización se ha completado correctamente volviendo al menú *Grupo de consistencia*. Se muestra el estado *SnapMirror (Remote)* `Protected` junto a. image:../media/icon_shield.png["alt=icono de escudo verde"].
+
+
+
+
+== Visualizar relaciones
+
+System Manager visualiza los mapas de LUN en el menú *Protección > Relaciones*. Cuando selecciona una relación de origen, System Manager muestra una visualización de las relaciones de origen. Al seleccionar un volumen, puede profundizar en estas relaciones para ver una lista de las LUN contenidas y las relaciones con el iGroup. Esta información se puede descargar como un libro de Excel desde la vista de volumen individual; la operación de descarga se ejecutará en segundo plano.
+
+.Información relacionada
 * link:clone-task.html["Clonar un grupo de consistencia"]
 * link:../task_dp_configure_snapshot.html["Configure las copias Snapshot"]
 * link:../task_dp_create_custom_data_protection_policies.html["Cree políticas de protección de datos personalizadas"]
-link:../task_dp_recover_snapshot.html["Recuperar desde copias Snapshot"]
+* link:../task_dp_recover_snapshot.html["Recuperar desde copias Snapshot"]
 * link:../task_dp_restore_from_vault.html["Restaurar un volumen de una copia de Snapshot anterior"]
 * link:../smbc/index.html["Información general sobre SM-BC"]
 * link:https://docs.netapp.com/us-en/ontap-automation/["Documentación de automatización de ONTAP"^]
+* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Conceptos básicos de la recuperación ante desastres de SnapMirror asíncrono]
 

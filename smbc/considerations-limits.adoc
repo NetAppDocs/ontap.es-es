@@ -95,19 +95,15 @@ Los siguientes límites de objeto SAN se incluyen en la siguiente tabla y se apl
 
 == Configuraciones y funciones compatibles
 
+SM-BC es compatible con numerosos sistemas operativos y funciones ONTAP, entre las que se incluyen:
 
+* AIX (a partir de ONTAP 9.11.1)
+* Configuraciones de dispersión
+* HP-UX (a partir de ONTAP 9.10.1)
+* Copia NDMP (a partir de ONTAP 9.13.1)
+* Restauración parcial de archivos (a partir de ONTAP 9.12.1)
+* Solaris 11,4 (a partir de ONTAP 9.10.1)
 
-=== Restauración parcial de archivos
-
-A partir de ONTAP 9.12.1, se admite una restauración de LUN parcial para los volúmenes de SM-BC. Para obtener información sobre este proceso, consulte link:../data-protection/restore-part-file-snapshot-task.html["Restaurar parte de un archivo desde una copia snapshot"].
-
-
-
-=== Configuraciones de dispersión
-
-Soportes SM-BC xref:../data-protection/supported-deployment-config-concept.html[configuraciones de dispersión] con la `MirrorAllSnapshots` Y, a partir de ONTAP 9.11.1, el `MirrorAndVault` política. SM-BC no admite configuraciones de salida de ventilador con el `XDPDefault` política.
-
-Si experimenta una conmutación por error en el destino SM-BC en una configuración fan-out, tendrá que hacerlo manualmente xref:resume-protection-fan-out-configuration.html[reanude la protección en la configuración de fan-out].
 
 
 
@@ -118,6 +114,42 @@ A partir de ONTAP 9.11.1, AIX es compatible con SM-BC. Con una configuración AI
 En una configuración AIX, las recuperaciones tras fallos son disruptivas. Con cada conmutación al nodo de respaldo, deberá realizar un nuevo análisis en el host para que se reanuden las operaciones de I/O.
 
 Para configurar un host AIX con SM-BC, consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)["Cómo configurar un host AIX para la continuidad del negocio de SnapMirror (SM-BC)"].
+
+
+
+=== Problemas conocidos y limitaciones de HP-UX para la configuración SM-BC
+
+A partir de ONTAP 9.10.1, se admite SM-BC para HP-UX. Si se produce un evento de conmutación por error automática no planificada (AUFO) en el clúster maestro aislado de la configuración SM-BC, puede que la E/S tarde más de 120 segundos en reanudarse en el host HP-UX. En función de las aplicaciones que se estén ejecutando, esto puede no provocar ninguna interrupción de I/o o o mensajes de error. Si se produce un evento AUFO en el clúster maestro aislado, debe reiniciar las aplicaciones en el host HP-UX que tengan una tolerancia de interrupción de menos de 120 segundos.
+
+Un evento de AUFO en el clúster maestro aislado podría causar un fallo de evento dual cuando se pierde la conexión entre el clúster principal y el secundario y también se pierde la conexión entre el clúster principal y el mediador. Esto se considera un evento raro, a diferencia de otros eventos de AUFO.
+
+
+
+=== FabricPool
+
+SM-BC admite los volúmenes de origen y destino en agregados de FabricPool con la política de organización en niveles: Ninguno, Snapshot o Automático. SM-S SM-BC no es compatible con agregados FabricPool utilizando una política de organización en niveles de todos.
+
+
+
+=== Configuraciones de dispersión
+
+Soportes SM-BC xref:../data-protection/supported-deployment-config-concept.html[configuraciones de dispersión] con la `MirrorAllSnapshots` Política y, a partir de ONTAP 9.11.1, el `MirrorAndVault` política. SM-BC no admite configuraciones de salida de ventilador con el `XDPDefault` política.
+
+Si experimenta una conmutación por error en el destino SM-BC en una configuración fan-out, tendrá que hacerlo manualmente xref:resume-protection-fan-out-configuration.html[reanude la protección en la configuración de fan-out].
+
+
+
+=== Restauración de NDMP
+
+A partir de ONTAP 9.13.1, se puede usar NDMP para copiar y restaurar datos con SM-BC. El uso de NDMP permite mover datos a la fuente SM-BC para realizar una restauración sin pausar la protección. Esto resulta especialmente útil en configuraciones ramificadas.
+
+Para obtener más información sobre este proceso, consulte xref:../tape-backup/transfer-data-ndmpcopy-task.html[Transferencia de datos mediante la copia ndmp].
+
+
+
+=== Restauración parcial de archivos
+
+A partir de ONTAP 9.12.1, se admite una restauración de LUN parcial para los volúmenes de SM-BC. Para obtener información sobre este proceso, consulte link:../data-protection/restore-part-file-snapshot-task.html["Restaurar parte de un archivo desde una copia snapshot"].
 
 
 
@@ -151,11 +183,3 @@ svl_fops_name = 0xa00298d69e0 "conf f_tpgs"
 
 
 NOTE: `conf` se añadirá a la `svl_fops_name` cuando un `scsi-vhci-failover-override` se ha aplicado. Para obtener información adicional y los cambios recomendados en la configuración predeterminada, consulte el artículo de la base de conocimientos de NetApp https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration["Ajustes recomendados para el soporte de host Solaris en la configuración de continuidad empresarial de SnapMirror (SM-BC)"].
-
-
-
-=== Problemas conocidos y limitaciones de HP-UX para la configuración de SM-BC
-
-A partir de ONTAP 9.10.1, se admite SM-BC para HP-UX. Si se produce un evento de conmutación por error automática no planificada (AUFO) en el clúster maestro aislado de la configuración SM-BC, puede que la E/S tarde más de 120 segundos en reanudarse en el host HP-UX. En función de las aplicaciones que se estén ejecutando, esto puede no provocar ninguna interrupción de I/o o o mensajes de error. Si se produce un evento AUFO en el clúster maestro aislado, debe reiniciar las aplicaciones en el host HP-UX que tengan una tolerancia de interrupción de menos de 120 segundos.
-
-Un evento de AUFO en el clúster maestro aislado podría causar un fallo de evento dual cuando se pierde la conexión entre el clúster principal y el secundario y también se pierde la conexión entre el clúster principal y el mediador. Esto se considera un evento raro, a diferencia de otros eventos de AUFO.

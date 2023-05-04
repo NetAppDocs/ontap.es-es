@@ -1,20 +1,25 @@
 ---
 sidebar: sidebar 
 permalink: task_admin_monitor_capacity_in_sm.html 
-keywords: system manager, monitor, capacity, view, measurement, physical, logical, storage, used storage, local tier capacity, aggregate capacity, block, add capacity, volume, used capacity, available capacity, total capacity, snapshot copy, snapshot copies, inactive data, overprovision, over provision, overflows, snapshot copy reserves, reserves, clone 
-summary: System Manager permite supervisar la cantidad de capacidad de almacenamiento que se ha usado y la cantidad de capacidad que todavía está disponible para un clúster o un nivel local. 
+keywords: used storage, local tier capacity, aggregate capacity, add capacity, used capacity, available capacity, total capacity, inactive data, overprovision, overflows, snapshot copy reserves, reserves, clone, maximum capacity limit, storage VM, allocated 
+summary: Con System Manager, puede supervisar cuánta capacidad de almacenamiento se ha utilizado y cuánto sigue disponible para un clúster, un nivel local o una máquina virtual de almacenamiento. 
 ---
 = Supervise la capacidad en System Manager
 :allow-uri-read: 
 
 
 [role="lead"]
-System Manager permite supervisar la cantidad de capacidad de almacenamiento que se ha usado y la cantidad de capacidad que todavía está disponible para un clúster o un nivel local.
+Con System Manager, puede supervisar cuánta capacidad de almacenamiento se ha utilizado y cuánto sigue disponible para un clúster, un nivel local o una máquina virtual de almacenamiento.
 
-A partir de ONTAP 9.10.1, puede utilizar System Manager para ver datos históricos acerca de la capacidad del clúster y sus proyecciones sobre la cantidad de capacidad que se utilizará o estará disponible en el futuro. También se puede supervisar la capacidad de niveles y volúmenes locales. Además, a partir de ONTAP 9.12.1, System Manager también muestra la cantidad de capacidad dedicada para un nivel local.
+Con cada versión de ONTAP, System Manager proporciona información de supervisión de la capacidad más sólida:
+
+* A partir de ONTAP 9.10.1, System Manager le permite ver datos históricos sobre la capacidad del clúster y las proyecciones sobre cuánta capacidad se utilizará o estará disponible en el futuro. También se puede supervisar la capacidad de niveles y volúmenes locales.
+* A partir de ONTAP 9.12.1, System Manager muestra la cantidad de capacidad comprometida para un nivel local.
+* A partir de ONTAP 9.13.1, puede habilitar un límite de capacidad máxima para una máquina virtual de almacenamiento y establecer un umbral para activar alertas cuando el almacenamiento utilizado alcanza un cierto porcentaje de la capacidad máxima.
 
 
-NOTE: Las mediciones de la capacidad utilizada se muestran de forma diferente en función de la versión de System Manager que esté usando, como se explica en link:concepts/capacity-measurements-in-sm-concept.html["Mediciones de capacidad en System Manager"].
+
+NOTE: Las mediciones de capacidad usada se muestran de forma diferente según la versión de ONTAP. Más información en link:./concepts/capacity-measurements-in-sm-concept.html["Mediciones de capacidad en System Manager"].
 
 
 
@@ -44,14 +49,36 @@ Para ver datos relacionados con la capacidad en el cloud, debe tener una cuenta 
 
 NOTE: En System Manager, las representaciones de capacidad no dan cuenta de las capacidades de niveles de almacenamiento raíz (agregado).
 
-. Haga clic en image:../media/icon_arrow.gif["flecha derecha"] para ver más detalles sobre la capacidad del clúster.
+. Haga clic en el gráfico para ver más detalles acerca de la capacidad del clúster.
++
+Las mediciones de capacidad se muestran en dos gráficos de barras:
 
++
+--
+** En el gráfico superior se muestra la capacidad física: El tamaño del espacio físico usado, reservado y disponible.
+** El gráfico inferior muestra la capacidad lógica: El tamaño de datos de clientes, copias Snapshot y clones, y el espacio total lógico utilizado.
+
+
+--
++
+Debajo de los gráficos de barras hay mediciones para la reducción de datos:
+
++
+--
+** Tasa de reducción de datos solo para los datos del cliente (no se incluyen copias Snapshot y clones).
+** Tasa de reducción de datos general.
+
+
+--
+
+
+Para obtener más información, consulte link:./concepts/capacity-measurements-in-sm-concept.html["Mediciones de capacidad en System Manager"].
 
 
 
 == Ver la capacidad de un nivel local
 
-Se pueden ver detalles acerca de la capacidad de los niveles locales. Además, a partir de ONTAP 9.12.1, puede ver la cantidad de capacidad comprometida de un nivel local para determinar si necesita añadir capacidad al nivel local para acomodar la capacidad comprometida y evitar la falta de espacio libre.
+Se pueden ver detalles acerca de la capacidad de los niveles locales. A partir de ONTAP 9.12.1, la vista *Capacity* también incluye la cantidad de capacidad comprometida para un nivel local, lo que le permite determinar si necesita agregar capacidad al nivel local para acomodar la capacidad comprometida y evitar quedarse sin espacio libre.
 
 .Pasos
 . Haga clic en *almacenamiento > niveles*.
@@ -79,14 +106,66 @@ Debajo de los gráficos de barras se encuentran las relaciones de medición para
 
 +
 --
-** Tasa de reducción de datos general.
 ** Tasa de reducción de datos solo para los datos del cliente (no se incluyen copias Snapshot y clones).
+** Tasa de reducción de datos general.
 
 
 --
 
 
+Para obtener más información, consulte link:./concepts/capacity-measurements-in-sm-concept.html["Mediciones de capacidad en System Manager"].
+
 .Acciones opcionales
 * Si la capacidad comprometida es mayor que la capacidad del nivel local, puede considerar la posibilidad de añadir capacidad al nivel local antes de que se quede sin espacio libre. Consulte link:./disks-aggregates/add-disks-local-tier-aggr-task.html["Añada capacidad a un nivel local (añada discos a un agregado)"].
-* También puede ver la capacidad que utilizan volúmenes específicos en el nivel local seleccionando la pestaña *volúmenes*.
+* También puede ver el almacenamiento que utilizan volúmenes específicos en el nivel local seleccionando la pestaña *Volúmenes*.
+
+
+
+
+== Vea la capacidad de los volúmenes en una máquina virtual de almacenamiento
+
+Es posible ver cuánto almacenamiento utilizan los volúmenes en una máquina virtual de almacenamiento y cuánta capacidad sigue disponible. La medición total del almacenamiento utilizado y disponible se denomina «capacidad entre volúmenes».
+
+.Pasos
+. Selecciona *Almacenamiento* > *VM de almacenamiento*.
+. Haga clic en el nombre de la máquina virtual de almacenamiento.
+. Desplácese a la sección *Capacidad*, que muestra un gráfico de barras con las siguientes medidas:
++
+--
+** *Físico utilizado*: Suma del almacenamiento físico utilizado en todos los volúmenes de esta VM de almacenamiento.
+** *Disponible*: Suma de la capacidad disponible en todos los volúmenes de esta VM de almacenamiento.
+** *Lógico usado*: Suma del almacenamiento lógico usado en todos los volúmenes de esta VM de almacenamiento.
+
+
+--
+
+
+Para obtener más información sobre las mediciones, consulte link:./concepts/capacity-measurements-in-sm-concept.html["Mediciones de capacidad en System Manager"].
+
+
+
+== Vea el límite de capacidad máxima de una máquina virtual de almacenamiento
+
+A partir de ONTAP 9.13.1, puede ver el límite de capacidad máxima de una máquina virtual de almacenamiento.
+
+.Antes de empezar
+Debe link:manage-max-cap-limit-svm-in-sm-task.html["Habilite el límite de capacidad máxima de una máquina virtual de almacenamiento"] antes de poder verlo.
+
+.Pasos
+. Selecciona *Almacenamiento* > *VM de almacenamiento*.
++
+Es posible ver las mediciones de capacidad máxima de dos maneras:
+
++
+--
+** En la fila de la VM de almacenamiento, vea la columna *Capacidad máxima* que contiene un gráfico de barras que muestra la capacidad utilizada, la capacidad disponible y la capacidad máxima.
+** Haga clic en el nombre de la máquina virtual de almacenamiento. En la pestaña *Overview*, desplácese para ver los valores de umbral de alerta de capacidad máxima, capacidad asignada y capacidad en la columna izquierda.
+
+
+--
+
+
+.Información relacionada
+* link:manage-max-cap-limit-svm-in-sm-task.html#edit-max-cap-limit-svm["Edite el límite de capacidad máxima de una máquina virtual de almacenamiento"]
+* link:./concepts/capacity-measurements-in-sm-concept.html["Mediciones de capacidad en System Manager"]
 

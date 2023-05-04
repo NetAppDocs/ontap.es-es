@@ -1,7 +1,7 @@
 ---
 permalink: flexgroup/create-svm-disaster-recovery-relationship-task.html 
 sidebar: sidebar 
-keywords: create, svm, disaster, recovery, relationship, flexgroup, volume, flex group, flexclone, flex clone 
+keywords: create, svm, disaster, recovery, svm dr, svm-dr, relationship, flexgroup, volume, flex group, flexclone, flex clone 
 summary: A partir de ONTAP 9.9.1, se pueden crear relaciones de recuperación ante desastres de SVM con los volúmenes de FlexGroup. Una relación de recuperación ante desastres de SVM proporciona redundancia y la capacidad de recuperar FlexGroups en caso de desastre mediante la sincronización y la replicación de la configuración de SVM y sus datos. Se requiere una licencia de SnapMirror para la recuperación ante desastres de SVM. 
 ---
 = Crear una relación de recuperación ante desastres de SVM para volúmenes de FlexGroup
@@ -14,16 +14,23 @@ summary: A partir de ONTAP 9.9.1, se pueden crear relaciones de recuperación an
 A partir de ONTAP 9.9.1, se pueden crear relaciones de recuperación ante desastres de SVM con los volúmenes de FlexGroup. Una relación de recuperación ante desastres de SVM proporciona redundancia y la capacidad de recuperar FlexGroups en caso de desastre mediante la sincronización y la replicación de la configuración de SVM y sus datos. Se requiere una licencia de SnapMirror para la recuperación ante desastres de SVM.
 
 .Antes de empezar
-Debe tener en cuenta las condiciones en las que no se puede crear una relación de recuperación ante desastres de SVM de FlexGroup.
+_No puede_ crear una relación de recuperación ante desastres de FlexGroup SVM con lo siguiente se aplica.
 
 * Existe una configuración de FlexGroup FlexClone
 * Un volumen FlexGroup contiene una configuración de FabricPool
-* El volumen FlexGroup forma parte de una relación de ventilador o en cascada
+* El volumen FlexGroup forma parte de una relación en cascada
+* El volumen de FlexGroup forma parte de una relación de dispersión, y el clúster ejecuta una versión de ONTAP anterior a ONTAP 9.12.1. (A partir de ONTAP 9.13.1, las relaciones de fanout son compatibles).
 
 
 .Acerca de esta tarea
 * Todos los nodos de ambos clústeres deben ejecutar la misma versión de ONTAP que el nodo en el que se añadió la compatibilidad con la recuperación ante desastres de SVM (ONTAP 9.9.1 o una versión posterior).
 * La relación de DR de SVM entre los sitios primario y secundario debe estar en buen estado y debe tener suficiente espacio en las SVM primaria y secundaria para admitir los volúmenes FlexGroup.
+* Cuando crea una relación de recuperación ante desastres de SVM de FlexGroup en la que el volumen de FlexGroup forma parte de una relación de fanout, debe tener en cuenta los siguientes requisitos:
++
+** El clúster de origen y de destino debe ejecutar ONTAP 9.13.1 o una versión posterior.
+** La recuperación de desastres de SVM con volúmenes de FlexGroup admite las relaciones de expansión de SnapMirror en ocho sitios.
+
+
 
 
 Para obtener información sobre la creación de una relación de recuperación ante desastres de SVM, consulte https://docs.netapp.com/us-en/ontap/data-protection/snapmirror-svm-replication-workflow-concept.html["Gestione la replicación de SVM de SnapMirror"].
@@ -40,7 +47,10 @@ link:create-task.html["Creación de un volumen de FlexGroup"].
 +
 Espere a que FlexGroup y todos sus componentes se creen antes de continuar.
 
-. Para replicar el volumen de FlexGroup, actualice la SVM en el sitio secundario: `snapmirror update -destination-path destination_svm_name: -source-path source_svm_name:`+ también puede comprobar si ya existe una actualización de SnapMirror programada introduciendo `snapmirror show -fields schedule`
+. Para replicar el volumen de FlexGroup, actualice la SVM en el sitio secundario: `snapmirror update -destination-path destination_svm_name: -source-path source_svm_name:`
++
+También puede comprobar si ya existe una actualización de SnapMirror programada introduciendo `snapmirror show -fields schedule`
+
 . Desde el sitio secundario, compruebe que la relación de SnapMirror esté en buen estado: `snapmirror show`
 +
 [listing]

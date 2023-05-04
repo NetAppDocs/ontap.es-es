@@ -1,7 +1,7 @@
 ---
 permalink: performance-admin/guarantee-throughput-qos-task.html 
 sidebar: sidebar 
-keywords: guaranteeing, throughput, qos, understand, ceilings, floors, shared, policy, adaptive, general, support, workloads, 
+keywords: throughput, qos, understand, ceilings, floors, shared, policy, adaptive, general, support, workloads, 
 summary: Puede utilizar calidad de servicio del almacenamiento para garantizar que el rendimiento de las cargas de trabajo críticas no se vea degradado por cargas de trabajo de la competencia. Puede establecer un límite máximo de rendimiento en una carga de trabajo de la competencia para limitar el impacto en los recursos del sistema o establecer un piso de rendimiento para una carga de trabajo crítica para asegurarse de que cumple con los objetivos de rendimiento mínimos, sin importar la demanda de otras cargas de trabajo en competencia. Puede incluso fijar un techo y un suelo para la misma carga de trabajo. 
 ---
 = Garantice el rendimiento con información general de calidad de servicio
@@ -32,20 +32,24 @@ image::../media/qos-ceiling.gif[techo de calidad de servicio]
 
 == Acerca de los pisos de rendimiento (calidad de servicio mínima)
 
-Un nivel mínimo de rendimiento garantiza que el rendimiento de una carga de trabajo no se encuentre por debajo del número mínimo de IOPS o Mbps, o bien las IOPS y los Mbps.en la siguiente figura, los pisos de rendimiento de la carga de trabajo 1 y la carga de trabajo 3 garantizan que cumplen los objetivos de rendimiento mínimos, sin importar la demanda por la carga de trabajo 2.
+Un nivel de rendimiento garantiza que el rendimiento de una carga de trabajo no caiga por debajo del número mínimo de IOPS o MBps, ni de IOPS y MBps. En la siguiente figura, los pisos de rendimiento de la carga de trabajo 1 y la carga de trabajo 3 garantizan que cumplen los objetivos de rendimiento mínimos, sin importar la demanda por carga de trabajo 2.
 
 [TIP]
 ====
 Tal y como sugieren los ejemplos, un límite máximo de rendimiento limita el rendimiento directamente. Un entorno de rendimiento limita el rendimiento de forma indirecta, al dar prioridad a las cargas de trabajo para las que se ha establecido un piso.
 
 ====
-Un grupo de políticas que define un piso de rendimiento no se puede aplicar a una SVM. Puede especificar la planta al crear el grupo de políticas, o bien esperar hasta que supervise las cargas de trabajo para especificarlas.
+Puede especificar la planta al crear el grupo de políticas, o bien esperar hasta que supervise las cargas de trabajo para especificarlas.
 
-[NOTE]
-====
-En las versiones anteriores a ONTAP 9.7, se garantizan pisos de rendimiento cuando hay suficiente capacidad de rendimiento disponible. En ONTAP 9.7 y versiones posteriores, se puede garantizar el uso de suelos de rendimiento incluso cuando la capacidad de rendimiento no sea suficiente. Este nuevo comportamiento del suelo se llama pisos v2. Para cumplir las garantías, el segundo plano puede generar una mayor latencia en las cargas de trabajo sin tener que pasar por una planta de rendimiento o en el trabajo que supere la configuración inicial. Floors v2 se aplica tanto a QoS como a QoS adaptativo. La opción de habilitar/deshabilitar el nuevo comportamiento de los pisos v2 está disponible en ONTAP 9.7P6 y posteriores.una carga de trabajo podría quedar por debajo del piso especificado durante operaciones críticas como `volume move trigger-cutover`. Incluso cuando haya suficiente capacidad disponible y no se realicen operaciones críticas, el rendimiento de una carga de trabajo puede quedar por debajo del nivel especificado hasta un 5 %. Si se sobreaprovisiona la tasa de suelos y no hay capacidad de rendimiento, es posible que algunas cargas de trabajo se encuentren por debajo de la superficie especificada.
+A partir de ONTAP 9.13.1, se pueden establecer pisos de rendimiento en el ámbito de SVM con <<adaptive-qos-templates>>. En versiones de ONTAP anteriores a 9.13.1, no puede aplicarse a una SVM un grupo de políticas que define un piso de rendimiento.
 
-====
+
+NOTE: En las versiones anteriores a ONTAP 9.7, se garantizan pisos de rendimiento cuando hay suficiente capacidad de rendimiento disponible.
+
++ En ONTAP 9,7 y versiones posteriores, se pueden garantizar pisos de rendimiento incluso si la capacidad de rendimiento disponible es insuficiente. Este nuevo comportamiento del suelo se llama pisos v2. Para cumplir las garantías, el segundo plano puede generar una mayor latencia en las cargas de trabajo sin tener que pasar por una planta de rendimiento o en el trabajo que supere la configuración inicial. Floors v2 se aplica tanto a QoS como a QoS adaptativo.
+
++ La opción de habilitar/deshabilitar el nuevo comportamiento de los pisos v2 está disponible en ONTAP 9.7P6 y posteriores. Una carga de trabajo puede quedar por debajo del piso especificado durante operaciones cruciales como `volume move trigger-cutover`. Incluso cuando haya suficiente capacidad disponible y no se realicen operaciones críticas, el rendimiento de una carga de trabajo puede quedar por debajo del nivel especificado hasta un 5 %. Si se sobreaprovisiona la tasa de suelos y no hay capacidad de rendimiento, es posible que algunas cargas de trabajo se encuentren por debajo de la superficie especificada.
+
 image::../media/qos-floor.gif[piso con calidad de servicio]
 
 
@@ -68,11 +72,9 @@ _Adaptive QoS_ escala automáticamente el valor del grupo de políticas al tama�
 
 Normalmente, la calidad de servicio adaptativa se puede utilizar para ajustar los techos de rendimiento, pero también para gestionar el uso de pisos de rendimiento (cuando aumenta el tamaño de la carga de trabajo). El tamaño de la carga de trabajo se expresa como el espacio asignado para el objeto de almacenamiento o el espacio utilizado por el objeto de almacenamiento.
 
-[NOTE]
-====
-El espacio usado está disponible para pisos de rendimiento en ONTAP 9.5 y versiones posteriores. No se admite para pisos de rendimiento en ONTAP 9.4 y versiones anteriores.
 
-====
+NOTE: El espacio usado está disponible para pisos de rendimiento en ONTAP 9.5 y versiones posteriores. No se admite para pisos de rendimiento en ONTAP 9.4 y versiones anteriores.
+
 * Una política de _espacio_ mantiene la ratio de IOPS/TB|GB según el tamaño nominal del objeto de almacenamiento. Si la relación es de 100 IOPS/GB, un volumen de 150 GB tendrá un techo de rendimiento de 15,000 IOPS mientras el volumen siga siendo de ese tamaño. Si el tamaño del volumen cambia a 300 GB, la calidad de servicio adaptativa ajusta el techo de rendimiento a 30,000 IOPS.
 * Una política de _space_ utilizada (predeterminada) mantiene la relación IOPS/TB|GB según la cantidad de datos reales almacenados antes de las eficiencias de almacenamiento. Si la relación es de 100 IOPS/GB, un volumen de 150 GB que tiene 100 GB de datos almacenados tendría un límite máximo de rendimiento de 10,000 IOPS. A medida que cambia la cantidad de espacio usado, la calidad de servicio adaptativa ajusta el techo de rendimiento en función de la ratio.
 
@@ -89,7 +91,19 @@ El rendimiento debe aumentar al menos en 10 000 IOPS antes de que se produzca la
 
 Los grupos de políticas de calidad de servicio adaptativos siempre no son compartidos: El techo o el piso de rendimiento definidos se aplican a la carga de trabajo de cada miembro de forma individual.
 
-A partir de ONTAP 9.6, los pisos de rendimiento están soportados para ONTAP Select Premium con SSD.
+A partir de ONTAP 9,6, los pisos de rendimiento son compatibles con ONTAP Select Premium con SSD.
+
+
+
+=== Plantilla de grupo de políticas adaptativas
+
+A partir de ONTAP 9.13.1, puede establecer una plantilla de calidad de servicio adaptativa en una SVM. Las plantillas de grupos de políticas adaptativas permiten establecer pisos y techos de rendimiento para todos los volúmenes de una SVM.
+
+Las plantillas de grupos de políticas adaptativas solo pueden establecerse después de crear la SVM. Utilice la `vserver modify` con el `-qos-adaptive-policy-group-template` parámetro para establecer la política.
+
+Cuando establece una plantilla de grupo de políticas adaptativas, los volúmenes creados o migrados después de configurar la política heredan automáticamente la política. Los volúmenes que existan en la SVM no se ven afectados al asignar la plantilla de políticas. Si deshabilita la política en la SVM, todos los volúmenes posteriores migrados o creados en la SVM no recibirán la política. La desactivación de la plantilla de grupo de políticas adaptativas no afecta a los volúmenes que han heredado la plantilla de políticas, ya que conservan la plantilla de políticas.
+
+Para obtener más información, consulte xref:../performance-admin/adaptive-policy-template-task.html[Defina una plantilla de grupo de políticas adaptativas].
 
 
 
@@ -98,8 +112,6 @@ A partir de ONTAP 9.6, los pisos de rendimiento están soportados para ONTAP Sel
 En la siguiente tabla se muestran las diferencias en compatibilidad con los techos de rendimiento, pisos de rendimiento y calidad de servicio adaptativa.
 
 |===
-
-
 | Recurso o característica | Techo de rendimiento | Piso de rendimiento | Piso de salida v2 | Calidad de servicio adaptativa 
 
 
@@ -173,7 +185,7 @@ No
 Sí
 
 |===
-*El soporte para C190 y ONTAP Select comenzó con la versión ONTAP 9.6.
+El soporte \*C190 y ONTAP Select comenzó con la versión ONTAP 9,6.
 
 
 
@@ -182,9 +194,7 @@ Sí
 En la siguiente tabla se muestra compatibilidad con cargas de trabajo para techos de rendimiento con la versión ONTAP 9. No se admiten los volúmenes raíz, los reflejos con uso compartido de carga y los reflejos de protección de datos.
 
 |===
-
-
-| Soporte de carga de trabajo: Techo | 9.0 | 9.1 | 9.2 | 9.3 | 9.4 y posterior | 9.8 y posterior 
+| Soporte de carga de trabajo: Techo | ONTAP 9.0 | ONTAP 9.1 | ONTAP 9.2 | ONTAP 9.3 | ONTAP 9,4 - 9,7 | ONTAP 9.8 y posteriores 
 
 
  a| 
@@ -322,7 +332,7 @@ sí
 sí
 
 |===
-*A partir de ONTAP 9.8, el acceso NFS es compatible en qtrees de volúmenes FlexVol y FlexGroup con NFS activado. A partir de ONTAP 9.9.1, también se admite el acceso SMB en qtrees de volúmenes FlexVol y FlexGroup con SMB habilitado.
+\*A partir de ONTAP 9,8, el acceso NFS es compatible con qtrees en volúmenes FlexVol y FlexGroup con NFS habilitado. A partir de ONTAP 9.9.1, también se admite el acceso SMB en qtrees de volúmenes FlexVol y FlexGroup con SMB habilitado.
 
 
 
@@ -331,115 +341,33 @@ sí
 En la siguiente tabla se muestra la compatibilidad con cargas de trabajo para pisos de rendimiento en la versión de ONTAP 9. No se admiten los volúmenes raíz, los reflejos con uso compartido de carga y los reflejos de protección de datos.
 
 |===
+| Soporte de cargas de trabajo: Suelo | ONTAP 9.2 | ONTAP 9.3 | ONTAP 9,4 - 9,7 | ONTAP 9,8 - 9.13.0 | ONTAP 9.13.1 y versiones posteriores 
 
 
-| Soporte de cargas de trabajo: Suelo | 9.2 | 9.3 | 9.4 y posterior | 9.8 y posterior 
+| Volumen | sí | sí | sí | sí | sí 
 
 
- a| 
-Volumen
- a| 
-sí
- a| 
-sí
- a| 
-sí
- a| 
-sí
+| Archivo | no | sí | sí | sí | sí 
 
 
-
- a| 
-Archivo
- a| 
-no
- a| 
-sí
- a| 
-sí
- a| 
-sí
+| LUN | sí | sí | sí | sí | sí 
 
 
-
- a| 
-LUN
- a| 
-sí
- a| 
-sí
- a| 
-sí
- a| 
-sí
+| SVM | no | no | no | no | sí 
 
 
-
- a| 
-SVM
- a| 
-no
- a| 
-no
- a| 
-no
- a| 
-no
+| Volumen FlexGroup | no | no | sí | sí | sí 
 
 
-
- a| 
-Volumen FlexGroup
- a| 
-no
- a| 
-no
- a| 
-sí
- a| 
-sí
+| qtrees * | no | no | no | sí | sí 
 
 
-
- a| 
-qtrees *
- a| 
-no
- a| 
-no
- a| 
-no
- a| 
-sí
+| Varias cargas de trabajo por grupo de políticas | no | no | sí | sí | sí 
 
 
-
- a| 
-Varias cargas de trabajo por grupo de políticas
- a| 
-no
- a| 
-no
- a| 
-sí
- a| 
-sí
-
-
-
- a| 
-Grupos de políticas no compartidos
- a| 
-no
- a| 
-no
- a| 
-sí
- a| 
-sí
-
+| Grupos de políticas no compartidos | no | no | sí | sí | sí 
 |===
-*A partir de ONTAP 9.8, el acceso NFS es compatible en qtrees de volúmenes FlexVol y FlexGroup con NFS activado. A partir de ONTAP 9.9.1, también se admite el acceso SMB en qtrees de volúmenes FlexVol y FlexGroup con SMB habilitado.
+\*A partir de ONTAP 9,8, el acceso NFS es compatible con qtrees en volúmenes FlexVol y FlexGroup con NFS habilitado. A partir de ONTAP 9.9.1, también se admite el acceso SMB en qtrees de volúmenes FlexVol y FlexGroup con SMB habilitado.
 
 
 
@@ -448,72 +376,28 @@ sí
 En la siguiente tabla se muestra la compatibilidad con las cargas de trabajo para la calidad de servicio adaptativa según la versión de ONTAP 9. No se admiten los volúmenes raíz, los reflejos con uso compartido de carga y los reflejos de protección de datos.
 
 |===
+| Compatibilidad con cargas de trabajo: Calidad de servicio adaptable | ONTAP 9.3 | ONTAP 9,4 - 9.13.0 | ONTAP 9.13.1 y versiones posteriores 
 
 
-| Compatibilidad con cargas de trabajo: Calidad de servicio adaptable | 9.3 | 9.4 y posterior 
+| Volumen | sí | sí | sí 
 
 
- a| 
-Volumen
- a| 
-sí
- a| 
-sí
+| Archivo | no | sí | sí 
 
 
-
- a| 
-Archivo
- a| 
-no
- a| 
-sí
+| LUN | no | sí | sí 
 
 
-
- a| 
-LUN
- a| 
-no
- a| 
-sí
+| SVM | no | no | sí 
 
 
-
- a| 
-SVM
- a| 
-no
- a| 
-no
+| Volumen FlexGroup | no | sí | sí 
 
 
-
- a| 
-Volumen FlexGroup
- a| 
-no
- a| 
-sí
+| Varias cargas de trabajo por grupo de políticas | sí | sí | sí 
 
 
-
- a| 
-Varias cargas de trabajo por grupo de políticas
- a| 
-sí
- a| 
-sí
-
-
-
- a| 
-Grupos de políticas no compartidos
- a| 
-sí
- a| 
-sí
-
+| Grupos de políticas no compartidos | sí | sí | sí 
 |===
 
 
@@ -522,9 +406,7 @@ sí
 En la siguiente tabla se muestra el número máximo de cargas de trabajo y grupos de políticas en la versión de ONTAP 9.
 
 |===
-
-
-| Compatibilidad con cargas de trabajo | 9.3 y anteriores | 9.4 y posterior 
+| Compatibilidad con cargas de trabajo | ONTAP 9,3 y anteriores | ONTAP 9.4 y posteriores 
 
 
  a| 

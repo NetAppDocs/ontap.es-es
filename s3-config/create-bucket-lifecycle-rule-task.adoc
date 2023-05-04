@@ -1,0 +1,96 @@
+---
+permalink: s3-config/create-bucket-lifecycle-rule-task.html 
+sidebar: sidebar 
+keywords: s3, bucket, cli, lifecycle, rule 
+summary: A partir de ONTAP 9.13.1, puede implementar la caducidad de objetos S3. 
+---
+= Cree una regla de gestión del ciclo de vida del bloque
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.13.1, puede implementar la caducidad de objetos S3. Las acciones de caducidad definen cuándo caducan los objetos de un depósito. Esta funcionalidad le permite gestionar versiones de objetos para que pueda cumplir los requisitos de retención y gestionar de forma eficaz el almacenamiento de objetos S3.
+
+.Antes de empezar
+Debe haber una SVM habilitada para S3 que contenga un servidor S3 y un bloque. Consulte link:create-svm-s3-task.html["Cree una SVM para S3"] si quiere más información.
+
+.Acerca de esta tarea
+Al crear la regla de gestión del ciclo de vida de los depósitos, debe elegir uno de los tres tipos de acción de caducidad siguientes:
+
+* `Expiration` – La acción de expiración expira objetos identificados por la regla. Si el control de versiones de casos está activado en el depósito, S3 hace que todos los objetos caducados no estén disponibles. Si el control de versiones no está activado, esta regla suprimirá el objeto de forma permanente.
+* `NoncurrentVersionExpiration` – Esta acción se utiliza para especificar cuando S3 elimina permanentemente objetos no actuales. Estos objetos eliminados no se pueden recuperar.
+* `AbortIncompleteMultipartUpload` – El administrador puede utilizar este elemento para establecer un tiempo máximo (en días) en el que desea permitir que las cargas multiparte permanezcan en curso
+
+
+Debe definir los campos necesarios para cada tipo de acción de caducidad al crear una regla de gestión del ciclo de vida del depósito. Estos campos se pueden modificar después de la creación inicial. En la siguiente tabla se muestran los campos únicos para cada tipo de acción.
+
+[cols="30,70"]
+|===
+
+
+| Tipo de acción | Campos únicos 
+
+
+ a| 
+Caducidad sin CurrentVersionespiración
+ a| 
+* `-non-curr-days` - Número de días después de los cuales se eliminarán las versiones no actuales
+* `-new-non-curr-versions` - Número de últimas versiones no actuales que se conservarán
+
+
+
+
+ a| 
+Caducidad
+ a| 
+* `-obj-age-days` - Número de días desde la creación, después de lo cual se puede eliminar la versión actual de los objetos
+* `-obj-exp-date` - Fecha específica en la que los objetos deben expirar
+* `-expired-obj-del-markers` - Limpiar objetos borrar marcadores
+
+
+
+
+ a| 
+AbortEncompleteMultipartUpload
+ a| 
+* `-after-initiation-days` - Número de días de iniciación, después de los cuales la carga puede ser abortada
+
+
+|===
+Para que la regla de gestión del ciclo de vida del depósito se aplique sólo a un subconjunto específico de objetos, los administradores deben establecer cada filtro al crear la regla. Si estos filtros no se establecen al crear la regla, la regla se aplicará a todos los objetos del depósito.
+
+Todos los filtros se pueden modificar después de la creación inicial _Excepto_ para lo siguiente: +
+
+* `-prefix`
+* `-tags`
+* `-obj-size-greater-than`
+* `-obj-size-less-than`
+
+
+.Pasos
+. Utilice la `vserver object-store-server bucket lifecycle-management-rule create` comando con los campos necesarios para el tipo de acción de vencimiento para crear la regla de gestión del ciclo de vida del bloque.
+
+
+.Ejemplo
+El siguiente comando crea una regla de gestión del ciclo de vida del bloque NonCurrentVersionExpiration:
+
+[listing]
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action NonCurrentVersionExpiration -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -new-non-curr-versions <integer> -non-curr-days <integer>
+----
+.Ejemplo
+El siguiente comando crea una regla de gestión del ciclo de vida del depósito de vencimiento:
+
+[listing]
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action Expiration -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -obj-age-days <integer> -obj-exp-date <"MM/DD/YYYY HH:MM:SS"> -expired-obj-del-marker {true|false}
+----
+.Ejemplo
+El siguiente comando crea una regla de gestión del ciclo de vida del bloque AbortIncompleteMultipartUpload:
+
+[listing]
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action AbortIncompleteMultipartUpload -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -after-initiation-days <integer>
+----

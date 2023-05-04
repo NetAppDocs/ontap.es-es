@@ -61,6 +61,10 @@ Si se está reequilibrando un archivo durante la creación de un volumen FlexClo
 +
 Cuando se mueve un archivo durante una operación de reequilibrio de FlexGroup, el tamaño de archivo se informa como parte de la contabilidad de cuotas tanto en los componentes de origen como de destino. Una vez completado el desplazamiento, la contabilidad de cuota vuelve a normal y el tamaño del archivo sólo se informa en el nuevo destino.
 
+* Protección autónoma de ransomware
++
+A partir de ONTAP 9.13.1, la protección autónoma frente a ransomware se puede copiar entre inodos para operaciones de reequilibrio disruptivas y no disruptivas.
+
 
 
 
@@ -68,6 +72,8 @@ Cuando se mueve un archivo durante una operación de reequilibrio de FlexGroup, 
 == Habilite el reequilibrio de FlexGroup
 
 A partir de ONTAP 9.12.1, puede habilitar el reequilibrio automático de volúmenes de FlexGroup sin interrupciones para redistribuir archivos entre los componentes FlexGroup.
+
+A partir de ONTAP 9.13.1, puede programar una sola operación de reequilibrio de FlexGroup para que comience en una fecha y hora del futuro.
 
 .Antes de empezar
 Debe haber habilitado el `granular-data` Opción en el volumen FlexGroup antes de habilitar el reequilibrio de FlexGroup. Puede habilitarla mediante uno de los siguientes métodos:
@@ -85,8 +91,10 @@ Puede gestionar el reequilibrado de FlexGroup mediante System Manager de ONTAP o
 --
 .Pasos
 . Navegue hasta *almacenamiento > volúmenes* y localice el volumen FlexGroup para reequilibrar.
-. Haga clic en image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] para ver los detalles del volumen.
-. Haga clic en *reequilibrar*.
+. Seleccione image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] para ver los detalles del volumen.
+. Selecciona *Reequilibrio*.
+. En la ventana *volumen de reequilibrio*, cambie la configuración predeterminada según sea necesario.
+. Para programar la operación de reequilibrio, seleccione *Reequilibrio más tarde* e introduzca la fecha y la hora.
 
 
 --
@@ -95,7 +103,28 @@ Puede gestionar el reequilibrado de FlexGroup mediante System Manager de ONTAP o
 .Pasos
 . Iniciar reequilibrio automático: `volume rebalance start -vserver _SVM_name_ -volume _volume_name_`
 +
-Opcionalmente, puede especificar las siguientes opciones: [[-max-runtime] <time interval>] tiempo de ejecución máximo [-max-threshold <percent>] umbral de desequilibrio máximo por componente [-min-threshold <percent>] umbral de desequilibrio mínimo por componente [-max-file-modes <integer>] movimientos de archivos simultáneos máximos por componente [-min-file-size {<integer>[KB|MB|GB|PB|PB] excluir archivos falsos} en archivos Snapshot}]
+Opcionalmente, puede especificar las siguientes opciones:
+
++
+[[-max-Runtime] <time interval>] Tiempo de ejecución máximo
+
++
+[-max-threshold <percent>] Umbral de desequilibrio máximo por componente
+
++
+[-min-threshold <percent>] Umbral de desequilibrio mínimo por componente
+
++
+[-max-file-moves <integer>] Máximo de Movimientos Simultáneos de Archivos por Componente
+
++
+[-min-file-size {<integer>[KB|MB|GB|TB|PB]}] Tamaño mínimo de archivo
+
++
+[-START-Time <mm/dd/yyyy-00:00:00>] Fecha y hora de inicio de reequilibrio de horario
+
++
+[-exclude-snapshots {true|false}] Excluir archivos atascados en copias snapshot
 
 +
 Ejemplo:
@@ -105,8 +134,6 @@ Ejemplo:
 ----
 volume rebalance start -vserver vs0 -volume fg1
 ----
-. En la ventana *volumen de reequilibrio*, cambie la configuración predeterminada si es necesario.
-. Haga clic en *Guardar* para aceptar la configuración predeterminada.
 
 
 --
@@ -115,7 +142,7 @@ volume rebalance start -vserver vs0 -volume fg1
 
 == Modificar las configuraciones de reequilibrio de FlexGroup
 
-Puede cambiar la configuración de reequilibrio de FlexGroup para actualizar el umbral de desequilibrio, el número de archivos simultáneos mueve el tamaño mínimo de archivo, el tiempo de ejecución máximo y para incluir o excluir copias de Snapshot.
+Puede cambiar la configuración de reequilibrio de FlexGroup para actualizar el umbral de desequilibrio, el número de archivos simultáneos mueve el tamaño mínimo de archivo, el tiempo de ejecución máximo y para incluir o excluir copias de Snapshot. Las opciones para modificar el programa de reequilibrio de FlexGroup están disponibles a partir de ONTAP 9.13.1.
 
 [role="tabbed-block"]
 ====
@@ -123,10 +150,9 @@ Puede cambiar la configuración de reequilibrio de FlexGroup para actualizar el 
 --
 .Pasos
 . Navegue hasta *almacenamiento > volúmenes* y localice el volumen FlexGroup para reequilibrar.
-. Haga clic en image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] para ver los detalles del volumen.
-. Haga clic en *reequilibrar*.
+. Seleccione image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] para ver los detalles del volumen.
+. Selecciona *Reequilibrio*.
 . En la ventana *volumen de reequilibrio*, cambie la configuración predeterminada según sea necesario.
-. Haga clic en *Guardar*.
 
 
 --
@@ -135,7 +161,28 @@ Puede cambiar la configuración de reequilibrio de FlexGroup para actualizar el 
 .Paso
 . Modificar reequilibrio automático: `volume rebalance modify -vserver _SVM_name_ -volume _volume_name_`
 +
-Puede especificar una o más de las siguientes opciones: [[-max-runtime] <time interval>] tiempo de ejecución máximo [-max-threshold <percent>] umbral de desequilibrio máximo por componente [-min-threshold <percent>] umbral de desequilibrio mínimo por componente [-max-file-modes <integer>] máximo de movimientos de archivos coincidentes por componente [-min-file-size {<integer>[KB|MB|GB|PB|exclude tamaño de archivo falso] en archivos Snapshot}]
+Puede especificar una o varias de las siguientes opciones:
+
++
+[[-max-Runtime] <time interval>] Tiempo de ejecución máximo
+
++
+[-max-threshold <percent>] Umbral de desequilibrio máximo por componente
+
++
+[-min-threshold <percent>] Umbral de desequilibrio mínimo por componente
+
++
+[-max-file-moves <integer>] Máximo de Movimientos Simultáneos de Archivos por Componente
+
++
+[-min-file-size {<integer>[KB|MB|GB|TB|PB]}] Tamaño mínimo de archivo
+
++
+[-START-Time <mm/dd/yyyy-00:00:00>] Fecha y hora de inicio de reequilibrio de horario
+
++
+[-exclude-snapshots {true|false}] Excluir archivos atascados en copias snapshot
 
 
 
@@ -145,7 +192,7 @@ Puede especificar una o más de las siguientes opciones: [[-max-runtime] <time i
 
 == Detenga el reequilibrio de FlexGroup
 
-Cuando se habilita el reequilibrio FlexGroup, se puede detener en cualquier momento.
+Una vez activado o programado el reequilibrio de FlexGroup, es posible detenerlo en cualquier momento.
 
 [role="tabbed-block"]
 ====
@@ -153,8 +200,8 @@ Cuando se habilita el reequilibrio FlexGroup, se puede detener en cualquier mome
 --
 .Pasos
 . Vaya a *almacenamiento > volúmenes* y localice el volumen FlexGroup.
-. Haga clic en image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] para ver los detalles del volumen.
-. Haga clic en *Detener reequilibrio*.
+. Seleccione image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] para ver los detalles del volumen.
+. Selecciona *Detener reequilibrio*.
 
 
 --
@@ -178,9 +225,9 @@ Puede mostrar el estado en una operación de reequilibrio de FlexGroup, la confi
 --
 .Pasos
 . Vaya a *almacenamiento > volúmenes* y localice el volumen FlexGroup.
-. Haga clic en image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] Para ver los detalles de la FlexGroup.
+. Seleccione image:icon_dropdown_arrow.gif["Muestra el icono de detalles"] Para ver los detalles de la FlexGroup.
 . *El estado de saldo de FlexGroup* se muestra cerca de la parte inferior del panel de detalles.
-. Para ver información acerca de la última operación de reequilibrio, haga clic en *último estado de reequilibrio de volumen*.
+. Para ver información sobre la última operación de reequilibrio, selecciona *Último estado de reequilibrio de volumen*.
 
 
 --

@@ -1,0 +1,117 @@
+---
+permalink: nfs-admin/manage-nfsv4-storepool-controls-task.html 
+sidebar: sidebar 
+keywords: enable, disable, nfsv4, storepool, controls, limit, client, resource, blocked, 
+summary: A partir de ONTAP 9,13, los administradores pueden permitir que sus servidores NFS denieguen recursos a los clientes NFS cuando hayan alcanzado los límites de recursos por cada grupo de clientes. 
+---
+= Gestione los límites de los grupos de almacenamiento de NFSv4
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9,13, los administradores pueden permitir que sus servidores NFSv4 denieguen recursos a NFSv4 clientes cuando hayan alcanzado los límites de recursos por cada pool de clientes. Cuando los clientes consumen demasiados recursos de la agrupación de almacenamiento NFSv4, esto puede provocar que otros clientes NFSv4 se bloqueen debido a la falta de disponibilidad de los recursos de la agrupación de almacenamiento NFSv4.
+
+La activación de esta función también permite a los clientes ver el consumo de recursos del grupo de almacenamiento activo por cada cliente. Esto facilita la identificación de clientes que agotan los recursos del sistema y permite imponer límites de recursos por cliente.
+
+
+
+== Ver los recursos del almacén consumidos
+
+La `vserver nfs storepool show` comando muestra el número de recursos de la agrupación de almacenamiento consumidos. Una tienda es un grupo de recursos utilizados por NFSv4 clientes.
+
+.Paso
+. Como administrador, ejecute el `vserver nfs storepool show` Comando para mostrar la información de la agrupación de almacenes de clientes NFSv4.
+
+
+.Ejemplo
+Este ejemplo muestra la información de la agrupación de almacenamiento de clientes NFSv4.
+
+[listing]
+----
+cluster1::*> vserver nfs storepool show
+
+Node: node1
+
+Vserver: vs1
+
+Data-Ip: 10.0.1.1
+
+Client-Ip Protocol IsTrunked OwnerCount OpenCount DelegCount LockCount
+
+-------------- --------- --------- ---------- ---------- ---------- ---------
+
+10.0.2.1          nfs4.1     true    2 1 0 4
+
+10.0.2.2          nfs4.2     true    2 1 0 4
+
+2 entries were displayed.
+----
+
+
+== Activar o desactivar los controles de límite de grupo de almacenamiento
+
+Los administradores pueden utilizar los siguientes comandos para activar o desactivar los controles de límite de storepool.
+
+.Paso
+. Como administrador, realice una de las siguientes acciones:
++
+[cols="2*"]
+|===
+| Si desea... | Introduzca el siguiente comando... 
+
+
+ a| 
+Active los controles de límite de grupo de almacenamiento
+ a| 
+`vserver nfs storepool config modify -limit-enforce enabled`
+
+
+
+ a| 
+Desactive los controles de límite de la agrupación de almacenamiento
+ a| 
+`vserver nfs storepool config modify -limit-enforce disabled`
+
+|===
+
+
+
+
+== Ver una lista de clientes bloqueados
+
+Si el límite de grupo de almacenamiento está activado, los administradores pueden ver qué clientes se han bloqueado al alcanzar el umbral de recursos por cliente. Los administradores pueden usar el siguiente comando para ver qué clientes se han marcado como clientes bloqueados.
+
+.Pasos
+. Utilice la `vserver nfs storepool blocked-client show` Comando para mostrar la lista de clientes bloqueados NFSv4.
+
+
+
+
+== Eliminar un cliente de la lista de clientes bloqueados
+
+Los clientes que alcancen su umbral por cliente se desconectarán y añadirán a la caché del cliente de bloques. Los administradores pueden usar el siguiente comando para eliminar el cliente de la caché del cliente de bloques. Esto permitirá que el cliente se conecte al servidor ONTAP NFSv4.
+
+.Pasos
+. Utilice la `vserver nfs storepool blocked-client flush -client-ip <ip address>` comando para vaciar la caché de cliente bloqueada de storepool.
+. Utilice la `vserver nfs storepool blocked-client show` comando para verificar que el cliente se ha eliminado de la caché del cliente de bloques.
+
+
+.Ejemplo
+En este ejemplo, se muestra un cliente bloqueado con la dirección IP «10,2.1,1» vaciada en todos los nodos.
+
+[listing]
+----
+cluster1::*>vserver nfs storepool blocked-client flush -client-ip 10.2.1.1
+
+cluster1::*>vserver nfs storepool blocked-client show
+
+Node: node1
+
+Client IP
+----------
+10.1.1.1
+
+1 entries were displayed.
+----

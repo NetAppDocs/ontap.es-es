@@ -4,7 +4,7 @@ permalink: anti-ransomware/respond-abnormal-task.html
 keywords: Respond to abnormal activity, anti-ransomware abnormal activity, data entropy, unusual file extensions, potential ransomware attack, false positive, suspected ransomware attack, abnormal activity notification, security, ransomware alert message, detected abnormal volume, suspected file types, attack report, anti-ransomware attack, autonomous, ransomware, protection, arp 
 summary: 'Cuando la protección de ransomware autónoma (ARP) detecta actividad anormal en un volumen protegido, emite una advertencia. Debe evaluar la notificación para determinar si la actividad es esperada y aceptable, o si se está llevando a cabo un ataque.' 
 ---
-= Responda a actividades anormales.
+= Responda a actividades anormales
 :toc: macro
 :hardbreaks:
 :toclevels: 1
@@ -68,7 +68,12 @@ En la ficha *Seguridad*, haga clic en Ver *tipos de archivo sospechosos*.
 | Si seleccionó este valor... | Realice esta acción… 
 
 
-| Falso positivo | Haga clic en *Actualizar* y *Borrar tipos de archivo sospechosos* para registrar su decisión y reanudar la supervisión antiransomware normal. 
+| Falso positivo  a| 
+Haga clic en *Actualizar* y *Borrar tipos de archivos sospechosos* para registrar su decisión y reanudar el monitoreo normal de ARP.
+
+
+NOTE: A partir de ONTAP 9.13.1, si está utilizando MAV para proteger su configuración ARP, la operación claramente sospechosa le solicita que obtenga la aprobación de uno o más administradores adicionales. link:../multi-admin-verify/request-operation-task.html["La aprobación debe recibirse de todos los administradores"] Asociado al grupo de aprobación MAV o la operación fallará.
+
 
 
 | Posible ataque de ransomware | Responda al ataque y restaure datos protegidos. A continuación, haga clic en *Actualizar* y *Borrar tipos de archivo sospechosos* para registrar su decisión y reanudar la supervisión normal de ARP. + no hay ningún tipo de archivo sospechoso que borrar si ha restaurado todo un volumen. 
@@ -121,7 +126,7 @@ Salida de muestra:
 +
 ** Falso positivo
 +
-Introduzca el siguiente comando para registrar la decisión, añadiendo la nueva extensión a la lista de los permitidos y reanude la supervisión normal antiransomware:
+Introduzca el siguiente comando para registrar su decisión, agregando la nueva extensión a la lista de los permitidos y reanudar la supervisión anti-ransomware normal:
 `anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive true`
 
 +
@@ -132,7 +137,7 @@ Utilice uno de los siguientes parámetros para identificar las extensiones:
 
 ** Ataque potencial de ransomware
 +
-Responda a los datos de ataque y restauración. A continuación, introduzca el siguiente comando para registrar la decisión y reanudar la supervisión normal de ARP:
+Responda al ataque y. link:../anti-ransomware/recover-data-task.html["Recupere los datos de la instantánea de backup creada por ARP"]. Después de recuperar los datos, introduzca el siguiente comando para registrar su decisión y reanudar la supervisión normal de ARP:
 
 +
 `anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive false`
@@ -144,9 +149,28 @@ Utilice uno de los siguientes parámetros para identificar las extensiones:
 `[-start-time _date_time_ -end-time _date_time_]` Horas de inicio y finalización del intervalo de archivos que se van a borrar, con el formato "MM/DD/AAAA HH:MM:SS".
 
 +
-No hay ningún tipo de archivo sospechoso que borrar si se restaura un volumen completo.
+No hay ningún tipo de archivo sospechoso que borrar si se restaura un volumen completo. Se eliminará la instantánea de copia de seguridad creada por ARP y se borrará el informe de ataque.
 
 
+
+. Si está utilizando MAV y se espera `clear-suspect` La operación necesita aprobaciones adicionales, cada aprobador del grupo MAV hace lo siguiente:
++
+.. Mostrar la solicitud:
++
+`security multi-admin-verify request show`
+
+.. Apruebe la solicitud para reanudar la supervisión normal antiransomware:
++
+`security multi-admin-verify request approve -index[_number returned from show request_]`
+
++
+La respuesta del último aprobador de grupo indica que el volumen se ha modificado y se registra un falso positivo.
+
+
+
+. Si está utilizando MAV y es un aprobador de grupo MAV, también puede rechazar una solicitud clara sospechosa:
++
+`security multi-admin-verify request veto -index[_number returned from show request_]`
 
 
 

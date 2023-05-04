@@ -26,6 +26,7 @@ xref:enable-ad-users-groups-access-cluster-svm-task.adoc[Configuración del acce
 +
 Puede realizar esta tarea antes o después de habilitar el acceso a la cuenta.
 
+* A partir de ONTAP 9.13.1, puede usar una clave pública SSH como método de autenticación principal o secundario con una contraseña de usuario de AD.
 * A partir de ONTAP 9.11.1, se puede utilizar link:../nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html["Enlace rápido LDAP para la autenticación nsswitch"] Si es compatible con el servidor LDAP de AD.
 * Si no está seguro de la función de control de acceso que desea asignar a la cuenta de inicio de sesión, puede usar la `security login modify` comando para añadir el rol más adelante.
 +
@@ -35,36 +36,66 @@ xref:modify-role-assigned-administrator-task.adoc[Modificar el rol asignado a un
 
 [NOTE]
 ====
-El acceso a la cuenta DE grupo DE AD solo se admite con `SSH` y.. `ontapi` más grandes.
+El acceso a la cuenta DE grupo DE AD solo se admite con `SSH` y.. `ontapi` más grandes. Los grupos de AD no se admiten con la autenticación de clave pública SSH, que se utiliza comúnmente para la autenticación multifactor.
 
 ====
 .Paso
 . Habilite las cuentas de administrador de usuario o de grupo de AD para acceder a una SVM:
 +
-`security login create -vserver SVM_name -user-or-group-name user_or_group_name -application application -authmethod domain -role role -comment comment [-is-ldap-fastbind true]`
+*Para usuarios de AD:*
 
 +
-Para obtener una sintaxis completa del comando, consulte link:config-worksheets-reference.html["hoja de trabajo"].
+[cols="1,1,1,4"]
+|===
+| Versión de ONTAP | Autenticación principal | Autenticación secundaria | Comando 
 
-+
-link:config-worksheets-reference.html["Crear o modificar cuentas de inicio de sesión"]
 
-+
-El siguiente comando habilita la cuenta de administrador de clúster de AD `DOMAIN1\guest1` con los predefinidos `backup` Rol para acceder a la SVM de administrador``engCluster``.
-
-+
+| 9.13.1 y posterior | Clave pública | Ninguno  a| 
 [listing]
 ----
-cluster1::>security login create -vserver engCluster -user-or-group-name DOMAIN1\guest1 -application ssh -authmethod domain -role backup
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application ssh -authentication-method publickey -role <role>
 ----
-+
-El siguiente comando habilita las cuentas de administrador de SVM en la cuenta de grupo de AD `DOMAIN1\adgroup` con los predefinidos `vsadmin-volume` Rol para acceder a la SVM``engData``.
 
-+
+
+| 9.13.1 y posterior | Dominio | Clave pública  a| 
+*Para un nuevo usuario*
+
 [listing]
 ----
-cluster1::>security login create -vserver engData -user-or-group-name DOMAIN1\adgroup -application ssh -authmethod domain -role vsadmin-volume
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application ssh -authentication-method domain -second-authentication-method publickey -role <role>
 ----
+*Para un usuario existente*
+
+[listing]
+----
+security login modify -vserver <svm_name> -user-or-group-name <user_name> -application ssh -authentication-method domain -second-authentication-method publickey -role <role>
+----
+
+
+| 9,0 y posterior | Dominio | Ninguno  a| 
+[listing]
+----
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application <application> -authentication-method domain -role <role> -comment <comment> [-is-ldap-fastbind true]
+----
+|===
++
+*Para grupos AD:*
+
++
+[cols="1,1,1,4"]
+|===
+| Versión de ONTAP | Autenticación principal | Autenticación secundaria | Comando 
+
+
+| 9,0 y posterior | Dominio | Ninguno  a| 
+[listing]
+----
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application <application> -authentication-method domain -role <role> -comment <comment> [-is-ldap-fastbind true]
+----
+|===
++
+Para obtener una sintaxis completa del comando, consulte link:config-worksheets-reference.html["Hojas de trabajo para la autenticación de administrador y la configuración de RBAC"]
+
 
 
 .Después de terminar

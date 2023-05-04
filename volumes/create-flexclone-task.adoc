@@ -11,12 +11,16 @@ summary: Creación de un volumen FlexClone.
 
 
 [role="lead"]
-Se puede crear un volumen de FlexClone de protección de datos desde un volumen de destino de SnapMirror o desde un volumen de FlexVol principal que sea un volumen secundario de SnapVault. Después de crear un volumen FlexClone, no se puede eliminar el volumen principal mientras el volumen FlexClone existe.
+Se puede crear un volumen de FlexClone de protección de datos desde un volumen de destino de SnapMirror o desde un volumen de FlexVol principal que sea un volumen secundario de SnapVault. A partir de ONTAP 9,7, se puede crear un volumen FlexClone a partir de un volumen FlexGroup. Después de crear un volumen FlexClone, no se puede eliminar el volumen principal mientras el volumen FlexClone existe.
 
 .Lo que necesitará
 * Debe instalar la licencia de FlexClone en el clúster.
 * El volumen que desea clonar debe estar en línea.
 
+
+
+
+== Crear un volumen FlexClone de un FlexVol o FlexGroup
 
 .Paso
 . Cree un volumen FlexClone:
@@ -40,4 +44,37 @@ Al crear un volumen FlexClone de lectura y escritura desde el volumen principal 
 +
 `volume clone create -vserver vs1 -flexclone vol_dp_clone -type DP -parent-volume dp_vol -parent-snapshot snap1`
 
+
+
+
+
+== Cree un FlexClone de cualquier tipo de SnapLock
+
+A partir de ONTAP 9.13.1, puede especificar uno de los tres tipos de SnapLock, `compliance`, `enterprise`, `non-snaplock`, Al crear un FlexClone de un volumen RW. De forma predeterminada, se crea un volumen FlexClone con el mismo tipo de SnapLock que el volumen principal. Sin embargo, puede sustituir el valor predeterminado mediante `snaplock-type` Durante la creación del volumen FlexClone.
+
+Con el `non-snaplock` con el `snaplock-type` Puede crear un volumen FlexClone que no es de tipo SnapLock desde un volumen primario de SnapLock para proporcionar un método más rápido para volver a conectar los datos cuando sea necesario.
+
+Más información acerca de link:https://docs.netapp.com/us-en/ontap/snaplock/index.html["SnapLock"].
+
+.Antes de empezar
+Debe conocer las siguientes limitaciones de volumen de FlexClone si tienen un tipo de SnapLock diferente al volumen principal.
+
+* Solo se admiten clones de tipo RW. No se admiten los clones de tipo DP con un tipo de SnapLock diferente al volumen principal.
+* Los volúmenes con LUN no se pueden clonar con la opción de tipo snaplock porque los volúmenes de SnapLock no admiten LUN.
+* No se puede clonar un volumen en un agregado reflejado de MetroCluster con un tipo de SnapLock de cumplimiento de normativas porque los volúmenes de SnapLock Compliance no son compatibles con los agregados reflejados de MetroCluster.
+* Los volúmenes de cumplimiento de normativas de SnapLock con conservación legal no se pueden clonar con un tipo de SnapLock diferente. La conservación legal solo se admite en los volúmenes de cumplimiento de normativas de SnapLock.
+* La recuperación de desastres de SVM no es compatible con los volúmenes de SnapLock. Se producirá un error al intentar crear un clon SnapLock a partir de un volumen de una SVM que forma parte de una relación de recuperación ante desastres de SVM.
+* Las prácticas recomendadas de FabricPool recomiendan que los clones conserven la misma política de organización en niveles que el volumen principal. Sin embargo, un clon de cumplimiento de normativas de SnapLock de un volumen habilitado para FabricPool no puede tener la misma política de organización en niveles que el volumen principal. La política de organización en niveles debe establecerse en `none`. Se intenta crear un clon de cumplimiento de normativas de SnapLock a partir de un elemento principal con una política de organización en niveles distinta de `none` fallará.
+
+
+.Pasos
+. Cree un volumen FlexClone con un tipo de SnapLock: `volume clone create -vserver _svm_name_ -flexclone _flexclone_name_ -type RW [ -snaplock-type {non-snaplock|compliance|enterprise} ]`
++
+Ejemplo:
+
++
+[listing]
+----
+> volume clone create -vserver vs0 -flexclone vol1_clone -type RW -snaplock-type enterprise -parent-volume vol1
+----
 

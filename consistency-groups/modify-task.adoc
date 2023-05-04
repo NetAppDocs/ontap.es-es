@@ -1,8 +1,8 @@
 ---
 permalink: consistency-groups/modify-task.html 
 sidebar: sidebar 
-keywords: consistency groups, consistency group protection, shrink, expand, add volumes, remove volumes 
-summary: Los grupos de consistencia admiten la adición y sustracción de volúmenes a partir de ONTAP 9.12.1 
+keywords: consistency groups, shrink, expand, add volumes, remove volumes, move volumes, smbc 
+summary: Es posible modificar un grupo de coherencia si se añaden o se quitan volúmenes o se mueven volúmenes entre grupos de coherencia secundarios. 
 ---
 = Modificar un grupo de consistencia
 :allow-uri-read: 
@@ -11,19 +11,26 @@ summary: Los grupos de consistencia admiten la adición y sustracción de volúm
 
 
 [role="lead"]
-A partir de ONTAP 9.12.1, es posible modificar un grupo de coherencia en System Manager. Para ello, quite volúmenes o añada volúmenes existentes (se amplía el grupo de coherencia).
+A partir de ONTAP 9.12.1, puede modificar un grupo de coherencia quitando volúmenes o añadiendo volúmenes existentes (ampliando el grupo de coherencia). A partir de ONTAP 9.13.1, se pueden mover volúmenes entre grupos de coherencia secundarios si comparten un volumen primario común.
 
 
 
 == Añadir volúmenes a un grupo de coherencia
 
-.Consideraciones
+A partir de ONTAP 9.12.1, es posible añadir volúmenes a un grupo de coherencia sin interrupciones.
+
+.Antes de empezar
 * No es posible añadir volúmenes asociados con otro grupo de coherencia.
-* Los grupos de consistencia admiten los protocolos NAS, SAN y NVMe. Para obtener más información sobre los grupos de consistencia, consulte xref:index.html[Información general sobre los grupos de consistencia].
-* Puede añadir hasta 16 volúmenes de forma simultánea a un grupo de coherencia, siempre que los ajustes se realicen en general xref:limits.html[límites del grupo de consistencia].
-* No se pueden añadir volúmenes a un grupo de coherencia en una relación de continuidad de negocio de SnapMirror (SM-BC). Primero debe romper la relación SM-BC para modificar el grupo de coherencia.
-* La API DE REST de ONTAP admite la adición de volúmenes nuevos_ o existentes a un grupo de coherencia. Para obtener más información sobre la API de REST de ONTAP, consulte link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation["Documentación de referencia de la API DE REST de ONTAP"^].
-* Al expandir un grupo de consistencia, las copias Snapshot del grupo de consistencia capturado antes de la operación de ampliación se considerarán parciales. Cualquier operación de restauración basada en esa copia Snapshot reflejará el grupo de coherencia en el momento específico de la Snapshot.
+* Los grupos de consistencia admiten los protocolos NAS, SAN y NVMe.
+* Puede añadir hasta 16 volúmenes a la vez a un grupo de coherencia si los ajustes se encuentran dentro de la configuración general xref:limits.html[límites del grupo de consistencia].
+* A partir de ONTAP 9.13.1, se pueden añadir volúmenes sin interrupciones a un grupo de coherencia con una política de continuidad del negocio con SnapMirror (SM-BC) activa o una política de protección SnapMirror asíncrona.
+* Cuando se añaden volúmenes a un grupo de coherencia protegido por SM-BC, el estado de la relación de SM-BC cambiará a «Expansión» hasta que el mirroring y la protección se configuren para el volumen nuevo. Si se produce un desastre en el clúster primario antes de que se complete este proceso, el grupo de consistencia revierte a su composición original como parte de la operación de conmutación al nodo de respaldo.
+* En ONTAP 9.12.1, _no puede_ añadir volúmenes a un grupo de coherencia de una relación de SM-BC. Primero, debe interrumpir la relación de SM-BC, modificar el grupo de consistencia y, a continuación, restaurar la protección con SM-BC.
+* A partir de ONTAP 9.12.1, la API REST DE ONTAP admite la adición _new_ o volúmenes existentes a un grupo de coherencia. Para obtener más información sobre la API de REST de ONTAP, consulte link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation["Documentación de referencia de la API DE REST de ONTAP"^].
++
+A partir de ONTAP 9.13.1, esta funcionalidad es compatible con System Manager.
+
+* Al expandir un grupo de consistencia, las copias Snapshot del grupo de consistencia capturado antes de la modificación se considerarán parciales. Cualquier operación de restauración basada en esa copia Snapshot reflejará el grupo de consistencia en el momento específico de la Snapshot.
 * Si utiliza ONTAP 9.10.1 a 9.11.1, no puede modificar un grupo de consistencia. Para cambiar la configuración de un grupo de coherencia en ONTAP 9.10.1 o 9.11.1, debe eliminar el grupo de coherencia y, a continuación, crear un nuevo grupo de coherencia con los volúmenes que desea incluir.
 
 
@@ -35,21 +42,22 @@ A partir de ONTAP 9.12.1, es posible modificar un grupo de coherencia en System 
 Si va a modificar un grupo de consistencia secundario, identifique el grupo de consistencia primario que desea modificar. Seleccione el botón *>* para ver los grupos de consistencia hijo y, a continuación, seleccione image:../media/icon_kabob.gif["tres puntos apilados verticalmente"] junto al nombre del grupo de consistencia secundario que desea modificar. En ese menú, seleccione *ampliar*.
 
 . Seleccione hasta 16 volúmenes para añadir al grupo de coherencia.
-. Seleccione *Guardar*. Una vez completada la operación, puede ver los volúmenes recién agregados en el menú *Volumes* del grupo de consistencia.
+. Seleccione *Guardar*. Cuando la operación se complete, vea los volúmenes recién agregados en el menú *Volúmenes* del grupo de consistencia.
 
 
 
 
 == Quite volúmenes de un grupo de coherencia
 
-Los volúmenes que se quitan de un grupo de coherencia ya no existen en el grupo de coherencia, pero no se eliminarán; seguirán existiendo en el clúster.
+Los volúmenes que se quitan de un grupo de consistencia no se eliminan. Permanecen activos en el clúster.
 
-.Consideraciones
-* No se pueden quitar volúmenes de un grupo de coherencia en una relación de continuidad de negocio de SnapMirror (SM-BC). Primero debe romper la relación SM-BC para modificar el grupo de coherencia.
+.Antes de empezar
+* No se pueden quitar volúmenes de un grupo de coherencia en una relación de continuidad de negocio de SnapMirror (SM-BC). Primero, debe romper la relación de SM-BC para modificar el grupo de consistencia y, a continuación, volver a establecer la relación.
 * Si un grupo de coherencia no tiene volúmenes en él después de la operación de eliminación, se eliminará el grupo de coherencia.
-* Cuando se elimina un volumen de un grupo de coherencia, las snapshots existentes del grupo de coherencia permanecen, pero no son válidas y no se pueden utilizar para restaurar el contenido del grupo de coherencia. Siguen siendo válidas las copias Snapshot granulares en volúmenes.
+* Cuando un volumen se elimina de un grupo de consistencia, las Snapshot existentes del grupo de consistencia permanecen, pero se consideran no válidas. Las snapshots existentes no se pueden utilizar para restaurar el contenido del grupo de consistencia. Siguen siendo válidas las copias Snapshot granulares en volúmenes.
 * Si elimina un volumen del clúster, se elimina automáticamente del grupo de coherencia.
-* Si utiliza ONTAP 9.10.1 o 9.11.1, solo puede quitar volúmenes de un grupo de coherencia si elimina el volumen del clúster. Para cambiar la configuración de un grupo de coherencia en ONTAP 9.10.1 o 9.11.1, debe eliminar el grupo de coherencia y, a continuación, crear un grupo de coherencia nuevo con los volúmenes miembro deseados.
+* Para cambiar la configuración de un grupo de coherencia en ONTAP 9.10.1 o 9.11.1, debe eliminar el grupo de coherencia y, a continuación, crear un grupo de coherencia nuevo con los volúmenes miembro deseados.
+* Al eliminar un volumen del clúster, automáticamente lo quitará el grupo de coherencia.
 
 
 .Pasos
@@ -58,4 +66,36 @@ Los volúmenes que se quitan de un grupo de coherencia ya no existen en el grupo
 . En el menú *volúmenes*, seleccione las casillas de verificación junto a los volúmenes individuales que desea quitar del grupo de consistencia.
 . Seleccione *Eliminar volúmenes del grupo de coherencia*.
 . Confirmar que comprende la eliminación de los volúmenes hará que todas las copias snapshot del grupo de consistencia no sean válidas y seleccione *Quitar*.
+
+
+
+
+== Mover volúmenes entre grupos de coherencia
+
+A partir de ONTAP 9.13.1, se pueden mover volúmenes entre grupos de coherencia secundarios que comparten un volumen primario.
+
+.Antes de empezar
+* Solo puede mover volúmenes entre grupos de coherencia anidados bajo el mismo grupo de consistencia primario.
+* Las snapshots de grupo de consistencia existentes quedan no válidas y ya no se puede acceder a ellas como snapshots de grupo de consistencia. Las copias de Snapshot de volumen individuales siguen siendo válidas.
+* Las copias Snapshot del grupo de consistencia primario siguen siendo válidas.
+* Si mueve todos los volúmenes de un grupo de consistencia secundario, se eliminará ese grupo de coherencia.
+* Las modificaciones a un grupo de consistencia deben respetar xref:limits.html[límites del grupo de consistencia].
+
+
+.Pasos
+. Seleccione *almacenamiento > grupos de consistencia*.
+. Seleccione el grupo de coherencia primario que contiene los volúmenes que desea mover. Encuentre el grupo de consistencia secundario y luego expanda el menú **VOLUMES**. Seleccione los volúmenes que desea mover.
+. Selecciona **Mover**.
+. Seleccione si desea mover los volúmenes a un grupo de coherencia nuevo o a un grupo existente.
++
+.. Para desplazarse a un grupo de consistencia existente, seleccione **Grupo de consistencia secundario existente** y, a continuación, elija el nombre del grupo de consistencia en el menú desplegable.
+.. Para desplazarse a un nuevo grupo de consistencia, seleccione **Nuevo grupo de consistencia secundario**. Introduzca un nombre para el nuevo grupo de consistencia secundario y seleccione un tipo de componente.
+
+
+. Selecciona **Mover**.
+
+
+.Información relacionada
+* xref:limits.html[Límites del grupo de consistencia]
+* xref:clone-task.html[Clonar un grupo de consistencia]
 
