@@ -13,7 +13,28 @@ summary: Puede volver a alojar volúmenes que tienen LUN asignadas. Después de 
 [role="lead"]
 Puede volver a alojar volúmenes que tienen LUN asignadas. Después de volver a crear el iGroup en la SVM de destino, el realojamiento de volúmenes puede reasignar automáticamente el volumen en la misma SVM.
 
-.Lo que necesitará
+.Acerca de esta tarea
+* El realojamiento es una operación disruptiva.
+* Si la operación de realojamiento falla, es posible que deba volver a configurar las políticas de volumen y las reglas asociadas en el volumen de origen.
+* A partir de ONTAP 9,8, se admite el realojamiento de un volumen con cifrado de volúmenes de NetApp (NVE). Si se usa un gestor de claves incorporado, los metadatos cifrados se modificarán durante la operación de nuevo alojamiento. Los datos de usuario no se modifican.
++
+Si se utiliza ONTAP 9,8 o temprano, se debe descifrar el volumen antes de realizar la operación de rehost.
+
+
+
+* Tras la operación de realojamiento, se pierden las siguientes políticas de volumen, reglas de política y configuraciones en el volumen de origen y se deben reconfigurar manualmente en el volumen realojado:
++
+** Directivas de antivirus
+** Política de eficiencia de volúmenes
+** Políticas de calidad de servicio (QoS)
+** Políticas de Snapshot
+** reglas y políticas de exportación de configuración de ns-switch y servicios de nombres
+** ID de usuario y de grupo
+
+
+
+
+.Antes de empezar
 * El volumen debe estar en línea.
 * No se deben ejecutar las operaciones de gestión de volúmenes, como movimientos de volúmenes o movimientos de LUN.
 * No debe haber operaciones de I/o activas en los volúmenes o las LUN.
@@ -29,25 +50,10 @@ Si el igroup tiene el mismo nombre, debe haber cambiado el nombre del igroup en 
 
 
 
-.Acerca de esta tarea
-* El realojamiento es una operación disruptiva.
-* Si la operación de realojamiento falla, es posible que deba volver a configurar las políticas de volumen y las reglas asociadas en el volumen de origen.
-* Tras la operación de realojamiento, se pierden las siguientes políticas de volumen, reglas de política y configuraciones en el volumen de origen y se deben reconfigurar manualmente en el volumen realojado:
-+
-** Directivas de antivirus
-** Política de eficiencia de volúmenes
-** Políticas de calidad de servicio (QoS)
-** Políticas de Snapshot
-** reglas y políticas de exportación de configuración de ns-switch y servicios de nombres
-** ID de usuario y de grupo
-
-
-
-
 .Pasos
 . Registre la información de asignación de LUN en el volumen objetivo:
 +
-`lun mapping show–volume volume to be rehosted-vserver source vserver`
+`lun mapping show volume _volume_ vserver _source_svm_`
 
 +
 Este es un paso preventivo para evitar perder información sobre la asignación de LUN en caso de que se produzca un error en el rehost del volumen.
@@ -55,7 +61,7 @@ Este es un paso preventivo para evitar perder información sobre la asignación 
 . Elimine los iGroups asociados al volumen objetivo.
 . Vuelva a alojar el volumen de destino a la SVM de destino:
 +
-`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+`volume rehost -vserver _source_svm_ -volume _volume_name_ -destination-vserver _destination_svm_`
 
 . Asigne las LUN del volumen objetivo a los iGroups adecuados.
 +

@@ -13,17 +13,15 @@ summary: Puede volver a alojar volúmenes que sirven datos mediante el protocolo
 [role="lead"]
 Puede volver a alojar volúmenes que sirven datos mediante el protocolo NFS. Después de volver a alojar los volúmenes NFS, para seguir accediendo a los datos mediante el protocolo NFS, debe asociar el volumen con la política de exportación de la SVM de host y configurar manualmente las políticas y las reglas asociadas.
 
-.Lo que necesitará
-* El volumen debe estar en línea.
-* No se deben ejecutar las operaciones de gestión de volúmenes, como movimientos de volúmenes o movimientos de LUN.
-* Se debe detener el acceso a los datos al volumen que se está realojando.
-* La configuración de los servicios de nombres y ns-switch de la SVM objetivo debe configurarse para admitir el acceso a los datos del volumen de realojamiento.
-* El ID de usuario y el ID de grupo del volumen deben estar disponibles en la SVM objetivo o cambiarse en el volumen de host.
-
-
 .Acerca de esta tarea
 * El realojamiento es una operación disruptiva.
 * Si la operación de realojamiento falla, es posible que deba volver a configurar las políticas de volumen y las reglas asociadas en el volumen de origen.
+* A partir de ONTAP 9,8, se admite el realojamiento de un volumen con cifrado de volúmenes de NetApp (NVE). Si se usa un gestor de claves incorporado, los metadatos cifrados se modificarán durante la operación de nuevo alojamiento. Los datos de usuario no se modifican.
++
+Si se utiliza ONTAP 9,8 o temprano, se debe descifrar el volumen antes de realizar la operación de rehost.
+
+
+
 * Tras la operación de realojamiento, se pierden las siguientes políticas de volumen, reglas de política y configuraciones en el volumen de origen y se deben volver a configurar manualmente en el volumen hospedado:
 +
 ** Políticas de exportación de volúmenes y qtrees
@@ -38,6 +36,14 @@ Puede volver a alojar volúmenes que sirven datos mediante el protocolo NFS. Des
 
 
 
+.Antes de empezar
+* El volumen debe estar en línea.
+* No se deben ejecutar las operaciones de gestión de volúmenes, como movimientos de volúmenes o movimientos de LUN.
+* Se debe detener el acceso a los datos al volumen que se está realojando.
+* La configuración de los servicios de nombres y ns-switch de la SVM objetivo debe configurarse para admitir el acceso a los datos del volumen de realojamiento.
+* El ID de usuario y el ID de grupo del volumen deben estar disponibles en la SVM objetivo o cambiarse en el volumen de host.
+
+
 .Pasos
 . Registrar información sobre las políticas de exportación de NFS para evitar la pérdida de información sobre las políticas de NFS en caso de que se produzca un error en la operación de realojamiento del volumen.
 . Desmonte el volumen del volumen principal:
@@ -50,7 +56,7 @@ Puede volver a alojar volúmenes que sirven datos mediante el protocolo NFS. Des
 
 . Vuelva a alojar el volumen en la SVM de destino:
 +
-`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+`volume rehost -vserver _source_svm_ -volume _volume_name_ -destination-vserver _destination_svm_`
 
 +
 La política de exportación predeterminada de la SVM de destino se aplica al volumen realojado.
