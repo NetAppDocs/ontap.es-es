@@ -15,22 +15,21 @@ Debe crear pools de análisis primarios y secundarios en cada clúster en una co
 
 .Lo que necesitará
 * Los SVM y los servidores Vscan deben estar en el mismo dominio o en dominios de confianza.
-* Para los pools de análisis definidos para una SVM individual, debe haber configurado el conector antivirus ONTAP con la LIF de gestión de SVM o la LIF de datos de SVM.
-* Para los pools de análisis definidos para todas las SVM de un clúster, debe haber configurado el conector antivirus de ONTAP con la LIF de gestión del clúster.
+* Para los pools de análisis definidos para una SVM individual, debe haber configurado el conector antivirus de ONTAP con la LIF de gestión de SVM o la LIF de datos de SVM.
+* Para los pools de análisis definidos para todas las SVM de un clúster, debe haber configurado el conector antivirus de ONTAP con la LIF de gestión de clúster.
+* La lista de usuarios con privilegios debe incluir la cuenta de usuario de dominio que el servidor Vscan utiliza para conectarse a la SVM.
+* Una vez configurado el grupo de escáneres, compruebe el estado de conexión a los servidores.
 
 
 .Acerca de esta tarea
 Las configuraciones de MetroCluster protegen los datos mediante la implementación de dos clústeres reflejados físicamente independientes. Cada clúster replica de forma síncrona los datos y la configuración de SVM del otro. Una SVM primaria en el clúster local proporciona datos cuando el clúster está en línea. Una SVM secundaria en el clúster local proporciona datos cuando el clúster remoto está sin conexión.
 
-Esto significa que debe crear pools de análisis primarios y secundarios en cada clúster de una configuración de MetroCluster que correspondan a las SVM primaria y secundaria en el clúster. El pool secundario pasa a estar activo cuando el clúster comienza a servir datos de la SVM secundaria. En la siguiente ilustración, se muestra una configuración de MetroCluster típica.
+Esto significa que debe crear pools de análisis primarios y secundarios en cada clúster en una configuración de MetroCluster; el pool secundario se activa cuando el clúster comienza a suministrar datos a partir de la SVM secundaria. Para la recuperación ante desastres, la configuración es similar a MetroCluster.
 
-image::../media/metrocluster-av-config.gif[MetroCluster av config]
+En esta figura se muestra una configuración MetroCluster/DR típica.
 
-[NOTE]
-====
-La lista de usuarios con privilegios debe incluir la cuenta de usuario de dominio que el servidor Vscan utiliza para conectarse a la SVM.
+image::../media/metrocluster-av-config.png[MetroCluster av config]
 
-====
 .Pasos
 . Crear un grupo de escáneres:
 +
@@ -73,7 +72,10 @@ cluster1::> vserver vscan scanner-pool create -vserver cifssvm1 -
 scanner-pool pool2_for_site2 -hostnames scan2 -privileged-users cifs
 \u1,cifs\u2
 ----
-. Compruebe que se han creado los grupos de escáneres: `vserver vscan scanner-pool show -vserver _data_SVM|cluster_admin_SVM_ -scanner-pool _scanner_pool_`
+. Compruebe que se han creado los grupos de escáneres:
++
+`vserver vscan scanner-pool show -vserver _data_SVM|cluster_admin_SVM_ -scanner-pool _scanner_pool_`
+
 +
 Para obtener una lista completa de las opciones, consulte la página de manual del comando.
 
