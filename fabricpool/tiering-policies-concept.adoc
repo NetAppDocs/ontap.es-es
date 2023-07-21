@@ -19,6 +19,15 @@ Las políticas de organización en niveles de FabricPool le permiten mover los d
 
 Las políticas de organización en niveles de FabricPool determinan cuándo y si los bloques de datos de usuario de un volumen en FabricPool se mueven al nivel cloud en función del volumen «'temperatura» de los activos (activos) o inactivos (inactivos). El volumen «temperatura» aumenta cuando se accede frecuentemente y disminuye cuando no lo es. Algunas políticas de organización en niveles tienen un período de refrigeración mínimo asociado, que establece el tiempo en el que los datos de un volumen de FabricPool deben permanecer inactivos para que los datos se consideren «inactivos» y se trasladen al nivel de cloud.
 
+Una vez identificado un bloque como frío, se marca como apto para la organización en niveles.  Un análisis diario de organización en niveles en segundo plano busca los bloques inactivos. Cuando se han recogido suficientes bloques de 4KB KB del mismo volumen, se concatenan en un objeto de 4MB KB y se mueven al nivel de cloud en función de la política de organización en niveles del volumen.
+
+[NOTE]
+====
+Datos de volúmenes que usan el `all` la política de organización en niveles se marca de inmediato como inactiva y comienza la organización en niveles en el nivel de cloud lo antes posible. No tiene que esperar a que se ejecute el análisis de organización en niveles diario.
+
+====
+Puede utilizar el `volume object-store tiering show` Comando para ver el estado de organización en niveles de un volumen de FabricPool. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap-cli-9131/["Referencia de comandos"].
+
 La política de organización en niveles de FabricPool se especifica a nivel de volumen. Hay cuatro opciones disponibles:
 
 * La `snapshot-only` La política de organización en niveles (predeterminada) mueve los bloques de datos de usuario de las copias Snapshot de volumen que no están asociadas con el sistema de archivos activo al nivel de cloud.
@@ -32,7 +41,10 @@ El período de refrigeración mínimo por niveles predeterminado es de 31 días 
 +
 Puede modificar la configuración predeterminada para el período de refrigeración mínima de organización en niveles con el `-tiering-minimum-cooling-days` parámetro en el nivel de privilegio avanzado del `volume create` y.. `volume modify` comandos. Los valores válidos abarcan de 2 a 183 días.
 
-* La `all` La política de organización en niveles, que solo se admite en ONTAP 9.6 y versiones posteriores, mueve todos los bloques de datos de usuario del sistema de archivos activo y las copias de Snapshot al nivel de cloud. Sustituye a la `backup` política de organización en niveles.
+* La `all` La política de organización en niveles, compatible solo con ONTAP 9,6 y versiones posteriores, mueve todos los bloques de datos de usuario del sistema de archivos activos y las copias Snapshot al nivel de cloud. Sustituye a la `backup` política de organización en niveles.
++
+La `all` no se debe utilizar la política de organización en niveles de volúmenes de lectura/escritura que tengan tráfico de clientes normal.
+
 +
 El período de refrigeración mínimo de organización en niveles no se aplica porque los datos mueven el nivel de cloud tan pronto como se ejecuta el análisis de organización en niveles y no se puede modificar la configuración.
 
