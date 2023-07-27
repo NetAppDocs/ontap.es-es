@@ -1,10 +1,10 @@
 ---
 permalink: san-admin/isns-concept.html 
 sidebar: sidebar 
-keywords: what, isns 
+keywords: isns, isns server, internet storage name service, iscsi, iqn 
 summary: 'El servicio de nombres de almacenamiento de Internet (iSNS) es un protocolo que permite la detección y gestión automatizadas de dispositivos iSCSI en una red de almacenamiento TCP/IP. Un servidor iSNS mantiene información sobre los dispositivos iSCSI activos en la red, incluidas sus direcciones IP, los nombres de nodo iSCSI IQN y los grupos de portales.' 
 ---
-= Lo que es iSNS
+= Servicio de nombres de almacenamiento de Internet (iSNS)
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -28,3 +28,92 @@ Un servidor iSNS utiliza el protocolo de servicio de nombres de almacenamiento d
 El protocolo iSNS permite la detección y gestión automatizadas de dispositivos iSCSI en una red de almacenamiento IP. Un iniciador de iSCSI puede consultar el servidor iSNS para detectar dispositivos de destino iSCSI.
 
 NetApp no suministra ni distribuye servidores iSNS. Puede obtener estos servidores de un proveedor con soporte de NetApp.
+
+
+
+== Cómo interactúan las SVM con un servidor iSNS
+
+El servidor iSNS se comunica con cada máquina virtual de almacenamiento (SVM) a través de la LIF de gestión de SVM. La LIF de gestión registra toda la información de portal, alias y nombre del nodo de destino de iSCSI con el servicio iSNS para una SVM específica.
+
+En el siguiente ejemplo, SVM «`VS1`» utiliza la LIF de gestión de SVM «`VS1_mgmt_lif`» para registrarse en el servidor iSNS. Durante el registro de iSNS, una SVM envía todas las LIF de iSCSI a través de la LIF de gestión de SVM al servidor iSNS. Una vez completado el registro de iSNS, el servidor iSNS tendrá una lista de todas las LIF que sirven iSCSI en «`VS1`». Si un clúster contiene varias SVM, cada SVM debe registrarse individualmente con el servidor iSNS para utilizar el servicio iSNS.
+
+image::../media/bsag_c-mode_iSNS_register.png[Registro iSNS en modo bsag c]
+
+En el siguiente ejemplo, después de que el servidor iSNS complete el registro con el destino, el Host A puede detectar todas las LIF para '`VS1`' a través del servidor iSNS como se indica en el Paso 1. Una vez que el Host A completa el descubrimiento de las LIF para «`VS1`», el Host A puede establecer una conexión con cualquiera de las LIF en «`VS1`», tal como se muestra en el Paso 2. El host A no tiene en cuenta ninguna de las LIF incluidas en «`VS2`» hasta que la LIF de gestión «`VS2_mgmt_LIF`» para registros «`VS2`» en el servidor iSNS.
+
+image::../media/bsag_c-mode_iSNS_connect.png[Conexión iSNS en modo bsag c]
+
+Sin embargo, si define las listas de acceso de interfaz, el host solo puede usar las LIF definidas en la lista de acceso de interfaz para acceder al destino.
+
+Una vez que se configura inicialmente iSNS, ONTAP actualiza automáticamente el servidor iSNS cuando cambian las opciones de configuración de SVM.
+
+Es posible que se produzca una demora de unos minutos entre el momento en que realiza cambios en la configuración y la hora en que ONTAP envía la actualización al servidor iSNS. Forzar una actualización inmediata de la información de iSNS en el servidor iSNS: `vserver iscsi isns update`
+
+
+
+== Comandos para gestionar iSNS
+
+ONTAP proporciona comandos para gestionar el servicio iSNS.
+
+|===
+
+
+| Si desea... | Se usa este comando... 
+
+
+ a| 
+Configure un servicio iSNS
+ a| 
+`vserver iscsi isns create`
+
+
+
+ a| 
+Inicie un servicio iSNS
+ a| 
+`vserver iscsi isns start`
+
+
+
+ a| 
+Modifique un servicio iSNS
+ a| 
+`vserver iscsi isns modify`
+
+
+
+ a| 
+Muestra la configuración de servicio iSNS
+ a| 
+`vserver iscsi isns show`
+
+
+
+ a| 
+Fuerza una actualización de la información de iSNS registrada
+ a| 
+`vserver iscsi isns update`
+
+
+
+ a| 
+Detenga un servicio iSNS
+ a| 
+`vserver iscsi isns stop`
+
+
+
+ a| 
+Quite un servicio iSNS
+ a| 
+`vserver iscsi isns delete`
+
+
+
+ a| 
+Vea la página man de un comando
+ a| 
+`man _command name_`
+
+|===
+Consulte la página de manual de cada comando para obtener más información.
