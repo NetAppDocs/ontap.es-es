@@ -4,7 +4,7 @@ permalink: smbc/smbc_admin_add_and_remove_volumes_in_consistency_groups.html
 keywords: SM-BC, SMBC, volume, consistency group, remove volume, add volume 
 summary: Si desea cambiar la composición del grupo de coherencia. Para ello, añada o quite un volumen, primero debe eliminar la relación original y, a continuación, volver a crear el grupo de coherencia con la nueva composición. 
 ---
-= Añada y quite volúmenes en un grupo de coherencia
+= Añada o quite volúmenes a un grupo de coherencia
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 
@@ -14,32 +14,36 @@ summary: Si desea cambiar la composición del grupo de coherencia. Para ello, a�
 
 
 [role="lead"]
-Añadir y quitar volúmenes en una relación de SM-BC activa depende de la versión de ONTAP que utilice.
+A medida que cambian los requisitos de carga de trabajo de la aplicación, es posible que deba añadir o quitar volúmenes de un grupo de coherencia para garantizar la continuidad del negocio. El proceso de añadir y quitar volúmenes en una relación de SM-BC activa depende de la versión de ONTAP que utilice.
+
+En la mayoría de los casos, este es un proceso disruptivo que requiere que se rompa la relación de SnapMirror, se modifique el grupo de consistencia y, a continuación, se reanude la protección. A partir de ONTAP 9.13.1, añadir volúmenes a un grupo de coherencia con una relación de SM-BC activa es una operación no disruptiva.
 
 .Acerca de esta tarea
-En ONTAP 9,8 a 9,9.1, es posible añadir o quitar volúmenes a un grupo de consistencia mediante la CLI de ONTAP.
+* En ONTAP 9,8 a 9,9.1, es posible añadir o quitar volúmenes a un grupo de consistencia mediante la CLI de ONTAP.
+* A partir de ONTAP 9.10.1, se recomienda que los gestione link:../consistency-groups/index.html["grupos de consistencia"] A través de System Manager o con la API DE REST de ONTAP.
++
+Si desea cambiar la composición del grupo de coherencia. Para ello, añada o quite un volumen, primero debe eliminar la relación original y, a continuación, volver a crear el grupo de coherencia con la nueva composición.
 
-A partir de ONTAP 9.10.1, se recomienda que los gestione link:../consistency-groups/index.html["grupos de consistencia"] A través de System Manager o con la API DE REST de ONTAP. Si desea cambiar la composición del grupo de coherencia. Para ello, añada o quite un volumen, primero debe eliminar la relación original y, a continuación, volver a crear el grupo de coherencia con la nueva composición.
+* A partir de ONTAP 9.13.1, se pueden añadir volúmenes a un grupo de coherencia con una relación de SM-BC activa desde el origen o el destino.
++
+Eliminar volúmenes es una operación disruptiva. Debe interrumpir la relación de SnapMirror antes de continuar eliminando los volúmenes.
 
-A partir de ONTAP 9.13.1, se pueden añadir volúmenes a un grupo de coherencia con una relación de SM-BC activa desde el origen o el destino.
 
-
-NOTE: Quitar volúmenes de un grupo de coherencia con una relación de SM-BC provoca interrupciones. Debe interrumpir la relación de SnapMirror antes de continuar con esta operación.
 
 [role="tabbed-block"]
 ====
 .ONTAP 9,8-9.13.0
 --
 .Antes de empezar
-* El cambio de composición no se permite cuando el grupo de consistencia está en el estado “InSync”.
+* No puede comenzar a modificar el grupo de consistencia mientras está en la `InSync` estado.
 * El volumen de destino debe ser del tipo DP.
 * El nuevo volumen que añada para expandir el grupo de coherencia debe tener un par de copias de Snapshot comunes entre los volúmenes de origen y de destino.
 
 
 .Pasos
-Este procedimiento supone que hay dos asignaciones de volumen: vol_src1 <--> vol_dst1 y vol_src2 <--> vol_dst2, en una relación de grupo de consistencia entre los puntos finales vs1_src:/cg/cg_src y vs1_dst:/cg/cg_dst.
+Los ejemplos que se muestran en dos asignaciones de volúmenes: `vol_src1` <--> `vol_dst1` y.. `vol_src2` <--> `vol_dst2`, en una relación de grupo de coherencia entre los puntos finales `vs1_src:/cg/cg_src` y.. `vs1_dst:/cg/cg_dst`.
 
-. Compruebe que existe una copia Snapshot común entre los volúmenes de origen y destino en el clúster de origen y el de destino:
+. En los clústeres de origen y destino, compruebe que hay una Snapshot común entre los clústeres de origen y destino con el comando `snapshot show -vserver _svm_name_ -volume _volume_name_ -snapshot _snapmirror_`
 +
 `source::>snapshot show -vserver vs1_src -volume vol_src3 -snapshot snapmirror*`
 
@@ -50,7 +54,7 @@ Este procedimiento supone que hay dos asignaciones de volumen: vol_src1 <--> vol
 +
 `destination::>snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst3`
 
-. Elimine la relación de grupo de consistencia con cero objetivo de tiempo de recuperación:
+. Elimine la relación del grupo de consistencia:
 +
 `destination::>snapmirror delete -destination-path vs1_dst:vol_dst3`
 

@@ -1,11 +1,10 @@
 ---
 sidebar: sidebar 
 permalink: smbc/smbc_admin_upgrade_and_revert_considerations.html 
-keywords: SM-BC, SMBC, upgrade, revert, ONTAP 
-summary: Debe estar al tanto de los requisitos para actualizar y revertir una configuración de SM-BC. 
+keywords: upgrade, revert, ONTAP 
+summary: Actualizar o revertir ONTAP tiene implicaciones en su relación SM-BC, especialmente cuando cambia a ONTAP 9,8 o posterior o 9,7 y anterior. 
 ---
-= Consideraciones sobre la actualización y reversión de SM-BC
-:hardbreaks:
+= Actualice y revierta ONTAP con SM-BC
 :allow-uri-read: 
 :nofooter: 
 :icons: font
@@ -14,36 +13,41 @@ summary: Debe estar al tanto de los requisitos para actualizar y revertir una co
 
 
 [role="lead"]
-Debe estar al tanto de los requisitos para actualizar y revertir una configuración de SM-BC.
+La continuidad del negocio con SnapMirror (SM-BC) es compatible a partir de ONTAP 9,8. Actualizar y revertir el clúster de ONTAP tiene implicaciones en su relación SM-BC dependiendo de la versión de ONTAP a la que actualice o revierta.
 
 
 
-== Renovar
+== Actualice ONTAP
 
 Antes de poder configurar y usar SM-BC, debe actualizar todos los nodos de los clústeres de origen y de destino a ONTAP 9.8 o una versión posterior.
-link:link:../upgrade/index.html["Actualización del software en clústeres ONTAP"]
+link:link:../upgrade/index.html["Actualice el software en los clústeres de ONTAP"]
+
+
+NOTE: La `snapmirror quiesce` y.. `snampirror resume` Los comandos no son compatibles con SM-BC.
+
+Cuando se actualizan clústeres de 9,8 o 9.9.1 a 9.10.1, ONTAP crea nuevos grupos de consistencia tanto en origen como en destino para las relaciones de SM-BC. Estos pueden gestionarse en System Manager en la opción **Grupos de consistencia** o mediante la API REST DE ONTAP con el extremo de los grupos de coherencia.
+
+
+
+== Vuelva a ONTAP 9.9.1 desde ONTAP 9.10.1
+
+Para revertir las relaciones de la versión 9.10.1 a la 9.9.1, deben eliminarse las relaciones de SM-BC, seguido por la instancia del grupo de consistencia 9.10.1. Los grupos de consistencia con una relación de SM-BC activa no se pueden eliminar. Todos los volúmenes de FlexVol que se hayan actualizado a 9.10.1 asociados previamente con otro contenedor inteligente o aplicación empresarial en la versión 9.9.1 o anterior ya no se asociarán al revertir. Al eliminar grupos de consistencia no se eliminan los volúmenes constituyentes ni las snapshots granulares de volúmenes. Consulte link:../consistency-groups/delete-task.html["Eliminar un grupo de consistencia"] Para obtener más información sobre esta tarea en ONTAP 9.10.1 y versiones posteriores.
+
+
+
+== Vuelva a ONTAP 9,7 desde ONTAP 9,8
 
 
 NOTE: SM-BC no es compatible con clústeres mixtos de ONTAP 9.7 y ONTAP 9.8.
 
-Al actualizar los clústeres de 9.8 o 9.9.1 a 9.10.1, se crean nuevos grupos de consistencia en las relaciones de origen y de destino de SM-BC.
-
-
-
-== Volver a ONTAP 9.9.1 desde ONTAP 9.10.1
-
-Para revertir las relaciones de la versión 9.10.1 a la 9.9.1, deben eliminarse las relaciones de SM-BC, seguido por la instancia del grupo de consistencia 9.10.1. Los grupos de coherencia no pueden eliminarse con una relación de SMBC activa. Todos los volúmenes de FlexVol que se hayan actualizado a 9.10.1 asociados previamente con otro contenedor inteligente o aplicación empresarial en la versión 9.9.1 o anterior ya no se asociarán al revertir. Al eliminar grupos de consistencia no se eliminan los volúmenes constituyentes ni las snapshots granulares de volúmenes. Consulte link:../consistency-groups/delete-task.html["Eliminar un grupo de consistencia"] para obtener más información sobre esta tarea.
-
-
-
-== Volver a ONTAP 9.7 desde ONTAP 9.8
-
 Al cambiar de ONTAP 9.8 a ONTAP 9.7, debe tener en cuenta lo siguiente:
 
-* Si el clúster aloja un destino de SM-BC, no se permite revertir a ONTAP 9.7 hasta que la relación se rompa y se elimine.
-* Si el clúster aloja un origen de SM-BC, no se permite revertir a ONTAP 9.7 hasta que se libera la relación.
+* Si el clúster aloja un destino de SM-BC, no se permite revertir a ONTAP 9,7 hasta que se rompa y se elimine la relación.
+* Si el clúster aloja un origen de SM-BC, no se permite revertir a ONTAP 9,7 hasta que se libere la relación.
 * Todas las políticas personalizadas de SM-BC SnapMirror creadas por el usuario deben eliminarse antes de revertir a ONTAP 9.7.
 
+
+Para cumplir estos requisitos, consulte link:smbc_admin_removing_an_smbc_configuration.html["Quitar una configuración de SM-BC"].
 
 .Pasos
 . Realice una comprobación de reversión desde uno de los clústeres de la relación de SM-BC:

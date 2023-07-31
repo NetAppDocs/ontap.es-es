@@ -14,23 +14,25 @@ summary: Es posible convertir una relación de SnapMirror síncrono de una prote
 
 
 [role="lead"]
-Es posible convertir una relación de SnapMirror síncrono de una protección de punto de recuperación cero existente a una relación de grupo de coherencia de SnapMirror síncrono de SM-BC cero.
+Si tiene una relación de SnapMirror síncrono entre un clúster de origen y de destino, puede convertirlo en una relación de SM-BC. De este modo, se pueden asociar los volúmenes reflejados a un grupo de coherencia, garantizando un objetivo de punto de recuperación cero en una carga de trabajo de varios volúmenes. Además, puede conservar los snapshots de SnapMirror existentes si necesita revertir a un momento específico antes de establecer la relación SM-BC.
 
 .Antes de empezar
-* Existe una relación de RPO síncrona de cero entre el primario y el secundario.
-* Se anula la asignación de todas las LUN del volumen de destino antes de que se cree la relación de SnapMirror con el objetivo de tiempo de recuperación cero.
+* Debe haber una relación de SnapMirror síncrono con un objetivo de punto de recuperación cero entre el clúster primario y el secundario.
+* Se deben anular la asignación de todas las LUN del volumen de destino antes de crear la relación de SnapMirror con objetivo de tiempo de recuperación cero.
 * SM-BC solo admite protocolos SAN (no NFS/CIFS). Asegúrese de que no hay ningún componente del grupo de consistencia montado para el acceso NAS.
 
 
 .Acerca de esta tarea
-* Debe ser un administrador de clúster y SVM en el origen y el destino.
+* Debe ser un administrador de clústeres y de SVM en los clústeres principales y secundarios.
 * No se puede convertir un objetivo de punto de recuperación de cero en una sincronización de objetivo de tiempo de recuperación de cero cambiando la política de SnapMirror.
-* Si se asignan LUN existentes en el volumen secundario, `snapmirror create` Con la directiva AutomatedFailover se desencadena un error.
-Debe asegurarse de quitar la asignación de las LUN antes de emitir el `snapmirror create` comando.
+* Debe asegurarse de quitar la asignación de las LUN antes de emitir el `snapmirror create` comando.
++
+Si las LUN existentes en el volumen secundario se asignan y el `AutomatedFailover` la política se configura, la `snapmirror create` desencadenará un error.
+
 
 
 .Pasos
-. Realice una operación de actualización de SnapMirror en la relación existente:
+. Desde el clúster secundario, realice una actualización de SnapMirror en la relación existente:
 +
 `destination::>snapmirror update -destination-path vs1_dst:vol1`
 
@@ -63,7 +65,7 @@ Debe asegurarse de quitar la asignación de las LUN antes de emitir el `snapmirr
 +
 `destination::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol1:@vol1,vol2:@vol2 -policy AutomatedFailover`
 
-. Resincronizar el grupo de consistencia de RTO cero:
+. Resincronice el grupo de consistencia:
 +
 `destination::> snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
 

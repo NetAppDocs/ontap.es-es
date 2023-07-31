@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar 
 permalink: smbc/smbc_intro_terminology.html 
-keywords: SM-BC, SMBC, Mediator, terminology 
-summary: A medida que se empieza a explorar la continuidad empresarial de SnapMirror de ONTAP y a planificar una implementación, resulta útil familiarizarse con la terminología y los conceptos clave. 
+keywords: SM-BC, SMBC, overview, benefits, use cases, architecture 
+summary: Hay conceptos clave que debes entender antes de usar SM-BC. 
 ---
 = Conceptos clave
 :hardbreaks:
@@ -14,35 +14,56 @@ summary: A medida que se empieza a explorar la continuidad empresarial de SnapMi
 
 
 [role="lead"]
-A medida que se empieza a explorar la continuidad empresarial de SnapMirror de ONTAP y a planificar una implementación, resulta útil familiarizarse con la terminología y los conceptos clave.
+La continuidad del negocio de SnapMirror (SM-BC) utiliza funciones tales como grupos de consistencia y el mediador de ONTAP para garantizar que sus datos se repliquen y se sirvan incluso en caso de desastre. A la hora de planificar la implementación de SM-BC, es importante comprender los conceptos básicos de SM-BC y su arquitectura.
 
-.SM-BC
-Siglas de "SnapMirror Business Continuity" (SM-BC), disponible con ONTAP 9.8 y versiones posteriores.
+
+
+== Arquitectura
+
+En la siguiente figura se muestra una descripción general de la implementación de SM-BC.
+
+image:workflow_san_snapmirror_business_continuity.png["Flujo de trabajo de continuidad del negocio con SnapMirror"]
+
+El diagrama muestra una aplicación empresarial alojada en una máquina virtual de almacenamiento (SVM) en el centro de datos principal. La SVM contiene cinco volúmenes, tres de los cuales forman parte de un grupo de coherencia. Los tres volúmenes del grupo de coherencia se reflejan en un centro de datos secundario. En circunstancias normales, todas las operaciones de escritura se realizan en el centro de datos primario; en efecto, este centro de datos sirve como origen de operaciones de I/O, mientras que el centro de datos secundario sirve como destino.
+
+En caso de que se produzca un desastre en el centro de datos primario, ONTAP Mediator dirigirá al centro de datos secundario para que actúe como primario y sirva todas las operaciones de I/O. Solo se servirá los volúmenes reflejados en el grupo de coherencia. Cualquier operación que pertenezca a los otros dos volúmenes en la SVM se verá afectada por el evento de desastre.
+
+
+
+== Conceptos esenciales
+
+Comprender los siguientes términos le ayudará a implementar SM-BC.
 
 .Grupo de consistencia
-A partir de ONTAP 9.10.1, los grupos de consistencia se han convertido en una unidad de gestión de primer orden. Para obtener más información sobre los grupos de consistencia, consulte link:../consistency-groups/index.html["Información general sobre los grupos de consistencia"].
+Un grupo de coherencia es una colección de volúmenes o LUN que proporcionan una garantía de coherencia en orden de escritura para la carga de trabajo de la aplicación que debe protegerse para la continuidad del negocio. Un grupo de consistencia garantiza que todos los volúmenes de este conjunto de datos se pongan en modo inactivo y, a continuación, se snappean en el mismo momento específico, lo que proporciona un punto de restauración coherente con los datos en todos los volúmenes para ese conjunto de datos.
 
-Un grupo de consistencia (CG) es una colección de volúmenes de FlexVol que proporciona una garantía de consistencia de orden de escritura para la carga de trabajo de la aplicación que debe protegerse para la continuidad empresarial. El propósito de un grupo de consistencia es realizar simultáneamente copias Snapshot consistentes con los fallos de una colección de volúmenes en un momento específico. En la puesta en marcha normal, el grupo de volúmenes que se eligió como parte de un CG se asigna a una instancia de aplicación. Las relaciones de SnapMirror, también conocidas como una relación de CG, se establecen entre un CG de origen y un CG de destino. Los CG de origen y destino deben contener la misma cantidad y tipo de volúmenes.
+En SM-BC, creará un grupo de consistencia principal y secundario para la replicación y la protección de datos. El grupo de consistencia secundario servirá sus datos en caso de interrupción.
+
+Para obtener más información sobre los grupos de consistencia, consulte link:../consistency-groups/index.html["Información general sobre los grupos de consistencia"].
 
 .Componente
-Los volúmenes FlexVol individuales que forman parte de un grupo de coherencia.
+Un volumen o LUN individual que forma parte de un grupo de coherencia, que está protegido por la relación de SM-BC.
 
-.Mediador
-Mediator de ONTAP proporciona una ruta de estado alternativa al clúster del mismo nivel, con las LIF de interconexión de clústeres proporcionando la otra ruta de estado. Con la información de estado del Mediator, los clústeres pueden distinguir entre fallo de LIF entre clústeres y fallo del sitio. Cuando el sitio baja, Mediator pasa la información de salud al grupo de pares bajo demanda, facilitando al grupo de pares el fallo. Con la información proporcionada por el Mediador y la información de comprobación del estado de la LIF entre clústeres, ONTAP determina si se realiza una conmutación por error automática, si no es capaz de realizar una conmutación por error, continuar o detener.
+.Mediador ONTAP
+Los mediadores de ONTAP supervisan los dos clústeres ONTAP y orquestan la conmutación por error en caso de que se produzca un error en el sistema de almacenamiento principal. Con Mediador de ONTAP, su aplicación se vuelve a conectar automáticamente con los recursos del sistema de almacenamiento secundario.
 
-El mediador es una de las tres partes en el quórum SM-BC, trabajando con el cluster primario y el grupo secundario para llegar a un consenso. Un consenso requiere que por lo menos dos partes en el quórum acepten una operación.
+Con la información de estado de ONTAP Mediator, los clústeres pueden diferenciar entre fallos de LIF entre clústeres y fallos del sitio. Cuando el sitio falla, ONTAP Mediator transmite la información de estado al clúster del mismo nivel bajo demanda, lo que facilita el clúster del mismo nivel a la conmutación por error.
 
-.Fuera de sincronización (OOS)
-Las operaciones de I/o de la aplicación no se están replicando en el sistema de almacenamiento secundario. El volumen de destino no está sincronizado con el volumen de origen, porque no se produce la replicación de SnapMirror. Si el estado de duplicación se duplica con SnapMirrors, indica un error de transferencia o un fallo debido a una operación no admitida.
-
-.RPO cero
-Objetivo de punto de recuperación cero. Esta es la cantidad aceptable de pérdida de datos debido a los tiempos de inactividad.
-
-.RTO CERO
-El objetivo de tiempo de recuperación cero o la recuperación tras fallos de aplicaciones transparente se logran mediante la recuperación tras fallos de ruta basada en software I/o multivía del host (MPIO) para proporcionar un acceso no disruptivo al almacenamiento.
+Obtenga más información sobre la link:../mediator/index.html["Mediador ONTAP"^].
 
 .Conmutación al respaldo planificada
-Operación manual para cambiar los roles de las copias en una relación SM-BC. El primario se convierte en el secundario y el secundario se convierte en el primario. La generación de informes ALUA también cambia.
+Operación manual para cambiar los roles de las copias en una relación SM-BC. Los sitios primarios se convierten en los secundarios y los secundarios se convierten en los primarios.
 
 .Conmutación automática al respaldo no planificada (AUFO)
 Una operación automática para ejecutar una conmutación por error a la copia de mirroring. La operación requiere ayuda de Mediator para detectar que la copia primaria no está disponible.
+
+.Fuera de sincronización (OOS)
+Cuando las operaciones de I/O de aplicaciones no se replican en el sistema de almacenamiento secundario, se informará como **fuera de sincronización**. Un estado fuera de sincronización significa que los volúmenes secundarios no se sincronizan con el primario (origen) y que no se está produciendo la replicación de SnapMirror.
+
+Si el estado de reflejo es `Snapmirrored`, esto indica un error de transferencia o un fallo debido a una operación no soportada.
+
+.RPO cero
+RPO es la sigla en inglés para el objetivo de punto de recuperación, que es la cantidad de pérdida de datos que se considera aceptable durante un período de tiempo dado. El RPO de cero significa que no es aceptable ninguna pérdida de datos.
+
+.RTO CERO
+El objetivo de tiempo de recuperación es el objetivo de tiempo de recuperación, que es la cantidad de tiempo que se considera aceptable para que una aplicación regrese a las operaciones normales tras una interrupción del servicio, un fallo u otro evento de pérdida de datos. El objetivo de tiempo de recuperación cero significa que no se acepta ningún tiempo de inactividad.

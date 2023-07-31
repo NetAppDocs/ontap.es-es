@@ -14,22 +14,23 @@ summary: Puede eliminar la protección de SnapMirror síncrono de cero objetivo 
 
 
 [role="lead"]
-Puede eliminar la protección de SnapMirror síncrono de cero objetivo de tiempo de recuperación y la configuración de relaciones de SM-BC.
+Si ya no necesita protección SnapMirror sincronizada con un objetivo de tiempo de recuperación cero, puede eliminar su relación SM-BC.
 
 .Acerca de esta tarea
-Antes de eliminar la relación SM-BC, se debe quitar la asignación de todas las LUN del clúster de destino.
-Una vez que se anula la asignación de las LUN y se vuelve a analizar el host, el destino SCSI notifica a los hosts que ha cambiado el inventario de LUN. Las LUN existentes en los volúmenes secundarios con objetivo de tiempo de recuperación cero cambian para reflejar una identidad nueva después de eliminar la relación con objetivo de tiempo de recuperación cero. Los hosts detectan los LUN del volumen secundario como nuevos LUN que no tienen relación con los LUN del volumen de origen.
-Los volúmenes secundarios permanecen en los volúmenes de recuperación ante desastres una vez que se elimina la relación. Puede emitir el comando snapmirror break para convertirlos a lectura/escritura.
-No se permite eliminar la relación en el estado fallido cuando no se invierte la relación.
+* Antes de eliminar la relación SM-BC, se debe quitar la asignación de todas las LUN del clúster de destino.
+* Una vez que se anula la asignación de las LUN y se vuelve a analizar el host, el destino SCSI notifica a los hosts que ha cambiado el inventario de LUN. Las LUN existentes en los volúmenes secundarios con objetivo de tiempo de recuperación cero cambian para reflejar una identidad nueva después de eliminar la relación con objetivo de tiempo de recuperación cero. Los hosts detectan los LUN del volumen secundario como nuevos LUN que no tienen relación con los LUN del volumen de origen.
+* Los volúmenes secundarios permanecen en los volúmenes de recuperación ante desastres una vez que se elimina la relación. Puede emitir el `snapmirror break` comando para convertirlos a lectura/escritura.
+* No se permite eliminar la relación en el estado fallido cuando no se invierte la relación.
+
 
 .Pasos
-. Elimine la relación del grupo de coherencia de SM-BC entre el extremo de origen y el extremo de destino:
+. En el clúster secundario, quite la relación del grupo de consistencia de SM-BC entre el extremo de origen y el extremo de destino:
 +
-`Destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
+`destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
 
-. A partir del clúster de origen, libere la relación del grupo de consistencia y las copias Snapshot creadas para la relación:
+. En el clúster principal, liberar la relación del grupo de consistencia y las copias Snapshot creadas para la relación:
 +
-`Source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst`
+`source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst`
 
 . Realice una detección repetida del host para actualizar el inventario de LUN.
 . A partir de ONTAP 9.10.1, al eliminar la relación SnapMirror no se elimina el grupo de consistencia. Si desea eliminar el grupo de coherencia, debe usar System Manager o la API DE REST de ONTAP. Consulte xref:../consistency-groups/delete-task.adoc[Eliminar un grupo de consistencia] si quiere más información.

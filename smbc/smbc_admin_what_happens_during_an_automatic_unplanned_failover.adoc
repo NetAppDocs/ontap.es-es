@@ -4,7 +4,7 @@ permalink: smbc/smbc_admin_what_happens_during_an_automatic_unplanned_failover.h
 keywords:  
 summary: 'Una operación de conmutación por error no planificada automática (AUFO) se produce cuando el clúster primario está inactivo o aislado.  Cuando esto sucede, el clúster secundario se convierte al principal y comienza a servir a los clientes.' 
 ---
-= Operaciones automáticas de conmutación al respaldo no planificadas
+= Recuperarse de operaciones de conmutación al respaldo automáticas no planificadas
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 
@@ -14,9 +14,65 @@ summary: 'Una operación de conmutación por error no planificada automática (A
 
 
 [role="lead"]
-Una operación de conmutación por error no planificada automática (AUFO) se produce cuando el clúster primario está inactivo o aislado.  Cuando esto sucede, el clúster secundario se convierte al principal y comienza a servir a los clientes. Esta operación se realiza sólo con la ayuda del Mediador ONTAP.
+Una operación de conmutación por error no planificada automática (AUFO) se produce cuando el clúster primario está inactivo o aislado. El mediador ONTAP detecta cuándo se produce una conmutación por error y ejecuta una conmutación por error automática no planificada en el clúster secundario. El clúster secundario se convierte al principal y comienza a prestar servicio a los clientes. Esta operación se realiza sólo con la ayuda del Mediador ONTAP.
 
 
 NOTE: Después de la conmutación automática al respaldo no planificada, es importante volver a analizar las rutas de I/o del LUN del host para que no se pierda las rutas de I/O.
 
-Puede supervisar el estado de la conmutación automática al nodo de respaldo no planificada mediante el `snapmirror failover show` comando.
+
+
+== Restablecer la relación de protección tras una conmutación al respaldo no planificada
+
+Puede volver a establecer la relación de protección mediante System Manager o la CLI de ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Pasos
+. Vaya a *Protección > Relaciones* y espere a que el estado de la relación muestre “InSync”.
+. Para reanudar las operaciones en el clúster de origen original, haga clic en image:icon_kabob.gif["icono de kabob"] Y seleccione *Failover*.
+
+
+--
+.CLI
+--
+Puede supervisar el estado de la conmutación automática al respaldo no planificada mediante `snapmirror failover show` comando.
+
+Por ejemplo:
+
+....
+ClusterB::> snapmirror failover show -instance
+Start Time: 9/23/2020 22:03:29
+         Source Path: vs1:/cg/scg3
+    Destination Path: vs3:/cg/dcg3
+     Failover Status: completed
+        Error Reason:
+            End Time: 9/23/2020 22:03:30
+Primary Data Cluster: cluster-2
+Last Progress Update: -
+       Failover Type: unplanned
+  Error Reason codes: -
+....
+Consulte la link:https://docs.netapp.com/us-en/ontap-ems-9131/smbc-aufo-events.html["Referencia EMS"^] para obtener más información acerca de los mensajes de eventos y las acciones correctivas.
+
+--
+====
+
+
+== Reanude la protección en una configuración ramificada después de una conmutación al nodo de respaldo
+
+Si experimenta una conmutación al nodo de respaldo en el clúster secundario en la relación de SM-BC, el destino asíncrono de SnapMirror quedará en mal estado y deberá restaurar la protección manualmente, eliminando y volviendo a crear la relación con el extremo asíncrono de SnapMirror.
+
+.Pasos
+. Compruebe que la conmutación por error se ha realizado correctamente:
+`snapmirror failover show`
+. En el extremo asíncrono de SnapMirror, elimine el extremo de dispersión:
+`snapmirror delete -destination-path _destination_path_`
+. En el tercer sitio, cree una relación asíncrona de SnapMirror entre el nuevo volumen primario de SM-BC y el volumen de destino de dispersión asíncrono:
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -policy MirrorAllSnapshots -schedule _schedule_`
+. Resincronice la relación:
+`snapmirror resync -destination-path _destination_path_`
+. Verifique el estado y el estado de la relación:
+`snapmirror show`
+
