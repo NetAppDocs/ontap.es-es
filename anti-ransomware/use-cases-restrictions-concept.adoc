@@ -19,75 +19,70 @@ summary: En la versión actual, la protección contra ransomware es más adecuad
 
 
 [role="lead"]
-La disponibilidad de las funciones autónomas de protección frente a ransomware depende de la versión de ONTAP que esté utilizando.
+La protección autónoma de Ransomwware está disponible para cargas de trabajo NAS que comiencen con ONTAP 9.10.1. Antes de implementar ARP, debe tener en cuenta los usos recomendados y las configuraciones compatibles, así como las implicaciones de rendimiento.
 
 
 
 == Configuraciones admitidas y no admitidas
 
-Compatibilidad con plataformas de ONTAP:
-
-* La función de protección de ransomware autónoma (ARP) está disponible para todos los sistemas de ONTAP en las instalaciones que empiezan con ONTAP 9.10.1.
+Al decidir usar ARP, es importante asegurarse de que la carga de trabajo de su volumen sea adecuada para ARP y que cumpla con las configuraciones del sistema requeridas.
 
 
-Cargas de trabajo adecuadas:
+
+=== Cargas de trabajo adecuadas
+
+ARP es adecuado para:
 
 * En almacenamiento NFS
 * Directorios iniciales Windows o Linux
 +
-Debido a que los usuarios podían crear archivos con extensiones que no se detectaron en el período de aprendizaje, hay mayor posibilidad de falsos positivos en esta carga de trabajo.
+Debido a que los usuarios podían crear archivos con extensiones que no se detectaron en el período de aprendizaje, existe una mayor posibilidad de falsos positivos en esta carga de trabajo.
 
 * Imágenes y vídeo
 +
-Por ejemplo, registros de atención médica y datos de automatización de diseño electrónico (EDA).
+Por ejemplo, historiales médicos y datos de automatización de diseño electrónico (EDA)
 
 
 
-A partir de ONTAP 9.12.1, ARP está disponible para estas configuraciones:
-
-* Volúmenes protegidos con SnapMirror
-* SVM protegidas con SnapMirror
-* SVM habilitadas para migración (movilidad de datos de SVM)
 
 
-Cargas de trabajo no adecuadas:
+=== Cargas de trabajo poco adecuadas
 
-* Cargas de trabajo con una gran frecuencia de creación o eliminación de archivos (cientos de miles de archivos en solo unos segundos, por ejemplo, cargas de trabajo de prueba y desarrollo)
-* ARP depende de la capacidad de reconocer un aumento inusual en la actividad de creación, cambio de nombre o eliminación de archivos. Si la aplicación en sí es el origen de la actividad del archivo, no se puede distinguir eficazmente de la actividad de ransomware
+ARP no es adecuado para:
+
+* Cargas de trabajo con una gran frecuencia de creación o eliminación de archivos (cientos de miles de archivos en pocos segundos, por ejemplo, cargas de trabajo de prueba/desarrollo)
+* La detección de amenazas de ARP depende de su capacidad para reconocer un aumento inusual en la actividad de creación, cambio de nombre o eliminación de archivos. Si la aplicación en sí es el origen de la actividad de archivos, no se puede distinguir eficazmente de la actividad de ransomware.
 * Cargas de trabajo en las que la aplicación o el host cifran datos
 ARP depende de distinguir los datos entrantes como cifrados o no cifrados. Si la propia aplicación está cifrando los datos, se reduce la eficacia de la función. Sin embargo, la característica puede seguir funcionando según la actividad del archivo (eliminar, sobrescribir o crear, o crear o cambiar el nombre con una nueva extensión de archivo) y el tipo de archivo.
 
 
-Configuraciones de sistema no compatibles:
-
-* Entornos SAN
-* Entornos ONTAP S3
-* VMDK en NFS
 
 
-Requisitos del volumen:
+=== Configuraciones admitidas
 
-* Menos del 100% de su capacidad
-* La ruta de unión debe estar activa
+ARP está disponible para volúmenes NFS y SMB en sistemas ONTAP on-premises que empiezan por ONTAP 9.10.1.
 
+La compatibilidad con otras configuraciones y tipos de volúmenes está disponible en las siguientes versiones de ONTAP:
 
-Tipos de volúmenes no compatibles:
-
-* Volúmenes sin conexión
-* Volúmenes restringidos
-* Volúmenes de SnapLock
-* Volúmenes FlexGroup (a partir de ONTAP 9.13.1, se admiten los volúmenes FlexGroup)
-* Volúmenes FlexCache (ARP es compatible con los volúmenes FlexVol de origen, pero no con los volúmenes de caché)
-* Volúmenes raíz de equipos virtuales de almacenamiento
-* SnapMirror síncrono
-* Volúmenes solo DE SAN
-* Volúmenes de máquinas virtuales de almacenamiento detenidas
+|===
+|  | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
 
 
+| Volúmenes protegidos con SnapMirror asíncrono | X | X |  |  
 
 
-== Interoperabilidad de SnapMirror y ARP
+| Los SVM protegidos con SnapMirror asíncrono | X | X |  |  
 
+
+| Habilitar SVM para la migración de datos | X | X |  |  
+
+
+| Volúmenes de FlexGroup | X |  |  |  
+
+
+| Verificación de varios administradores | X |  |  |  
+|===
+.Interoperabilidad de SnapMirror y ARP
 A partir de ONTAP 9.12.1, ARP es compatible con volúmenes de destino asíncronos de SnapMirror. ARP no es ** compatible con SnapMirror Synchronous.
 
 Si un volumen de origen de SnapMirror tiene la función ARP habilitada, el volumen de destino de SnapMirror adquiere automáticamente el estado de configuración ARP (aprendizaje, habilitado, etc.), datos de entrenamiento ARP y Snapshot creadas con ARP del volumen de origen. No se requiere habilitación explícita.
@@ -95,6 +90,58 @@ Si un volumen de origen de SnapMirror tiene la función ARP habilitada, el volum
 Mientras que el volumen de destino consta de copias Snapshot de solo lectura (RO), no se realiza el procesamiento ARP en sus datos. Sin embargo, cuando el volumen de destino de SnapMirror se convierte en Read-write (RW), ARP se habilita automáticamente en el volumen de destino que se convierte en RW. El volumen de destino no requiere ningún procedimiento de aprendizaje adicional además de lo que ya se ha registrado en el volumen de origen.
 
 En ONTAP 9.10.1 y 9.11.1, SnapMirror no transfiere el estado de configuración de ARP, los datos de formación y las copias Snapshot de los volúmenes de origen a destino. Por ello, cuando el volumen de destino de SnapMirror se convierte en RW, ARP en el volumen de destino debe habilitarse explícitamente en el modo de aprendizaje después de la conversión.
+
+.ARP con VMDK en NFS
+[%collapsible]
+====
+Si tiene pensado utilizar ARP en una configuración VMDK en NFS, existen limitaciones en la protección de ARP. ARP ofrece protección en VDMK en configuraciones NFS, pero no se recomienda para cargas de trabajo con archivos con una gran entropía dentro del equipo virtual.
+
+.Realizar cambios fuera de la máquina virtual
+ARP puede detectar cambios de extensión de archivo en un volumen NFS fuera de la VM si una nueva extensión entra en el volumen cifrado o cambia una extensión de archivo. Los cambios detectables en la extensión de archivo son:
+
+* .vmx
+* .vmxf
+* .vmdk
+* -flat.vmdk
+* .nvram
+* .vmem
+* .vmsd
+* .vmsn
+* .vswp
+* .vmss
+* .log
+* -\#.log
+
+
+.Cambios dentro de la VM
+Si el ataque de ransomware se dirige a la máquina virtual y los archivos dentro de la máquina virtual se alteran sin hacer cambios fuera de la máquina virtual, ARP detecta la amenaza si la entropía predeterminada de la máquina virtual es baja (por ejemplo, archivos .txt, .docx o .mp4). Aunque ARP creará una instantánea de protección en este escenario, no generará una alerta de amenaza porque las extensiones de archivo fuera de la VM no se han manipulado.
+
+Si, por defecto, los archivos son de alta entropía (por ejemplo, .gzip o archivos protegidos con contraseña), ARP no detectará un cambio en la entropía de línea base y, por lo tanto, no detectará la amenaza.
+
+====
+
+
+=== Configuraciones no admitidas
+
+ARP no es compatible con las siguientes configuraciones del sistema:
+
+* Entornos ONTAP S3
+* Entornos SAN
+
+
+ARP no admite las siguientes configuraciones de volumen:
+
+* FlexGroup Volumes (en ONTAP 9.10.1 a 9.12.1. A partir de ONTAP 9.13.1, los volúmenes de FlexGroup son compatibles)
+* Volúmenes FlexCache (ARP es compatible con los volúmenes FlexVol de origen, pero no con los volúmenes de caché)
+* Volúmenes sin conexión
+* Volúmenes solo DE SAN
+* Volúmenes de SnapLock
+* SnapMirror síncrono
+* SnapMirror asíncrono (en ONTAP 9.10.1 a 9.12.1) Se admite SnapMirror asíncrono a partir de ONTAP 9.12.1. Para obtener más información, consulte <<snapmirror>>.)
+* Volúmenes restringidos
+* Volúmenes raíz de equipos virtuales de almacenamiento
+* Volúmenes de máquinas virtuales de almacenamiento detenidas
+
 
 
 

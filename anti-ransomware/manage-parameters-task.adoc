@@ -1,0 +1,97 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/manage-parameters-task.html 
+keywords: anti-ransomware overview, ransomware, security, modify, security anti-ransomware attack, parameters 
+summary: A partir de ONTAP 9.11.1, los parámetros de detección de la protección autónoma frente al ransomware se pueden modificar en función de la carga de trabajo. 
+---
+= Administrar los parámetros de detección de ataques ARP
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+A partir de ONTAP 9.11.1, se pueden modificar los parámetros de detección de ransomware en un volumen específico habilitado para la protección autónoma contra ransomware e informar un aumento conocido como actividad normal de los archivos. El ajuste de los parámetros de detección ayuda a mejorar la precisión de los informes según la carga de trabajo del volumen específico.
+
+
+
+== Cómo funciona la detección de ataques
+
+Cuando la protección autónoma contra ransomware (ARP) está en modo de aprendizaje, desarrolla valores básicos para los comportamientos de volumen. Son entropía, extensiones de archivos y, a partir de ONTAP 9.11.1, IOPS. Estas líneas de base se utilizan para evaluar las amenazas de ransomware. Para obtener más información sobre estos criterios, consulte xref:index.html#what-arp-detects[Lo que ARP detecta].
+
+En ONTAP 9.10.1, ARP emite una advertencia si detecta las dos condiciones siguientes:
+
+* más de 20 archivos con extensiones de archivo no se han observado anteriormente en el volumen
+* alta entropía de datos
+
+
+A partir de ONTAP 9.11.1, ARP emite una advertencia de amenaza si se cumple _only_ una condición. Por ejemplo, si se observan más de 20 archivos con extensiones de archivo que no se han observado previamente en el volumen en un período de 24 horas, ARP lo clasificará como una amenaza _independientemente_ de la entropía observada. (Los valores de archivo de 24 hora y 20 son los valores predeterminados, que se pueden modificar).
+
+Ciertos volúmenes y cargas de trabajo requieren parámetros de detección diferentes. Por ejemplo, el volumen compatible con ARP puede alojar numerosos tipos de extensiones de archivo, en cuyo caso es posible que desee modificar el recuento de umbrales para extensiones de archivo nunca vistas hasta un número mayor que el predeterminado de 20 o deshabilitar las advertencias basadas en extensiones de archivo nunca vistas. A partir de ONTAP 9.11.1, puedes modificar los parámetros de detección de ataques para que se adapten mejor a tus cargas de trabajo específicas.
+
+
+
+== Modificar los parámetros de detección de ataques
+
+Dependiendo de los comportamientos esperados de su volumen con ARP habilitado, es posible que desee modificar los parámetros de detección de ataques.
+
+.Pasos
+. Ver los parámetros de detección de ataques existentes:
++
+`security anti-ransomware volume attack-detection-parameters show -vserver _svm_name_ -volume _volume_name_`
+
++
+....
+security anti-ransomware volume attack-detection-parameters show -vserver vs1 -volume vol1
+                                             Vserver Name : vs1
+                                              Volume Name : vol1
+            Is Detection Based on High Entropy Data Rate? : true
+  Is Detection Based on Never Seen before File Extension? : true
+                  Is Detection Based on File Create Rate? : true
+                  Is Detection Based on File Rename Rate? : true
+                  Is Detection Based on File Delete Rate? : true
+           Is Detection Relaxing Popular File Extensions? : true
+                High Entropy Data Surge Notify Percentage : 100
+                 File Create Rate Surge Notify Percentage : 100
+                 File Rename Rate Surge Notify Percentage : 100
+                 File Delete Rate Surge Notify Percentage : 100
+ Never Seen before File Extensions Count Notify Threshold : 20
+       Never Seen before File Extensions Duration in Hour : 24
+....
+. Todos los campos mostrados con son modificables con valores booleanos o enteros. Para modificar un campo, utilice la `security anti-ransomware volume attack-detection-parameters modify` comando.
++
+Para obtener una lista completa de parámetros, consulte link:https://docs.netapp.com/us-en/ontap-cli-9131/security-anti-ransomware-volume-attack-detection-parameters-modify.html["Referencia de comandos de la ONTAP"^].
+
+
+
+
+
+== Informe de sobretensiones conocidas
+
+ARP continúa modificando los valores de línea base para los parámetros de detección, incluso en modo activo. Si conoce aumentos en su actividad de volumen, ya sea un aumento puntual o un aumento característico de una nueva normalidad, debe informar de ello como seguro. Informar manualmente de estas subidas como seguras ayuda a mejorar la precisión de las evaluaciones de amenazas de ARP.
+
+.Oleadas puntuales
+. Si se produce un aumento puntual en circunstancias conocidas y desea que ARP informe de un aumento similar en circunstancias futuras, borre el aumento del comportamiento de la carga de trabajo:
++
+`security anti-ransomware volume workload-behavior clear-surge -vserver _svm_name_ -volume _volume_name_`
+
+
+
+.Modificar sobretensiones de línea base
+. Si una sobretensión informada debe considerarse un comportamiento normal de la aplicación, notifique la sobretensión como tal para modificar el valor de sobretensión de línea base.
++
+`security anti-ransomware volume workload-behavior update-baseline-from-surge -vserver _svm_name_ -volume _volume_name_`
+
+
+
+.Más información
+* link:https://kb.netapp.com/onprem/ontap/da/NAS/Understanding_Autonomous_Ransomware_Protection_attacks_and_the_Autonomous_Ransomware_Protection_snapshot["Comprende los ataques autónomos de protección frente a ransomware y el snapshot autónomo de protección frente a ransomware"^]
+
