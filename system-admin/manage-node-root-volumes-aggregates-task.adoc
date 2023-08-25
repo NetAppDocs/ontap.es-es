@@ -1,0 +1,162 @@
+---
+permalink: system-admin/manage-node-root-volumes-aggregates-task.html 
+sidebar: sidebar 
+keywords: node, governing, root, volume, aggregate, files, special, directories, free, space, full, delete, file, core, dump 
+summary: El volumen raíz de un nodo es un volumen FlexVol que se instala de fábrica o mediante el software de configuración. 
+---
+= Gestione volúmenes raíz del nodo y agregados raíz
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El volumen raíz de un nodo es un volumen FlexVol que se instala de fábrica o mediante el software de configuración. Está reservado para los archivos del sistema, los archivos de registro y los archivos de núcleo. El nombre del directorio es `/mroot`, a la que sólo se puede acceder a través del shell del sistema mediante el soporte técnico. El tamaño mínimo para el volumen raíz de un nodo depende del modelo de plataforma.
+
+
+
+== Reglas que rigen la descripción general de los volúmenes raíz del nodo y los agregados raíz
+
+El volumen raíz de un nodo contiene directorios y archivos especiales para ese nodo. El agregado raíz contiene el volumen raíz. Algunas reglas rigen el volumen raíz y el agregado raíz de un nodo.
+
+* Las siguientes reglas rigen el volumen raíz del nodo:
++
+** A menos que el soporte técnico le indique que lo haga, no modifique la configuración ni el contenido del volumen raíz.
+** No almacenar datos de usuario en el volumen raíz.
++
+El almacenamiento de datos de usuario en el volumen raíz aumenta el tiempo de devolución del almacenamiento entre nodos de un par de alta disponibilidad.
+
+** Puede mover el volumen raíz a otro agregado.  Consulte <<relocate-root>>.
+
+
+* El agregado raíz está dedicado únicamente al volumen raíz del nodo.
++
+ONTAP impide la creación de otros volúmenes en el agregado raíz.
+
+
+
+https://hwu.netapp.com["Hardware Universe de NetApp"^]
+
+
+
+== Libere espacio en el volumen raíz de un nodo
+
+Aparece un mensaje de advertencia cuando el volumen raíz de un nodo se ha lleno o casi lleno. El nodo no puede funcionar correctamente cuando su volumen raíz está lleno. Puede liberar espacio en el volumen raíz de un nodo si elimina los archivos de volcado principales, los archivos de seguimiento de paquetes y las copias Snapshot de volumen raíz.
+
+.Pasos
+. Muestra los archivos de volcado de memoria del nodo y sus nombres:
++
+`system node coredump show`
+
+. Elimine los archivos de volcado de memoria no deseados del nodo:
++
+`system node coredump delete`
+
+. Accede a la Nodesinfierno:
++
+`*system node run -node _nodename_*`
+
++
+`_nodename_` es el nombre del nodo cuyo espacio del volumen raíz desea liberar.
+
+. Cambie al nivel de privilegio avanzado nodesinfierno desde el nodesinfierno:
++
+`*priv set advanced*`
+
+. Mostrar y eliminar los archivos de seguimiento de paquetes del nodo a través de nodeshell:
++
+.. Muestre todos los archivos del volumen raíz del nodo:
++
+`*ls /etc*`
+
+.. Si hay archivos de seguimiento de paquetes (`*.trc`) se encuentran en el volumen raíz del nodo, elimínelos de forma individual:
++
+`*rm /etc/log/packet_traces/_file_name.trc_*`
+
+
+
+. Identificar y eliminar las copias snapshot del volumen raíz del nodo a través del infierno:
++
+.. Identifique el nombre del volumen raíz:
++
+`*vol status*`
+
++
+El volumen raíz se indica mediante la palabra «'root'» de la columna «'Options'» de la `vol status` resultado del comando.
+
++
+En el siguiente ejemplo, el volumen raíz es `vol0`:
+
++
+[listing]
+----
+node1*> vol status
+
+         Volume State           Status            Options
+           vol0 online          raid_dp, flex     root, nvfail=on
+                                64-bit
+----
+.. Mostrar copias Snapshot de volumen raíz:
++
+`*snap list root_vol_name*`
+
+.. Elimine las copias Snapshot de volumen raíz que no desee:
++
+`*snap delete root_vol_namesnapshot_name*`
+
+
+
+. Salga de nodeshell y vuelva al clustershell:
++
+`*exit*`
+
+
+
+
+
+== Reubique los volúmenes raíz en nuevos agregados
+
+El procedimiento de reemplazo raíz migra el agregado raíz actual a otro conjunto de discos sin interrupciones.
+
+.Acerca de esta tarea
+La conmutación por error del almacenamiento debe estar habilitada para reubicar los volúmenes raíz. Puede utilizar el `storage failover modify -node _nodename_ -enable true` comando para habilitar la conmutación al nodo de respaldo.
+
+Puede cambiar la ubicación del volumen raíz a un nuevo agregado en las siguientes situaciones:
+
+* Cuando los agregados raíz no se encuentran en el disco que prefiere
+* Cuando desee reorganizar los discos conectados al nodo
+* Cuando realice el reemplazo de una bandeja de bandejas de discos EOS
+
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+`*set privilege advanced*`
+
+. Reubicar el agregado raíz:
++
+`*system node migrate-root -node _nodename_ -disklist _disklist_ -raid-type _raid-type_*`
+
++
+** *-nodo*
++
+Especifica el nodo que posee el agregado raíz que desea migrar.
+
+** *-disklist*
++
+Especifica la lista de discos en los que se creará el nuevo agregado raíz. Todos los discos deben ser repuestos y ser propiedad del mismo nodo. El número mínimo de discos necesario depende del tipo de RAID.
+
+** *-raid-type*
++
+Especifica el tipo de RAID del agregado raíz. El valor predeterminado es `raid-dp`.
+
+
+
+. Supervise el progreso del trabajo:
++
+`*job show -id _jobid_ -instance*`
+
+
+
+.Resultados
+Si todas las comprobaciones previas se realizan correctamente, el comando inicia un trabajo de reemplazo de volumen raíz y sale del mismo. Espere que el nodo se reinicie.

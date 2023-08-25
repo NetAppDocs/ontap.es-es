@@ -1,16 +1,100 @@
 ---
 permalink: encryption-at-rest/encrypt-existing-volume-task.html 
 sidebar: sidebar 
-keywords: enabling, encryption, existing, volume, volume move start, command 
-summary: Puede usar el comando volume move start para habilitar el cifrado mediante la transferencia de un volumen existente. Debe usar movimiento de volúmenes a partir de ONTAP 9.2 y versiones anteriores. Se puede usar el mismo agregado o uno diferente. 
+keywords: enabling, encryption, existing, volume, volume move start, command, volume encryption conversion start 
+summary: Puede utilizar cualquiera de estos dos métodos para habilitar el cifrado en un volumen existente, utilizando el comando volume move start o el comando volume encryption conversion start. 
 ---
-= Habilite el cifrado en un volumen existente con el comando volume Move start
+= Habilite el cifrado en un volumen existente
 :allow-uri-read: 
-:icons: font
-:imagesdir: ../media/
 
 
 [role="lead"]
+Puede utilizar uno de estos dos métodos para activar el cifrado en un volumen&mdash existente; utilizando el `volume move start command` o utilizando el `volume encryption conversion start` comando.
+
+.Acerca de esta tarea
+* A partir de ONTAP 9.3, puede utilizar la `volume encryption conversion start` comando para habilitar el cifrado de un volumen existente «in situ», sin necesidad de mover el volumen a otra ubicación. Como alternativa, puede utilizar el `volume move start` comando.
+* Para ONTAP 9,2 y versiones anteriores, solo puede utilizar el `volume move start` comando para habilitar el cifrado mediante el movimiento de un volumen existente.
+
+
+
+
+== Habilite el cifrado en un volumen existente con el comando volume Encryption conversion start
+
+A partir de ONTAP 9.3, puede utilizar la `volume encryption conversion start` comando para habilitar el cifrado de un volumen existente «in situ», sin necesidad de mover el volumen a otra ubicación.
+
+Después de iniciar una operación de conversión, debe completarse. Si se encuentra con un problema de rendimiento durante la operación, puede ejecutar el `volume encryption conversion pause` para pausar la operación y el `volume encryption conversion resume` comando para reanudar la operación.
+
+[NOTE]
+====
+No puede utilizar `volume encryption conversion start` Para convertir un volumen de SnapLock.
+
+====
+.Pasos
+. Habilitar el cifrado en un volumen existente:
++
+`volume encryption conversion start -vserver SVM_name -volume volume_name`
+
++
+Para obtener información sobre la sintaxis de toda el comando, consulte la página man del comando.
+
++
+El siguiente comando habilita el cifrado en el volumen existente `vol1`:
+
++
+[listing]
+----
+cluster1::> volume encryption conversion start -vserver vs1 -volume vol1
+----
++
+El sistema crea una clave de cifrado para el volumen. Los datos del volumen se cifran.
+
+. Compruebe el estado de la operación de conversión:
++
+`volume encryption conversion show`
+
++
+Para obtener información sobre la sintaxis de toda el comando, consulte la página man del comando.
+
++
+El siguiente comando muestra el estado de la operación de conversión:
+
++
+[listing]
+----
+cluster1::> volume encryption conversion show
+
+Vserver   Volume   Start Time           Status
+-------   ------   ------------------   ---------------------------
+vs1       vol1     9/18/2017 17:51:41   Phase 2 of 2 is in progress.
+----
+. Cuando finalice la operación de conversión, compruebe que el volumen esté habilitado para el cifrado:
++
+`volume show -is-encrypted true`
+
++
+Para obtener información sobre la sintaxis de toda el comando, consulte la página man del comando.
+
++
+El siguiente comando muestra los volúmenes cifrados en `cluster1`:
+
++
+[listing]
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+
+
+.Resultado
+Si utiliza un servidor KMIP para almacenar las claves de cifrado de un nodo, ONTAP inserta automáticamente una clave de cifrado en el servidor al cifrar un volumen.
+
+
+
+== Habilite el cifrado en un volumen existente con el comando volume Move start
+
 Puede utilizar el `volume move start` comando para habilitar el cifrado mediante el movimiento de un volumen existente. Debe usar `volume move start` En ONTAP 9.2 y anteriores. Se puede usar el mismo agregado o uno diferente.
 
 .Lo que necesitará
@@ -19,11 +103,10 @@ Debe ser un administrador de clústeres para realizar esta tarea o un administra
 link:delegate-volume-encryption-svm-administrator-task.html["Delegar la autoridad para ejecutar el comando volume move"]
 
 .Acerca de esta tarea
-A partir de ONTAP 9.8, se puede utilizar `volume move start` Para habilitar el cifrado en un volumen de SnapLock o FlexGroup.
+* A partir de ONTAP 9.8, se puede utilizar `volume move start` Para habilitar el cifrado en un volumen de SnapLock o FlexGroup.
+* A partir de ONTAP 9.6, puede utilizar el cifrado a nivel de agregado con el fin de asignar claves al agregado que contiene para mover los volúmenes. Un volumen cifrado con una clave única se denomina _NVE volume_. Un volumen cifrado con una clave de nivel de agregado se denomina _NAE volume_ (para el cifrado de agregados de NetApp). No se admiten los volúmenes de texto sin formato en los agregados de NAE.
+* A partir de ONTAP 9.4, si activa "'cc-mode'" cuando configura el Administrador de claves incorporado, los volúmenes que crea con el `volume move start` el comando se cifra automáticamente. No es necesario que especifique `-encrypt-destination true`.
 
-A partir de ONTAP 9.4, si activa "'cc-mode'" cuando configura el Administrador de claves incorporado, los volúmenes que crea con el `volume move start` el comando se cifra automáticamente. No es necesario que especifique `-encrypt-destination true`.
-
-A partir de ONTAP 9.6, puede utilizar el cifrado a nivel de agregado con el fin de asignar claves al agregado que contiene para mover los volúmenes. Un volumen cifrado con una clave única se denomina _NVE volume_. Un volumen cifrado con una clave de nivel de agregado se denomina _NAE volume_ (para el cifrado de agregados de NetApp). No se admiten los volúmenes de texto sin formato en los agregados de NAE.
 
 .Pasos
 . Mueva un volumen existente y especifique si el cifrado está habilitado en el volumen:
@@ -70,7 +153,7 @@ Un volumen NVE a un volumen de texto sin texto
 
 |===
 +
-Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+Para obtener información sobre la sintaxis de toda el comando, consulte la página man del comando.
 
 +
 El siguiente comando convierte un volumen de texto sin formato denominado `vol1` Para un volumen NVE:
@@ -120,7 +203,7 @@ cluster1::> volume move start -vserver vs1 -volume vol2 -destination-aggregate a
 La `encryption-type` Campo está disponible en ONTAP 9.6 y versiones posteriores.
 
 +
-Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+Para obtener información sobre la sintaxis de toda el comando, consulte la página man del comando.
 
 +
 El siguiente comando muestra el tipo de cifrado de volúmenes en `cluster2`:
@@ -141,7 +224,7 @@ vs3      vol3    aggregate
 `volume show -is-encrypted true`
 
 +
-Para obtener una sintaxis de comando completa, consulte la página de manual del comando.
+Para obtener información sobre la sintaxis de toda el comando, consulte la página man del comando.
 
 +
 El siguiente comando muestra los volúmenes cifrados en `cluster2`:

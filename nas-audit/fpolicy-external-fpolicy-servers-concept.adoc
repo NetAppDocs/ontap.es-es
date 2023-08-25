@@ -1,10 +1,10 @@
 ---
 permalink: nas-audit/fpolicy-external-fpolicy-servers-concept.html 
 sidebar: sidebar 
-keywords: fpolicy, works, external fpolicy servers 
+keywords: fpolicy, works, external fpolicy servers, privileged data access, channels, synchronous communication, connection, credentials, super user 
 summary: 'Una vez que se configura y se habilita FPolicy en la máquina virtual de almacenamiento (SVM), FPolicy se ejecuta en todos los nodos en los que participa la SVM. FPolicy es responsable de establecer y mantener conexiones con servidores FPolicy externos (servidores FPolicy), para el procesamiento de notificaciones y para gestionar mensajes de notificación hacia y desde los servidores FPolicy.' 
 ---
-= Cómo funciona FPolicy con información general sobre servidores de FPolicy externos
+= Cómo funciona FPolicy con servidores de FPolicy externos
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -21,3 +21,73 @@ Además, como parte de la gestión de conexiones, FPolicy tiene las siguientes r
 * Envía las notificaciones a los servidores de FPolicy a través de una sesión autenticada.
 * Gestiona la conexión de datos de lectura directa establecida por el servidor FPolicy para atender las solicitudes del cliente cuando está habilitada la lectura de pasarela.
 
+
+
+
+== Cómo se utilizan los canales de control para la comunicación de FPolicy
+
+FPolicy inicia una conexión de canal de control a un servidor FPolicy externo desde las LIF de datos de cada nodo que participa en una máquina virtual de almacenamiento (SVM). FPolicy utiliza canales de control para transmitir notificaciones de archivos; por lo tanto, un servidor FPolicy puede ver varias conexiones de canal de control en función de la topología de SVM.
+
+
+
+== Cómo se utilizan los canales de acceso a datos con privilegios para la comunicación síncrona
+
+Con los casos de uso síncrono, el servidor de FPolicy accede a los datos que residen en la máquina virtual de almacenamiento (SVM) a través de una ruta de acceso a los datos privilegiada. El acceso a través de la ruta privilegiada expone el sistema de archivos completo al servidor FPolicy. Puede acceder a los archivos de datos para recopilar información, para analizar archivos, leer archivos o escribir en archivos.
+
+Debido a que el servidor FPolicy externo puede acceder a todo el sistema de archivos desde la raíz de la SVM a través del canal de datos con privilegios, la conexión de canal de datos con privilegios debe ser segura.
+
+
+
+== Cómo se utilizan las credenciales de conexión de FPolicy con canales de acceso a datos con privilegios
+
+El servidor FPolicy realiza conexiones de acceso a datos con privilegios a nodos del clúster mediante una credencial de usuario de Windows específica que se guarda con la configuración de FPolicy. SMB es el único protocolo compatible para hacer una conexión con un canal de acceso a datos privilegiado.
+
+Si el servidor FPolicy requiere acceso a datos con privilegios, deben cumplirse las siguientes condiciones:
+
+* Debe habilitarse una licencia para SMB en el clúster.
+* El servidor FPolicy debe ejecutarse con las credenciales configuradas en la configuración de FPolicy.
+
+
+Al realizar una conexión de canal de datos, FPolicy utiliza la credencial para el nombre de usuario de Windows especificado. El acceso a los datos se realiza a través del recurso compartido ONTAP_ADMIN$ del administrador.
+
+
+
+== Qué significa otorgar credenciales de superusuario para acceso a datos con privilegios
+
+ONTAP usa la combinación de la dirección IP y las credenciales de usuario configuradas en la configuración de FPolicy para otorgar credenciales de superusuario al servidor FPolicy.
+
+El estado de superusuario otorga los siguientes privilegios cuando el servidor FPolicy acceda a los datos:
+
+* Evite las comprobaciones de permisos
++
+El usuario evita las comprobaciones de los archivos y el acceso al directorio.
+
+* Privilegios especiales de bloqueo
++
+ONTAP permite el acceso de lectura, escritura o modificación a cualquier archivo independientemente de los bloqueos existentes. Si el servidor FPolicy recibe bloqueos de rango de bytes en el archivo, se elimina inmediatamente los bloqueos existentes en el archivo.
+
+* Omitir las comprobaciones de FPolicy
++
+El acceso no genera ninguna notificación de FPolicy.
+
+
+
+
+
+== Cómo gestiona FPolicy el procesamiento de políticas
+
+Es posible que haya varias políticas de FPolicy asignadas a la máquina virtual de almacenamiento (SVM), cada una con una prioridad diferente. Para crear una configuración de FPolicy adecuada en la SVM, es importante comprender la forma en que FPolicy gestiona el procesamiento de políticas.
+
+Cada solicitud de acceso a archivos se evalúa inicialmente para determinar qué directivas están supervisando este evento. Si se trata de un evento supervisado, la información acerca del evento supervisado junto con las políticas interesadas se transfiere a FPolicy donde se evalúa. Cada política se evalúa por orden de prioridad asignada.
+
+Al configurar las directivas, debe tener en cuenta las siguientes recomendaciones:
+
+* Si desea que una directiva se evalúe siempre antes que otras directivas, configure dicha directiva con una prioridad más alta.
+* Si el éxito de la operación de acceso a archivos solicitada en un evento supervisado es un requisito previo para una solicitud de archivo que se evalúa en relación con otra directiva, asigne una prioridad a la directiva que controla el éxito o el fallo de la primera operación de archivo.
++
+Por ejemplo, si una política gestiona la funcionalidad de archivado y restauración de archivos de FPolicy y una segunda política gestiona las operaciones de acceso a archivos en el archivo en línea, la directiva que gestiona la restauración de archivos debe tener una prioridad más alta para que el archivo se restaure antes de que se permita la operación gestionada por la segunda directiva.
+
+* Si desea que se evalúen todas las directivas que puedan aplicarse a una operación de acceso a archivos, dé prioridad a las directivas síncronas.
+
+
+Puede reorganizar las prioridades de directivas existentes modificando el número de secuencia de directivas. Sin embargo, para que FPolicy evalúe políticas en función del orden de prioridad modificado, debe deshabilitar y volver a habilitar la política con el número de secuencia modificado.

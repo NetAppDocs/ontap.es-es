@@ -1,7 +1,7 @@
 ---
 permalink: system-admin/start-stop-storage-system-concept.html 
 sidebar: sidebar 
-keywords: start, stop, node, cli, ontap, troubleshoot, sp 
+keywords: start, stop, node, cli, ontap, troubleshoot, sp, reboot, system, boot, compactflash, shut down, shutdown,  unresponsive, shut, down, node, unresponsive, support, personnel, direct, troubleshoot 
 summary: Es posible que deba iniciar o detener un nodo por motivos de mantenimiento o solución de problemas. Puede hacerlo desde la CLI de ONTAP, el símbolo del sistema del entorno de arranque o desde la CLI de SP. 
 ---
 = Inicie o detenga una descripción general del nodo
@@ -14,3 +14,168 @@ summary: Es posible que deba iniciar o detener un nodo por motivos de mantenimie
 Es posible que deba iniciar o detener un nodo por motivos de mantenimiento o solución de problemas. Puede hacerlo desde la CLI de ONTAP, el símbolo del sistema del entorno de arranque o desde la CLI de SP.
 
 Con el comando CLI del SP `system power off` o. `system power cycle` Para apagar o encender un nodo, es posible que un apagado incorrecto del nodo (también llamado _dirty shutdown_) y no es un sustituto de un apagado correcto usando la ONTAP `system node halt` comando.
+
+
+
+== Reinicie un nodo en el símbolo del sistema
+
+Puede reiniciar un nodo en modo normal desde el símbolo del sistema. Un nodo se configura para arrancar desde el dispositivo de arranque, como una tarjeta PC CompactFlash.
+
+.Pasos
+. Si el clúster contiene cuatro o más nodos, compruebe que el nodo que se va a reiniciar no tenga épsilon:
++
+.. Configure el nivel de privilegio en Advanced:
++
+`*set -privilege advanced*`
+
+.. Determine qué nodo tiene épsilon:
++
+`*cluster show*`
+
++
+En el siguiente ejemplo, se muestra «'1'» con épsilon:
+
++
+[listing]
+----
+cluster1::*> cluster show
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node1                true    true          true
+node2                true    true          false
+node3                true    true          false
+node4                true    true          false
+4 entries were displayed.
+----
+.. Si el nodo que se va a reiniciar está configurado con épsilon, elimine épsilon del nodo:
++
+`*cluster modify -node _node_name_ -epsilon false*`
+
+.. Asigne épsilon a un nodo diferente que permanecerá activo:
++
+`*cluster modify -node _node_name_ -epsilon true*`
+
+.. Vuelva al nivel de privilegio de administrador:
++
+`*set -privilege admin*`
+
+
+
+. Utilice la `system node reboot` comando para reiniciar el nodo.
++
+Si no especifica el `-skip-lif-migration` Parámetro, el comando intenta migrar LIF de datos y de gestión del clúster de forma síncrona a otro nodo antes del reinicio. Si la migración de LIF falla o se agota el tiempo de espera, se anula el proceso de reinicio y ONTAP muestra un error para indicar el error de migración de la LIF.
+
++
+[listing]
+----
+cluster1::> system node reboot -node node1 -reason "software upgrade"
+----
++
+El nodo inicia el proceso de reinicio. Aparece la solicitud de inicio de sesión de ONTAP, que indica que el proceso de reinicio ha finalizado.
+
+
+
+
+
+== Arranque ONTAP en el símbolo del sistema del entorno de arranque
+
+Puede arrancar la versión actual o la versión de backup de ONTAP cuando se encuentra en el símbolo del sistema de un entorno de arranque de un nodo.
+
+.Pasos
+. Acceda al símbolo del sistema del entorno de arranque desde el símbolo del sistema del sistema de almacenamiento mediante el `system node halt` comando.
++
+La consola del sistema de almacenamiento muestra el símbolo del sistema del entorno de arranque.
+
+. En el símbolo del sistema de entorno de arranque, introduzca uno de los siguientes comandos:
++
+|===
+| Para arrancar... | Introduzca... 
+
+
+ a| 
+La versión actual de ONTAP
+ a| 
+`boot_ontap`
+
+
+
+ a| 
+La imagen principal de ONTAP desde el dispositivo de arranque
+ a| 
+`boot_primary`
+
+
+
+ a| 
+La imagen de copia de seguridad de ONTAP desde el dispositivo de arranque
+ a| 
+`boot_backup`
+
+|===
++
+Si no está seguro de qué imagen usar, debe usar `boot_ontap` en primer lugar.
+
+
+
+
+
+== Apague un nodo
+
+Puede apagar un nodo si deja de responder o si el personal de soporte le dirige a hacerlo como parte de los esfuerzos de solución de problemas.
+
+.Pasos
+. Si el clúster contiene cuatro o más nodos, compruebe que el nodo que desea apagar no tenga épsilon:
++
+.. Configure el nivel de privilegio en Advanced:
++
+`*set -privilege advanced*`
+
+.. Determine qué nodo tiene épsilon:
++
+`*cluster show*`
+
++
+En el siguiente ejemplo, se muestra «'1'» con épsilon:
+
++
+[listing]
+----
+cluster1::*> cluster show
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node1                true    true          true
+node2                true    true          false
+node3                true    true          false
+node4                true    true          false
+4 entries were displayed.
+----
+.. Si el nodo que desea apagar está configurado con épsilon, elimine épsilon del nodo:
++
+`*cluster modify -node _node_name_ -epsilon false*`
+
+.. Asigne épsilon a un nodo diferente que permanecerá activo:
++
+`*cluster modify -node _node_name_ -epsilon true*`
+
+.. Vuelva al nivel de privilegio de administrador:
++
+`*set -privilege admin*`
+
+
+
+. Utilice la `system node halt` comando para apagar el nodo.
++
+Si no especifica el `-skip-lif-migration` Parámetro, el comando intenta migrar LIF de datos y de gestión del clúster de forma síncrona a otro nodo antes del apagado. Si la migración de LIF falla o se agota el tiempo, el proceso de apagado se cancela y ONTAP muestra un error para indicar el error de migración de la LIF.
+
++
+Puede activar manualmente un volcado de memoria con el apagado mediante ambos `-dump` parámetro.
+
++
+En el siguiente ejemplo se apaga el nodo llamado «'1'» para realizar tareas de mantenimiento del hardware:
+
++
+[listing]
+----
+cluster1::> system node halt -node node1 -reason 'hardware maintenance'
+----
+
