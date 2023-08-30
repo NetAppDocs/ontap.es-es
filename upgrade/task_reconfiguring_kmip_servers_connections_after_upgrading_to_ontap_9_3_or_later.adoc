@@ -4,30 +4,71 @@ sidebar: sidebar
 keywords: ontap, upgrade, reconfigure, reconfiguring, kmip, server, connections, 9.3, later 
 summary: 'Después de realizar una actualización a ONTAP 9.3 o una versión posterior, debe volver a configurar las conexiones del servidor de gestión de claves externa (KMIP).' 
 ---
-= Cambiar la configuración de las conexiones del servidor KMIP después de actualizar a ONTAP 9.3 o una versión posterior
+= Vuelva a configurar las conexiones del servidor KMIP después de una actualización de ONTAP 9,2 o una versión anterior
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Después de realizar una actualización a ONTAP 9.3 o una versión posterior, debe volver a configurar las conexiones del servidor de gestión de claves externa (KMIP).
+Después de realizar la actualización desde ONTAP 9,2 o una versión anterior a ONTAP 9,3 o una versión posterior, debe volver a configurar todas las conexiones del servidor de gestión de claves externa (KMIP).
 
-. Configure la conectividad del gestor de claves:``security key-manager setup``
-. Añada sus servidores KMIP: `security key-manager add -address key_management_server_ip_address`
-. Compruebe que los servidores KMIP están conectados: `security key-manager show -status`
-. Consulte los servidores de claves: `security key-manager query`
-. Cree una nueva clave de autenticación y contraseña: `security key-manager create-key -prompt-for-key true`
+.Pasos
+. Configure la conectividad del gestor de claves:
++
+[source, cli]
+----
+security key-manager setup
+----
+. Añada sus servidores KMIP:
++
+[source, cli]
+----
+security key-manager add -address key_management_server_ip_address
+----
+. Compruebe que los servidores KMIP están conectados:
++
+[source, cli]
+----
+security key-manager show -status
+----
+. Consulte los servidores de claves:
++
+[source, cli]
+----
+security key-manager query
+----
+. Cree una nueva clave de autenticación y contraseña:
++
+[source, cli]
+----
+security key-manager create-key -prompt-for-key true
+----
 +
 La frase de contraseña debe tener un mínimo de 32 caracteres.
 
-. Consulte la nueva clave de autenticación: `security key-manager query`
-. Asigne la nueva clave de autenticación a sus discos de cifrado automático (SED): `storage encryption disk modify -disk disk_ID -data-key-id key_ID`
+. Consulte la nueva clave de autenticación:
++
+[source, cli]
+----
+security key-manager query
+----
+. Asigne la nueva clave de autenticación a sus discos de cifrado automático (SED):
++
+[source, cli]
+----
+storage encryption disk modify -disk disk_ID -data-key-id key_ID
+----
 +
 
 NOTE: Asegúrese de que está utilizando la nueva clave de autenticación de su consulta.
 
-. Si es necesario, asigne una clave FIPS al SED: `storage encryption disk modify -disk disk_id -fips-key-id fips_authentication_key_id`
+. Si es necesario, asigne una clave FIPS al SED:
++
+[source, cli]
+----
+storage encryption disk modify -disk disk_id -fips-key-id fips_authentication_key_id
+----
 +
 Si la configuración de seguridad requiere el uso de claves diferentes para la autenticación de datos y la autenticación FIPS 140-2-2, debe crear una clave independiente para cada una. Si no es así, puede usar la misma clave de autenticación para el cumplimiento de FIPS que se usa para acceder a los datos.
 

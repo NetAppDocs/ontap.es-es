@@ -4,21 +4,58 @@ sidebar: sidebar
 keywords: ontap, upgrade, snapmirror, operations, quisce 
 summary: Se recomienda poner en modo inactivo las operaciones de SnapMirror antes de realizar una actualización no disruptiva de ONTAP. 
 ---
-= Prepare las relaciones de SnapMirror para una actualización no disruptiva
+= Preparar las relaciones de SnapMirror para una actualización de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Se recomienda poner en modo inactivo las operaciones de SnapMirror antes de realizar una actualización no disruptiva de ONTAP.
+Antes de actualizar ONTAP en un clúster que ejecuta SnapMirror, las operaciones de SnapMirror deben permanecer en modo inactivo para cada nodo que contenga volúmenes de destino y cada SVM entre iguales debe tener un nombre único en los clústeres. Es mejor usar un nombre de dominio completo (FQDN) único para cada SVM, por ejemplo, “dataVerser.hq” o “irrorVserver.Offsite”.
 
+También debe tener en cuenta que si va a actualizar clústeres con relaciones de SnapMirror de DP, debe actualizar los nodos de destino antes de actualizar los nodos de origen.
+
+
+
+== Desactive las operaciones de SnapMirror antes de actualizar ONTAP
+
+Para evitar que se produzcan errores en las transferencias de SnapMirror, debe desactivar las operaciones de SnapMirror. También puede desactivar las transferencias de SnapMirror en un volumen de destino concreto y actualizar el nodo de destino propietario antes de actualizar los nodos de origen, de modo que las transferencias de SnapMirror para todos los demás volúmenes de destino puedan continuar. En la siguiente tabla se describen las dos opciones para suspender operaciones de SnapMirror.
+
+[cols="3*"]
+|===
+| Opción | Descripción | ¿Actualizar nodos de destino antes de los nodos de origen? 
+
+
+ a| 
+Suspender las operaciones de SnapMirror durante la NDU (actualización no disruptiva).
+ a| 
+El método más sencillo de actualización en un entorno de SnapMirror es suspender todas las operaciones de SnapMirror, llevar a cabo la actualización y, a continuación, reanudar las operaciones de SnapMirror. No obstante, no se realizarán transferencias de SnapMirror durante toda la NDU. Debe usar este método si el clúster contiene nodos que están reflejando volúmenes entre sí.
+ a| 
+No, los nodos se pueden actualizar en cualquier orden.
+
+
+
+ a| 
+Suspender las operaciones de SnapMirror de un volumen de destino a la vez.
+ a| 
+Puede suspender las transferencias de SnapMirror para un volumen de destino en concreto, actualizar el nodo (o par de alta disponibilidad) que contiene el volumen de destino, actualizar el nodo (o el par de alta disponibilidad) que contiene el volumen de origen y, a continuación, reanudar las transferencias de SnapMirror para el volumen de destino. Con este método, las transferencias de SnapMirror para los demás volúmenes de destino pueden continuar mientras se actualizan los nodos que contienen los volúmenes de destino y origen originales.
+ a| 
+Sí.
+
+|===
 .Pasos
-. Utilice la `snapmirror show` Comando para determinar la ruta de destino de cada relación de SnapMirror.
+. Determine la ruta de destino para cada relación de SnapMirror:
++
+[source, cli]
+----
+snapmirror show
+----
 . Para cada volumen de destino, suspenda las futuras transferencias de SnapMirror:
 +
-`snapmirror quiesce -destination-path destination`
-
+[source, cli]
+----
+snapmirror quiesce -destination-path destination
+----
 +
 Si no hay transferencias activas para la relación de SnapMirror, este comando establece su estado en "Quiesced". Si la relación tiene transferencias activas, el estado se establece en "Quiring" hasta que se completa la transferencia y, a continuación, el estado se convierte en "Quiesced".
 
@@ -65,12 +102,9 @@ Detenga las transferencias:
 
 `snapmirror abort -destination-path destination -h`
 
-*Nota:* debe utilizar el `-foreground true` parámetro si se cancela la transferencia de reflejos de uso compartido de carga.
+*Nota:* debe utilizar el `-foreground true` parámetro si va a terminar las transferencias de reflejos con uso compartido de carga.
  a| 
 Este comando detiene la transferencia de SnapMirror y restaura el volumen de destino a la última copia de Snapshot que se transfirió correctamente. La relación se establece en el estado "Quiesced".
 
 |===
 
-
-.Información relacionada
-xref:concept_upgrade_requirements_for_snapmirror.adoc[Requisitos de actualización de SnapMirror]
