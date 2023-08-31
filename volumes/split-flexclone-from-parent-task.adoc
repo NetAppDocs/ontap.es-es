@@ -2,7 +2,7 @@
 permalink: volumes/split-flexclone-from-parent-task.html 
 sidebar: sidebar 
 keywords: split, flexclone, volume, parent, volume, clone 
-summary: Si desea que un volumen FlexClone de lectura/escritura tenga su propio espacio en disco en lugar de utilizar el de su volumen principal, es posible dividir el volumen FlexClone de su volumen principal. 
+summary: Puede dividir un volumen FlexClone de su principal para que el clon sea un volumen FlexVol normal. 
 ---
 = Divida un volumen FlexClone de su volumen principal
 :allow-uri-read: 
@@ -11,17 +11,30 @@ summary: Si desea que un volumen FlexClone de lectura/escritura tenga su propio 
 
 
 [role="lead"]
-Si desea que un volumen FlexClone de lectura/escritura tenga su propio espacio en disco en lugar de utilizar el de su volumen principal, es posible dividir el volumen FlexClone de su volumen principal.
+Puede dividir un volumen FlexClone de su principal para que el clon sea un volumen FlexVol normal.
+
+La operación de división de clones tiene lugar en segundo plano. Se puede acceder a los datos en el clon y en el elemento principal durante la división. A partir de ONTAP 9,4, se mantiene la eficiencia del espacio. El proceso de división solo actualiza los metadatos y requiere una E/S mínima. No se copian bloques de datos.
 
 .Acerca de esta tarea
-La separación de un volumen FlexClone de su volumen principal puede provocar la reserva de más espacio en el agregado que lo contiene. Si no dispone de privilegios suficientes para ver el espacio disponible en el agregado, debe ponerse en contacto con el administrador de almacenamiento para comprobar que hay espacio suficiente en el agregado para que finalice la operación de división.
+* Durante la operación de división, no se pueden crear nuevas copias snapshot del volumen FlexClone.
+* No se puede dividir un volumen FlexClone del volumen principal si pertenece a una relación de protección de datos o forma parte de un reflejo de distribución de cargas.
+* Si desconecta el volumen FlexClone mientras la separación está en curso, la operación de división se suspenderá; cuando el volumen FlexClone vuelva a estar en línea, se reanudará la operación de separación.
+* Después de la división, tanto el volumen FlexVol principal como el clon requieren toda la asignación de espacio determinada por las garantías de volumen.
+* Después de dividir un volumen FlexClone de su principal, no se pueden volver a unir dos.
+* A partir de ONTAP 9.4, en el caso de volúmenes sin garantía en sistemas AFF, la operación de división de volúmenes FlexClone comparte los bloques físicos y no copia los datos. Por lo tanto, la división de volúmenes FlexClone en sistemas AFF es más rápida que la operación de división de FlexClone en otros sistemas FAS en ONTAP 9,4 y versiones posteriores. La operación de separación de FlexClone mejorada en sistemas AFF aporta las siguientes ventajas:
++
+** La eficiencia del almacenamiento se mantiene tras dividir el clon del principal.
+** Las copias Snapshot existentes no se eliminan.
+** La operación es más rápida.
+** El volumen FlexClone puede dividirse desde cualquier punto de la jerarquía de clones.
 
-A partir de ONTAP 9.4, en el caso de volúmenes sin garantía en sistemas AFF, la operación de división de volúmenes FlexClone comparte los bloques físicos y no copia los datos. Por lo tanto, la división de volúmenes FlexClone en sistemas AFF es más rápida que la operación de división de FlexClone en otros sistemas FAS en ONTAP 9,4 y versiones posteriores. La operación de separación de FlexClone mejorada en sistemas AFF aporta las siguientes ventajas:
 
-* La eficiencia del almacenamiento se mantiene tras dividir el clon del principal.
-* Las copias Snapshot existentes no se eliminan.
-* La operación es más rápida.
-* El volumen FlexClone puede dividirse desde cualquier punto de la jerarquía de clones.
+
+
+.Antes de empezar
+* Debe ser un administrador de clústeres.
+* El volumen FlexClone debe estar en línea cuando comience la operación de división.
+* El volumen primario debe estar en línea para que la división se complete correctamente.
 
 
 .Pasos
