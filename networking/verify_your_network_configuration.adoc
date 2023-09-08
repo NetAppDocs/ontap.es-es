@@ -1,0 +1,95 @@
+---
+sidebar: sidebar 
+permalink: networking/verify_your_network_configuration.html 
+keywords: verify, upgrade, considerations, network, configuration, upgrading, physical, wire, wiring, cable, cabling, layer 2, reachability, port, results, verify your networking configuration after upgrading to ontap 9.8 or later, network port reachability show -detail, repair reachability decision tree, layer 2 reachability, assigned broadcast domain, reachability-status, unexpected ports, unavailable ports, reachability repair 
+summary: Verifique la configuración de red después de actualizar a ONTAP 9.8 o una versión posterior 
+---
+= Verifique la configuración de red después de una actualización de ONTAP desde ONTAP 9,7x o una versión anterior
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Después de realizar una actualización desde ONTAP 9,7x o anterior a ONTAP 9,8 o posterior, debe verificar la configuración de red. Después de la actualización, ONTAP supervisa automáticamente la accesibilidad de la capa 2.
+
+.Paso
+. Compruebe que cada puerto tiene accesibilidad al dominio de retransmisión esperado:
++
+[source, cli]
+----
+network port reachability show -detail
+----
+
+
+El resultado del comando contiene resultados de accesibilidad. Use el árbol de decisión y la tabla siguientes para comprender los resultados de la accesibilidad (estado de la accesibilidad) y determinar qué hacer, si es que hay algo, a continuación.
+
+image:ontap_nm_image1.png["Árbol de decisión de accesibilidad de reparación"]
+
+[cols="20,80"]
+|===
+
+
+| accesibilidad-estado | Descripción 
+
+
+ a| 
+de acuerdo
+ a| 
+El puerto tiene capacidad de acceso de capa 2 a su dominio de difusión asignado.
+
+Si el reachability-status es "ok", pero hay "puertos inesperados", considere combinar uno o más dominios de difusión. Para obtener más información, consulte link:merge_broadcast_domains.html["Fusionar dominios de retransmisión"].
+
+Si el reachability-status es "ok", pero hay "puertos inaccesibles", considere dividir uno o más dominios de difusión. Para obtener más información, consulte link:split_broadcast_domains.html["Divida los dominios de retransmisión"].
+
+Si el estado de accesibilidad es "correcto" y no hay puertos inesperados o no accesibles, la configuración es correcta.
+
+
+
+ a| 
+función mal configurada
+ a| 
+El puerto no tiene posibilidad de recurrir a la capa 2 a su dominio de difusión asignado; sin embargo, el puerto tiene capacidad de acceso de capa 2 a un dominio de difusión diferente.
+
+Puede reparar la accesibilidad del puerto. Cuando ejecute el siguiente comando, el sistema asignará el puerto al dominio de retransmisión al que se le habrá accesibilidad:
+
+`network port reachability repair -node -port`
+
+Para obtener más información, consulte link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].
+
+
+
+ a| 
+ausencia de accesibilidad
+ a| 
+El puerto no tiene posibilidad de recurrir a ningún dominio de difusión existente de capa 2.
+
+Puede reparar la accesibilidad del puerto. Cuando ejecute el siguiente comando, el sistema asignará el puerto a un dominio de retransmisión creado automáticamente en el espacio IP predeterminado:
+
+`network port reachability repair -node -port`
+
+Para obtener más información, consulte link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].
+
+
+
+ a| 
+accesibilidad multi-dominio
+ a| 
+El puerto tiene la habilidad de la capa 2 para su dominio de broadcast asignado; sin embargo, también tiene la habilidad de la capa 2 para al menos otro dominio de broadcast.
+
+Examine la configuración física del conmutador y la conectividad para determinar si es incorrecta o si el dominio de difusión asignado al puerto necesita combinarse con uno o más dominios de difusión.
+
+Para obtener más información, consulte link:merge_broadcast_domains.html["Fusionar dominios de retransmisión"] o. link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].
+
+
+
+ a| 
+desconocido
+ a| 
+Si el estado de accesibilidad es "desconocido", espere unos minutos y vuelva a intentar el comando.
+
+|===
+Después de reparar un puerto, necesita comprobar y resolver las LIF y VLAN desplazadas. Si el puerto era parte de un grupo de interfaces, también necesita comprender lo que ha sucedido con ese grupo de interfaces.  Para obtener más información, consulte link:repair_port_reachability.html["Reparar la accesibilidad del puerto"].
