@@ -22,7 +22,7 @@ Los servidores de claves externos pueden utilizarse para las claves NSE, NVE, NA
 
 == Antes de empezar
 
-* link:install-ssl-certificates-hardware-task.html["La gestión de claves KMIP ya está habilitada para la SVM"].
+* link:install-ssl-certificates-hardware-task.html["La gestión de claves KMIP debe estar habilitada para la SVM"].
 * Este proceso solo admite servidores de claves que utilizan KMIP. Para obtener una lista de los servidores de claves compatibles, consulte link:http://mysupport.netapp.com/matrix/["Herramienta de matriz de interoperabilidad de NetApp"^].
 * Todos los nodos del clúster deben ejecutar ONTAP 9.11.1 o una versión posterior.
 * El orden de los servidores enumera los argumentos en la `-secondary-key-servers` El parámetro refleja el orden de acceso de los servidores de gestión de claves externas (KMIP).
@@ -39,19 +39,19 @@ El procedimiento de configuración depende de si se ha configurado o no un servi
 .Añada servidores de claves primarios y secundarios a una SVM
 --
 . Confirme que no se ha habilitado ninguna gestión de claves para el clúster:
-`security key-manager external show -vserver _vserver_name_`
+`security key-manager external show -vserver _svm_name_`
 Si la SVM ya tiene el máximo de cuatro servidores de claves primarias habilitados, debe eliminar uno de los servidores de claves primarios existentes antes de añadir uno nuevo.
 . Habilite el gestor de claves principal:
-`security key-manager external enable -vserver _vserver_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
+`security key-manager external enable -vserver _svm_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
 . Modifique el servidor de claves primario para añadir servidores de claves secundarios. La `-secondary-key-servers` el parámetro acepta una lista de hasta tres servidores de claves separados por coma.
-`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
 
 
 --
 .Añadir servidores de claves secundarios a un servidor de claves primario existente
 --
 . Modifique el servidor de claves primario para añadir servidores de claves secundarios. La `-secondary-key-servers` el parámetro acepta una lista de hasta tres servidores de claves separados por coma.
-`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
 Para obtener más información sobre los servidores de claves secundarios, consulte  <<mod-secondary>>.
 
 
@@ -65,7 +65,7 @@ Para modificar clústeres de servidores de claves externos, cambie el estado (pr
 
 
 
-=== Conversión de servidores de claves primarios y secundarios
+=== Convertir servidores de claves primarios y secundarios
 
 Para convertir un servidor de claves primario en un servidor de claves secundario, primero debe eliminarlo de la SVM con el `security key-manager external remove-servers` comando.
 
@@ -73,7 +73,7 @@ Para convertir un servidor de claves secundario en un servidor de claves primari
 
 
 
-=== Modificación de servidores de claves secundarias
+=== Modificar servidores de claves secundarios
 
 Los servidores de claves secundarios se gestionan con el `-secondary-key-servers` parámetro de `security key-manager external modify-server` comando. La `-secondary-key-servers` el parámetro acepta una lista separada por comas. El orden especificado de los servidores de claves secundarios de la lista determina la secuencia de acceso de los servidores de claves secundarios. El orden de acceso se puede modificar ejecutando el comando `security key-manager external modify-server` con los servidores de claves secundarios introducidos en un orden diferente.
 

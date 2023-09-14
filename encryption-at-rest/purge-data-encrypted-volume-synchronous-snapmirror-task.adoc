@@ -11,21 +11,19 @@ summary: 'A partir de ONTAP 9.8, puede utilizar la purga segura para "limpiar" d
 
 
 [role="lead"]
-A partir de ONTAP 9.8, puede utilizar una purga segura para datos «crub» sin interrupciones en volúmenes habilitados para NVE con una relación síncrona de SnapMirror.
-
-.Lo que necesitará
-* Para realizar esta tarea, debe ser un administrador de clústeres.
-* Se requieren privilegios avanzados para esta tarea.
-
+A partir de ONTAP 9,8, puede utilizar una purga segura para «depurar» datos sin interrupciones en los volúmenes con NVE habilitados con una relación de SnapMirror síncrono.
 
 .Acerca de esta tarea
 Una purga segura puede tardar de varios minutos a varias horas en completarse, dependiendo de la cantidad de datos de los archivos eliminados. Puede utilizar el `volume encryption secure-purge show` comando para ver el estado de la operación. Puede utilizar el `volume encryption secure-purge abort` comando para finalizar la operación.
 
-[NOTE]
-====
-Para realizar una purga segura en un host SAN, debe eliminar todo el LUN que contiene los archivos que desea purgar, o debe poder perforar agujeros en la LUN para los bloques que pertenecen a los archivos que desea purgar. Si no puede eliminar la LUN, o el sistema operativo del host no admite orificios de perforación en la LUN, no puede realizar una purga segura.
 
-====
+NOTE: Para realizar una purga segura en un host SAN, debe eliminar todo el LUN que contiene los archivos que desea purgar, o debe poder perforar agujeros en la LUN para los bloques que pertenecen a los archivos que desea purgar. Si no puede eliminar la LUN, o el sistema operativo del host no admite orificios de perforación en la LUN, no puede realizar una purga segura.
+
+.Antes de empezar
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* Se requieren privilegios avanzados para esta tarea.
+
+
 .Pasos
 . En el sistema de almacenamiento, cambie al nivel de privilegio avanzado:
 +
@@ -46,25 +44,25 @@ Repita este paso con el otro volumen de la relación de SnapMirror síncrono.
 
 . Si los archivos que desea purgar de forma segura están en las copias snapshot, elimine las copias snapshot:
 +
-`snapshot delete -vserver SVM_name -volume vol_A -snapshot snapshot`
+`snapshot delete -vserver _SVM_name_ -volume _volume_name_ -snapshot _snapshot_`
 
 . Si el archivo de purga segura está en la base o en copias snapshot comunes, actualice SnapMirror para mover la copia snapshot común hacia delante:
 +
-`snapmirror update -source-snapshot snapshot_name -destination-path destination_path`
+`snapmirror update -source-snapshot _snapshot_name_ -destination-path _destination_path_`
 
 +
 Existen dos copias Snapshot comunes, por lo que este comando debe emitirse dos veces.
 
 . Si el archivo de purga segura está en la copia Snapshot coherente con las aplicaciones, elimine la copia Snapshot en ambos volúmenes de la relación de SnapMirror síncrono:
 +
-`snapshot delete -vserver SVM_name -volume vol_name -snapshot snapshot`
+`snapshot delete -vserver _SVM_name_ -volume _volume_name_ -snapshot _snapshot_`
 
 +
 Ejecute este paso en ambos volúmenes.
 
 . Elimine de forma segura los archivos eliminados:
 +
-`volume encryption secure-purge start -vserver SVM_name -volume volume_name`
+`volume encryption secure-purge start -vserver _SVM_name_ -volume _volume_name_`
 
 +
 Repita este paso con cada volumen de la relación de SnapMirror síncrono.

@@ -4,16 +4,92 @@ sidebar: sidebar
 keywords: nvme, namespaces, considerations, provisioning 
 summary: El soporte para NVMe varía en función de su versión de ONTAP, su plataforma y su configuración. 
 ---
-= Compatibilidad y limitaciones de NVMe
+= Configuración, compatibilidad y limitaciones de NVMe
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
+A partir de ONTAP 9,4, el link:https://docs.netapp.com/us-en/ontap/san-admin/manage-nvme-concept.html["Memoria no volátil rápida (NVMe)"] el protocolo está disponible para los entornos SAN. FC-NVMe utiliza la misma práctica de configuración física y división en zonas que las redes FC tradicionales pero permite un mayor ancho de banda, un aumento de IOPS y una latencia reducida que FC-SCSI.
+
 Las limitaciones y la compatibilidad de NVMe varían en función de la versión de ONTAP, su plataforma y la configuración. Para obtener detalles sobre su configuración específica, consulte link:https://imt.netapp.com/matrix/["Herramienta de matriz de interoperabilidad de NetApp"].
 
-Compatibilidad con protocolos
+
+
+== Configuración
+
+* Puede configurar su configuración NVMe con nodos únicos o parejas de alta disponibilidad mediante una única estructura o multiestructura.
+* Debe configurar una LIF de gestión para cada SVM compatible con SAN.
+* No se admite el uso de estructuras heterogéneas de switches FC, a excepción de los switches blade integrados.
++
+Las excepciones específicas se enumeran en la link:https://mysupport.netapp.com/matrix["Herramienta de matriz de interoperabilidad de NetApp"^].
+
+* Las estructuras en cascada, malla parcial, malla completa, núcleo-borde y director son métodos estándar en el sector para conectar switches FC a una estructura, y todos son compatibles.
++
+Una estructura puede estar compuesta por uno o varios switches y las controladoras de almacenamiento se pueden conectar a varios switches.
+
+
+
+
+
+== Funciones
+
+Las siguientes funciones de NVMe se admiten según la versión de ONTAP.
+
+[cols="2*"]
+|===
+
+
+| Iniciando con ONTAP... | Compatibilidad con NVMe 
+
+
+| 9.12.1  a| 
+Configuraciones IP de MetroCluster de 4 nodos en NVMe/FC.
+* Las configuraciones MetroCluster no son compatibles con NVMe anterior a 9.12.1.
+* Las configuraciones MetroCluster no son compatibles con NVMe/TCP.
+
+
+
+| 9.10.1 | xref:../nvme/resize-namespace-task.html[Cambiar el tamaño de un espacio de nombres] 
+
+
+| 9.9.1  a| 
+* Los espacios de nombres y LUN coexisten en el mismo volumen.
+
+
+
+
+| 9,8  a| 
+* Coexistencia con protocolos
++
+Pueden existir los protocolos SCSI, NAS y NVMe en la misma máquina virtual de almacenamiento (SVM).
+
++
+Antes de ONTAP 9,8, NVMe puede ser el único protocolo en la SVM.
+*
+
+
+
+
+
+| 9,6  a| 
+* bloques de 512 bytes y bloques de 4096 bytes para espacios de nombres
++
+4096 es el valor predeterminado. 512 solo se debe utilizar si el sistema operativo del host no admite bloques de 4096 bytes.
+
+* Movimiento de volúmenes con espacios de nombres asignados
+
+
+
+
+| 9,5 | Conmutación/retorno al nodo primario de la pareja de HA de múltiples rutas. 
+|===
+
+
+== Protocolos
+
+Se admiten los siguientes protocolos NVMe.
 
 [cols="3*"]
 |===
@@ -32,18 +108,13 @@ En ONTAP 9,7 y versiones anteriores, NVMe puede ser el único protocolo en la SV
 
 
 
-== Compatibilidad y limitaciones de plataformas y configuraciones
+== Plataformas y nodos por clúster
 
-Los protocolos NVMe/FC y NVMe/TCP son compatibles de la siguiente manera.  NVME/FC es compatible con las plataformas enumeradas a continuación solo con HBA de FC de 32GB Gb.
-
-[NOTE]
-====
-* A partir de ONTAP 9.12.1, las configuraciones IP de MetroCluster de 4 nodos son compatibles con NVMe/FC.
-* Las configuraciones de MetroCluster no son compatibles con NVMe/TCP.
-* Las configuraciones de MetroCluster no son compatibles con NVMe antes de la versión 9.12.1.
+Los protocolos NVMe/FC y NVMe/TCP son compatibles de la siguiente manera.
 
 
-====
+NOTE: NVME/FC es compatible con las plataformas siguientes con HBA de FC de 32GB Gb.
+
 [cols="3*"]
 |===
 
@@ -69,35 +140,9 @@ Los protocolos NVMe/FC y NVMe/TCP son compatibles de la siguiente manera.  NVME/
 |===
 
 
-== Compatibilidad y limitaciones con espacios de nombres
+== Espacios de nombres
 
-La compatibilidad con el espacio de nombres de NVMe varía en función de la versión de ONTAP.
-
-[cols="2*"]
-|===
-
-
-| Iniciando con ONTAP... | Compatibilidad con espacios de nombres de NVMe... 
-
-
-| 9.10.1 | xref:../nvme/resize-namespace-task.html[Cambio de tamaño]
-
-Las versiones anteriores a ONTAP 9.10.1 no admiten cambiar el tamaño de un espacio de nombres. 
-
-
-| 9,8 | Las LUN y los espacios de nombres pueden combinarse en el mismo volumen. 
-
-
-| 9,6  a| 
-* bloques de 512 bytes y bloques de 4096 bytes
-+
-4096 es el valor predeterminado. 512 solo se debe utilizar si el sistema operativo del host no admite bloques de 4096 bytes.
-
-* Movimiento de volúmenes con espacios de nombres asignados
-
-
-|===
-Además, cuando trabaje con espacios de nombres de NVMe, debe tener en cuenta lo siguiente:
+Cuando trabaje con espacios de nombres de NVMe, debe tener en cuenta lo siguiente:
 
 * Si pierde datos en una LUN, no se pueden restaurar desde un espacio de nombres o viceversa.
 * La garantía de espacio para espacios de nombres es la misma que la garantía de espacio del volumen que contiene.
@@ -105,9 +150,6 @@ Además, cuando trabaje con espacios de nombres de NVMe, debe tener en cuenta lo
 * Los espacios de nombres no admiten lo siguiente:
 +
 ** Cambio de nombre
-+
-No se puede cambiar el nombre a un espacio de nombres.
-
 ** Movimiento entre volúmenes
 ** Copia entre volúmenes
 ** Copiar bajo demanda
@@ -117,26 +159,17 @@ No se puede cambiar el nombre a un espacio de nombres.
 
 
 
-== Conmutación/retorno de la pareja de ha de múltiples rutas
-
-A partir de ONTAP 9,5, NVMe admite la conmutación al nodo de respaldo/retorno del par de alta disponibilidad multivía.
-
-
-
 == Limitaciones adicionales
 
-* Las configuraciones de NVMe no admiten las siguientes funciones de ONTAP:
+.Las configuraciones de NVMe no admiten las siguientes funciones de ONTAP:
+* Sincr
+* Consola de almacenamiento virtual
 +
-** Sincr
-** Consola de almacenamiento virtual
+.. Lo siguiente solo se aplica a nodos que ejecutan ONTAP 9.4:
 
 
-* Lo siguiente solo se aplica a nodos que ejecutan ONTAP 9.4:
-+
-** Las LIF y los espacios de nombres de NVMe deben alojarse en el mismo nodo.
-** Debe crearse el servicio NVMe antes de crear la LIF NVMe.
-
-
+* Las LIF y los espacios de nombres de NVMe deben alojarse en el mismo nodo.
+* Debe crearse el servicio NVMe antes de crear la LIF NVMe.
 
 
 Consulte https://hwu.netapp.com["Hardware Universe de NetApp"^] Para ver una lista completa de límites de NVMe.
