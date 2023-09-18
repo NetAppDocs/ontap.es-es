@@ -14,7 +14,7 @@ summary: La conectividad del mediador desde el sitio B se muestra como inalcanza
 
 
 [role="lead"]
-Para comprobar la conexión del Mediador ONTAP, utilice el `snapmirror mediator show` comando. Si el estado de la conexión es inalcanzable y el sitio B no puede llegar al sitio B, tendrá una salida similar a la que se muestra a continuación. Siga los pasos de la solución para restaurar la conexión
+Para comprobar la conexión del Mediador ONTAP, utilice el `snapmirror mediator show` comando. Si el estado de conexión es inaccesible y el sitio B no puede acceder al sitio A, tendrá una salida similar a la que se muestra a continuación. Siga los pasos de la solución para restaurar la conexión
 
 ....
 cluster::*> snapmirror mediator show
@@ -41,20 +41,18 @@ Peer Cluster Name         Cluster Serial Number Availability   Authentication
 C1_cluster 			  1-80-000011           Unavailable    ok
 ....
 .Solución
-Forzar una conmutación al respaldo para habilitar la I/o en el sitio B y, a continuación, establecer una relación de objetivo de tiempo de recuperación cero en el sitio B al sitio A.
-
-Realice los pasos siguientes para realizar una conmutación por error forzada en el sitio B.
+Forzar una conmutación al respaldo para habilitar la I/o en el sitio B y, a continuación, establecer una relación de objetivo de tiempo de recuperación cero en el sitio B al sitio A. Realice los pasos siguientes para realizar una conmutación por error forzada en el sitio B.
 
 . Desasigne todas las LUN que pertenecen al grupo de consistencia desde el sitio B.
 . Elimine la relación del grupo de coherencia SnapMirror con la opción force.
-. Introduzca el comando snapmirror break en los volúmenes constituyentes del grupo de coherencia para convertir volúmenes de DP a RW y, así, habilitar I/o desde el sitio B.
+. Introduzca el comando snapmirror break en los volúmenes constituyentes del grupo de coherencia para convertir los volúmenes de DP a RW, para habilitar la I/O del sitio B.
 . Arranque los nodos del sitio A para crear una relación de objetivo de tiempo de recuperación cero desde el sitio B al sitio A.
 . Libere el grupo de consistencia con Relationship-info-only en el sitio A para conservar una copia Snapshot común y desasignar las LUN que pertenecen al grupo de consistencia.
 . Convierta los volúmenes en el sitio A de RW a DP configurando una relación de nivel de volumen mediante una política de sincronización o una política asíncrona.
-. Emita un resincronización de snapmirror para sincronizar las relaciones.
+. Emita el `snapmirror resync` comando para sincronizar las relaciones.
 . Elimine las relaciones de SnapMirror con la política de sincronización en el sitio A.
 . Lance las relaciones de SnapMirror con la política Sync mediante la relación-info-only true en el sitio B.
-. Cree una relación de grupo de consistencia del Sitio B al Sitio A.
-. Realice una resincronización del grupo de consistencia del sitio A y, a continuación, compruebe que el grupo de consistencia está sincronizado.
-. Vuelva a analizar las rutas de I/o del LUN del host para restaurar todas las rutas a los LUN.
+. Cree una relación de grupo de consistencia entre el sitio B y el sitio A.
+. En el clúster de origen, resincronice el grupo de consistencia. Compruebe que el estado del grupo de consistencia esté sincronizado.
+. Vuelva a analizar las rutas de I/O del LUN del host para restaurar todas las rutas a las LUN.
 
