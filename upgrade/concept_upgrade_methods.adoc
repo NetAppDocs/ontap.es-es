@@ -4,111 +4,66 @@ sidebar: sidebar
 keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive 
 summary: 'El método que utilice para actualizar depende de la configuración.  Si está disponible, la actualización automatizada no disruptiva (ANDU) mediante System Manager es el método preferido.' 
 ---
-= Métodos de actualización de ONTAP
+= Métodos de actualización del software ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-El método que utilice para la actualización: No disruptivo, no disruptivas, automatizada o manual, depende de su configuración.  El método preferido es la actualización automatizada no disruptiva (ANDU) mediante System Manager y admite la mayoría de configuraciones.
+Puede realizar una actualización automatizada del software ONTAP con System Manage. Como alternativa, puede realizar una actualización automatizada o manual con la interfaz de línea de comandos (CLI) de ONTAP. El método que utiliza para actualizar ONTAP depende de la configuración, la versión actual de ONTAP y el número de nodos del clúster. NetApp recomienda usar System Manager para realizar actualizaciones automatizadas a menos que la configuración requiera un enfoque diferente. Por ejemplo, si tiene una configuración de MetroCluster con 4 nodos que ejecuten ONTAP 9,3 o posterior, debería utilizar System Manager para llevar a cabo una actualización automatizada (a veces denominada actualización no disruptiva automatizada o ANDU). Si tiene una configuración de MetroCluster con nodos 8 que ejecutan ONTAP 9,2 o una versión anterior, debe usar la CLI para realizar una actualización manual.
 
-*Actualizaciones no disruptivas* +
-Las actualizaciones no disruptivas aprovechan la tecnología de conmutación al nodo de respaldo de alta disponibilidad de ONTAP para garantizar que los clústeres siguen sirviendo datos durante la actualización. Existen dos tipos de procesos de actualización no disruptivos.
+Una actualización puede ejecutarse mediante el proceso de actualización gradual o el proceso de actualización en lote. Ambos elementos no disruptivos.
 
-* _Batch_ actualizaciones +
-En una actualización por lotes, el clúster se divide en varios lotes, cada uno de los cuales contiene varios pares de alta disponibilidad.  En el primer lote, se actualizan la mitad de los nodos, seguidos por sus partners de alta disponibilidad. A continuación, el proceso se repite secuencialmente para los lotes restantes.
-* _Rolling_ actualizaciones +
-En una actualización gradual, un nodo se desconecta y se actualiza mientras su compañero asume el control de su almacenamiento. Una vez que finaliza la actualización del nodo, el nodo del partner devuelve el control al nodo original y se repite el proceso, esta vez en el nodo del partner. Cada par de alta disponibilidad adicional se actualiza en secuencia hasta que todos los pares de alta disponibilidad ejecutan la versión de destino. +
-*Nota:* El término _rolling upgrade_ se usa con frecuencia en la industria del software para actualizaciones de software que no causan interrupciones en el servicio y, por lo tanto, a menudo es sinónimo de “actualización no disruptiva”. En las actualizaciones de ONTAP 9, una _Rolling update_ es uno de los procesos que se pueden utilizar para realizar actualizaciones sin interrupciones.
+.Actualizaciones graduales de ONTAP
+En el proceso de actualización gradual, un nodo se desconecta y se actualiza mientras su compañero toma el control de su almacenamiento. Cuando se completa la actualización del nodo, el nodo asociado le devuelve el control al nodo propietario original y el proceso se repite en el nodo asociado. Cada par de alta disponibilidad adicional se actualiza en secuencia hasta que todos los pares de alta disponibilidad ejecutan la versión de destino. El proceso de actualización gradual es la opción predeterminada para los clústeres con menos de 8 nodos.
 
+.Actualizaciones en lotes de ONTAP
+En el proceso de actualización por lotes, el clúster se divide en varios lotes, cada uno de los cuales contiene varios pares de alta disponibilidad. En el primer lote, se actualizan la mitad de los nodos, seguidos por sus partners de alta disponibilidad. A continuación, el proceso se repite secuencialmente para los lotes restantes. El proceso de actualización por lotes es el predeterminado para clústeres de 8 nodos o más.
 
-Las actualizaciones no disruptivas se pueden realizar mediante un método _automatizó_ o _manual_.
-
-* *Actualización automatizada sin interrupciones (ANDU)*
-+
-** Cuando un administrador inicia UN ANDU, ONTAP instala automáticamente la imagen ONTAP de destino en cada nodo, valida los componentes del clúster para garantizar que el clúster se pueda actualizar sin interrupciones y, a continuación, ejecuta una actualización por lotes o en segundo plano.
-+
-*** Las actualizaciones por lotes son el valor predeterminado para clústeres de 8 nodos o más.
-*** La implementación de actualizaciones es la opción predeterminada para clústeres con menos de 8 nodos. También se puede seleccionar explícitamente la implementación de actualizaciones para clústeres con 8 nodos o más.
-
-
-** UN ANDU puede ejecutarse mediante System Manager o la interfaz de línea de comandos (CLI) de ONTAP. Si está disponible para su configuración, ANDU con System Manager es el método de actualización recomendado.
-
-
-* *Actualización manual no disruptiva*
-+
-** Un administrador debe confirmar de forma manual la disposición para actualizar los componentes del clúster en cada nodo y, a continuación, realizar manualmente los pasos del proceso de actualización en primer plano.
-** Las actualizaciones manuales no disruptivas se ejecutan mediante la interfaz de línea de comandos de ONTAP.
-** Sólo debe utilizar un método manual si ANDU no es compatible con su configuración.
+Para las actualizaciones automatizadas, ONTAP instala automáticamente la imagen ONTAP de destino en cada nodo, valida los componentes del clúster para garantizar que el clúster se pueda actualizar sin interrupciones y, a continuación, ejecuta una actualización en lote o en segundo plano en función del número de nodos. En el caso de las actualizaciones manuales, el administrador confirma manualmente que cada nodo del clúster está listo para la actualización y, a continuación, realiza los pasos necesarios para ejecutar una actualización gradual.
 
 
 
+== Métodos de actualización de ONTAP recomendados según la configuración
 
-*Actualizaciones disruptivas* +
-En una actualización disruptiva, la conmutación por error del almacenamiento se deshabilita para cada par de alta disponibilidad y, a continuación, cada nodo se reinicia de uno en uno. Las actualizaciones con interrupciones se pueden realizar más rápidamente que las actualizaciones no disruptivas y requieren menos pasos para completarse. Sin embargo, no se debe realizar una actualización disruptiva a menos que se pueda desconectar el clúster durante la actualización. Si trabaja en un entorno SAN, debe estar preparado para apagar o suspender todos los clientes SAN antes de realizar una actualización disruptiva. Las actualizaciones disruptivas se realizan mediante la interfaz de línea de comandos de ONTAP.
+Los métodos de actualización admitidos por la configuración se enumeran por orden de uso recomendado.
+
+[cols="4"]
+|===
+| Configuración | Versión de ONTAP | Número de nodos | Método de actualización recomendado 
 
 
-
-== Métodos para configuraciones que no sean de MetroCluster
-
-Los clústeres con 2 o más nodos pueden usar cualquiera de los siguientes métodos de actualización, que se enumeran por orden de uso recomendado.
-
+| Estándar | 9,0 o posterior | 2 o más  a| 
 * xref:task_upgrade_andu_sm.html[Automatización no disruptiva gracias a System Manager]
 * xref:task_upgrade_andu_cli.html[Automatización no disruptiva gracias a la interfaz de línea de comandos]
-* xref:task_upgrade_nondisruptive_manual_cli.html[Manual no disruptivo]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Interrupción manual]
-
-
-Los clústeres de un solo nodo deben usar uno de los métodos disruptivos, aunque se recomienda el método automatizado.
-
-* xref:task_upgrade_disruptive_automated_cli.html[Interrupción automatizada]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Interrupción manual]
 
 
 
 
-== Métodos para configuraciones de MetroCluster
-
-Los métodos de actualización disponibles para cada configuración se enumeran por orden de uso recomendado.
-
-[cols="3*"]
-|===
-| Versión de ONTAP | Número de nodos | Método de actualización 
+| Estándar | 9,0 o posterior | Único | xref:task_upgrade_disruptive_automated_cli.html[Interrupción automatizada] 
 
 
-| 9,3 o posterior | 2,4  a| 
+| MetroCluster | 9,3 o posterior | 8  a| 
+* xref:task_upgrade_andu_cli.html[Automatización no disruptiva gracias a la interfaz de línea de comandos]
+* xref:task_updating_a_four_or_eight_node_mcc.html[Manual no disruptivo para MetroCluster de 4 o 8 nodos con la CLI]
+
+
+
+
+| MetroCluster | 9,3 o posterior | 2,4  a| 
 * xref:task_upgrade_andu_sm.html[Automatización no disruptiva gracias a System Manager]
 * xref:task_upgrade_andu_cli.html[Automatización no disruptiva gracias a la interfaz de línea de comandos]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Interrupción manual]
 
 
 
 
-| 9,3 o posterior | 8  a| 
-* xref:task_upgrade_andu_cli.html[Automatización no disruptiva gracias a la interfaz de línea de comandos]
-* xref:task_updating_a_four_or_eight_node_mcc.html[Manual no disruptivo]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Interrupción manual]
+| MetroCluster | 9.2 o anterior | 4, 8 | xref:task_updating_a_four_or_eight_node_mcc.html[Manual no disruptivo para MetroCluster de 4 o 8 nodos con la CLI] 
 
 
-
-
-| 9.2 o anterior | 2  a| 
-* xref:task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html[Manual no disruptivo (para clústeres de 2 nodos)]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Interrupción manual con CLI]
-
-
-
-
-| 9.2 o anterior | 4, 8  a| 
-* xref:task_updating_a_four_or_eight_node_mcc.html[Manual no disruptivo]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Interrupción manual]
-
-
-
-
-| 9,0 o posterior | 4, 8 (sólo parche) | xref:task_upgrade_andu_sm.html[Automatización no disruptiva gracias a System Manager] 
-
-
-| 9.2 o anterior | 2, 4, 8 (sólo parche) | xref:task_upgrade_andu_sm.html[Automatización no disruptiva gracias a System Manager] 
+| MetroCluster | 9.2 o anterior | 2 | xref:task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html[Manual no disruptivo para MetroCluster de 2 nodos utilizando la línea de comandos] 
 |===
+ANDU El uso de System Manager es el método de actualización recomendado para todas las actualizaciones de revisiones, independientemente de la configuración.
+
+
+NOTE: A. xref:task_updating_an_ontap_cluster_disruptively.html[actualización manual disruptiva] se puede realizar en cualquier configuración.  Sin embargo, no se debe realizar una actualización disruptiva a menos que se pueda desconectar el clúster durante la actualización. Si trabaja en un entorno SAN, debe estar preparado para apagar o suspender todos los clientes SAN antes de realizar una actualización disruptiva. Las actualizaciones disruptivas se realizan mediante la interfaz de línea de comandos de ONTAP.
