@@ -11,7 +11,7 @@ summary: Si ha configurado el acceso de cliente S3 para datos NAS y vuelve de ON
 
 
 [role="lead"]
-Si ha configurado el acceso de cliente S3 para datos NAS y vuelve de ONTAP 9.12.1 o posterior a ONTAP 9.11.1 o anterior, debe eliminar la configuración de bloque NAS y debe eliminar cualquier asignación de nombres (usuarios de S3 a usuarios de Windows o Unix) antes de revertir.
+Si ha configurado el acceso de cliente S3 para datos de NAS, antes de revertir desde ONTAP 9.12.1 o posterior a ONTAP 9.11.1 o versiones anteriores, debe usar la interfaz de línea de comandos (CLI) de ONTAP para quitar la configuración de bucket NAS y para eliminar cualquier asignación de nombre (S3 usuarios para usuarios Windows o Unix).
 
 .Acerca de esta tarea
 Las siguientes tareas se completan en segundo plano durante el proceso de reversión.
@@ -22,30 +22,29 @@ Las siguientes tareas se completan en segundo plano durante el proceso de revers
 * Elimine los valores de usuario predeterminados de unix-user y Windows-default para todos los servidores S3 configurados.
 
 
-[role="tabbed-block"]
-====
-.System Manager
---
-. Quitar una configuración de bloque NAS de S3. +
-Haga clic en *almacenamiento > Cuchos*, haga clic en image:../media/icon_kabob.gif["icono de kebab"] Para cada bloque S3 NAS configurado, haga clic en *Eliminar*.
-. Quite las asignaciones de nombres locales de clientes UNIX o Windows (o ambos).
+.Pasos
+. Eliminar la configuración del bucket NAS de S3:
 +
-.. Haga clic en *almacenamiento > Cuchos* y seleccione la VM de almacenamiento habilitada para S3/NAS.
-.. Seleccione *Configuración* y, a continuación, haga clic en image:../media/icon_arrow.gif["flecha derecha"] En *asignación de nombres* (en *usuarios y grupos de host*).
-.. En los mosaicos de *S3 a Windows* o *S3 a UNIX* (o ambos), haga clic en image:../media/icon_kabob.gif["icono de kebab"] Para cada asignación configurada, haga clic en *Eliminar*.
+[source, cli]
+----
+vserver object-store-server bucket delete -vserver _svm_name_ -bucket _s3_nas_bucket_name_
+----
+. Eliminar asignaciones de nombres para UNIX:
++
+[source, cli]
+----
+vserver name-mapping delete -vserver _svm_name_ -direction s3-unix
+----
+. Eliminar asignaciones de nombres para Windows:
++
+[source, cli]
+----
+vserver name-mapping delete -vserver _svm_name_ -direction s3-win
+----
+. Quite los protocolos S3 de la SVM:
++
+[source, cli]
+----
+vserver remove-protocols -vserver <svm_name> -protocols s3
+----
 
-
-
-
---
-.CLI
---
-. Quitar la configuración de bloque NAS de S3. +
-`vserver object-store-server bucket delete -vserver _svm_name_ -bucket _s3_nas_bucket_name_`
-. Quitar asignaciones de nombres. +
-`vserver name-mapping delete -vserver _svm_name_ -direction s3-unix` +
-`vserver name-mapping delete -vserver _svm_name_ -direction s3-win`
-
-
---
-====
