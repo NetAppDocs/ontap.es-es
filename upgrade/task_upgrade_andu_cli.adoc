@@ -19,20 +19,16 @@ summary: La versión de ONTAP se puede actualizar de forma no disruptiva en el c
 
 
 [role="lead"]
+Para las actualizaciones automatizadas, ONTAP instala automáticamente la imagen ONTAP de destino en cada nodo, valida los componentes del clúster para garantizar que el clúster se pueda actualizar de forma no disruptiva y, a continuación, ejecuta un xref:concept_upgrade_methods.html[actualización por lotes o sucesivas] en el segundo plano según el número de nodos.
+
 Puede usar la interfaz de línea de comandos (CLI) para verificar que el clúster se puede actualizar de forma no disruptiva, instalar la imagen ONTAP de destino en cada nodo y, después, ejecutar una actualización en segundo plano.
 
 
 NOTE: Si no piensa supervisar el progreso del proceso de actualización, es una buena práctica link:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html["Solicite notificaciones EMS de errores que puedan requerir intervención manual"].
 
 .Antes de empezar
-* Debe iniciar el Asesor digital de Active IQ.
-+
-El componente Asesor de actualizaciones del Asesor digital de Active IQ le ayudará a planificar una actualización correcta.
-
-+
-El asesor digital de Active IQ proporciona información y recomendaciones basadas en datos a todos los clientes de NetApp con un contrato activo de *SupportEdge* (las funciones varían según el nivel de producto y soporte).
-
-* Debe haber cumplido los requisitos de preparación para la actualización.
+* Usted debe link:prepare.html["prepare la actualización"].
+* Usted debe link:download-software-image.html["Descargue la imagen del software ONTAP"] Para la versión de ONTAP objetivo.
 * Para cada pareja de alta disponibilidad, cada nodo debe tener uno o varios puertos en el mismo dominio de retransmisión.
 +
 Si tiene 8 nodos o más, se utiliza el método de actualización por lotes en la actualización automática no disruptiva.  En ONTAP 9.7 y versiones anteriores, si se utiliza el método por lotes, los LIF se migran al partner de alta disponibilidad del nodo que se actualiza.  Si los partners no tienen ningún puerto en el mismo dominio de retransmisión, la migración de LIF falla.
@@ -44,19 +40,23 @@ En ONTAP 9.8 y versiones posteriores, si se utiliza el método por lotes, los LI
 * Si actualiza ONTAP en una configuración de MetroCluster FC, el clúster debe habilitarse para una conmutación de sitios no planificada automática.
 
 
-.Acerca de esta tarea
-La `cluster image validate` el comando comprueba los componentes del clúster para validar que la actualización se puede realizar de forma no disruptiva y, a continuación, proporciona el estado de cada comprobación y las acciones necesarias que debe realizar antes de realizar la actualización del software.
-
 
 NOTE: Modificar el ajuste de `storage failover modify-auto-giveback` La opción de comando antes del inicio de una actualización automática no disruptiva (ANDU) no afecta al proceso de actualización. EL proceso ANDU ignora cualquier valor predefinido para esta opción durante la toma de control/devolución necesaria para la actualización. Por ejemplo, establecer `-autogiveback` A False antes de comenzar ANDU no interrumpe la actualización automática antes de la devolución.
 
+
+
+== Paso 1: Cargue la imagen de software ONTAP de destino en el repositorio del paquete del clúster
+
+Para iniciar el proceso de actualización del software ONTAP, debe que la imagen del software ONTAP de destino esté disponible en el repositorio de paquetes del clúster.
+
+.Pasos
 . Elimine el paquete de software de ONTAP anterior:
 +
 [source, cli]
 ----
 cluster image package delete -version previous_ONTAP_Version
 ----
-. Descargue el paquete de software de ONTAP de destino:
+. Cargue la imagen de software ONTAP de destino en el repositorio de paquetes del cluster:
 +
 [source, cli]
 ----
@@ -71,7 +71,7 @@ Package download completed.
 Package processing completed.
 ----
 +
-Si está realizando una link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["actualización directa de varios saltos"], También necesita descargar el paquete de software para la versión intermedia de ONTAP necesaria para su actualización. Por ejemplo, si está actualizando de 9,8 a 9.13.1, debe descargar el paquete de software para ONTAP 9.12.1 y, a continuación, utilizar el mismo comando para descargar el paquete de software de 9.13.1.
+Si está realizando una link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["actualización directa de varios saltos"], También es necesario cargar el paquete de software para la versión intermedia de ONTAP necesaria para su actualización. Por ejemplo, si está actualizando de 9,8 a 9.13.1, debe cargar el paquete de software para ONTAP 9.12.1 y a continuación utilizar el mismo comando para cargar el paquete de software de 9.13.1.
 
 . Compruebe que el paquete de software esté disponible en el repositorio del paquete de clúster:
 +
@@ -87,7 +87,15 @@ Package Version  Package Build Time
 ---------------- ------------------
 9.13.1              MM/DD/YYYY 10:32:15
 ----
-. Compruebe que el clúster está listo para actualizarse de forma no disruptiva:
+
+
+
+
+== Paso 2: Ejecutar comprobaciones automatizadas previas a la actualización
+
+Opcionalmente, antes de realizar una actualización automatizada del software de ONTAP, puede utilizar el `cluster image validate` comando para verificar que el clúster se puede actualizar correctamente.  La `cluster image validate` command ejecuta una serie de comprobaciones con respecto a los componentes del clúster y, a continuación, proporciona una lista de las validaciones específicas que se han realizado y una lista de las acciones correctivas que se deben llevar a cabo antes de continuar con la actualización.
+
+. Ejecute las comprobaciones automatizadas previas a la actualización:
 +
 [source, cli]
 ----
@@ -112,6 +120,12 @@ WARNING: There are additional manual upgrade validation checks that must be perf
 cluster image show-update-progress
 ----
 . Complete todas las acciones necesarias identificadas por la validación.
+
+
+
+
+== Paso 3: Actualice el software de ONTAP
+
 . Genere un cálculo de actualización de software:
 +
 [source, cli]
@@ -232,34 +246,6 @@ metrocluster show
 
 
 
-
-
-
-== La reanudación de una actualización (con la CLI) después de un error en el proceso de actualización automatizado
-
-Si una actualización automatizada se detiene debido a un error, es posible resolver el error y reanudar la actualización automatizada, o bien se puede cancelar la actualización automatizada y completar el proceso de forma manual. Si elige continuar con la actualización automatizada, no realice ninguno de los pasos de actualización manualmente.
-
-.Acerca de esta tarea
-Si desea completar manualmente la actualización, use el `cluster image cancel-update` para cancelar el proceso automatizado y proceder manualmente. Si desea continuar con la actualización automatizada, siga estos pasos.
-
-.Pasos
-. Vea el error de actualización:
-+
-[source, cli]
-----
-cluster image show-update-progress
-----
-. Resuelva el error.
-. Reanude la actualización:
-+
-[source, cli]
-----
-cluster image resume-update
-----
-
-
-.Después de terminar
-link:task_what_to_do_after_upgrade.html["Realice las comprobaciones posteriores a la actualización"].
 
 .Información relacionada
 * https://aiq.netapp.com/["Inicie Active IQ"]
