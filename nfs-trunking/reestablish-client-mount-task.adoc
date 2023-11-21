@@ -1,0 +1,51 @@
+---
+permalink: nfs-trunking/reestablish-client-mount-task.html 
+sidebar: sidebar 
+keywords: NFS, servers, network, NFS trunking, data, shares, Linux, VMware, mounts, client 
+summary: Para convertir conexiones de cliente no troncalizadas en conexiones troncales, los montajes existentes en clientes Linux y VMware deben desmontarse y volver a montarse utilizando la información acerca de las LIF. 
+---
+= Restablecer montajes de cliente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para convertir conexiones de cliente no troncalizadas en conexiones troncales, los montajes existentes en clientes Linux y VMware deben desmontarse y volver a montarse utilizando la información acerca de las LIF.
+
+Al introducir los comandos de montaje en los clientes, debe introducir las direcciones IP para cada LIF del grupo de enlaces.
+
+Descubra link:index.html#supported-clients["clientes admitidos"].
+
+
+NOTE: El desmontaje de los clientes de VMware provoca interrupciones en las máquinas virtuales del almacén de datos. Una alternativa sería crear un nuevo almacén de datos habilitado para trunking, y usar *storage vmotion* para mover sus VM del antiguo almacén de datos al nuevo. Consulte la documentación de VMware para más detalles.
+
+[role="tabbed-block"]
+====
+.Requisitos del cliente Linux
+--
+Se necesita un punto de montaje independiente para cada conexión del grupo de troncalización.
+
+Monte los volúmenes exportados con comandos similares a los siguientes:
+
+`mount lif1_ip:/vol-test /mnt/test1 -o vers=4.1,max_connect=2`
+
+`mount lif2_ip:/vol-test /mnt/test2 -o vers=4.1,max_connect=2`
+
+La `vers` el valor debe ser `4.1` o posterior.
+
+La `max_connect` el valor debe corresponder al número de conexiones del grupo de troncalización.
+
+--
+.Requisitos del cliente de VMware
+--
+Se necesita una sentencia mount que incluya una dirección IP para cada conexión del grupo de enlaces.
+
+Monte el almacén de datos exportado con un comando similar al siguiente:
+
+`#esxcli storage nfs41 -H lif1_ip, lif2_ip -s /mnt/sh are1 -v nfs41share`
+
+La `-H` los valores deben corresponder a las conexiones del grupo de troncalización.
+
+--
+====

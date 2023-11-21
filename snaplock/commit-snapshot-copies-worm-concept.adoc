@@ -11,7 +11,7 @@ summary: Puede usar SnapLock para SnapVault para proteger CON WORM las copias Sn
 
 
 [role="lead"]
-Puede usar SnapLock para SnapVault para proteger CON WORM las copias Snapshot en el almacenamiento secundario. Puede realizar todas las tareas básicas de SnapLock en el destino de SnapVault. El volumen de destino es de solo lectura montado automáticamente, por lo que no es necesario confirmar explícitamente las copias Snapshot a WORM; por lo tanto, no se admiten la creación de copias Snapshot programadas en el volumen de destino mediante políticas de SnapMirror.
+Puede usar SnapLock para SnapVault para proteger CON WORM las copias Snapshot en el almacenamiento secundario. Todas las tareas básicas de SnapLock se realizan en el destino del almacén. El volumen de destino es de solo lectura montado automáticamente, por lo que no es necesario confirmar explícitamente las copias Snapshot a WORM; por lo tanto, no se admiten la creación de copias Snapshot programadas en el volumen de destino mediante políticas de SnapMirror.
 
 .Antes de empezar
 * El clúster de origen debe ejecutar ONTAP 8.2.2 o una versión posterior.
@@ -35,7 +35,9 @@ Es posible clonar volúmenes de SnapLock, pero no es posible clonar archivos en 
 
 NOTE: Los LUN no son compatibles con los volúmenes de SnapLock. Los LUN se admiten en volúmenes de SnapLock solo en casos en los que las copias de Snapshot creadas en un volumen distinto de SnapLock se transfieren a un volumen de SnapLock para la protección como parte de la relación de almacén de SnapLock. Los LUN no son compatibles con los volúmenes de SnapLock de lectura/escritura. Las copias Snapshot a prueba de manipulaciones son compatibles tanto con los volúmenes de origen como con los volúmenes de destino de SnapMirror que contienen LUN.
 
-A partir de ONTAP 9.13.1, puede restaurar al instante una copia Snapshot bloqueada en el volumen SnapLock de destino de una relación de SnapLock para SnapVault creando un FlexClone con el `snaplock-type` Opción establecida en «non-snaplock» y especificando la copia Snapshot como la «parent-snapshot» al ejecutar la operación de creación de clones de volúmenes. Más información acerca de link:https://docs.netapp.com/us-en/ontap/volumes/create-flexclone-task.html?q=volume+clone["Creación de un volumen FlexClone con un tipo de SnapLock"].
+A partir de ONTAP 9.14.1, puede especificar períodos de retención para etiquetas de SnapMirror específicas en la política de SnapMirror de la relación de SnapMirror, de modo que las copias Snapshot replicadas del volumen de origen al de destino se conserven durante el período de retención especificado en la regla. Si no se especifica ningún período de retención, se utiliza el período de retención predeterminado del volumen de destino.
+
+A partir de ONTAP 9.13.1, puede restaurar instantáneamente una copia Snapshot bloqueada en el volumen SnapLock de destino de una relación de almacén de SnapLock mediante la creación de un FlexClone con el `snaplock-type` Opción establecida en «non-snaplock» y especificando la copia Snapshot como la «parent-snapshot» al ejecutar la operación de creación de clones de volúmenes. Más información acerca de link:https://docs.netapp.com/us-en/ontap/volumes/create-flexclone-task.html?q=volume+clone["Creación de un volumen FlexClone con un tipo de SnapLock"].
 
 Para las configuraciones de MetroCluster, debe tener en cuenta lo siguiente:
 
@@ -44,13 +46,13 @@ Para las configuraciones de MetroCluster, debe tener en cuenta lo siguiente:
 * Puede crear una relación de SnapVault entre un volumen en una SVM que sirva datos y un volumen de DP en una SVM sincronizada en origen.
 
 
-En la siguiente ilustración, se muestra el procedimiento para inicializar una relación de SnapVault:
+En la siguiente ilustración, se muestra el procedimiento para inicializar una relación de almacén de SnapLock:
 
-image::../media/snapvault-steps-clustered.gif[En esta ilustración, se muestra el procedimiento para inicializar una relación de SnapVault: Identificar el clúster de destino,creating a destination volume,creating a policy]
+image::../media/snapvault-steps-clustered.gif[En esta ilustración, se muestra el procedimiento para inicializar una relación de almacén de SnapLock: Identificar el clúster de destino,creating a destination volume,creating a policy]
 
 .Pasos
 . Identifique el clúster de destino.
-. En el clúster de destino, instale la licencia de SnapLock, inicialice la instancia de ComplianceClock y, si utiliza una versión de ONTAP anterior a 9.10.1, cree un agregado de SnapLock, como se describe en xref:workflow-concept.html[Flujo de trabajo de SnapLock].
+. En el clúster de destino, instale la licencia de SnapLock, inicialice el reloj de cumplimiento de normativas y, si utiliza una versión de ONTAP anterior a 9.10.1, cree un agregado de SnapLock, como se describe en xref:workflow-concept.html[Flujo de trabajo de SnapLock].
 . En el clúster de destino, cree un volumen de destino de SnapLock de tipo `DP` que tiene el mismo tamaño o mayor que el volumen de origen:
 +
 `*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -snaplock-type compliance|enterprise -type DP -size _size_*`

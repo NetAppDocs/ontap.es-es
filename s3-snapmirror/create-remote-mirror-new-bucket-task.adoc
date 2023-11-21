@@ -71,7 +71,11 @@ Consulte link:../task_object_provision_add_s3_users_groups.html["Añada usuarios
 +
 *** *Principal* y *efecto*: Seleccione los valores correspondientes a la configuración de su grupo de usuarios o acepte los valores predeterminados.
 *** *Acciones*- Asegúrese de que se muestran los siguientes valores:
-`GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts`
++
+[listing]
+----
+GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts
+----
 *** *Recursos*: Utilice los valores predeterminados `(_bucketname, bucketname_/*)` u otros valores que necesite.
 +
 Consulte link:../task_object_provision_manage_bucket_access.html["Gestionar el acceso del usuario a bloques"] para obtener más información sobre estos campos.
@@ -97,13 +101,17 @@ Consulte link:../task_object_provision_manage_bucket_access.html["Gestionar el a
 
 
 
+. Marque *Utilice el mismo certificado en el destino* si está utilizando un certificado firmado por un proveedor de CA externo.
+. Si hace clic en *Configuración de destino*, también puede introducir sus propios valores en lugar de los valores predeterminados para el nombre del bloque, la capacidad y el nivel de servicio de rendimiento.
+. Haga clic en *Guardar*. Se crea un nuevo bucket en la máquina virtual de almacenamiento de origen que se refleja en un nuevo bucket que se crea la máquina virtual de almacenamiento de destino.
 
 
-Marque *Utilice el mismo certificado en el destino* si está utilizando un certificado firmado por un proveedor de CA externo.
+.Haga retroceder los cucharones bloqueados
+A partir de ONTAP 9.14.1, puede crear un backup de bloques S3 bloqueados y restaurarlos según sea necesario.
 
-Si hace clic en *Configuración de destino*, también puede introducir sus propios valores en lugar de los valores predeterminados para el nombre del bloque, la capacidad y el nivel de servicio de rendimiento.
+Al definir la configuración de protección para un bloque nuevo o existente, puede habilitar el bloqueo de objetos en los buckets de destino, siempre y cuando los clústeres de origen y de destino ejecuten ONTAP 9.14.1 o una versión posterior, y que el bloqueo de objetos se habilite en el bloque de origen. El modo de bloqueo de objetos y la tenencia de retención de bloqueos del bloque de origen se aplican a los objetos replicados en el bloque de destino. También puede definir un período de retención de bloqueo diferente para el depósito de destino en la sección *Configuración de destino*. Este período de retención también se aplica a cualquier objeto no bloqueado replicado desde el bloque de origen e interfaces S3.
 
-Al hacer clic en *Guardar*, se crea un nuevo bloque en el equipo virtual de almacenamiento de origen y se refleja en un nuevo bloque que se crea el equipo virtual de almacenamiento de destino.
+Para obtener información sobre cómo activar el bloqueo de objetos en un depósito, consulte link:../s3-config/create-bucket-task.html["Crear un bucket"].
 
 --
 .CLI
@@ -135,15 +143,15 @@ No vuelva a generar la clave si ya existe.
 ----
 src_cluster::> vserver object-store-server bucket policy add-statement -bucket test-bucket -effect allow -action GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts -principal - -resource test-bucket, test-bucket /*
 ----
-. En la SVM de origen, cree una política de SnapMirror de S3 si no tiene una existente y no quiere usar la directiva predeterminada:
+. En la SVM de origen, cree una política de SnapMirror S3 si no tiene una existente y no quiere usar la política predeterminada:
 `snapmirror policy create -vserver _svm_name_ -policy policy_name -type continuous [-rpo _integer_] [-throttle _throttle_type_] [-comment _text_] [_additional_options_]`
 +
 Parámetros:
 
 +
-** tipo `continuous` : El único tipo de política para relaciones SnapMirror de S3 (obligatorio).
-** `-rpo` – especifica el tiempo para el objetivo de punto de recuperación, en segundos (opcional).
-** `-throttle` – especifica el límite superior de rendimiento/ancho de banda, en kilobytes/segundos (opcional).
+** tipo `continuous` - El único tipo de política para las relaciones de SnapMirror S3 (requerido).
+** `-rpo` - especifica el tiempo para el objetivo de punto de recuperación, en segundos (opcional).
+** `-throttle` - especifica el límite superior de rendimiento/ancho de banda, en kilobytes/segundos (opcional).
 +
 .Ejemplo
 [listing]

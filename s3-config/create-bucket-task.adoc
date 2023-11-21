@@ -14,14 +14,14 @@ summary: Los objetos S3 se conservan en _buckets_--no están anidados como archi
 Los objetos S3 se conservan en _buckets_--no están anidados como archivos dentro de un directorio dentro de otros directorios.
 
 .Antes de empezar
-Debe haber una SVM que contenga un servidor S3.
+Debe existir una máquina virtual de almacenamiento que contenga un servidor S3.
 
 .Acerca de esta tarea
 Para la CLI, cuando crea un bloque, tiene dos opciones de aprovisionamiento:
 
 * Dejar a ONTAP Select los agregados subyacentes y los componentes de FlexGroup (predeterminado)
 +
-** ONTAP crea y configura un volumen de FlexGroup para el primer bloque seleccionando automáticamente los agregados. Seleccionará automáticamente el nivel de servicio más alto disponible para su plataforma, o bien se puede especificar el nivel de servicio de almacenamiento. Todos los bloques adicionales que añada más adelante en la SVM tendrán el mismo volumen de FlexGroup subyacente.
+** ONTAP crea y configura un volumen de FlexGroup para el primer bloque seleccionando automáticamente los agregados. Seleccionará automáticamente el nivel de servicio más alto disponible para su plataforma, o bien se puede especificar el nivel de servicio de almacenamiento. Todos los bloques adicionales que añada más adelante a la máquina virtual de almacenamiento tendrán el mismo volumen de FlexGroup subyacente.
 ** También puede especificar si el bloque se utilizará para la organización en niveles, en cuyo caso ONTAP intentará seleccionar medios de bajo coste con un rendimiento óptimo para los datos organizados en niveles.
 
 
@@ -41,74 +41,35 @@ Cuando se especifican agregados y componentes al crear un bloque, no se aplican 
 
 
 
+A partir de ONTAP 9.14.1, puede hacerlo link:create-bucket-mcc-task.html["Cree un bucket en un agregado reflejado o no reflejado en una configuración de MetroCluster"].
+
 *Nota:* Si está sirviendo cubos de Cloud Volumes ONTAP, debe utilizar el procedimiento CLI. Se recomienda seleccionar manualmente los agregados subyacentes para garantizar que solo utilicen un nodo. El uso de agregados de ambos nodos puede afectar al rendimiento, ya que los nodos se encuentran en zonas de disponibilidad separadas geográficamente y, por lo tanto, pueden estar expuestos a problemas de latencia.
 
 Los niveles de servicio de almacenamiento son grupos de políticas de calidad de servicio (QoS) adaptativos predefinidos, con niveles _Value_, _Performance_ y _Extreme_ predeterminados. En lugar de uno de los niveles de servicio de almacenamiento predeterminados, también puede definir un grupo de políticas de calidad de servicio personalizado y aplicarlo a un bloque.
 
 A partir de ONTAP 9.8, cuando se aprovisiona el almacenamiento, la calidad de servicio se habilita de forma predeterminada. Puede deshabilitar la calidad de servicio o seleccionar una política de calidad de servicio personalizada durante el proceso de aprovisionamiento o más adelante.
 
-link:storage-service-definitions-reference.html["Definiciones de servicios de almacenamiento"]
+Para obtener más información sobre las definiciones de servicios de almacenamiento, consulte link:storage-service-definitions-reference.html["Definiciones de servicios de almacenamiento"]
 
-Si va a configurar la organización en niveles de la capacidad local, debe crear bloques y usuarios en una SVM de datos, no en la SVM del sistema donde se encuentra el servidor S3.
+Si va a configurar la organización en niveles de capacidad local, debe crear bloques y usuarios en una máquina virtual de almacenamiento de datos, no en la máquina virtual de almacenamiento del sistema donde está ubicado el servidor S3.
 
 Para el acceso de cliente remoto, debe configurar buckets en una máquina virtual de almacenamiento habilitada para S3. Si crea un bloque en una máquina virtual de almacenamiento que no tiene la función S3, solo estará disponible para la organización en niveles local.
 
-link:../performance-admin/index.html["Gestión del rendimiento"]
+Para obtener más información sobre la gestión del rendimiento, consulte link:../performance-admin/index.html["Gestión del rendimiento"]
 
 Consulte `vserver object-store-server bucket` páginas de manual para opciones de visualización y configuración adicionales.
 
 
 
-== Proceso para crear cubos
+== Crear bloques S3 con la interfaz de línea de comandos de ONTAP
 
-[role="tabbed-block"]
-====
-.System Manager
---
-. Añadir un nuevo bloque en una máquina virtual de almacenamiento habilitada para S3.
-+
-.. Haga clic en *almacenamiento > Cuchos* y, a continuación, haga clic en *Agregar*.
-.. Introduzca un nombre, seleccione la máquina virtual de almacenamiento e introduzca un tamaño.
-+
-*** Si hace clic en *Guardar* en este punto, se crea un bloque con estos valores predeterminados:
-+
-**** No se concede acceso a ningún usuario al bloque a menos que ninguna política de grupo esté ya en vigor.
-+
-
-NOTE: No se debe usar el usuario raíz de S3 para gestionar el almacenamiento de objetos ONTAP y compartir sus permisos, ya que tiene acceso ilimitado al almacén de objetos. En su lugar, cree un usuario o grupo con privilegios administrativos que asigne.
-
-**** Un nivel de calidad de servicio (rendimiento) que es el más alto disponible para su sistema.
-
-
-*** Puede hacer clic en *más opciones* para configurar los permisos de usuario y el nivel de rendimiento al configurar el bloque, o puede modificar esta configuración más tarde.
-+
-**** Debe haber creado usuarios y grupos antes de utilizar *más opciones* para configurar sus permisos.
-**** Si tiene la intención de utilizar el almacén de objetos S3 para la organización en niveles de FabricPool, considere la posibilidad de seleccionar *utilizar para la organización en niveles* (utilizar medios de bajo coste con un rendimiento óptimo para los datos organizados en niveles) en lugar de un nivel de servicio de rendimiento.
-
-
-
-
-
-
-. En aplicaciones de cliente S3, otro sistema ONTAP o una aplicación de terceros externa, verifique el acceso al nuevo bloque introduciendo lo siguiente:
-+
-** El certificado de CA de servidor S3.
-** Clave secreta y clave de acceso del usuario.
-** El nombre FQDN del servidor S3 y el nombre de bloque.
-
-
-
-
---
-.CLI
---
 . Si piensa seleccionar agregados y componentes de FlexGroup por su cuenta, establezca el nivel de privilegio en Advanced (de lo contrario, el nivel de privilegio de administrador es suficiente): `set -privilege advanced`
 . Crear un bloque:
 +
 `vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]`
 
 +
-El nombre de la SVM puede ser una SVM o una `Cluster` (El nombre de SVM del sistema) si va a configurar la organización en niveles local.
+El nombre de la máquina virtual de almacenamiento puede ser una máquina virtual de almacenamiento de datos o `Cluster` (El nombre de VM de almacenamiento del sistema) si se va a configurar la organización en niveles local.
 
 +
 Si no especifica ninguna opción, ONTAP crea un bloque de 5 GB con el nivel de servicio establecido en el nivel más alto disponible para su sistema.
@@ -155,11 +116,74 @@ El valor predeterminado de `-aggr-list-multiplier` el parámetro es 4.
 
 
 .Ejemplo
-En el siguiente ejemplo se crea un bucket para SVM vs1 de tamaño 1 TB y se especifica el agregado:
+En el siguiente ejemplo se crea un bloque para la máquina virtual de almacenamiento VS1 GB de tamaño 1TB y se especifica el agregado:
 
 [listing]
 ----
 cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket -aggr-list aggr1 -size 1TB
 ----
---
-====
+
+
+== Crear bloques S3 con System Manager
+
+. Añadir un nuevo bloque en una máquina virtual de almacenamiento habilitada para S3.
++
+.. Haga clic en *almacenamiento > Cuchos* y, a continuación, haga clic en *Agregar*.
+.. Introduzca un nombre, seleccione la máquina virtual de almacenamiento e introduzca un tamaño.
++
+*** Si hace clic en *Guardar* en este punto, se crea un bloque con estos valores predeterminados:
++
+**** No se concede acceso a ningún usuario al bloque a menos que ninguna política de grupo esté ya en vigor.
++
+
+NOTE: No se debe usar el usuario raíz de S3 para gestionar el almacenamiento de objetos ONTAP y compartir sus permisos, ya que tiene acceso ilimitado al almacén de objetos. En su lugar, cree un usuario o grupo con privilegios administrativos que asigne.
+
+**** Un nivel de calidad de servicio (rendimiento) que es el más alto disponible para su sistema.
+
+
+*** Haga clic en *Guardar* para crear un bucket con estos valores predeterminados.
+
+
+
+
+
+
+
+
+=== Configurar permisos y restricciones adicionales
+
+Puede hacer clic en *Más opciones* para configurar la configuración de bloqueo de objetos, permisos de usuario y nivel de rendimiento cuando configure el depósito, o puede modificar estos ajustes más adelante.
+
+Si tiene la intención de utilizar el almacén de objetos S3 para la organización en niveles de FabricPool, considere la posibilidad de seleccionar *utilizar para la organización en niveles* (utilizar medios de bajo coste con un rendimiento óptimo para los datos organizados en niveles) en lugar de un nivel de servicio de rendimiento.
+
+Si desea habilitar el control de versiones de sus objetos para su posterior recuperación, seleccione *Activar control de versiones*. El control de versiones está activado de forma predeterminada si está activando el bloqueo de objetos en el depósito. Para obtener más información sobre el control de versiones de objetos, consulte https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html["Uso del control de versiones en bloques de S3 para Amazon"].
+
+A partir de 9.14.1, el bloqueo de objetos es compatible con bloques de S3. Si desea proteger los objetos de su depósito para que no se borren o sobrescriban, seleccione *Habilitar bloqueo de objetos*. El bloqueo se puede habilitar en todas las versiones de objetos o en algunas específicas, y solo cuando se inicializa el reloj de cumplimiento de normativas de SnapLock para los nodos del clúster. Siga estos pasos:
+
+. Si el reloj de cumplimiento de SnapLock no se inicializa en ningún nodo del clúster, aparece el botón *Inicializar reloj de cumplimiento de SnapLock*. Haga clic en *Inicializar reloj de cumplimiento de SnapLock* para inicializar el reloj de cumplimiento de SnapLock en los nodos del clúster.
+. Seleccione el modo *Gobernanza* para activar un bloqueo basado en el tiempo que permite los permisos _Escribir una vez, leer muchos (WORM)_ en los objetos. Incluso en el modo _Governance_, los objetos pueden ser eliminados por los usuarios administradores con permisos específicos.
+. Seleccione el modo *Compliance* si desea asignar reglas más estrictas de eliminación y actualización en los objetos. En este modo de bloqueo de objetos, los objetos solo pueden caducarse al finalizar el período de retención especificado. A menos que se especifique un período de retención, los objetos permanecen bloqueados indefinidamente.
+. Especifique la tenencia de retención del bloqueo en días o años si desea que el bloqueo se aplique durante un período determinado.
++
+
+NOTE: El bloqueo se aplica a los cucharones S3 con versiones y sin versiones. El bloqueo de objetos no se aplica a los objetos NAS.
+
+
+
+Puede configurar los ajustes de protección y permisos, así como el nivel de servicio de rendimiento del bloque.
+
+
+NOTE: Debe haber creado usuarios y grupos antes de configurar los permisos.
+
+Para obtener más información, consulte link:../s3-snapmirror/create-remote-mirror-new-bucket-task.html#system-manager-procedure["Crear reflejo para nuevo bloque"].
+
+
+
+=== Verifique el acceso al cucharón
+
+En aplicaciones cliente S3 (ya sea ONTAP S3 o una aplicación externa de 3^rd^), puede verificar el acceso al depósito recién creado introduciendo lo siguiente:
+
+* El certificado de CA de servidor S3.
+* La clave de acceso y la clave secreta del usuario.
+* El nombre FQDN del servidor S3 y el nombre de bloque.
+

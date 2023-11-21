@@ -1,0 +1,82 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-rest-api.html 
+keywords: acquire token, curl, rest api call, keycloak 
+summary: La implementación de OAuth 2,0 en ONTAP es compatible con las aplicaciones del cliente API de REST. Puede emitir una llamada a la API de REST simple usando cURL para comenzar a usar OAuth 2,0. 
+---
+= Emita una llamada a la API REST mediante OAuth 2,0
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+La implementación de OAuth 2,0 en ONTAP es compatible con las aplicaciones del cliente API de REST. Puede emitir una llamada a la API de REST simple usando cURL para comenzar a usar OAuth 2,0. El ejemplo que se presenta a continuación recupera la versión del cluster de ONTAP.
+
+
+
+== Antes de empezar
+
+Tiene que configurar y habilitar la función OAuth 2,0 para el clúster de ONTAP. Esto incluye la definición de un servidor de autorización.
+
+
+
+== Paso 1: Adquiera un token de acceso
+
+Debe adquirir un token de acceso para utilizarlo con la llamada de la API de REST. La solicitud de token se realiza fuera de ONTAP y el procedimiento exacto depende del servidor de autorización y de su configuración. Puede solicitar el token a través de un navegador web, con un comando curl o utilizando un lenguaje de programación.
+
+Para fines ilustrativos, a continuación se presenta un ejemplo de cómo se puede solicitar un token de acceso desde Keycloak usando curl.
+
+.Ejemplo de Keycloak
+[source, curl]
+----
+curl --request POST \
+--location 'https://superzap.dev.netapp.com:8443/realms/peterson/protocol/openid-connect/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'client_id=dp-client-1' \
+--data-urlencode 'grant_type=client_credentials' \
+--data-urlencode 'client_secret=5iTUf9QKLGxAoYa1iR33vlD5A2xq09V7'
+----
+Debe copiar y guardar el token devuelto.
+
+
+
+== Paso 2: Emita la llamada a la API de REST
+
+Una vez que tenga un token de acceso válido, puede usar un comando cURL con el token de acceso para emitir una llamada a la API de REST.
+
+.Parámetros y variables
+Las dos variables del ejemplo de curl se describen en la tabla siguiente.
+
+[cols="25,75"]
+|===
+| Variable | Descripción 
+
+
+| $FQDN_IP | El nombre de dominio completo o la dirección IP de la LIF de gestión de ONTAP. 
+
+
+| $ACCESS_TOKEN | El token de acceso OAuth 2,0 emitido por el servidor de autorización. 
+|===
+Primero debe definir estas variables en el entorno de shell de Bash antes de emitir el ejemplo de cURL. Por ejemplo, en la CLI de Linux escriba el siguiente comando para establecer y mostrar la variable FQDN:
+
+[listing]
+----
+FQDN_IP=172.14.31.224
+echo $FQDN_IP
+172.14.31.224
+----
+Después de definir ambas variables en el shell Bash local, puede copiar el comando cURL y pegarlo en la CLI. Presione *Enter* para sustituir las variables y emitir el comando.
+
+.Ejemplo de curl
+[source, curl]
+----
+curl --request GET \
+--location "https://$FQDN_IP/api/cluster?fields=version" \
+--include \
+--header "Accept: */*" \
+--header "Authorization: Bearer $ACCESS_TOKEN"
+----

@@ -1,0 +1,59 @@
+---
+permalink: nfs-trunking/index.html 
+sidebar: sidebar 
+keywords: NFSv4.1, trunking, Linux, VMware, FlexGroup, volumes, multipathing, AI/ML, rdma, data lake 
+summary: A partir de ONTAP 9.14.1, los clientes NFS que ejecuten v4,1 o posterior pueden aprovechar la funcionalidad de enlace de sesiones para abrir varias conexiones al servidor NFS, lo que aumenta la velocidad de transferencia de datos y ofrece resiliencia mediante la multivía 
+---
+= Descripción general de trunking NFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.14.1, los clientes NFSv4,1 pueden aprovechar la conexión de enlaces de sesión para abrir varias conexiones a diferentes LIF en el servidor NFS, lo que aumenta la velocidad de transferencia de datos y ofrece resiliencia a través de la multivía.
+
+La conexión de enlaces proporciona ventajas para exportar volúmenes de FlexVol a clientes con capacidad de Trunking, en particular clientes VMware y Linux o para NFS a través de RDMA, TCP o pNFS.
+
+En ONTAP 9.14.1, la conexión de enlaces se limita a las LIF en un único nodo; la conexión de enlaces no puede abarcar las LIF en varios nodos.
+
+Los volúmenes FlexGroup se admiten para la conexión de enlaces. Aunque puede proporcionar un mejor rendimiento, el acceso multivía a un volumen FlexGroup solo puede configurarse en un único nodo.
+
+En esta versión, solo se admite la conexión troncal de sesión para el acceso multivía.
+
+
+
+== Cómo utilizar trunking
+
+Para aprovechar las ventajas de las rutas múltiples que ofrece la conexión de enlaces, necesita un conjunto de LIF, denominados _grupo de conexión troncal_, asociados a la SVM que contiene un servidor NFS habilitado para conexión de enlaces. Las LIF de un grupo de enlaces deben tener puertos iniciales en el mismo nodo del clúster y deben residir en esos puertos iniciales. Es recomendable que todas las LIF de un grupo de enlaces sean miembros del mismo grupo de recuperación tras fallos.
+
+ONTAP admite hasta 16 conexiones troncalizadas por nodo desde un cliente determinado.
+
+Cuando un cliente monta exportaciones desde un servidor habilitado para conexión de enlaces, especifica una serie de direcciones IP para las LIF en un grupo de conexiones. Una vez que el cliente se conecta a la primera LIF, los LIF adicionales solo se agregan a la sesión NFSv4,1 y se usan para la conexión de enlaces si cumplen los requisitos de grupo de Trunking. A continuación, el cliente distribuye las operaciones de NFS a través de las múltiples conexiones basadas en su propio algoritmo (como round-robin).
+
+Para obtener el mejor rendimiento, se debe configurar el enlace de enlaces en una SVM que se dedique a proporcionar exportaciones multivía, no de rutas únicas. Es decir, solo debe habilitar la conexión troncal en un servidor NFS en una SVM cuyas exportaciones se proporcionan únicamente a clientes habilitados para la conexión troncal.
+
+
+
+== Clientes admitidos
+
+El servidor ONTAP NFSv4,1 admite la conexión troncal con cualquier cliente capaz de realizar una conexión troncal de sesión NFSv4,1.
+
+Los siguientes clientes han sido probados con ONTAP 9.14.1:
+
+* VMware: ESXi 7.0U3F y versiones posteriores
+* Linux: Red Hat Enterprise Linux (RHEL) 8,8 y 9,3
+
+
+
+NOTE: Al habilitar la conexión troncal en un servidor NFS, los usuarios que acceden a recursos compartidos exportados en clientes NFS que no admiten la conexión troncal pueden ver una caída de rendimiento. Esto se debe a que solo se utiliza una única conexión TCP para varios montajes en las LIF de datos de SVM.
+
+
+
+== Diferencia entre la conexión de enlaces NFS y nconnect
+
+A partir de ONTAP 9.8, la funcionalidad nconnect está disponible de forma predeterminada con NFSv4.1 habilitado. En clientes que admiten nconnect, un solo montaje NFS puede tener varias conexiones TCP (hasta 16) a través de un único LIF.
+
+Por el contrario, la función de enlace es la funcionalidad _multipathing_, que proporciona varias conexiones TCP a través de varias LIF. Si tiene la capacidad de emplear NIC adicionales en su entorno, la troncalización proporciona un mayor paralelismo y rendimiento más allá de la capacidad de nconnect.
+
+Más información acerca de link:../nfs-admin/ontap-support-nfsv41-concept.html["nconectar."]

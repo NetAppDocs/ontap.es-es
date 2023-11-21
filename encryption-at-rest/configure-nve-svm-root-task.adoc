@@ -1,0 +1,73 @@
+---
+permalink: encryption-at-rest/configure-nve-svm-root-task.html 
+keywords: volume encryption, nve, svm root, encrypt 
+summary: 'El cifrado de volúmenes de NetApp (NVE) es una tecnología basada en software para cifrar datos en reposo un volumen por vez. Puede configurar NVE en un raíz de SVM a partir de ONTAP 9.14.1.' 
+---
+= Configure el cifrado de volúmenes NetApp en un volumen raíz de SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.14.1, puede habilitar el cifrado de volúmenes de NetApp (NVE) en un volumen raíz de una máquina virtual de almacenamiento (SVM). Con NVE, el volumen raíz se cifra con una clave única, lo que permite una mayor seguridad en la SVM.
+
+.Acerca de esta tarea
+NVE en un volumen raíz de SVM solo se puede habilitar una vez que se creó la SVM.
+
+.Antes de empezar
+* El volumen raíz de SVM no debe estar en un agregado cifrado con el cifrado de agregados de NetApp (NAE).
+* Debe haber habilitado el cifrado con el administrador de claves incorporado o un gestor de claves externo.
+* Debe ejecutar ONTAP 9.14.1 o una versión posterior.
+* Para migrar una SVM que contiene un volumen raíz cifrado con NVE, debe convertir el volumen raíz de la SVM en un volumen de texto sin formato una vez finalizada la migración y, luego, volver a cifrar el volumen raíz de la SVM.
++
+** Si el agregado de destino de la migración de SVM utiliza NAE, el volumen raíz hereda NAE de manera predeterminada.
+
+
+* Si la SVM está en una relación de recuperación ante desastres de SVM:
++
+** La configuración de cifrado en una SVM reflejada no se copia en el destino. Si habilita NVE en el origen o destino, debe habilitar por separado NVE en el volumen raíz de la SVM reflejada.
+** Si todos los agregados del clúster de destino utilizan NAE, el volumen raíz de SVM utilizará NAE.
+
+
+
+
+.Pasos
+Puede habilitar NVE en un volumen raíz de SVM con la interfaz de línea de comandos de ONTAP o System Manager.
+
+[role="tabbed-block"]
+====
+.CLI
+--
+Puede habilitar NVE en el volumen raíz de la SVM sin movimiento o mediante el movimiento del volumen entre agregados.
+
+.Cifre el volumen raíz en su lugar
+. Convierta el volumen raíz en un volumen de cifrado:
++
+`volume encryption conversion start -vserver _svm_name_ -volume _volume_`
+
+. Confirme que el cifrado se ha realizado correctamente. La `volume show -encryption-type volume` Muestra una lista de todos los volúmenes con NVE.
+
+
+.Cifre el volumen raíz de la SVM al moverlo
+. Inicie un movimiento de volumen:
++
+`volume move start -vserver _svm_name_ -volume _volume_ -destination-aggregate _aggregate_ -encrypt-with-aggr-key false -encrypt-destination true`
+
++
+Para obtener más información acerca de `volume move`, consulte xref:../volumes/move-volume-task.html[Mover un volumen].
+
+. Confirme el `volume move` la operación se ha realizado correctamente con el `volume move show` comando. La `volume show -encryption-type volume` Muestra una lista de todos los volúmenes con NVE.
+
+
+--
+.System Manager
+--
+. Navegue hasta **Almacenamiento** > **Volúmenes**.
+. Junto al nombre del volumen raíz de la SVM que desea cifrar, seleccione image:icon_kabob.gif["tres puntos verticales"] Luego **Editar**.
+. En el encabezado **Almacenamiento y optimización**, seleccione **Activar cifrado**.
+. Selecciona **Guardar**.
+
+
+--
+====

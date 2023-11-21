@@ -15,7 +15,7 @@ Los grupos de coherencia jerárquicos permiten gestionar cargas de trabajo grand
 
 Los grupos de consistencia jerárquicos tienen un primario que puede incluir hasta cinco grupos de consistencia individuales. Los grupos de coherencia jerárquicos pueden admitir diferentes políticas Snapshot locales en grupos de coherencia o volúmenes individuales. Si utiliza una política de protección remota, que se aplicará a todo el grupo de consistencia jerárquico (primario y secundario).
 
-A partir de ONTAP 9.13.1, puedes hacerlo xref:modify-geometry-task.html[modifique la geometría de sus grupos de consistencia] y.. xref:modify-task.html[mueva volúmenes entre grupos de coherencia secundarios].
+A partir de ONTAP 9.13.1, puede hacerlo xref:modify-geometry-task.html[modifique la geometría de sus grupos de consistencia] y.. xref:modify-task.html[mueva volúmenes entre grupos de coherencia secundarios].
 
 Para obtener información sobre los límites de objetos en los grupos de consistencia, consulte xref:limits.html[Límites de objetos para los grupos de consistencia].
 
@@ -25,6 +25,10 @@ Para obtener información sobre los límites de objetos en los grupos de consist
 
 Al crear un grupo de consistencia jerárquico, puede rellenarlo con nuevas LUN. A partir de ONTAP 9.13.1, también se pueden usar nuevos espacios de nombres NVMe y volúmenes NAS.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Pasos
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione *+Agregar* y, a continuación, seleccione el protocolo para el objeto de almacenamiento.
@@ -33,7 +37,7 @@ En ONTAP 9.10.1 a 9.12.1, la única opción para un nuevo objeto de almacenamien
 
 . Asigne un nombre al grupo de consistencia. Designe el número de volúmenes o LUN y la capacidad por volumen o LUN.
 +
-.. **Tipo de aplicación**: Si está utilizando ONTAP 9.12.1 o posterior, seleccione un tipo de aplicación. Si no se selecciona ningún valor, se asignará al grupo de consistencia el tipo de **Other** de forma predeterminada. Obtenga más información sobre la coherencia de etiquetado en xref:index.html#application-and-component-tags[Etiquetas de aplicaciones y componentes]. Si planea usar una política de protección remota, debe elegir *Otro*.
+.. **Tipo de aplicación**: Si está utilizando ONTAP 9.12.1 o posterior, seleccione un tipo de aplicación. Si no se selecciona ningún valor, se asignará al grupo de consistencia el tipo de **Other** de forma predeterminada. Obtenga más información sobre la coherencia de etiquetado en xref:modify-tags-task.html[Etiquetas de aplicaciones y componentes]. Si planea usar una política de protección remota, debe elegir *Otro*.
 
 
 . Seleccione el sistema operativo del host y el formato de LUN. Introduzca la información del iniciador del host.
@@ -51,12 +55,33 @@ En ONTAP 9.10.1 a 9.12.1, la única opción para un nuevo objeto de almacenamien
 . Para confirmar que se ha creado el grupo de coherencia, vuelva al menú del grupo de consistencia principal, donde aparecerá una vez que se complete el trabajo de ONTAP. Si establece una directiva de protección, mire bajo la directiva apropiada, remota o local, que debe mostrar un escudo verde con una Marca de verificación en ella.
 
 
+--
+.CLI
+--
+A partir de ONTAP 9.14.1, puede crear un nuevo grupo de consistencia jerárquico mediante la CLI.
+
+.Paso
+. Cree el nuevo grupo de consistencia mediante el `consistency-group create` comando.
++
+La `volume-count` parameter configura la cantidad de volúmenes en cada grupo de coherencia secundario. Se puede crear un grupo de coherencia primario con un máximo de cinco grupos de consistencia secundarios.
+
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency_group_name_ -parent-consistency-group _parent_consistency_group_name_ -cg-count _number_of_child_consistency_groups_ -volume _volume_prefix_ -volume-count _number_ -size _size_ -export-policy _policy_name_ -storage-service extreme`
+
+
+
+--
+====
 
 
 == Cree un grupo de coherencia jerárquico con volúmenes existentes
 
 Se pueden organizar los volúmenes existentes en un grupo de coherencia jerárquico.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Pasos
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione *+Agregar* y *utilizando volúmenes existentes*.
@@ -74,6 +99,21 @@ Se pueden organizar los volúmenes existentes en un grupo de coherencia jerárqu
 . Para confirmar que se ha creado el grupo de coherencia, vuelva al menú del grupo de consistencia principal, donde aparecerá una vez que se complete el trabajo de ONTAP. Si ha elegido una política de protección, confirme que se ha configurado correctamente seleccionando su grupo de consistencia en el menú; en el tipo de política correspondiente, verá un escudo verde con una Marca de verificación en el interior de la misma.
 
 
+--
+.CLI
+--
+A partir de ONTAP 9.14.1, puede crear un grupo de consistencia jerárquico mediante la CLI.
+
+.Pasos
+. Aprovisione un nuevo grupo de coherencia primario y asigne volúmenes a un nuevo grupo de consistencia secundario:
++
+`consistency-group create -vserver _svm_name_ -consistency-group _child_consistency_group_name_ -parent-consistency-group _parent_consistency_group_name_ -volumes _volume_names_`
+
+. Introduzca `y` para confirmar que desea crear un nuevo grupo de consistencia primario y secundario.
+
+
+--
+====
 .Siguientes pasos
 * xref:xref:modify-geometry-task.html[Modificar la geometría de un grupo de consistencia]
 * xref:modify-task.html[Modificar un grupo de consistencia]

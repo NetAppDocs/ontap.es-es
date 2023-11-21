@@ -1,7 +1,7 @@
 ---
 permalink: encryption-at-rest/configure-netapp-volume-encryption-concept.html 
 sidebar: sidebar 
-keywords: configure, netapp, volume encryption, nve, aggregate-level, support details, data encryption, encrypt data at rest, storage encryption, key 
+keywords: volume encryption, nve, aggregate-level, support details, data encryption, encrypt data at rest, storage encryption, key 
 summary: 'El cifrado de volúmenes de NetApp (NVE) es una tecnología basada en software para cifrar datos en reposo un volumen por vez. Una clave de cifrado a la que solo se puede acceder el sistema de almacenamiento garantiza que los datos de volumen no se puedan leer si el dispositivo subyacente se reasigna, se devuelve, se pierde o es robado.' 
 ---
 = Configure la información general de cifrado de volúmenes de NetApp
@@ -25,15 +25,14 @@ Con NVE, tanto los metadatos como los datos (incluidas las copias Snapshot) est�
 
 A partir de ONTAP 9.7, el cifrado de volúmenes y agregados se habilita de forma predeterminada si se dispone de una licencia de cifrado de volúmenes (ve) y se usa un gestor de claves incorporado o externo. Siempre que se configure un gestor de claves externo o incorporado, habrá un cambio en el modo en que la configuración del cifrado de datos en reposo está establecida para los agregados y volúmenes totalmente nuevos. Los nuevos agregados tendrán activado de forma predeterminada el cifrado de agregados de NetApp (NAE). Los volúmenes nuevos que no forman parte de un agregado de NAE tendrán habilitado el cifrado de volúmenes de NetApp (NVE), de forma predeterminada. Si una máquina virtual de almacenamiento de datos (SVM) está configurada con su propio gestor de claves mediante la gestión de claves multi-tenant, el volumen creado para esa SVM se configura automáticamente con NVE.
 
-Puede habilitar el cifrado en un volumen nuevo o existente. NVE es compatible con toda la gama de funciones de eficiencia del almacenamiento, incluidas la deduplicación y la compresión.
+Puede habilitar el cifrado en un volumen nuevo o existente. NVE es compatible con toda la gama de funciones de eficiencia del almacenamiento, incluidas la deduplicación y la compresión. A partir de ONTAP 9.14.1, puede hacerlo xref:/configure-nve-svm-root-task.html[Habilite NVE en los volúmenes raíz de la SVM existentes].
 
 
 NOTE: Si utiliza SnapLock, puede habilitar el cifrado solo en volúmenes de SnapLock nuevos y vacíos. No puede habilitar el cifrado en un volumen de SnapLock existente.
 
 Es posible utilizar el NVE en cualquier tipo de agregado (HDD, SSD, híbrido, LUN de cabina), con cualquier tipo de RAID y en cualquier implementación de ONTAP compatible, incluido ONTAP Select. También puede utilizar NVE con cifrado basado en hardware para «doble cifrado» de datos en unidades con autocifrado.
 
-
-NOTE: Los sistemas AFF A220, AFF A800, FAS2720, FAS2750 y posteriores almacenan volcados principales en su dispositivo de arranque. Cuando NVE está habilitado en estos sistemas, el volcado principal también está cifrado.
+Cuando NVE está habilitado, el volcado de memoria también se cifra.
 
 
 
@@ -72,7 +71,7 @@ El alcance de la gestión de claves externas determina si los servidores de gest
 
 * Puede usar un _cluster scope_ a fin de configurar la gestión de claves externas para todas las SVM del clúster. El administrador de clúster tiene acceso a todas las claves almacenadas en los servidores.
 * A partir de ONTAP 9.6, se puede usar un _SVM Scope_ para configurar la gestión de claves externas para una SVM con nombre en el clúster. Esto es mejor para entornos multi-tenant en los que cada inquilino usa una SVM (o un conjunto de SVM) diferente para servir datos. Solo el administrador de SVM para un inquilino determinado tiene acceso a las claves de ese inquilino.
-* A partir de ONTAP 9.10.1, se puede utilizar xref:manage-keys-azure-google-task.html[Azure Key Vault y Google Cloud KMS] Para proteger las claves NVE solo para los servidores virtuales de datos.
+* A partir de ONTAP 9.10.1, se puede utilizar xref:manage-keys-azure-google-task.html[Azure Key Vault y Google Cloud KMS] Para proteger las claves NVE solo para SVM de datos. Está disponible para el KMS de AWS a partir de 9.12.0.
 
 
 Puede utilizar ambos ámbitos en el mismo clúster. Si se configuraron servidores de gestión de claves para una SVM, ONTAP solo usa esos servidores para proteger las claves. De lo contrario, ONTAP protege las claves con los servidores de gestión de claves configurados para el clúster.
@@ -144,7 +143,7 @@ RAID0, RAID4, RAID-DP, RAID-TEC.
  a| 
 Volúmenes
  a| 
-Volúmenes de datos y volúmenes raíz existentes. No es posible cifrar datos en un volumen raíz de SVM o en volúmenes de metadatos de MetroCluster.
+Volúmenes de datos y volúmenes raíz de SVM existentes. No se pueden cifrar datos en volúmenes de metadatos de MetroCluster. En versiones de ONTAP anteriores a 9.14.1, no se pueden cifrar datos en el volumen raíz de la SVM con NVE. A partir de ONTAP 9.14.1, ONTAP admite xref:configure-nve-svm-root-task.html[NVE en volúmenes raíz de SVM].
 
 
 

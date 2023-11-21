@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar 
 permalink: s3-snapmirror/restore-local-destination-task.html 
-keywords: restore a bucket from the destination storage VM remote cluster 
-summary: Cuando se pierden o dañan datos de un bloque de origen, se volverán a rellenar los datos mediante la restauración a partir de un bloque de destino. 
+keywords: restore a bucket from the destination storage VM local cluster 
+summary: Cuando los datos de un bloque de origen se pierden o dañan, puede volver a rellenar los datos mediante la restauración a partir de un bloque de destino. 
 ---
-= Restaurar un bloque desde el destino (clúster local)
+= Restaurar un bloque desde la máquina virtual de almacenamiento de destino (clúster local)
 :toc: macro
 :hardbreaks:
 :toclevels: 1
@@ -19,14 +19,14 @@ summary: Cuando se pierden o dañan datos de un bloque de origen, se volverán a
 
 
 [role="lead"]
-Cuando se pierden o dañan datos de un bloque de origen, se volverán a rellenar los datos mediante la restauración a partir de un bloque de destino.
+Cuando los datos de un depósito de origen se pierden o dañan, puede volver a rellenar los datos restaurando objetos desde un bloque de destino.
 
 .Acerca de esta tarea
-Puede restaurar el bloque de destino en un bloque existente o en un bloque nuevo. El bloque de destino para la operación de restauración debe ser mayor que el espacio lógico usado del cucharón de destino.
+Puede restaurar el bloque de destino en un bloque existente o en un bloque nuevo. El depósito de destino para la operación de restauración debe ser mayor que el espacio lógico utilizado del cubo de destino.
 
 Si utiliza un bloque existente, debe estar vacío al iniciar una operación de restauración.  La restauración no "rollback" de un bloque en el tiempo; más bien, rellena un bloque vacío con su contenido anterior.
 
-La operación de restauración debe iniciarse desde el clúster remoto.
+La operación de restauración se debe iniciar desde el clúster local.
 
 [role="tabbed-block"]
 ====
@@ -51,7 +51,7 @@ Restaure los datos de backup:
 ** Para restaurar a un *New Bucket*, introduzca los siguientes valores:
 +
 *** El equipo virtual de clúster y almacenamiento para alojar el nuevo bloque.
-*** El nombre, la capacidad y el nivel de servicio de rendimiento del nuevo cucharón.
+*** El nombre, la capacidad y el nivel de servicio de rendimiento del bloque nuevo.
 Consulte link:../s3-config/storage-service-definitions-reference.html["Los niveles de servicio de almacenamiento"] si quiere más información.
 *** El contenido del certificado de CA de servidor S3 de destino.
 
@@ -62,10 +62,20 @@ Consulte link:../s3-config/storage-service-definitions-reference.html["Los nivel
 . Haga clic en *Protección* > Relaciones para supervisar el progreso de la restauración.
 
 
+.Restaure los cucharones bloqueados
+A partir de ONTAP 9.14.1, puede realizar backups de bloques bloqueados y restaurarlos según sea necesario.
+
+Es posible restaurar un bloque de bloqueo de objetos a un bloque nuevo o existente. Puede seleccionar un depósito bloqueado por objeto como destino en las siguientes situaciones:
+
+* *Restaurar a un nuevo cubo*: Cuando se habilita el bloqueo de objetos, un cubo puede restaurarse creando un cubo que también tiene habilitado el bloqueo de objetos. Cuando restaura un bucket bloqueado, se replican el modo de bloqueo de objetos y el periodo de retención del bucket original. También puede definir un período de retención de bloqueo diferente para el nuevo período. Este período de retención se aplica a objetos no bloqueados de otros orígenes.
+* *Restaurar a un cubo existente*: Un cubo bloqueado por objeto se puede restaurar a un cubo existente, siempre y cuando el control de versiones y un modo de bloqueo de objetos similar estén habilitados en el cubo existente. Se mantiene la tenencia de retención del cucharón original.
+* *Restaurar cubo no bloqueado*: Incluso si el bloqueo de objetos no está habilitado en un cubo, puede restaurarlo en un cubo que tiene el bloqueo de objetos activado y está en el clúster de origen. Al restaurar el bloque, todos los objetos no bloqueados se bloquean, y se aplican el modo de retención y la tenencia del bloque de destino.
+
+
 --
 .CLI
 --
-. Si va a restaurar a un nuevo bloque, cree el nuevo bloque. Para obtener más información, consulte link:create-local-mirror-new-bucket-task.html["Crear una relación de mirroring para un bloque nuevo (clúster local)"].
+. Si va a restaurar objetos en un bloque nuevo, cree el bloque nuevo. Para obtener más información, consulte link:create-cloud-backup-new-bucket-task.html["Crear una relación de backup para un bloque nuevo (destino cloud)"].
 . Inicie una operación de restauración para el bloque de destino:
 `snapmirror restore -source-path _svm_name_:/bucket/_bucket_name_ -destination-path _svm_name_:/bucket/_bucket_name_`
 

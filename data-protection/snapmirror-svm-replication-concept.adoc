@@ -1,7 +1,7 @@
 ---
 permalink: data-protection/snapmirror-svm-replication-concept.html 
 sidebar: sidebar 
-keywords: understand, snapmirror, svm, replication, SVM DR storage limits 
+keywords: understand, snapmirror, svm, replication, SVM disaster recovery storage limits 
 summary: Es posible usar SnapMirror para crear una relación de protección de datos entre la SVM. En este tipo de relación de protección de datos, se replica toda la configuración de la SVM, desde las exportaciones NFS y los recursos compartidos de SMB hasta el control de acceso basado en roles, así como los datos en los volúmenes que posee la SVM. 
 ---
 = Acerca de la replicación de SVM de SnapMirror
@@ -27,7 +27,7 @@ A partir de ONTAP 9.9.1, este comportamiento cambia cuando se utiliza la directi
 ** No se sobrescriben del origen al destino durante las operaciones programadas normales, las actualizaciones y la resincronización
 ** No se eliminan durante las operaciones de interrupción.
 ** No se eliminan durante las operaciones de resincronización.
-Cuando se configura una relación de recuperación ante desastres de SVM mediante la política de reflejo-almacén con ONTAP 9.9.1 y una versión posterior, la política se comporta de la siguiente manera:
+Cuando configura una relación de desastre de SVM con la política de reflejo-almacén con ONTAP 9.9.1 y versiones posteriores, la política se comporta de la siguiente manera:
 ** Las políticas de copia de Snapshot definidas por el usuario en el origen no se copian en el destino.
 ** Las políticas de copia de Snapshot definidas por el sistema no se copian en el destino.
 ** La asociación de volumen con políticas de Snapshot definidas por el usuario y el sistema no se copia en el destino.
@@ -107,7 +107,7 @@ Puede encontrar más información sobre los cambios en el valor predeterminado a
 
 [NOTE]
 ====
-La independencia de la versión no se admite para la replicación de SVM. En una configuración de recuperación ante desastres de SVM, la SVM de destino debe estar en un clúster que ejecute la misma versión de ONTAP que el clúster de SVM de origen para admitir operaciones de conmutación al nodo de respaldo y de conmutación al nodo de respaldo.
+La independencia de la versión no se admite para la replicación de SVM. En una configuración de recuperación ante desastres de SVM, la máquina virtual de almacenamiento de destino debe estar en un clúster que ejecute la misma versión de ONTAP que el clúster de SVM de origen para admitir operaciones de conmutación al nodo de respaldo y conmutación de conmutación por error.
 
 ====
 link:compatible-ontap-versions-snapmirror-concept.html["Versiones de ONTAP compatibles para relaciones de SnapMirror"]
@@ -120,7 +120,7 @@ El contenido de una relación de replicación de SVM se determina por la interac
 
 * La `-identity-preserve true` opción de `snapmirror create` El comando replica toda la configuración de SVM.
 +
-La `-identity-preserve false` La opción replica solamente los volúmenes y las configuraciones de autenticación y autorización de la SVM, así como los ajustes del protocolo y del servicio de nombres indicados en link:snapmirror-svm-replication-concept.html#configurations-replicated-in-svm-dr-relationships["Configuraciones replicadas en relaciones de recuperación ante desastres de SVM"].
+La `-identity-preserve false` La opción replica solamente los volúmenes y las configuraciones de autenticación y autorización de la SVM, así como los ajustes del protocolo y del servicio de nombres indicados en link:snapmirror-svm-replication-concept.html#configurations-replicated-in-svm-dr-relationships["Configuraciones replicadas en las relaciones de recuperación ante desastres de máquina virtual de almacenamiento"].
 
 * La `-discard-configs network` opción de `snapmirror policy create` El comando excluye las LIF y la configuración de red relacionada desde la replicación de SVM, para su uso en casos en los que las SVM de origen y destino se encuentran en subredes distintas.
 * La `-vserver-dr-protection unprotected` opción de `volume modify` El comando excluye el volumen especificado de la replicación de SVM.
@@ -142,9 +142,21 @@ La siguiente tabla muestra detalles de soporte para la replicación de SVM de Sn
 
 
  a| 
+Tipos de implementación
+ a| 
+* Origen único en destino único
+* A partir de ONTAP 9.4, punto de salida. Solo puede fan-out a dos destinos.
++
+De forma predeterminada, solo se permite una relación de conservación de identidad real por SVM de origen.
+
+
+
+
+
+ a| 
 Tipos de relación
  a| 
-* Recuperación ante desastres de SnapMirror
+* Recuperación ante desastres con SnapMirror
 * A partir de ONTAP 9.2, la replicación unificada de SnapMirror
 
 
@@ -158,25 +170,6 @@ Solo interconexión de clústeres. No puede replicar SVM en el mismo clúster.
 
 
  a| 
-Independencia de versiones
- a| 
-No admitido.
-
-
-
- a| 
-Tipos de implementación
- a| 
-* Origen único en destino único
-* A partir de ONTAP 9.4, punto de salida. Solo puede fan-out a dos destinos.
-+
-De forma predeterminada, solo se permite una relación de conservación de identidad real por SVM de origen.
-
-
-
-
-
- a| 
 Protección autónoma de ransomware
  a| 
 * Compatible a partir de ONTAP 9.12.1. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/anti-ransomware/index.html["Protección autónoma de ransomware"]
@@ -185,13 +178,9 @@ Protección autónoma de ransomware
 
 
  a| 
-Cifrado de volúmenes
+Compatibilidad asíncrona de grupos de coherencia
  a| 
-* Los volúmenes cifrados en el origen se cifran en el destino.
-* Los servidores incorporados de Key Manager o KMIP deben configurarse en el destino.
-* En el destino se generan nuevas claves de cifrado.
-* Si el destino no contiene un nodo compatible con el cifrado de volúmenes ., la replicación se realiza correctamente, pero los volúmenes de destino no están cifrados.
-
+A partir de ONTAP 9.14.1, se admiten un máximo de 32 relaciones de recuperación ante desastres de SVM cuando hay grupos de coherencia. Consulte link:https://docs.netapp.com/us-en/ontap/consistency-groups/protect-task.html["Proteja un grupo de consistencia"] y.. link:https://docs.netapp.com/us-en/ontap/consistency-groups/limits.html["Límites del grupo de consistencia"] si quiere más información.
 
 
 
@@ -205,7 +194,7 @@ A partir de ONTAP 9.6, la replicación de SVM de SnapMirror es compatible con Fa
  a| 
 MetroCluster
  a| 
-A partir de ONTAP 9.11.1, ambos lados de una relación de recuperación ante desastres de SVM dentro de una configuración de MetroCluster pueden actuar como origen de configuraciones de recuperación ante desastres de SVM adicionales.
+A partir de ONTAP 9.11.1, ambos lados de una relación de recuperación ante desastres de SVM dentro de una configuración de MetroCluster pueden actuar como origen para configuraciones de recuperación ante desastres adicionales de SVM.
 
 A partir de ONTAP 9.5, la replicación de SVM de SnapMirror es compatible con las configuraciones de MetroCluster.
 
@@ -214,13 +203,20 @@ A partir de ONTAP 9.5, la replicación de SVM de SnapMirror es compatible con la
 +
 Un origen puede ser una SVM sincronizada en origen antes de realizar una conmutación de sitios o una SVM sincronizada en destino después de efectuar una conmutación de sitios.
 
-* Cuando una configuración de MetroCluster tiene un estado estable, la SVM sincronizada en destino de MetroCluster no puede ser el origen de una relación de recuperación ante desastres de SVM, ya que los volúmenes no están en línea.
-* Cuando la SVM sincronizada en origen es el origen de una relación de recuperación ante desastres de SVM, la información de las relaciones de recuperación ante desastres de la SVM de origen se replica en el partner de MetroCluster.
-* Durante los procesos de conmutación de sitios y conmutación de estado, la replicación al destino de recuperación ante desastres de SVM puede fallar.
+* Cuando una configuración de MetroCluster presenta un estado estable, la SVM sincronizada en destino de MetroCluster no puede ser el origen de una relación de recuperación ante desastres de SVM, ya que los volúmenes no están en línea.
+* Cuando la SVM sincronizada en origen es el origen de una relación de recuperación ante desastres de SVM, la información sobre la relación de recuperación ante desastres de SVM de origen se replica en el partner de MetroCluster.
+* Durante los procesos de conmutación de sitios y conmutación de estado, se podría producir un error en la replicación al destino de recuperación ante desastres de SVM.
 +
-No obstante, una vez que finalice el proceso de conmutación de sitios o conmutación de estado, las próximas actualizaciones programadas para la recuperación ante desastres de SVM serán las mejores.
+Sin embargo, una vez que finalice el proceso de conmutación de sitios o conmutación de estado, se realizarán las siguientes actualizaciones programadas para la recuperación ante desastres de la máquina virtual de almacenamiento.
 
 
+
+
+
+ a| 
+Grupo de consistencia
+ a| 
+Compatible a partir de ONTAP 9.14.1. Para obtener más información, consulte xref:../consistency-groups/protect.html[Proteja un grupo de consistencia].
 
 
 
@@ -236,10 +232,28 @@ SnapMirror síncrono
  a| 
 No compatible con la recuperación ante desastres de SVM.
 
+
+
+ a| 
+Independencia de versiones
+ a| 
+No admitido.
+
+
+
+ a| 
+Cifrado de volúmenes
+ a| 
+* Los volúmenes cifrados en el origen se cifran en el destino.
+* Los servidores incorporados de Key Manager o KMIP deben configurarse en el destino.
+* En el destino se generan nuevas claves de cifrado.
+* Si el destino no contiene un nodo compatible con el cifrado de volúmenes ., la replicación se realiza correctamente, pero los volúmenes de destino no están cifrados.
+
+
 |===
 
 
-== Configuraciones replicadas en relaciones de recuperación ante desastres de SVM
+== Configuraciones replicadas en las relaciones de recuperación ante desastres de máquina virtual de almacenamiento
 
 La siguiente tabla muestra la interacción del `snapmirror create -identity-preserve` y la `snapmirror policy create -discard-configs network` opción:
 
@@ -857,9 +871,9 @@ No
 |===
 
 
-== Límites de almacenamiento de recuperación ante desastres de SVM
+== Límites de almacenamiento para recuperación ante desastres de SVM
 
-En la siguiente tabla, se muestra la cantidad máxima recomendada de volúmenes y relaciones de recuperación ante desastres de SVM compatibles por objeto de almacenamiento. Debe ser consciente de que los límites dependen a menudo de la plataforma. Consulte la link:https://hwu.netapp.com/["Hardware Universe"^] para conocer los límites de su configuración específica.
+En la siguiente tabla se muestra el número máximo recomendado de volúmenes y relaciones de recuperación ante desastres de SVM admitidas por objeto de almacenamiento. Debe ser consciente de que los límites dependen a menudo de la plataforma. Consulte la link:https://hwu.netapp.com/["Hardware Universe"^] para conocer los límites de su configuración específica.
 
 [cols="2*"]
 |===
@@ -885,6 +899,6 @@ Pareja de HA
  a| 
 Clúster
  a| 
-128 relaciones de recuperación ante desastres de SVM
+128 Relaciones de desastre de SVM
 
 |===

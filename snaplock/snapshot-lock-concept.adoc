@@ -15,6 +15,8 @@ A partir de ONTAP 9.12.1, puede bloquear una copia Snapshot en un volumen que no
 
 La función de reloj de cumplimiento de normativas de SnapLock le permite bloquear las copias Snapshot durante un período determinado para que no se puedan eliminar hasta que llegue el momento de caducidad. Bloquear copias Snapshot las protege a prueba de manipulaciones e impedir las amenazas de ransomware. Puede usar copias Snapshot bloqueadas para recuperar los datos si un volumen se ve afectado por un ataque de ransomware.
 
+A partir de ONTAP 9.14.1, el bloqueo de copias Snapshot admite copias Snapshot de retención a largo plazo en destinos de almacenes SnapLock y en volúmenes de destino que no sean de SnapMirror de SnapLock. El bloqueo de copia de Snapshot se habilita configurando el período de retención mediante las reglas de políticas de SnapMirror asociadas a un xref:Modify an existing policy to apply long-term retention[etiqueta de política existente]. La regla anula el período de retención predeterminado establecido en el volumen. Si no existe un período de retención asociado con la etiqueta de SnapMirror, se utiliza el período de retención predeterminado del volumen.
+
 .Requisitos y consideraciones sobre copias Snapshot a prueba de manipulaciones
 * Si utiliza la CLI de ONTAP, todos los nodos del clúster deben ejecutar ONTAP 9.12.1 o una versión posterior. Si utiliza System Manager, todos los nodos deben ejecutar ONTAP 9.13.1 o una versión posterior.
 * link:https://docs.netapp.com/us-en/ontap/snaplock/install-license-task.html["La licencia de SnapLock debe instalarse en el clúster"].
@@ -284,3 +286,22 @@ cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot sna
 
 --
 ====
+
+
+=== Modifique una política existente para aplicar la retención a largo plazo
+
+A partir de ONTAP 9.14.1, puede modificar una política de SnapMirror existente añadiendo una regla para establecer una retención a largo plazo de copias Snapshot. La regla se utiliza para anular el período de retención de volúmenes predeterminado en destinos de almacén de SnapLock y en volúmenes de destino que no son de SnapMirror de SnapLock.
+
+. Agregue una regla a una política de SnapMirror existente:
++
+`snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of Snapshot copies> -retention-period [<integer> days|months|years]`
+
++
+En el siguiente ejemplo se crea una regla que aplica un período de retención de 6 meses a la política existente denominada «lockvault»:
+
++
+[listing]
+----
+snapmirror policy add-rule -vserver vs1 -policy lockvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
+----
+

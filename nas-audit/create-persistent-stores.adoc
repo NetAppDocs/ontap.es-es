@@ -1,0 +1,55 @@
+---
+permalink: nas-audit/create-persistent-stores.html 
+sidebar: sidebar 
+keywords: create, persistent store, fpolicy 
+summary: A partir de ONTAP 9.14.1, FPolicy permite configurar un almacén persistente para capturar eventos de acceso a archivos para políticas asíncronas no obligatorias en la SVM. Los almacenes persistentes pueden ayudar a desacoplar el procesamiento de I/O del cliente del procesamiento de notificaciones de FPolicy para reducir la latencia del cliente. No se admiten configuraciones obligatorias síncronas y asíncronas. 
+---
+= Crear almacenes persistentes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.14.1, FPolicy le permite configurar un link:persistent-stores.html["Almacenes persistentes"] Para capturar eventos de acceso a archivos para políticas asíncronas no obligatorias en la SVM. Los almacenes persistentes pueden ayudar a desacoplar el procesamiento de I/O del cliente del procesamiento de notificaciones de FPolicy para reducir la latencia del cliente. No se admiten las configuraciones síncronas (obligatorias o no obligatorias) y asíncronas obligatorias.
+
+.Mejores prácticas
+* Antes de utilizar la funcionalidad de almacén persistente, asegúrese de que sus aplicaciones asociadas admiten esta configuración.
+* El volumen de almacenamiento persistente se configura por SVM. Para cada SVM con FPolicy necesitará un volumen de almacenamiento persistente.
+* El nombre del volumen de almacenamiento persistente y la ruta de unión especificada en el momento de la creación del volumen deben coincidir.
+* Cree el volumen de almacenamiento persistente en el nodo con LIF que esperan que Fpolicy supervise el tráfico máximo.
+* Establezca la política de Snapshot en `none` para ese volumen en lugar de `default`. De este modo se garantiza que no haya ninguna restauración accidental de la instantánea que provoque la pérdida de eventos actuales y que se evite un posible procesamiento de eventos duplicados.
+* Haga que el volumen de almacenamiento persistente no sea accesible para el acceso del protocolo de usuario externo (CIFS/NFS) y evite daños o eliminación accidentales de los registros de eventos persistentes. Para lograr esto, después de habilitar FPolicy, desmonte el volumen en ONTAP para eliminar la ruta de unión, esto hace que sea inaccesible para el acceso al protocolo de usuario.
+
+
+.Pasos
+. Cree un volumen vacío en la SVM que se pueda aprovisionar para el almacén persistente:
++
+`volume create -vserver <SVM Name> -volume <volume> -state <online> -junction-path <path> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>`
+
++
+** El tamaño del volumen de almacenamiento persistente se basa en la duración del tiempo durante el cual desea continuar los eventos que no se entregan al servidor externo (aplicación asociada).
++
+Por ejemplo, si desea que 30 minutos de eventos persistan en un clúster con una capacidad de 30K notificaciones por segundo:
+
++
+Tamaño de volumen requerido = 30000 x 30 x 60 x 0,6KB (tamaño medio de registro de notificación) = 32400000 KB = ~32 GB
+
++
+Para encontrar la tasa de notificación aproximada, puede contactar con su aplicación de partner de FPolicy o utilizar el contador de FPolicy `requests_dispatched_rate`.
+
+** Se espera que un usuario administrador con suficientes privilegios de RBAC (para crear un volumen) cree un volumen (con los comandos de la cli del volumen o la API de REST) del tamaño deseado y proporcione el nombre de ese volumen como el `-volume` En el almacén persistente create el comando de la CLI o la API de REST.
+
+
+. Cree el almacén persistente:
++
+`vserver fpolicy persistent store create -vserver <SVM> -persistent-store <PS_name> -volume <volume>`
+
++
+** Persistent-store: Nombre del almacén persistente
+** Volume: El volumen de almacenamiento persistente
+
+
+. Una vez creado el almacén persistente, puede crear la política de FPolicy y agregar el nombre del almacén persistente a esa política.
+Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/nas-audit/create-fpolicy-policy-task.html["Cree la política FPolicy"].
+

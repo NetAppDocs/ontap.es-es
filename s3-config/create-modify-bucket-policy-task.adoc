@@ -14,7 +14,7 @@ summary: Puede agregar reglas de acceso a la política de bloque predeterminada.
 Puede agregar reglas de acceso a la política de bloque predeterminada. El ámbito de su control de acceso es el cucharón que contiene, por lo que resulta más adecuado cuando hay un único cucharón.
 
 .Antes de empezar
-Debe haber una SVM habilitada para S3 que contenga un servidor S3 y un bloque.
+Debe existir una máquina virtual de almacenamiento habilitada para S3 que contenga un servidor S3 y un bloque.
 
 Debe haber creado usuarios o grupos antes de conceder permisos.
 
@@ -23,7 +23,7 @@ Puede agregar nuevas sentencias para usuarios y grupos nuevos o modificar los at
 
 Los permisos de usuario y grupo se pueden otorgar cuando se crea el bloque o cuando se necesite más adelante. También puede modificar la asignación de capacidad de los bloques y del grupo de políticas de calidad de servicio.
 
-A partir de ONTAP 9.9.1 y versiones posteriores, si tiene pensado admitir la funcionalidad de etiquetado de objetos de cliente de AWS con el servidor ONTAP S3, las acciones `GetObjectTagging`, `PutObjectTagging`, y. `DeleteObjectTagging` debe permitirse el uso de las políticas de bloque o grupo.
+A partir de ONTAP 9,9.1, si tiene previsto admitir la funcionalidad de etiquetado de objetos de cliente de AWS con el servidor ONTAP S3, las acciones se realizarán `GetObjectTagging`, `PutObjectTagging`, y. `DeleteObjectTagging` debe permitirse el uso de las políticas de bloque o grupo.
 
 El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
 
@@ -46,6 +46,9 @@ Los valores predeterminados *_bucketname_* y *_bucketname/*_* conceden acceso a 
 
 
 
+
+
+NOTE: A partir de ONTAP 9.14.1, puede especificar variables para la política de depósitos en el campo *Recursos*. Estas variables son marcadores de posición que se reemplazan por valores contextuales cuando se evalúa la política. Por ejemplo, If `${aws:username}` se especifica como una variable para una política, a continuación, esta variable se sustituye por el nombre de usuario del contexto de solicitud y la acción de política se puede realizar como se ha configurado para ese usuario.
 
 --
 .CLI
@@ -85,7 +88,7 @@ Una lista de uno o más grupos o usuarios de S3.
 ** Se puede especificar un máximo de 10 usuarios o grupos.
 ** Si se especifica un grupo de S3, debe estar en el formulario `group/group_name.`
 ** `*` se puede especificar que significa acceso público; es decir, acceso sin clave de acceso y clave secreta.
-** Si no se especifica ningún director, se concede acceso a todos los usuarios de S3 de la SVM.
+** Si no se especifica ningún principal, se concede acceso a todos los usuarios S3 de la máquina virtual de almacenamiento.
 
 
 
@@ -93,7 +96,7 @@ Una lista de uno o más grupos o usuarios de S3.
  a| 
 `-resource`
  a| 
-El bloque y cualquier objeto que contenga. Los caracteres comodín `*` y.. `?` se puede utilizar para formar una expresión regular para especificar un recurso.
+El bloque y cualquier objeto que contenga. Los caracteres comodín `*` y.. `?` se puede utilizar para formar una expresión regular para especificar un recurso. En el caso de un recurso, puede especificar variables en una política. Estas son variables de política que son marcadores de posición que se reemplazan por los valores contextuales cuando se evalúa la política.
 
 |===
 +
@@ -102,17 +105,23 @@ Opcionalmente, puede especificar una cadena de texto como comentario con el `-si
 
 
 .Ejemplos
-En el siguiente ejemplo, se crea una sentencia de política de bloque de servidor del almacén de objetos para SVM svm1.example.com y bucket1, que especifica el acceso permitido a una carpeta léame para el usuario del servidor del almacén de objetos usuario1.
+En el siguiente ejemplo se crea una sentencia de política de depósito de servidor de almacén de objetos para la máquina virtual de almacenamiento svm1.example.com y bucket1 que especifica el acceso permitido a una carpeta Léame para el usuario de servidor de almacén de objetos user1.
 
 [listing]
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal user1 -resource bucket1/readme/* -sid "fullAccessToReadmeForUser1"
 ----
-En el siguiente ejemplo, se crea una sentencia de política de bloque de servidor del almacén de objetos para la SVM svm1.example.com y bucket1, que especifica el acceso permitido a todos los objetos para el grupo de servidores del almacén de objetos grupo1.
+En el siguiente ejemplo se crea una sentencia de política de depósito de servidor de almacén de objetos para la máquina virtual de almacenamiento svm1.example.com y bucket1 que especifica el acceso permitido a todos los objetos para el grupo de servidores de almacén de objetos group1.
 
 [listing]
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
+----
+A partir de ONTAP 9.14.1, puede especificar variables para la política de bloques. En el siguiente ejemplo se crea una sentencia de política de bloque de servidor de almacén de objetos para la máquina virtual de almacenamiento `svm1` y.. `bucket1`, y especifica `${aws:username}` como variable para un recurso de política. Cuando se evalúa la política, la variable de política se sustituye por el nombre de usuario de contexto de solicitud y la acción de política se puede realizar según se haya configurado para ese usuario. Por ejemplo, cuando se evalúa la siguiente sentencia de política, `${aws:username}` Se sustituye por el usuario que realiza la operación S3. Si es un usuario `user1` realiza la operación a la que el usuario tiene acceso `bucket1` como `bucket1/user1/*`.
+
+[listing]
+----
+cluster1::> object-store-server bucket policy statement create -vserver svm1 -bucket bucket1 -effect allow -action * -principal - -resource bucket1,bucket1/${aws:username}/*##
 ----
 --
 ====

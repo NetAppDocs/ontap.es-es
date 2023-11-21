@@ -1,0 +1,59 @@
+---
+permalink: nfs-trunking/create-server-task.html 
+sidebar: sidebar 
+keywords: NFS, servers, create, NFS trunking, enabled, multipathing, svm 
+summary: A partir de ONTAP 9.14.1, la conexión troncal se puede habilitar en servidores NFS que ejecuten v4,1 o posterior. NFSv4,1 y las versiones posteriores se habilitan de forma predeterminada cuando se crean servidores NFS. 
+---
+= Cree un servidor NFS habilitado para la conexión de enlaces
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.14.1, se puede habilitar la conexión troncal en servidores NFS. NFSv4,1 está habilitado de forma predeterminada cuando se crean servidores NFS.
+
+.Antes de empezar
+La SVM debe ser:
+
+* respaldado por suficiente almacenamiento para los requisitos de datos de cliente.
+* Habilitado para NFS.
+* Dedicado al trunking NFS. No se debe configurar ningún otro cliente en él.
+
+
+.Pasos
+. Si no existe una SVM adecuada, cree una:
++
+`vserver create -vserver _svm_name_ -rootvolume _root_volume_name_ -aggregate _aggregate_name_ -rootvolume-security-style unix -language C.UTF-8`
+
+. Compruebe la configuración y el estado de la SVM recién creada:
++
+`vserver show -vserver _svm_name_`
+
++
+Más información acerca de link:../nfs-config/create-svms-data-access-task.html["Creación de una SVM."]
+
+. Cree el servidor NFS:
++
+`vserver nfs create -vserver _svm_name_ -v3 disabled -v4.0 disabled -v4.1 enabled -v4.1-trunking enabled -v4-id-domain _my_domain.com_`
+
+. Compruebe que NFS está ejecutando:
++
+`vserver nfs status -vserver _svm_name_`
+
+. Compruebe que NFS está configurado como se desea:
++
+`vserver nfs show -vserver _svm_name_`
+
++
+Más información acerca de link:../nfs-config/create-server-task.html["Configuración del servidor NFS."]
+
+
+
+.Después de terminar
+Configure los siguientes servicios según sea necesario:
+
+* link:../nfs-config/configure-dns-host-name-resolution-task.html["DNS"]
+* link:../nfs-config/using-ldap-concept.html["LDAP"]
+* link:../nfs-config/kerberos-nfs-strong-security-concept.html["Kerberos"]
+

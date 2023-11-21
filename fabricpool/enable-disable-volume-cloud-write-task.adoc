@@ -1,0 +1,104 @@
+---
+permalink: fabricpool/enable-disable-volume-cloud-write-task.html 
+sidebar: sidebar 
+keywords: creating, volume, fabricpool, cloud write, enable, disable 
+summary: A partir de ONTAP 9.14.1, puede habilitar y deshabilitar el modo de escritura en el cloud en un volumen nuevo o existente de FabricPool para permitir que los clientes NFS escriban datos directamente en el cloud. 
+---
+= Habilite y deshabilite los volúmenes para escribir directamente en el cloud
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.14.1, puede habilitar y deshabilitar el modo de escritura en el cloud en un volumen nuevo o existente de una FabricPool para permitir que los clientes de NFS escriban datos directamente en el cloud sin tener que esperar a los análisis de organización en niveles. Los clientes SMB siguen escribiendo en el nivel de rendimiento de un volumen con capacidad de escritura en la nube. El modo de escritura en cloud está deshabilitado de forma predeterminada.
+
+El modo de escritura en la nube es útil para casos como migraciones, por ejemplo, en los que se transfieren grandes cantidades de datos a un clúster que el clúster puede admitir en el nivel local. Sin el modo de escritura en el cloud, durante una migración, se transfieren las cantidades más pequeñas de datos, después se organizan en niveles, después se transfieren y se organizan de nuevo en niveles hasta que se completa la migración. Al usar el modo de escritura del cloud, este tipo de gestión ya no se requiere porque los datos nunca se transfieren al nivel local.
+
+.Antes de empezar
+* Debe ser un administrador de clústeres o de SVM.
+* Debe estar en el nivel de privilegio avanzado.
+* El volumen debe ser un volumen de tipo de lectura/escritura.
+* El volumen debe tener la política ALL Tiering.
+
+
+
+
+== Habilite el cloud write durante la creación del volumen
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Cree un volumen y habilite el modo de escritura en el cloud:
++
+[source, cli]
+----
+volume create -volume <volume name> -is-cloud-write-enabled <true|false> -aggregate <local tier name>
+----
++
+En el ejemplo siguiente se crea un volumen llamado vol1 con la escritura de cloud habilitada en el nivel local de FabricPool (aggr1):
+
++
+[listing]
+----
+volume create -volume vol1 -is-cloud-write-enabled true -aggregate aggr1
+----
+
+
+
+
+== Habilite la escritura de cloud en un volumen existente
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Modificar un volumen para habilitar el modo de escritura en cloud:
++
+[source, cli]
+----
+volume modify -volume <volume name> -is-cloud-write-enabled <true|false> -aggregate <local tier name>
+----
++
+En el ejemplo siguiente se modifica un volumen llamado vol1 con la escritura de cloud habilitada en el nivel local de FabricPool (aggr1):
+
++
+[listing]
+----
+volume modify -volume vol1 -is-cloud-write-enabled true -aggregate aggr1
+----
+
+
+
+
+== Deshabilite la escritura cloud en un volumen
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Deshabilite el modo de escritura en el cloud:
++
+[source, cli]
+----
+volume modify -volume <volume name> -is-cloud-write-enabled <true|false> -aggregate <aggregate name>
+----
++
+En el ejemplo siguiente se crea un volumen llamado vol1 con la función de escritura de cloud habilitada:
+
++
+[listing]
+----
+volume modify -volume vol1 -is-cloud-write-enabled false -aggregate aggr1
+----
+

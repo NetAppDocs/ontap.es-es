@@ -11,20 +11,34 @@ summary: A partir de ONTAP 9.13.1, puede implementar la caducidad de objetos S3.
 
 
 [role="lead"]
-A partir de ONTAP 9.13.1, puede implementar la caducidad de objetos S3. Las acciones de caducidad definen cuándo caducan los objetos de un depósito. Esta funcionalidad le permite gestionar versiones de objetos para que pueda cumplir los requisitos de retención y gestionar de forma eficaz el almacenamiento de objetos S3.
+A partir de ONTAP 9.13.1, puede crear reglas de gestión del ciclo de vida para gestionar los ciclos de vida de los objetos en sus bloques S3. Puede definir reglas de supresión para objetos específicos de un depósito y, a través de estas reglas, caducar esos objetos de cubo. De este modo, se cumplen los requisitos de retención y se gestiona un almacenamiento de objetos S3 general de forma eficiente.
+
+
+NOTE: Si el bloqueo de objetos está activado para los objetos de depósito, las reglas de gestión del ciclo de vida para la caducidad de objetos no se aplicarán a los objetos bloqueados. Para obtener más información sobre el bloqueo de objetos, consulte link:../s3-config/create-bucket-task.html["Crear un bucket"].
 
 .Antes de empezar
 Debe haber una SVM habilitada para S3 que contenga un servidor S3 y un bloque. Consulte link:create-svm-s3-task.html["Cree una SVM para S3"] si quiere más información.
 
 .Acerca de esta tarea
-Al crear la regla de gestión del ciclo de vida de los depósitos, debe elegir uno de los tres tipos de acción de caducidad siguientes:
+Al crear las reglas de gestión del ciclo de vida, puede aplicar las siguientes acciones de eliminación a los objetos del depósito:
 
-* `Expiration` – La acción de expiración expira objetos identificados por la regla. Si el control de versiones de casos está activado en el depósito, S3 hace que todos los objetos caducados no estén disponibles. Si el control de versiones no está activado, esta regla suprimirá el objeto de forma permanente.
-* `NoncurrentVersionExpiration` – Esta acción se utiliza para especificar cuando S3 elimina permanentemente objetos no actuales. Estos objetos eliminados no se pueden recuperar.
-* `AbortIncompleteMultipartUpload` – El administrador puede utilizar este elemento para establecer un tiempo máximo (en días) en el que desea permitir que las cargas multiparte permanezcan en curso
+* Supresión de versiones actuales: Esta acción vence los objetos identificados por la regla. Si el control de versiones está activado en el depósito, S3 hace que todos los objetos caducados no estén disponibles. Si el control de versiones no está activado, esta regla suprime los objetos de forma permanente. La acción de la CLI es `Expiration`.
+* Eliminación de versiones no actuales: Esta acción especifica cuándo S3 puede eliminar permanentemente objetos no actuales. La acción de la CLI es `NoncurrentVersionExpiration`.
+* Supresión de marcadores de supresión caducados: Esta acción suprime los marcadores de supresión de objetos caducados.
+En los bloques con control de versiones activado, los objetos con marcadores de supresión se convierten en las versiones actuales de los objetos. Los objetos no se eliminan y no se puede realizar ninguna acción en ellos. Estos objetos caducan cuando no hay versiones actuales asociadas a ellos. La acción de la CLI es `Expiration`.
+* Eliminación de cargas multiparte incompletas: Esta acción establece un tiempo máximo (en días) en el que desea permitir que las cargas multiparte permanezcan en curso. Después de lo cual, se eliminan. La acción de la CLI es `AbortIncompleteMultipartUpload`.
 
 
-Debe definir los campos necesarios para cada tipo de acción de caducidad al crear una regla de gestión del ciclo de vida del depósito. Estos campos se pueden modificar después de la creación inicial. En la siguiente tabla se muestran los campos únicos para cada tipo de acción.
+El procedimiento que siga depende de la interfaz que utilice. Con ONTAP 9.13,1, tiene que utilizar la CLI. A partir de ONTAP 9.14.1, también puede usar System Manager.
+
+
+
+== Gestione las reglas de gestión del ciclo de vida con la interfaz de línea de comandos
+
+A partir de ONTAP 9.13.1, puede usar la interfaz de línea de comandos de ONTAP para crear reglas de gestión del ciclo de vida para caducar objetos en sus bloques S3.
+
+.Lo que necesitará
+Para la CLI, debe definir los campos necesarios para cada tipo de acción de caducidad al crear una regla de gestión del ciclo de vida del bloque. Estos campos se pueden modificar después de la creación inicial. En la siguiente tabla se muestran los campos únicos para cada tipo de acción.
 
 [cols="30,70"]
 |===
@@ -94,3 +108,67 @@ El siguiente comando crea una regla de gestión del ciclo de vida del bloque Abo
 ----
 vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action AbortIncompleteMultipartUpload -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -after-initiation-days <integer>
 ----
+
+
+== Gestione las reglas de gestión del ciclo de vida con System Manager
+
+A partir de ONTAP 9.14.1, puede implementar la caducidad de objetos con System Manager. Puede agregar, editar y eliminar reglas de gestión del ciclo de vida para los objetos S3. Además, puede importar una regla de ciclo de vida creada para un depósito y utilizarla para los objetos de otro depósito. Puede desactivar una regla activa y habilitarla más tarde.
+
+
+
+=== Agregue una regla de gestión del ciclo de vida
+
+. Haga clic en *Almacenamiento > Buckets*.
+. Seleccione el período para el que desea especificar la regla de caducidad.
+. Haga clic en la image:icon_kabob.gif["icono de kebab"] Icono y seleccione *Administrar reglas de ciclo de vida*.
+. Haga clic en *Agregar > Regla de ciclo de vida*.
+. En la página Agregar una regla de ciclo de vida, agregue el nombre de la regla.
+. Defina el ámbito de la regla, si desea que se aplique a todos los objetos del depósito o a objetos específicos. Si desea especificar objetos, agregue al menos uno de los siguientes criterios de filtro:
++
+.. Prefijo: Especifique un prefijo de los nombres de clave de objeto a los que se debe aplicar la regla. Normalmente, es la ruta o carpeta del objeto. Puede introducir un prefijo por regla. A menos que se proporcione un prefijo válido, la regla se aplica a todos los objetos de un depósito.
+.. Etiquetas: Especifique hasta tres pares de clave y valor (etiquetas) para los objetos a los que se debe aplicar la regla. Sólo se utilizan claves válidas para el filtrado. El valor es opcional. Sin embargo, si agrega valores, asegúrese de agregar sólo valores válidos para las claves correspondientes.
+.. Tamaño: Puede limitar el alcance entre los tamaños mínimo y máximo de los objetos. Puede introducir uno o ambos valores. La unidad predeterminada es MIB.
+
+
+. Especifique la acción:
++
+.. *Expire la versión actual de los objetos*: Establezca una regla para que todos los objetos actuales no estén disponibles permanentemente después de un número específico de días desde su creación, o en una fecha específica. Esta opción no está disponible si se selecciona la opción *Eliminar marcadores de eliminación de objetos caducados*.
+.. * Eliminar permanentemente versiones no actuales*: Especifique el número de días después de los cuales la versión se convierte en no actual, y después puede ser eliminado, y el número de versiones a retener.
+.. *Eliminar marcadores de eliminación de objetos caducados*: Seleccione esta acción para eliminar objetos con marcadores de eliminación caducados, es decir, eliminar marcadores sin un objeto actual asociado.
++
+
+NOTE: Esta opción no está disponible cuando selecciona la opción *Expire la versión actual de los objetos* que elimina automáticamente todos los objetos después del período de retención. Esta opción también no está disponible cuando se utilizan etiquetas de objetos para filtrar.
+
+.. *Eliminar cargas multiparte incompletas*: Establece el número de días después de los cuales las cargas multiparte incompletas deben ser eliminadas. Si las cargas de varias partes que están en curso fallan dentro del período de retención especificado, puede eliminar las cargas incompletas de varias partes. Esta opción no está disponible cuando se utilizan etiquetas de objetos para filtrar.
+.. Haga clic en *Guardar*.
+
+
+
+
+
+
+=== Importar una regla de ciclo de vida
+
+. Haga clic en *Almacenamiento > Buckets*.
+. Seleccione el período para el que desea importar la regla de caducidad.
+. Haga clic en la image:icon_kabob.gif["icono de kebab"] Icono y seleccione *Administrar reglas de ciclo de vida*.
+. Haga clic en *Agregar > Importar una regla*.
+. Seleccione el depósito desde el que desea importar la regla. Aparecen las reglas de gestión del ciclo de vida definidas para el bloque seleccionado.
+. Seleccione la regla que desea importar. Tiene la opción de seleccionar una regla a la vez, siendo la selección predeterminada la primera regla.
+. Haga clic en *Importar*.
+
+
+
+
+=== Editar, eliminar o desactivar una regla
+
+Sólo puede editar las acciones de gestión del ciclo de vida asociadas a la regla. Si la regla se filtró con etiquetas de objeto, las opciones *Eliminar marcadores de eliminación de objetos caducados* y *Eliminar cargas incompletas de varias partes* no estarán disponibles.
+
+Al eliminar una regla, dicha regla ya no se aplicará a los objetos asociados anteriormente.
+
+. Haga clic en *Almacenamiento > Buckets*.
+. Seleccione el depósito para el que desea editar, suprimir o desactivar la regla de gestión del ciclo de vida.
+. Haga clic en la image:icon_kabob.gif["icono de kebab"] Icono y seleccione *Administrar reglas de ciclo de vida*.
+. Seleccione la regla necesaria. Puede editar y desactivar una regla a la vez. Puede eliminar varias reglas a la vez.
+. Seleccione *Editar*, *Eliminar* o *Desactivar* y complete el procedimiento.
+

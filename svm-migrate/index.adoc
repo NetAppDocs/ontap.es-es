@@ -36,10 +36,10 @@ image::../media/workflow_svm_migrate.gif[Flujo de trabajo de migración de SVM]
 | Familia de controladoras | Versiones de ONTAP admitidas 
 
 
-| AFF-A serie | ONTAP 9.10.1 y posteriores 
+| AFF A-Series | ONTAP 9.10.1 y posteriores 
 
 
-| Serie AFF-C. | ONTAP 9.12.1, revisión 4 y posterior 
+| Serie C de AFF | ONTAP 9.12.1, revisión 4 y posterior 
 
 
 | FAS | ONTAP 9.12.1 y versiones posteriores 
@@ -58,13 +58,16 @@ NOTE:  Cuando se migra desde un clúster AFF a un clúster FAS con agregados hí
 | Versión de ONTAP | Pares DE ALTA DISPONIBILIDAD en origen y destino 
 
 
-| ONTAP 9.10.1 | 1 
+| ONTAP 9.14.1 | 12 
+
+
+| ONTAP 9.13.1 | 6 
 
 
 | ONTAP 9.11.1 | 3 
 
 
-| ONTAP 9.13.1 | 6 
+| ONTAP 9.10.1 | 1 
 |===
 
 
@@ -78,32 +81,32 @@ Según la versión de ONTAP instalada en el clúster, la red que conecte los cl�
 | Versión de ONTAP | RTT máxima 
 
 
-| ONTAP 9.11.1 y anteriores | 2 ms 
-
-
 | ONTAP 9.12.1 y versiones posteriores | 10 ms 
+
+
+| ONTAP 9.11.1 y anteriores | 2 ms 
 |===
 
 
 == Volúmenes máximos admitidos por SVM
 
-[cols="1,1,1,1,1"]
+[cols="1,1,1,1,1,1"]
 |===
 
 
-| Origen | Destino | ONTAP 9.11.1 y anteriores | ONTAP 9.12.1 | ONTAP 9.13.1 
+| Origen | Destino | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 y anteriores 
 
 
-| AFF | AFF | 100 | 100 | 200 
+| AFF | AFF | 400 | 200 | 100 | 100 
 
 
-| FAS | FAS | N.A. | 80 | 80 
+| FAS | FAS | 80 | 80 | 80 | N.A. 
 
 
-| FAS | AFF | N.A. | 80 | 80 
+| FAS | AFF | 80 | 80 | 80 | N.A. 
 
 
-| AFF | FAS | N.A. | 80 | 80 
+| AFF | FAS | 80 | 80 | 80 | N.A. 
 |===
 
 
@@ -113,7 +116,7 @@ Antes de iniciar una migración de SVM, debe cumplir los siguientes requisitos p
 
 * Debe ser un administrador de clústeres.
 * link:https://docs.netapp.com/us-en/ontap/peering/create-cluster-relationship-93-later-task.html["Los clústeres de origen y destino deben tener una relación entre sí"^].
-* Los clústeres de origen y destino deben tener instalada la licencia de bundle de protección de datos.
+* Los clústeres de origen y destino deben tener instalada la licencia de SnapMirror Synchronous.
 * Todos los nodos del clúster de origen deben ejecutar ONTAP 9.10.1 o una versión posterior. Para obtener información sobre la compatibilidad de controladoras de cabina ONTAP específicas, consulte link:https://hwu.netapp.com/["Hardware Universe"^].
 * Todos los nodos del clúster de origen deben ejecutar la misma versión de ONTAP.
 * Todos los nodos del clúster de destino deben ejecutar la misma versión de ONTAP.
@@ -149,26 +152,6 @@ En la tabla se indican las funciones de ONTAP compatibles con la movilidad de da
 | Función | Se admite la primera versión | Comentarios 
 
 
-| Relaciones de copia en cloud asíncronas de SnapMirror | ONTAP 9.12.1 | A partir de ONTAP 9.12.1, cuando se migra una SVM con relaciones de copia de SnapMirror a cloud, el clúster de destino de migración debe tener la copia a la licencia de cloud instalada y debe tener suficiente capacidad disponible para mover la capacidad de los volúmenes que se están reflejando en el cloud. 
-
-
-| Destino de SnapMirror asíncrono | ONTAP 9.12.1 |  
-
-
-| SnapMirror asíncrono de origen | ONTAP 9.11.1  a| 
-* Las transferencias pueden continuar con normalidad en las relaciones de SnapMirror de FlexVol durante la mayor parte de la migración.
-* Todas las transferencias continuas se cancelan durante la transición y las nuevas transferencias fallan durante la transición. Además, no se pueden reiniciar hasta que finalice la migración.
-* Las transferencias programadas que se cancelaron o se perdieron durante la migración no se inician automáticamente una vez completada la migración.
-+
-[NOTE]
-====
-Cuando se migra un origen de SnapMirror, ONTAP no impide la eliminación del volumen después de la migración hasta que la actualización de SnapMirror se lleve a cabo después. Esto sucede porque la información relacionada con SnapMirror para los volúmenes de origen de SnapMirror migrados solo se conoce después de que se completa la primera actualización.
-
-====
-
-
-
-
 | Protección autónoma de ransomware | ONTAP 9.12.1 |  
 
 
@@ -183,7 +166,7 @@ Más información acerca de xref:FabricPool support[Soporte de FabricPool].
 
 
 
-| Relaciones de ventilador (el origen de migración tiene un volumen de origen de SnapMirror con más de un destino) | ONTAP 9.11.1 |  
+| Relación de abanico (el origen de migración tiene un volumen de origen de SnapMirror con más de un destino) | ONTAP 9.11.1 |  
 
 
 | FC SAN | No admitido |  
@@ -240,16 +223,19 @@ Antes de la migración de SVM:
 | NFS v4,0 | ONTAP 9.12.1 |  
 
 
+| NFSv4,1 con pNFS | ONTAP 9.14.1 |  
+
+
 | NVMe sobre Fabric | No admitido |  
 
 
 | Gestor de claves incorporado (OKM) con modo Common Criteria habilitado en el clúster de origen | No admitido |  
 
 
-| Qtrees | No admitido |  
+| Qtrees | ONTAP 9.14.1 |  
 
 
-| Cuotas | No admitido |  
+| Cuotas | ONTAP 9.14.1 |  
 
 
 | S3 | No admitido |  
@@ -257,6 +243,26 @@ Antes de la migración de SVM:
 
 | Protocolo de SMB | ONTAP 9.12.1  a| 
 Las migraciones SMB son disruptivas y requieren una actualización de cliente posterior a la migración.
+
+
+
+| Relaciones de copia a cloud asíncronas de SnapMirror | ONTAP 9.12.1 | A partir de ONTAP 9.12.1, cuando se migra una máquina virtual de almacenamiento con relaciones de copia de SnapMirror a cloud, el clúster de destino debe tener instalada la licencia de copia en cloud y debe tener suficiente capacidad disponible para admitir el movimiento de capacidad de los volúmenes que se están reflejando en el cloud. 
+
+
+| Destino asíncrono de SnapMirror | ONTAP 9.12.1 |  
+
+
+| Origen asíncrono de SnapMirror | ONTAP 9.11.1  a| 
+* Las transferencias pueden continuar con normalidad en las relaciones de SnapMirror de FlexVol durante la mayor parte de la migración.
+* Todas las transferencias continuas se cancelan durante la transición y las nuevas transferencias fallan durante la transición. Además, no se pueden reiniciar hasta que finalice la migración.
+* Las transferencias programadas que se cancelaron o omitieron durante la migración no se inician automáticamente una vez que finaliza la migración.
++
+[NOTE]
+====
+Cuando se migra el origen de SnapMirror, ONTAP no impide que se elimine el volumen después de la migración hasta que se realice la actualización de SnapMirror. Esto sucede debido a que la información relacionada con SnapMirror para volúmenes de origen de SnapMirror migrados solo está disponible una vez finalizada la migración y una vez que se lleve a cabo la primera actualización.
+
+====
+
 
 
 
@@ -279,6 +285,9 @@ Las migraciones SMB son disruptivas y requieren una actualización de cliente po
 
 
 | Copia Snapshot | ONTAP 9.10.1 |  
+
+
+| Bloqueo de copias snapshot a prueba de manipulaciones | ONTAP 9.14.1 | El bloqueo de copia snapshot a prueba de manipulaciones no es equivalente a SnapLock. SnapLock no se admite. 
 
 
 | LIF IP virtuales/BGP | No admitido |  
@@ -324,10 +333,10 @@ En la siguiente tabla se indican las operaciones de volumen admitidas dentro de 
 | Eliminar | No permitido | Permitido | No admitido 
 
 
-| Desactivación del análisis del sistema de archivos | Permitido | Permitido | No admitido 
+| Desactivación de análisis del sistema de archivos | Permitido | Permitido | No admitido 
 
 
-| Análisis del sistema de archivos activado | No permitido | Permitido | No admitido 
+| Activación de análisis del sistema de archivos | No permitido | Permitido | No admitido 
 
 
 | Modificar | Permitido | Permitido | No admitido 
@@ -339,10 +348,10 @@ En la siguiente tabla se indican las operaciones de volumen admitidas dentro de 
 | Mover/volver a alojar | No permitido | Permitido | No admitido 
 
 
-| Crear/modificar qtree | No permitido | No permitido | No admitido 
+| Crear/modificar qtree | No permitido | Permitido | No admitido 
 
 
-| Crear/modificar cuota | No permitido | No permitido | No admitido 
+| Crear/modificar cuota | No permitido | Permitido | No admitido 
 
 
 | Cambiar el nombre | No permitido | Permitido | No admitido 

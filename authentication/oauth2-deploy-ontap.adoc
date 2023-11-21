@@ -1,0 +1,178 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-deploy-ontap.html 
+keywords: certificate, install certificate, enable, enable oauth2 
+summary: La implementación de la funcionalidad principal de OAuth 2,0 implica tres pasos principales. 
+---
+= Desplegar OAuth 2,0 en ONTAP
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+La implementación de la funcionalidad principal de OAuth 2,0 implica tres pasos principales.
+
+
+
+== Antes de empezar
+
+Debe prepararse para el despliegue de OAuth 2,0 antes de configurar ONTAP. Por ejemplo, debe evaluar el servidor de autorización, incluido cómo se firmó su certificado y si está detrás de un firewall. Consulte link:../authentication/oauth2-prepare.html["Prepárese para implementar OAuth 2,0 con ONTAP"] si quiere más información.
+
+
+
+== Paso 1: Instale el certificado del servidor de autenticación
+
+ONTAP incluye un gran número de certificados de CA raíz preinstalados. Por lo tanto, en muchos casos, el certificado para su servidor de autorización será reconocido inmediatamente por ONTAP sin configuración adicional. Pero dependiendo de cómo se haya firmado el certificado del servidor de autorización, es posible que necesite instalar un certificado de CA raíz y cualquier certificado intermedio.
+
+Siga las instrucciones proporcionadas a continuación para instalar el certificado si es necesario. Debe instalar todos los certificados necesarios en el nivel de clúster.
+
+Elija el procedimiento correcto en función de cómo acceda a ONTAP.
+
+.Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+. En System Manager, selecciona *Clúster* > *Configuración*.
+. Desplácese hacia abajo hasta la sección *Seguridad*.
+. Haga clic en *->* junto a *Certificados*.
+. En la pestaña *Autoridades de certificación de confianza*, haga clic en *Agregar*.
+. Haga clic en *Importar* y seleccione el archivo de certificado.
+. Complete los parámetros de configuración del entorno.
+. Haga clic en *Agregar*.
+
+
+--
+.CLI
+--
+. Comience la instalación:
++
+`security certificate install -type server-ca`
+
+. Busque el siguiente mensaje de la consola:
++
+`Please enter Certificate: Press <Enter> when done`
+
+. Abra el archivo de certificado con un editor de texto.
+. Copie todo el certificado, incluidas las siguientes líneas:
++
+`-----BEGIN CERTIFICATE-----`
+
++
+`-----END CERTIFICATE-----`
+
+. Pegue el certificado en el terminal después del símbolo del sistema.
+. Presione *Enter* para completar la instalación.
+. Confirme la instalación del certificado mediante uno de los siguientes métodos:
++
+`security certificate show-user-installed`
+
++
+`security certificate show`
+
+
+
+--
+====
+
+
+== Paso 2: Configure el servidor de autorización
+
+Debe definir al menos un servidor de autorización para ONTAP. Debe elegir los valores de los parámetros en función de su plan de configuración e implementación. Revisar link:../authentication/oauth2-deployment-scenarios.html["Situaciones de puesta en marcha de OAuth2"] para determinar los parámetros exactos necesarios para la configuración.
+
+
+TIP: Para modificar una definición de servidor de autorización, puede suprimir la definición existente y crear una nueva.
+
+El ejemplo que se proporciona a continuación se basa en el primer escenario de implementación simple en link:../authentication/oauth2-deployment-scenarios.html#local-validation["Validación local"]. Los ámbitos autónomos se utilizan sin un proxy.
+
+Elija el procedimiento correcto en función de cómo acceda a ONTAP. El procedimiento de la CLI utiliza variables simbólicas que hay que reemplazar antes de emitir el comando.
+
+.Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+. En System Manager, selecciona *Clúster* > *Configuración*.
+. Desplácese hacia abajo hasta la sección *Seguridad*.
+. Haga clic en *+* junto a *Autorización OAuth 2,0*.
+. Selecciona *Más opciones*.
+. Proporcione los valores necesarios para el despliegue, como:
++
+** Nombre
+** Aplicación (http)
+** URI de JWKS de Proveedor
+** URI del emisor
+
+
+. Haga clic en *Agregar*.
+
+
+--
+.CLI
+--
+. Vuelva a crear la definición:
++
+[source, cli]
+----
+security oauth2 client create -config-name <NAME> -provider-jwks-uri <URI_JWKS> -application http -issuer <URI_ISSUER>
+----
++
+Por ejemplo:
+
++
+[listing]
+----
+security oauth2 client create \
+-config-name auth0 \
+-provider-jwks-uri https://superzap.dev.netapp.com:8443/realms/my-realm/protocol/openid-connect/certs \
+-application http \
+-issuer https://superzap.dev.netapp.com:8443/realms/my-realm
+----
+
+
+--
+====
+
+
+== Paso 3: Habilite OAuth 2,0
+
+El paso final es habilitar OAuth 2,0. Se trata de una configuración global para el clúster de ONTAP.
+
+
+CAUTION: No habilite el procesamiento de OAuth 2,0 hasta que confirme que ONTAP, los servidores de autorización y los servicios de soporte se han configurado correctamente.
+
+Elija el procedimiento correcto en función de cómo acceda a ONTAP.
+
+.Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+. En System Manager, selecciona *Clúster* > *Configuración*.
+. Desplácese hacia abajo hasta la sección *Seguridad*.
+. Haga clic en *->* junto a *OAuth 2,0 AUTORIZATION*.
+. Habilita *OAuth 2,0 autorización*.
+
+
+--
+.CLI
+--
+. Activar OAuth 2,0:
++
+`security oauth2 modify -enabled true`
+
+. Confirme que OAuth 2,0 está activado:
++
+[listing]
+----
+security oauth2 show
+Is OAuth 2.0 Enabled: true
+----
+
+
+--
+====

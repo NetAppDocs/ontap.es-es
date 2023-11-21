@@ -1,0 +1,149 @@
+---
+permalink: s3-config/create-bucket-mcc-task.html 
+sidebar: sidebar 
+keywords: s3, bucket, system manager, metrocluster, unmirrored, mirrored, aggregate 
+summary: A partir de ONTAP 9.14.1, puede aprovisionar un bloque en un agregado reflejado o no reflejado en las configuraciones de IP y FC de MetroCluster. 
+---
+= Cree un bucket en un agregado reflejado o no reflejado en una configuración de MetroCluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.14.1, puede aprovisionar un bloque en un agregado reflejado o no reflejado en las configuraciones de IP y FC de MetroCluster.
+
+.Acerca de esta tarea
+* De forma predeterminada, los buckets se aprovisionan en agregados reflejados.
+* Las mismas directrices de provisión descritas en la link:create-bucket-task.html["Crear un bucket"] Aplique para crear un bloque en un entorno MetroCluster.
+* Las siguientes funciones de almacenamiento de objetos S3 no son compatibles con entornos MetroCluster:
++
+** SnapMirror S3
+** Gestión del ciclo de vida de los bloques de S3
+** Bloqueo de objetos S3 en el modo *Compliance*
++
+
+NOTE: Se admite el bloqueo de objetos S3 en el modo *Gobernanza*.
+
+** Organización en niveles de FabricPool local
+
+
+
+
+.Antes de empezar
+Debe haber una SVM que contenga un servidor S3.
+
+
+
+== Proceso para crear cubos
+
+[role="tabbed-block"]
+====
+.CLI
+--
+. Si piensa seleccionar agregados y componentes de FlexGroup por su cuenta, establezca el nivel de privilegio en Advanced (de lo contrario, el nivel de privilegio de administrador es suficiente): `set -privilege advanced`
+. Crear un bloque:
++
+`vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> [-size integer[KB|MB|GB|TB|PB]] [-use-mirrored-aggregates true/false]`
+
++
+Ajuste la `-use-mirrored-aggregates` opción a. `true` o. `false` según si desea usar un agregado reflejado o no reflejado.
+
++
+
+NOTE: De forma predeterminada, la `-use-mirrored-aggregates` opción establecida en `true`.
+
++
+** El nombre de la SVM debe ser una SVM de datos.
+** Si no especifica ninguna opción, ONTAP crea un bloque de 5 GB con el nivel de servicio establecido en el nivel más alto disponible para su sistema.
+** Si desea que ONTAP cree un bloque según el rendimiento o el uso, utilice una de las siguientes opciones:
++
+*** nivel de servicio
++
+Incluya el `-storage-service-level` opción con uno de los siguientes valores: `value`, `performance`, o. `extreme`.
+
+*** Organización en niveles
++
+Incluya el `-used-as-capacity-tier true` opción.
+
+
+
+** Si desea especificar los agregados en los que se creará el volumen de FlexGroup subyacente, utilice las siguientes opciones:
++
+*** La `-aggr-list` El parámetro especifica la lista de agregados que se usarán para los componentes de volumen de FlexGroup.
++
+Cada entrada de la lista crea un componente en el agregado especificado. Puede especificar un agregado varias veces para que se creen varios componentes en el agregado.
+
++
+Para obtener un rendimiento coherente en todo el volumen FlexGroup, todos los agregados deben usar las mismas configuraciones de tipo de disco y grupo RAID.
+
+*** La `-aggr-list-multiplier` parámetro especifica la cantidad de veces que se debe iterar sobre los agregados que se enumeran con el `-aggr-list` Parámetro cuando se crea un volumen de FlexGroup.
++
+El valor predeterminado de `-aggr-list-multiplier` el parámetro es 4.
+
+
+
+
+
+. Añada un grupo de políticas QoS si es necesario:
++
+`vserver object-store-server bucket modify -bucket _bucket_name_ -qos-policy-group _qos_policy_group_`
+
+. Verificar creación de bloques:
++
+`vserver object-store-server bucket show [-instance]`
+
+
+
+.Ejemplo
+En el ejemplo siguiente se crea un bloque para SVM VS1 de tamaño 1TB en un agregado reflejado:
+
+[listing]
+----
+cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket  -size 1TB -use-mirrored-aggregates true
+----
+--
+.System Manager
+--
+. Añadir un nuevo bloque en una máquina virtual de almacenamiento habilitada para S3.
++
+.. Haga clic en *almacenamiento > Cuchos* y, a continuación, haga clic en *Agregar*.
+.. Introduzca un nombre, seleccione la máquina virtual de almacenamiento e introduzca un tamaño.
++
+De forma predeterminada, el bloque se aprovisiona en un agregado reflejado. Si quieres crear un bucket en un agregado no reflejado, selecciona *Más opciones* y desmarca la casilla *Usar el nivel SyncMirror* bajo *Protección* como se muestra en la siguiente imagen:
+
++
+image:../media/SM_create_bucket_MCC.png["Creación de bloque de MetroCluster de System Manager"]
+
++
+*** Si hace clic en *Guardar* en este punto, se crea un bloque con estos valores predeterminados:
++
+**** No se concede acceso a ningún usuario al bloque a menos que ninguna política de grupo esté ya en vigor.
++
+
+NOTE: No se debe usar el usuario raíz de S3 para gestionar el almacenamiento de objetos ONTAP y compartir sus permisos, ya que tiene acceso ilimitado al almacén de objetos. En su lugar, cree un usuario o grupo con privilegios administrativos que asigne.
+
+**** Un nivel de calidad de servicio (rendimiento) que es el más alto disponible para su sistema.
+
+
+*** Puede hacer clic en *más opciones* para configurar los permisos de usuario y el nivel de rendimiento al configurar el bloque, o puede modificar esta configuración más tarde.
++
+**** Debe haber creado usuarios y grupos antes de utilizar *más opciones* para configurar sus permisos.
+**** Si tiene la intención de utilizar el almacén de objetos S3 para la organización en niveles de FabricPool, considere la posibilidad de seleccionar *utilizar para la organización en niveles* (utilizar medios de bajo coste con un rendimiento óptimo para los datos organizados en niveles) en lugar de un nivel de servicio de rendimiento.
+
+
+
+
+
+
+. En aplicaciones de cliente S3, otro sistema ONTAP o una aplicación de terceros externa, verifique el acceso al nuevo bloque introduciendo lo siguiente:
++
+** El certificado de CA de servidor S3.
+** Clave secreta y clave de acceso del usuario.
+** El nombre FQDN del servidor S3 y el nombre de bloque.
+
+
+
+
+--
+====
