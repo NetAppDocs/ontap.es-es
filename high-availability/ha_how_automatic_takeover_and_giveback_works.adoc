@@ -44,16 +44,19 @@ Los siguientes pasos ocurren durante el proceso de toma de control:
 
 . Si la toma de control negociada está iniciada por el usuario, los datos agregados se mueven desde el nodo del partner al nodo que está realizando la toma de control. Se produce una breve interrupción del servicio cuando el propietario actual de cada agregado (excepto el agregado raíz) cambia a el nodo de toma de control. Esta interrupción es más breve que una interrupción que se produce durante una toma de control sin necesidad de reubicar agregados.
 +
+
+NOTE: Una toma negociada durante el pánico no puede ocurrir en el caso de un pánico.  Una toma de control puede ser el resultado de un fallo no asociado a una caída del pánico. Un fallo se experimenta cuando se pierde la comunicación entre un nodo y su compañero, también llamado pérdida de latido. Si se produce una toma de control debido a un fallo, la interrupción del servicio podría tardar más porque el nodo asociado necesita tiempo para detectar la pérdida de latido.
+
++
 ** Puede supervisar el progreso con el `storage failover show‑takeover` comando.
 ** Puede evitar la reubicación de agregados durante esta instancia de toma de control mediante la `‑bypass‑optimization` con el `storage failover takeover` comando.
 +
-
-NOTE: Los agregados se reubican en serie durante las operaciones de toma de control planificadas para reducir las interrupciones del cliente. Si se omite la reubicación de agregados, se produce una interrupción del servicio del cliente mayor durante los eventos de toma de control planificados.
+Los agregados se reubican en serie durante las operaciones de toma de control planificadas para reducir las interrupciones del cliente. Si se omite la reubicación de agregados, se produce una interrupción del servicio del cliente mayor durante los eventos de toma de control planificados.
 
 
 
 . Si la toma de control iniciada por el usuario es una toma de control negociada, el nodo de destino se cierra con dignidad, seguido de la toma de control del agregado raíz del nodo de destino y de cualquier agregado que no se haya reubicado en el paso 1.
-. Antes de que comience la toma de control del almacenamiento, las LIF de datos (interfaces lógicas) migran del nodo de destino al nodo de toma de control o a cualquier otro nodo del clúster según las reglas de conmutación por error LIF. Puede evitar la migración de LIF mediante el `‑skip‑lif-migration` con el `storage failover takeover` comando.
+. Las LIF de datos (interfaces lógicas) migran desde el nodo de destino al nodo de toma de control, o a cualquier otro nodo del clúster según las reglas de conmutación al nodo de respaldo de LIF. Puede evitar la migración de LIF mediante el `‑skip‑lif-migration` con el `storage failover takeover` comando. En caso de toma de control iniciada por el usuario, los LIF de datos se migran antes de que se inicie la toma de control del almacenamiento.  En caso de alarma o fallo, los LIF de datos y el almacenamiento se migran al mismo tiempo.
 . Las sesiones SMB existentes se desconectan cuando se produce la toma de control.
 +
 
