@@ -1,185 +1,65 @@
 ---
 permalink: san-admin/asa-iscsi-lif-fo-task.html 
 sidebar: sidebar 
-keywords: failover, iscsi, all flash san array, cli, system manager, auto-revert, revert network interface 
-summary: 'A partir de ONTAP 9.11.1 en plataformas de cabinas all-flash SAN (ASA), la función de conmutación por error de LIF iSCSI admite la migración automática y manual de LIF iSCSI en una conmutación al nodo de respaldo de un partner de SFO (cuando un LIF iSCSI pasa de su nodo/puerto principal a su nodo/puerto asociado de alta disponibilidad y de nuevo) y en una conmutación por error local (cuando un LIF iSCSI pasa de su puerto en mal estado a un puerto en buen estado de su nodo inicial actual y viceversa). Esta función proporciona una reanudación más rápida de las operaciones de I/o para las cargas de trabajo SAN que se ejecutan en ISCSI.' 
+keywords: failover, iscsi, all san array, cli, system manager, auto-revert, revert network interface 
+summary: Después de actualizar a ONTAP 9.11.1 o una versión posterior, debe habilitar manualmente la conmutación por error automática de LIF en todas las LIF de iSCSI creadas en ONTAP 9.10.1 o una versión anterior. 
 ---
-= Conmutación por error de LIF de iSCSI para plataformas ASA
+= Habilitar o deshabilitar la recuperación tras fallos automática de LIF de iSCSI
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-A partir de ONTAP 9.11.1 en plataformas de cabinas all-flash SAN (ASA), la función de conmutación por error de LIF iSCSI admite la migración automática y manual de LIF iSCSI en una conmutación al nodo de respaldo de un partner de SFO (cuando un LIF iSCSI pasa de su nodo/puerto principal a su nodo/puerto asociado de alta disponibilidad y de nuevo) y en una conmutación por error local (cuando un LIF iSCSI pasa de su puerto en mal estado a un puerto en buen estado de su nodo inicial actual y viceversa). Esta función proporciona una reanudación más rápida de las operaciones de I/o para las cargas de trabajo SAN que se ejecutan en ISCSI.
+Después de actualizar a ONTAP 9.11.1 o una versión posterior, debe habilitar manualmente la conmutación por error automática de LIF en todas las LIF de iSCSI creadas en ONTAP 9.10.1 o una versión anterior.
+
+A partir de ONTAP 9.11.1, puede habilitar la recuperación automática tras fallos de LIF para LIF iSCSI en plataformas de cabinas SAN all-flash. Si se produce una recuperación tras fallos de almacenamiento, el LIF de iSCSI se migra automáticamente desde su nodo o puerto principal a su puerto o nodo de alta disponibilidad asociado y, a continuación, una vez finalizada la recuperación tras fallos.  O bien, si el puerto para LIF iSCSI deja de estar en buen estado, la LIF se migra automáticamente a un puerto en buen estado de su nodo inicial actual y de nuevo a su puerto original cuando el estado del puerto vuelve a estar en buen estado.  El habilita las cargas de trabajo SAN que se ejecutan en iSCSI para reanudar el servicio de I/O más rápido después de que se experimenta una conmutación al nodo de respaldo.
+
+En ONTAP 9.11.1 y versiones posteriores, de forma predeterminada, los LIF iSCSI recién creados se habilitan para la conmutación automática por error de LIF si se cumple alguna de las siguientes condiciones:
+
+* No hay ningún LIF de iSCSI en la SVM
+* Todos los LIF de iSCSI en la SVM están habilitados para la conmutación al respaldo automática de LIF
 
 
 
-== Acerca de cómo habilitar la conmutación por error de LIF iSCSI
 
-[role="Lead"]
-Familiarícese con los aspectos en los que se activa automáticamente la conmutación por error del LIF iSCSI y cuando debe habilitarla manualmente, incluida la forma en que se ven afectados los LIF iSCSI recién creados y los LIF iSCSI existentes.
+== Activar recuperación tras fallos automática de LIF iSCSI
 
-* La migración automática de un LIF iSCSI es una conmutación por error y una reversión automática de LIF, que se activa en determinados eventos como conmutación por error planificada o no planificada, un enlace ethernet físico o un nodo que deja de tener quórum de base de datos replicada (RDB).
+De manera predeterminada, las LIF de iSCSI creadas en ONTAP 9.10.1 y versiones anteriores no están habilitadas para la conmutación automática por error de LIF.  Si hay LIF de iSCSI en la SVM que no están habilitados para la conmutación automática al respaldo de LIF, los LIF creados recientemente no se habilitarán para la conmutación automática por error de LIF.  Si la recuperación tras fallos automática de LIF no está habilitada y existe un evento de recuperación tras fallos, los LIF de iSCSI no migrarán.
+
+.Paso
+. Habilitar la recuperación automática tras fallos en una LIF iSCSI:
 +
-** Tras actualizar el par de alta disponibilidad de ASA a ONTAP 9.11.1, esta función se habilita automáticamente en LIF iSCSI recién creadas si no existen LIF iSCSI en la máquina virtual de almacenamiento especificada o si todos los LIF iSCSI existentes en la máquina virtual de almacenamiento especificada ya se habilitan con conmutación por error de LIF iSCSI.
-** Para LIF iSCSI creadas antes de actualizar a ONTAP 9.11.1, para utilizar la función de conmutación por error de LIF iSCSI, debe habilitarla mediante la interfaz de línea de comandos de ONTAP. (Habilitar la función de conmutación por error y la funcionalidad de reversión automática significa cambiar la política de conmutación por error a. `sfo-partner-only` y designando el valor de reversión automática a. `true`.)
+[source, cli]
+----
+network interface modify -vserver SVM_name -lif iscsi_lif –failover-policy sfo-partner-only -auto-revert true
+----
 +
-<<Administración de LIF iSCSI mediante la CLI de ONTAP>>
+Para actualizar todos los LIF iSCSI en la SVM, utilice `-lif*` en lugar de `lif`.
 
+
+
+
+
+== Desactive la recuperación tras fallos automática de LIF de iSCSI
+
+Si anteriormente habilitó conmutación por error automática de LIF de iSCSI en LIF iSCSI creadas en ONTAP 9.10.1 o una versión anterior, tiene la opción de deshabilitarla.
+
+.Paso
+. Desactive la recuperación automática tras fallos para una LIF iSCSI:
 +
-Si no habilita la conmutación por error de LIF iSCSI en los LIF iSCSI existentes, cuando se produce un evento de conmutación por error, los LIF iSCSI no se realizarán en caso de recuperación tras fallos.
-
+[source, cli]
+----
+network interface modify -vserver SVM_name -lif iscsi_lif –failover-policy disabled -auto-revert false
+----
 +
-Además, si tras una actualización a ONTAP 9.11.1 o posterior tiene LIF iSCSI existentes en un equipo virtual de almacenamiento que no se hayan habilitado con la función de conmutación por error de LIF iSCSI y crea nuevos LIF iSCSI en el mismo equipo virtual de almacenamiento, los nuevos LIF iSCSI asumirán la misma normativa de conmutación por error (`disabled`) De los LIF iSCSI existentes en la máquina virtual de almacenamiento.
+Para actualizar todos los LIF iSCSI en la SVM, utilice `-lif*` en lugar de `lif`.
 
 
 
-* La migración manual de un LIF iSCSI es una migración y reversión de LIF, que inicia el administrador del clúster mediante la interfaz de línea de comandos de ONTAP o System Manager.
-+
-<<Migrar y revertir un LIF iSCSI>>
+.Información relacionada
+* link:../networking/create_a_lif.html["Cree una LIF"]
+* Manualmente link:../networking/migrate_a_lif.html["Migre una LIF"]
+* Manualmente link:../networking/revert_a_lif_to_its_home_port.html["Revierte una LIF a su puerto de inicio"]
+* link:.../networking/configure_failover_settings_on_a_lif.html["Configure los ajustes de recuperación tras fallos en un LIF"]
 
-+
-Migre y revierte manualmente una LIF iSCSI en las siguientes circunstancias:
-
-+
-** Cuando sea necesario realizar tareas de mantenimiento o sustitución programadas.
-** Cuando tiene un LIF iSCSI preexistente, lo cual significa que el LIF iSCSI se creó antes de actualizar el par de alta disponibilidad a ONTAP 9.11.1 o una versión posterior, y que no ha habilitado la función de conmutación por error de LIF iSCSI en el LIF.
-
-
-* La recuperación tras fallos y la migración de LIF iSCSI se producen dentro del dominio de retransmisión del puerto raíz de la LIF. Revise la configuración del dominio de retransmisión mediante el `network port broadcast-domain show` comando.
-+
-
-IMPORTANT: Asegúrese de que los dominios de retransmisión asociados a las LIF iSCSI contengan puertos de red que representen ambos nodos de un par de alta disponibilidad, de manera que las LIF iSCSI puedan migrarse y conmutar por fallo entre ambos nodos según sea necesario.
-
-
-
-
-
-== Cómo funciona la conmutación por error de LIF iSCSI
-
-[role="Lead"]
-En el caso de los LIF con conmutación por error de LIF iSCSI habilitados (de forma automática o manual), se aplica lo siguiente.
-
-* Para las LIF mediante `data-iscsi` política de servicio, la política de recuperación tras fallos está restringida a. `sfo-partner-only`, `local-only`, y. `disabled`.
-* Los LIF iSCSI solo pueden recuperarse tras fallos en el partner de alta disponibilidad cuando la política de recuperación tras fallos está establecida en `sfo-partner-only`.
-* La reversión automática de LIF se produce cuando la reversión automática se establece en `true` Y cuando el puerto de la LIF está en buen estado y es capaz de albergar la LIF.
-* En el caso de la toma de control de nodo planificada o sin planificar, el LIF iSCSI del nodo que se toma al nodo se conmuta al nodo de respaldo al partner de alta disponibilidad. El puerto en el que se produce un fallo en el LIF viene determinado por VIF Manager.
-* Una vez finalizada la conmutación por error, el LIF iSCSI funciona con normalidad.
-* Cuando se inicia una devolución, el LIF iSCSI vuelve a su nodo raíz y puerto, si se ha establecido la reversión automática en `true`.
-* Cuando un enlace ethernet deja de funcionar en un puerto que aloja uno o varios LIF iSCSI, VIF Manager migra las LIF del puerto inactivo a un puerto diferente del mismo dominio de retransmisión. El nuevo puerto podría estar en el mismo nodo o en su compañero de alta disponibilidad. Una vez restaurado el enlace y si se ha configurado la función de reversión automática en `true`, VIF Manager devuelve los LIF iSCSI a su nodo de inicio y al puerto de inicio.
-* Cuando un nodo deja de tener quórum de base de datos replicada (RDB), VIF Manager migra las LIF iSCSI del nodo de quórum a su compañero de alta disponibilidad. Una vez que el nodo vuelve a entrar en quórum y si se establece la reversión automática en `true`, VIF Manager devuelve los LIF iSCSI a su nodo de inicio y al puerto de inicio.
-
-
-
-
-== Migrar y revertir un LIF iSCSI
-
-[role="Lead"]
-Puede usar System Manager o la interfaz de línea de comandos de ONTAP para migrar manualmente una LIF iSCSI a un puerto diferente del mismo nodo o a un puerto diferente del compañero de alta disponibilidad y, a continuación, revertir el LIF a su nodo raíz y puerto raíz.
-
-
-
-=== Migrar y revertir una LIF iSCSI mediante System Manager
-
-[role="Lead"]
-Puede usar System Manager para migrar y revertir manualmente uno o varios LIF iSCSI (interfaces de red) a otro puerto del mismo nodo o a un puerto del compañero de alta disponibilidad.
-
-.Antes de empezar
-Debe tener un par de alta disponibilidad de la plataforma ASA y ejecutar ONTAP 9.11.1 o una versión posterior.
-
-
-
-==== Migre una LIF
-
-.Pasos
-. En System Manager, haga clic en *Red > Descripción general > interfaces de red*
-. Seleccione la LIF que desea migrar, haga clic en image:icon_kabob.gif["Icono de Kabob"]Y, a continuación, haga clic en *migrar*.
-. En el cuadro de diálogo *Migrate Interface*, seleccione el nodo de destino y el puerto del asociado ha.
-+
-
-NOTE: Tiene la opción de migrar de forma permanente la LIF iSCSI marcando la casilla de comprobación. Comprenda que el LIF iSCSI debe estar desconectado antes de migrarse de forma permanente. Además, una vez que se migra permanentemente un LIF iSCSI, no se puede revertir. No hay ninguna opción de reversión.
-
-. Haga clic en *migrar*.
-
-
-
-
-==== Revertir una LIF
-
-.Pasos
-. En System Manager, haga clic en *Red > Descripción general > interfaces de red*.
-. Seleccione la LIF que desea revertir, haga clic en image:icon_kabob.gif["Icono de Kabob"] Y, a continuación, haga clic en *revertir interfaz de red*.
-. En el cuadro de diálogo *Revert Network Interface*, haga clic en *Revert*.
-
-
-
-
-=== Migrar y revertir una LIF iSCSI mediante la interfaz de línea de comandos de ONTAP
-
-[role="Lead"]
-Puede usar el CLI de ONTAP para migrar y revertir manualmente uno o varios LIF iSCSI a otro puerto del mismo nodo o a un puerto del compañero de alta disponibilidad.
-
-.Antes de empezar
-Debe tener un par de alta disponibilidad de la plataforma ASA y ejecutar ONTAP 9.11.1 o una versión posterior.
-
-|===
-
-
-| Si desea... | Se usa este comando... 
-
-
-| Migre un LIF iSCSI a otro nodo/puerto | Consulte link:../networking/migrate_a_lif.html["Migre una LIF"] para los comandos disponibles. 
-
-
-| Revierte un LIF iSCSI a su puerto/nodo de inicio | Consulte link:../networking/revert_a_lif_to_its_home_port.html["Revierte una LIF a su puerto raíz"] para los comandos disponibles. 
-|===
-
-
-== Administración de LIF iSCSI mediante la CLI de ONTAP
-
-Puede utilizar la CLI de ONTAP para administrar LIF iSCSI, incluida la creación de LIF iSCSI nuevos y la habilitación de la función de conmutación por error de LIF iSCSI para LIF preexistentes.
-
-.Antes de empezar
-Debe tener un par de alta disponibilidad de la plataforma ASA y ejecutar ONTAP 9.11.1 o una versión posterior.
-
-.Acerca de esta tarea
-Consulte https://docs.netapp.com/us-en/ontap-cli-9141/index.html["Referencia de comandos de la ONTAP"^] para obtener una lista completa de `network interface` comandos.
-
-|===
-
-
-| Si desea... | Se usa este comando... 
-
-
-| Cree una LIF iSCSI | `network interface create -vserver _SVM_name_ -lif _iscsi_lif_ -service-policy default-data-blocks -data-protocol iscsi -home-node _node_name_ -home-port _port_name_ -address _IP_address_ -netmask _netmask_value_`
-
-Si es necesario, consulte link:../networking/create_a_lif.html["Cree una LIF"] si quiere más información. 
-
-
-| Compruebe que la LIF se ha creado correctamente | `network interface show -vserver _SVM_name_ -fields failover-policy,failover-group,auto-revert,is-home` 
-
-
-| Verificar si puede anular la reversión automática predeterminada en las LIF iSCSI | `network interface modify -vserver _SVM_name_ -lif _iscsi_lif_ -auto-revert false` 
-
-
-| Realice una recuperación tras fallos del almacenamiento en un LIF iSCSI | `storage failover takeover -ofnode _node_name_ -option normal`
-
-Recibirá una advertencia: `A takeover will be initiated. Once the partner node reboots, a giveback will be automatically initiated. Do you want to continue? {y/n}:`
-
-A. `y` Respuesta muestra un mensaje de toma de control de su partner de alta disponibilidad. 
-
-
-| Activa la función de recuperación tras fallos de LIF iSCSI para LIF preexistentes | Para LIF iSCSI creadas antes de actualizar el clúster a ONTAP 9.11.1 o posterior, puede habilitar la función de conmutación por error de LIF iSCSI (al modificar la política de conmutación por error a. `sfo-partner-only` y al modificar la funcionalidad de reversión automática a. `true`):
-
-`network interface modify -vserver _SVM_name_ -lif _iscsi_lif_ –failover-policy sfo-partner-only -auto-revert true`
-
-Este comando se puede ejecutar en todas las LIF iSCSI de una máquina virtual de almacenamiento especificando “-lif*” y manteniendo los demás parámetros iguales. 
-
-
-| Deshabilite la función de recuperación tras fallos de LIF iSCSI para los LIF preexistentes | Para LIF iSCSI creadas antes de actualizar el clúster a ONTAP 9.11.1 o posterior, puede deshabilitar la función de conmutación por error de LIF iSCSI y la funcionalidad de reversión automática:
-
-`network interface modify -vserver _SVM_name_ -lif _iscsi_lif_ –failover-policy disabled -auto-revert false`
-
-Este comando se puede ejecutar en todas las LIF iSCSI de un equipo virtual de almacenamiento especificando “-lif*” y manteniendo los demás parámetros iguales. 
-|===
