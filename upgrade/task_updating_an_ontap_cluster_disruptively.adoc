@@ -2,7 +2,7 @@
 permalink: upgrade/task_updating_an_ontap_cluster_disruptively.html 
 sidebar: sidebar 
 keywords: ontap, upgrade, disruptively 
-summary: 'Si puede desconectar el clúster para actualizar a una nueva versión de ONTAP, puede utilizar el método de actualización disruptiva. Este método tiene varios pasos: Deshabilitar la conmutación por error de almacenamiento para cada pareja de alta disponibilidad, reiniciar cada nodo del clúster y, a continuación, volver a habilitar la conmutación por error del almacenamiento.' 
+summary: Si puede desconectar el clúster para actualizar a una nueva versión de ONTAP, puede utilizar el método de actualización disruptiva. 
 ---
 = Actualización manual disruptiva de ONTAP mediante la interfaz de línea de comandos
 :allow-uri-read: 
@@ -22,15 +22,31 @@ Si los clientes SAN no se apagan o suspenden antes de una actualización disrupt
 
 En una actualización disruptiva, se requiere un tiempo de inactividad porque la conmutación por error de almacenamiento está deshabilitada para cada par de alta disponibilidad y se actualiza cada nodo. Cuando se deshabilita la conmutación al respaldo de almacenamiento, cada nodo se comporta como un clúster de un solo nodo; es decir, los servicios del sistema asociados con el nodo se interrumpen mientras se tarda en reiniciar el sistema.
 
-. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar: `set -privilege advanced`
+.Pasos
+. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar:
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 El aviso avanzado (`*>`) aparece.
 
-. Establezca la nueva imagen del software ONTAP como la imagen predeterminada: `system image modify {-node * -iscurrent false} -isdefault true`
+. Establezca la nueva imagen del software ONTAP como la imagen predeterminada:
++
+[source, cli]
+----
+system image modify {-node * -iscurrent false} -isdefault true
+----
 +
 Este comando utiliza una consulta ampliada para cambiar la imagen de software de ONTAP de destino (que se instala como imagen alternativa) y que sea la imagen predeterminada de cada nodo.
 
-. Compruebe que la nueva imagen del software ONTAP está configurada como la imagen predeterminada: `system image show`
+. Compruebe que la nueva imagen del software ONTAP está configurada como la imagen predeterminada:
++
+[source, cli]
+----
+system image show
+----
 +
 En el ejemplo siguiente, la imagen 2 es la nueva versión de ONTAP y se establece como la imagen predeterminada en ambos nodos:
 
@@ -81,7 +97,12 @@ Más de dos nodos
 Deshabilite la recuperación tras fallos del almacenamiento para cada pareja de alta disponibilidad del clúster: `storage failover modify -node * -enabled false`
 
 |===
-. Reiniciar un nodo en el clúster: `system node reboot -node nodename -ignore-quorum-warnings`
+. Reiniciar un nodo en el clúster:
++
+[source, cli]
+----
+system node reboot -node nodename -ignore-quorum-warnings
+----
 +
 
 IMPORTANT: No reinicie más de un nodo a la vez.
@@ -89,11 +110,21 @@ IMPORTANT: No reinicie más de un nodo a la vez.
 +
 El nodo arranca la nueva imagen de ONTAP. Aparece la solicitud de inicio de sesión de ONTAP, que indica que el proceso de reinicio ha finalizado.
 
-. Después de que el nodo o el conjunto de nodos se haya reiniciado con la nueva imagen ONTAP, establezca el nivel de privilegio en AVANZADO: `set -privilege advanced`
+. Después de que el nodo o el conjunto de nodos se haya reiniciado con la nueva imagen ONTAP, establezca el nivel de privilegio en AVANZADO:
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 Introduzca *y* cuando se le solicite continuar
 
-. Confirme que el nuevo software se está ejecutando: `system node image show`
+. Confirme que el nuevo software se está ejecutando:
++
+[source, cli]
+----
+system node image show
+----
 +
 En el siguiente ejemplo, image1 es la nueva versión de ONTAP y se establece como la versión actual del nodo 0:
 
@@ -114,18 +145,43 @@ node1
 ----
 . Compruebe que la actualización se haya realizado correctamente:
 +
-.. Configure el nivel de privilegio en Advanced: `set -privilege advanced`
-.. Compruebe que el estado de la actualización se haya completado para cada nodo: `system node upgrade-revert show -node nodename`
+.. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Compruebe que el estado de la actualización se haya completado para cada nodo:
++
+[source, cli]
+----
+system node upgrade-revert show -node nodename
+----
 +
 El estado debe aparecer como completo.
 
 +
 Si el estado es no completo, link:http://mysupport.netapp.com/["Comuníquese con el soporte de NetApp"] inmediatamente.
 
-.. Vuelva al nivel de privilegio de administrador: `set -privilege admin`
+.. Vuelva al nivel de privilegio de administrador:
++
+[source, cli]
+----
+set -privilege admin
+----
 
 
-. Repita los pasos 2 a 7 para cada nodo adicional.
-. Si el clúster consta de dos o más nodos, habilite la conmutación por error del almacenamiento para cada pareja de alta disponibilidad del clúster: `storage failover modify -node * -enabled true`
-. Si el clúster consta de solo dos nodos, habilite la alta disponibilidad de los clústeres: `cluster ha modify -configured true`
+. Repita los pasos 2 a 8 en cada nodo adicional.
+. Si el clúster consta de dos o más nodos, habilite la conmutación por error del almacenamiento para cada pareja de alta disponibilidad del clúster:
++
+[source, cli]
+----
+storage failover modify -node * -enabled true
+----
+. Si el clúster consta de solo dos nodos, habilite la alta disponibilidad de los clústeres:
++
+[source, cli]
+----
+cluster ha modify -configured true
+----
 

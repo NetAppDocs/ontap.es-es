@@ -2,7 +2,7 @@
 permalink: upgrade/task_verify_cluster_after_upgrade.html 
 sidebar: sidebar 
 keywords: ontap, upgrade, upgrade, verify, status, health, post, after 
-summary: Después de la actualización debe verificar el clúster. 
+summary: Después de actualizar ONTAP, compruebe la versión del clúster, el estado del clúster y el estado del almacenamiento.  En el caso de configuraciones de FC de MetroCluster, compruebe que la conmutación de sitios automática no planificada está habilitada. 
 ---
 = Compruebe el clúster después de actualizar ONTAP
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: Después de la actualización debe verificar el clúster.
 
 
 [role="lead"]
-Después de actualizar ONTAP, debe comprobar la versión del clúster, el estado del clúster y el estado del almacenamiento.  Si el clúster está en una configuración de MetroCluster FC, también debe verificar que el clúster esté habilitado para la conmutación de sitios no planificada automática.
+Después de actualizar ONTAP, compruebe la versión del clúster, el estado del clúster y el estado del almacenamiento.  Para configuraciones de FC de MetroCluster, compruebe también que el clúster esté habilitado para la conmutación de sitios automática no planificada.
 
 
 
@@ -23,12 +23,16 @@ La versión del clúster es la versión más baja de ONTAP que se ejecuta en cua
 
 . Compruebe que la versión del clúster es la versión de ONTAP de destino:
 +
-`version`
-
+[source, cli]
+----
+version
+----
 . Si la versión del clúster no es la versión de ONTAP de destino, debe comprobar el estado de actualización de todos los nodos:
 +
-`system node upgrade-revert show`
-
+[source, cli]
+----
+system node upgrade-revert show
+----
 
 
 
@@ -39,8 +43,10 @@ Después de actualizar un clúster, debe comprobar que los nodos estén en buen 
 
 . Compruebe que los nodos del clúster estén en línea y que puedan participar en el clúster:
 +
-`cluster show`
-
+[source, cli]
+----
+cluster show
+----
 +
 [listing]
 ----
@@ -55,8 +61,10 @@ Si alguno de los nodos no es saludable o no apto, compruebe los registros de EMS
 
 . Configure el nivel de privilegio en Advanced:
 +
-`set -privilege advanced`
-
+[source, cli]
+----
+set -privilege advanced
+----
 . Verifique los detalles de configuración de cada proceso RDB.
 +
 ** Las épocas de la base de datos relacional y la base de datos deben coincidir para cada nodo.
@@ -115,7 +123,12 @@ node2     vldb     154      154      14847    node0     secondary
 node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
-. Si va a trabajar en un entorno SAN, compruebe que cada nodo se encuentra en quórum DE SAN: `cluster kernel-service show`
+. Si va a trabajar en un entorno SAN, compruebe que cada nodo se encuentra en quórum DE SAN:
++
+[source, cli]
+----
+cluster kernel-service show
+----
 +
 [listing]
 ----
@@ -138,15 +151,15 @@ link:../system-admin/index.html["Administración del sistema"]
 
 Si el clúster está en una configuración de MetroCluster FC, debe verificar que la conmutación automática no planificada esté habilitada después de actualizar ONTAP.
 
-.Acerca de esta tarea
-
-NOTE: Este procedimiento se realiza solo para configuraciones de MetroCluster FC.  Si está utilizando una configuración IP de MetroCluster, omita este procedimiento.
+Si está utilizando una configuración IP de MetroCluster, omita este procedimiento.
 
 .Pasos
 . Compruebe si la conmutación automática no planificada está habilitada:
 +
-`metrocluster show`
-
+[source, cli]
+----
+metrocluster show
+----
 +
 Si la conmutación automática no planificada está habilitada, aparecerá la siguiente instrucción en el resultado del comando:
 
@@ -157,9 +170,16 @@ AUSO Failure Domain  auso-on-cluster-disaster
 ----
 . Si la sentencia no aparece, active una conmutación automática no planificada:
 +
-`metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster`
-
-. Verifique que se ha activado una conmutación automática no planificada repitiendo el paso 1.
+[source, cli]
+----
+metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster
+----
+. Compruebe que se ha activado un switchover no planificado automático:
++
+[source, cli]
+----
+metrocluster show
+----
 
 
 .Información relacionada

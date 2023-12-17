@@ -1,8 +1,8 @@
 ---
 permalink: upgrade/task_updating_a_four_or_eight_node_mcc.html 
 sidebar: sidebar 
-keywords: 4-node MetroCluster configurations,8-node MetroCluster configurations 
-summary: El procedimiento de actualización manual para actualizar o degradar una configuración de MetroCluster de cuatro o ocho nodos implica preparar la actualización, actualizar las parejas de DR en cada uno o dos grupos de recuperación ante desastres simultáneamente y realizar algunas tareas posteriores a la actualización. 
+keywords: 4-node MetroCluster configurations,8-node MetroCluster configurations, upgrade, upgrading, manual, manually 
+summary: La actualización manual de una configuración de MetroCluster de cuatro u ocho nodos implica preparar y actualizar los pares de recuperación ante desastres en cada uno de los grupos de recuperación ante desastres y realizar las tareas posteriores a la actualización 
 ---
 = Actualización manual de ONTAP no disruptiva de una configuración de MetroCluster de cuatro u ocho nodos mediante la CLI
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: El procedimiento de actualización manual para actualizar o degradar un
 
 
 [role="lead"]
-El procedimiento de actualización manual para actualizar o degradar una configuración de MetroCluster de cuatro o ocho nodos implica preparar la actualización, actualizar las parejas de DR en cada uno o dos grupos de recuperación ante desastres simultáneamente y realizar algunas tareas posteriores a la actualización.
+Una actualización manual de una configuración de MetroCluster de cuatro u ocho nodos implica la preparación de la actualización, la actualización de los pares de recuperación ante desastres en cada uno o dos grupos de recuperación ante desastres simultáneamente y la realización de las tareas posteriores a la actualización.
 
 * Esta tarea se aplica a las siguientes configuraciones:
 +
@@ -34,35 +34,33 @@ image::../media/workflow_mcc_lockstep_upgrade.gif[Diagrama del flujo de decision
 
 
 
-== Diferencias al actualizar el software en una configuración de MetroCluster de ocho o cuatro nodos
+== Diferencias cuando se actualiza el software ONTAP en una configuración de MetroCluster de ocho o cuatro nodos
 
-El proceso de actualización del software MetroCluster varía en función de si hay ocho o cuatro nodos en la configuración de MetroCluster.
+El proceso de actualización de software MetroCluster varía en función de si haya ocho o cuatro nodos en la configuración de MetroCluster.
 
 Una configuración MetroCluster está compuesta por uno o dos grupos de recuperación ante desastres. Cada grupo de recuperación ante desastres consta de dos parejas de alta disponibilidad, un par de alta disponibilidad en cada clúster MetroCluster. Un MetroCluster de ocho nodos incluye dos grupos de recuperación ante desastres:
 
 image::../media/mcc_dr_groups_8_node.gif[Diagrama de configuración de MetroCluster de ocho nodos.]
 
-El procedimiento de actualización del software MetroCluster implica actualizar o degradar un grupo de recuperación ante desastres a la vez.
+Actualiza un grupo de recuperación ante desastres cada vez.
 
-Para configuraciones MetroCluster de cuatro nodos:
-
-. Actualizar el grupo DR uno:
+.Para configuraciones MetroCluster de cuatro nodos:
+. Actualizar grupo de DR uno:
 +
-.. Actualice node_A_1 y node_B_1.
+.. Actualice NODE_A_1 y NODE_B_1.
 .. Actualice NODE_A_2 y NODE_B_2.
 
 
 
 
-Para las configuraciones MetroCluster de ocho nodos, debe realizar el procedimiento de actualización del grupo de recuperación ante desastres dos veces:
-
-. Actualizar el grupo DR uno:
+.Para configuraciones MetroCluster de ocho nodos, el procedimiento de actualización del grupo de recuperación ante desastres se realiza dos veces:
+. Actualizar grupo de DR uno:
 +
-.. Actualice node_A_1 y node_B_1.
+.. Actualice NODE_A_1 y NODE_B_1.
 .. Actualice NODE_A_2 y NODE_B_2.
 
 
-. Actualizar el grupo DR dos:
+. Actualizar grupo DR dos:
 +
 .. Actualice NODE_A_3 y NODE_B_3.
 .. Actualice NODE_A_4 y NODE_B_4.
@@ -74,9 +72,9 @@ Para las configuraciones MetroCluster de ocho nodos, debe realizar el procedimie
 
 == Preparar la actualización de un grupo de recuperación ante desastres de MetroCluster
 
-Antes de actualizar realmente el software en los nodos, debe identificar las relaciones de recuperación ante desastres entre los nodos, enviar un mensaje de AutoSupport en el que ha iniciado una actualización y confirmar la versión de ONTAP que se ejecuta en cada nodo.
+Antes de actualizar el software ONTAP en los nodos, debe identificar las relaciones de recuperación ante desastres entre los nodos, enviar un mensaje de AutoSupport para iniciar una actualización y confirmar la versión de ONTAP que se está ejecutando en cada nodo.
 
-Debe tener xref:task_download_and_install_ontap_software_image.html[descarga e instala las imágenes de software].
+Debe tener link:download-software-image.html["descargado"] y.. link:install-software-manual-upgrade.html["instalado"] las imágenes de software.
 
 Esta tarea debe repetirse en cada grupo de recuperación ante desastres. Si la configuración del MetroCluster consta de ocho nodos, hay dos grupos de recuperación ante desastres. Por lo tanto, esta tarea debe repetirse en cada grupo de recuperación ante desastres.
 
@@ -84,7 +82,12 @@ Los ejemplos que se proporcionan en esta tarea utilizan los nombres que se muest
 
 image::../media/mcc_dr_groups_8_node.gif[Diagrama de configuración de MetroCluster de ocho nodos.]
 
-. Identifique las parejas de recuperación ante desastres en la configuración: `metrocluster node show -fields dr-partner`
+. Identifique las parejas de recuperación ante desastres en la configuración:
++
+[source, cli]
+----
+metrocluster node show -fields dr-partner
+----
 +
 [listing]
 ----
@@ -100,13 +103,21 @@ image::../media/mcc_dr_groups_8_node.gif[Diagrama de configuración de MetroClus
 
  cluster_A::>
 ----
-. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar: `set -privilege advanced`
+. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar:
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 El aviso avanzado (`*>`) aparece.
 
-. Confirme la versión de ONTAP que se ejecuta en cada nodo:
+. Confirme la versión de ONTAP en cluster_A:
 +
-.. Confirme la versión en cluster_A: `system image show`
+[source, cli]
+----
+system image show
+----
 +
 [listing]
 ----
@@ -124,7 +135,12 @@ El aviso avanzado (`*>`) aparece.
 
  cluster_A::>
 ----
-.. Confirme la versión en cluster_B: `system image show`
+. Confirme la versión en cluster_B:
++
+[source, cli]
+----
+system image show
+----
 +
 [listing]
 ----
@@ -142,22 +158,33 @@ El aviso avanzado (`*>`) aparece.
 
  cluster_B::>
 ----
-
-
-. Active una notificación de AutoSupport: `autosupport invoke -node * -type all -message "Starting_NDU"`
+. Active una notificación de AutoSupport:
 +
-Esta notificación de AutoSupport incluye un registro del estado del sistema antes de la actualización. Guarda información útil sobre la solución de problemas si hay algún problema con el proceso de actualización.
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Starting_NDU"
+----
++
+Esta notificación de AutoSupport incluye un registro del estado del sistema antes de la actualización. Guarda información útil sobre la solución de problemas si hay un problema con el proceso de actualización.
 
 +
 Si su clúster no está configurado para enviar mensajes de AutoSupport, se guardará una copia de la notificación de forma local.
 
-. Para cada nodo del primer conjunto, establezca la imagen del software ONTAP de destino como la imagen predeterminada: `system image modify {-node nodename -iscurrent false} -isdefault true`
+. Para cada nodo del primer conjunto, establezca la imagen del software ONTAP de destino como la imagen predeterminada:
++
+[source, cli]
+----
+system image modify {-node nodename -iscurrent false} -isdefault true
+----
 +
 Este comando utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como imagen alternativa, para que sea la imagen predeterminada del nodo.
 
-. Compruebe que la imagen del software ONTAP de destino está configurada como la imagen predeterminada:
+. Compruebe que la imagen del software ONTAP de destino esté establecida como la imagen predeterminada en cluster_A:
 +
-.. Verifique las imágenes en cluster_A: `system image show`
+[source, cli]
+----
+system image show
+----
 +
 En el siguiente ejemplo, image2 es la nueva versión de ONTAP y se define como la imagen predeterminada en cada uno de los nodos del primer conjunto:
 
@@ -177,7 +204,13 @@ En el siguiente ejemplo, image2 es la nueva versión de ONTAP y se define como l
 
  2 entries were displayed.
 ----
-.. Verifique las imágenes en cluster_B: `system image show`
++
+.. Compruebe que la imagen del software ONTAP de destino esté establecida como la imagen predeterminada en CLÚSTER_B:
++
+[source, cli]
+----
+system image show
+----
 +
 En el siguiente ejemplo se muestra que la versión de destino está establecida como imagen predeterminada en cada uno de los nodos del primer conjunto:
 
@@ -199,12 +232,18 @@ En el siguiente ejemplo se muestra que la versión de destino está establecida 
 ----
 
 
-. Determine si los nodos que se van a actualizar actualmente sirven a clientes dos veces para cada nodo: `system node run -node target-node -command uptime`
+. Determine si los nodos que se van a actualizar actualmente sirven a clientes dos veces para cada nodo:
++
+[source, cli]
+----
+system node run -node target-node -command uptime
+----
 +
 El comando UpTime muestra el número total de operaciones que el nodo ha realizado para clientes NFS, CIFS, FC e iSCSI desde que se inició por última vez el nodo. Para cada protocolo, debe ejecutar el comando dos veces para determinar si el número de operaciones está aumentando. Si aumentan, el nodo actualmente sirve clientes para ese protocolo. Si no aumentan, el nodo no ofrece actualmente clientes para ese protocolo.
 
 +
-*NOTA*: Debe tomar nota de cada protocolo que tiene cada vez más operaciones de cliente para que después de actualizar el nodo, pueda verificar que el tráfico de cliente se ha reanudado.
+
+NOTE: Debe tomar una nota de cada protocolo que ha aumentado las operaciones de cliente de manera que, una vez actualizado el nodo, pueda verificar que el tráfico del cliente se haya reanudado.
 
 +
 Este ejemplo muestra un nodo con operaciones NFS, CIFS, FC e iSCSI. Sin embargo, actualmente el nodo sólo ofrece clientes NFS e iSCSI.
@@ -228,16 +267,26 @@ Debe realizar una toma de control y una devolución de los nodos en el orden cor
 
 Todos los nodos deben ejecutar la versión anterior de ONTAP.
 
-En esta tarea, se actualizan node_A_1 y node_B_1.
+En esta tarea, se actualizan NODE_A_1 y NODE_B_1.
 
-Si ha actualizado el software ONTAP en el primer grupo de recuperación ante desastres y ahora actualiza el segundo grupo de recuperación ante desastres en una configuración MetroCluster de ocho nodos, en esta tarea actualizaría node_A_3 y node_B_3.
+Si ha actualizado el software ONTAP en el primer grupo de recuperación ante desastres y ahora está actualizando el segundo grupo de recuperación ante desastres en una configuración MetroCluster de ocho nodos, en esta tarea debería actualizar NODE_A_3 y NODE_B_3.
 
 . Si el software MetroCluster Tiebreaker está habilitado, esta opción está deshabilitada.
-. Para cada nodo del par de alta disponibilidad, deshabilite el retorno automático: `storage failover modify -node target-node -auto-giveback false`
+. Para cada nodo del par de alta disponibilidad, deshabilite el retorno automático:
++
+[source, cli]
+----
+storage failover modify -node target-node -auto-giveback false
+----
 +
 Este comando se debe repetir para cada nodo de la pareja de ha.
 
-. Compruebe que la devolución automática está desactivada: `storage failover show -fields auto-giveback`
+. Compruebe que la devolución automática está desactivada:
++
+[source, cli]
+----
+storage failover show -fields auto-giveback
+----
 +
 Este ejemplo muestra que se ha deshabilitado la devolución automática de control en ambos nodos:
 
@@ -251,13 +300,18 @@ Este ejemplo muestra que se ha deshabilitado la devolución automática de contr
  node_x_2 false
  2 entries were displayed.
 ----
-. Compruebe que la I/o no supere el ~50 % en cada controladora. Asegúrese de que el uso de la CPU no supere el ~50 % por controladora.
+. Asegúrese de que las I/O no superen el ~50 % en cada controladora y que el uso de CPU no supere el ~50 % por controladora.
 . Inicie la toma de control del nodo de destino en cluster_A:
 +
 No especifique el parámetro -option Immediate porque se requiere una toma de control normal para los nodos que se van a realizar la operación para arrancar en la nueva imagen de software.
 
 +
-.. Asumir el control del partner de recuperación ante desastres en cluster_A (nodo_A_1):``storage failover takeover -ofnode node_A_1``
+.. Asumir el control del partner de recuperación ante desastres en cluster_A (nodo_A_1):
++
+[source, cli]
+----
+storage failover takeover -ofnode node_A_1
+----
 +
 El nodo arranca con el estado "esperando la devolución".
 
@@ -265,7 +319,12 @@ El nodo arranca con el estado "esperando la devolución".
 
 NOTE: Si AutoSupport está habilitado, se envía un mensaje de AutoSupport que indica que los nodos no tienen quórum de clúster. Puede ignorar esta notificación y continuar con la actualización.
 
-.. Compruebe que la toma de control se ha realizado correctamente: `storage failover show`
+.. Compruebe que la toma de control se ha realizado correctamente:
++
+[source, cli]
+----
+storage failover show
+----
 +
 El siguiente ejemplo muestra que la toma de control se ha realizado correctamente. El nodo_A_1 está en el estado "esperando devolución" y el nodo_A_2 está en el estado "durante toma de control".
 
@@ -287,7 +346,12 @@ El siguiente ejemplo muestra que la toma de control se ha realizado correctament
 No especifique el parámetro -option Immediate porque se requiere una toma de control normal para los nodos que se van a realizar la operación para arrancar en la nueva imagen de software.
 
 +
-.. Asuma el control node_B_1: `storage failover takeover -ofnode node_B_1`
+.. Asuma el control node_B_1:
++
+[source, cli]
+----
+storage failover takeover -ofnode node_B_1
+----
 +
 El nodo arranca con el estado "esperando la devolución".
 
@@ -295,7 +359,12 @@ El nodo arranca con el estado "esperando la devolución".
 
 NOTE: Si AutoSupport está habilitado, se envía un mensaje de AutoSupport que indica que los nodos no tienen quórum de clúster. Puede ignorar esta notificación y continuar con la actualización.
 
-.. Compruebe que la toma de control se ha realizado correctamente: `storage failover show`
+.. Compruebe que la toma de control se ha realizado correctamente:
++
+[source, cli]
+----
+storage failover show
+----
 +
 El siguiente ejemplo muestra que la toma de control se ha realizado correctamente. El nodo B_1 está en el estado "esperando devolución" y el nodo B_2 está en el estado "durante toma de control".
 
@@ -326,14 +395,29 @@ El tiempo de recuperación es específico del cliente y puede tardar más de och
 Después de actualizar la configuración IP de MetroCluster a ONTAP 9.5 o una versión posterior, los agregados estarán en estado degradado durante un breve periodo de tiempo antes de volver a sincronizar y volver a un estado de reflejo.
 
 +
-.. Proporcione los agregados al partner de recuperación ante desastres en cluster_A: `storage failover giveback –ofnode node_A_1`
-.. Proporcione los agregados al partner de recuperación ante desastres en cluster_B: `storage failover giveback –ofnode node_B_1`
+.. Proporcione los agregados al partner de recuperación ante desastres en cluster_A:
++
+[source, cli]
+----
+storage failover giveback –ofnode node_A_1
+----
+.. Proporcione los agregados al partner de recuperación ante desastres en cluster_B:
++
+[source, cli]
+----
+storage failover giveback –ofnode node_B_1
+----
 +
 La operación de devolución devuelve primero el agregado raíz al nodo y, después de que el nodo haya terminado de arrancarse, devuelve los agregados que no son raíz.
 
 
 
-. Compruebe que todos los agregados se han devuelto emitiendo el siguiente comando en ambos clústeres: `storage failover show-giveback`
+. Compruebe que todos los agregados se han devuelto emitiendo el siguiente comando en ambos clústeres:
++
+[source, cli]
+----
+storage failover show-giveback
+----
 +
 Si el campo Estado de devolución indica que no hay agregados que devolver, se devolverán todos los agregados. Si se vetó la devolución, el comando muestra el progreso de devolución y qué subsistema vetó la devolución.
 
@@ -356,11 +440,21 @@ El tiempo de recuperación es específico del cliente y puede tardar más de och
 
 
 
-. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar: `set -privilege advanced`
+. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar:
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 El aviso avanzado (`*>`) aparece.
 
-. Confirme la versión en cluster_A: `system image show`
+. Confirme la versión en cluster_A:
++
+[source, cli]
+----
+system image show
+----
 +
 En el siguiente ejemplo se muestra que la impresora image2 del sistema debe ser la versión predeterminada y actual en node_A_1:
 
@@ -381,7 +475,12 @@ En el siguiente ejemplo se muestra que la impresora image2 del sistema debe ser 
 
  cluster_A::>
 ----
-. Confirme la versión en cluster_B: `system image show`
+. Confirme la versión en cluster_B:
++
+[source, cli]
+----
+system image show
+----
 +
 En el siguiente ejemplo se muestra que la imagen 2 del sistema (ONTAP 9.0.0) es la versión predeterminada y actual en node_A_1:
 
@@ -414,9 +513,14 @@ Debe haber actualizado el primer par DR (node_A_1 y node_B_1).
 
 En esta tarea, se actualizan NODE_A_2 y NODE_B_2.
 
-Si ha actualizado el software ONTAP en el primer grupo de recuperación ante desastres y ahora actualiza el segundo grupo de recuperación ante desastres en una configuración MetroCluster de ocho nodos, en esta tarea actualizará node_A_4 y node_B_4.
+Si ha actualizado el software ONTAP en el primer grupo de recuperación ante desastres y ahora está actualizando el segundo grupo de recuperación ante desastres en una configuración MetroCluster de ocho nodos, en esta tarea está actualizando NODE_A_4 y NODE_B_4.
 
-. Migre todos los LIF de datos del nodo: `network interface migrate-all -node nodenameA`
+. Migre todos los LIF de datos del nodo:
++
+[source, cli]
+----
+network interface migrate-all -node nodenameA
+----
 . Inicie la toma de control del nodo de destino en cluster_A:
 +
 No especifique el parámetro -option Immediate porque se requiere una toma de control normal para los nodos que se van a realizar la operación para arrancar en la nueva imagen de software.
@@ -424,8 +528,10 @@ No especifique el parámetro -option Immediate porque se requiere una toma de co
 +
 .. Asuma el control del partner de recuperación ante desastres en cluster_A:
 +
-`storage failover takeover -ofnode node_A_2 -option allow-version-mismatch`
-
+[source, cli]
+----
+storage failover takeover -ofnode node_A_2 -option allow-version-mismatch
+----
 +
 
 NOTE: La `allow-version-mismatch` Esta opción no es necesaria para las actualizaciones de ONTAP 9.0 a ONTAP 9.1 o para cualquier actualización de parches.
@@ -436,7 +542,12 @@ El nodo arranca con el estado "esperando la devolución".
 +
 Si AutoSupport está habilitado, se envía un mensaje de AutoSupport que indica que los nodos no tienen quórum de clúster. Puede ignorar esta notificación y continuar con la actualización.
 
-.. Compruebe que la toma de control se ha realizado correctamente: `storage failover show`
+.. Compruebe que la toma de control se ha realizado correctamente:
++
+[source, cli]
+----
+storage failover show
+----
 +
 El siguiente ejemplo muestra que la toma de control se ha realizado correctamente. El nodo_A_2 está en el estado "esperando devolución" y el nodo_A_1 está en el estado "durante toma de control".
 
@@ -466,29 +577,38 @@ No especifique el parámetro -option Immediate porque se requiere una toma de co
 
 
  a| 
-ONTAP 9,2 o. ONTAP 9,1
+ONTAP 9.2 o ONTAP 9.1
  a| 
-`storage failover takeover -ofnode node_B_2`
+[source, cli]
+----
+storage failover takeover -ofnode node_B_2
+----
 
 
+ a| 
+ONTAP 9.0 o Data ONTAP 8.3.x
+ a| 
+[source, cli]
+----
+storage failover takeover -ofnode node_B_2 -option allow-version-mismatch
+----
 
- a| 
-ONTAP 9,0 o. Data ONTAP 8,3.x
- a| 
-`storage failover takeover -ofnode node_B_2 -option allow-version-mismatch`
-NOTA: La `allow-version-mismatch` Esta opción no es necesaria para las actualizaciones de ONTAP 9.0 a ONTAP 9.1 o para cualquier actualización de parches.
+NOTE: La `allow-version-mismatch` Esta opción no es necesaria para las actualizaciones de ONTAP 9.0 a ONTAP 9.1 o para cualquier actualización de parches.
 
 |===
-
-
-
-
++
 El nodo arranca con el estado "esperando la devolución".
 
 +
-NOTA: Si AutoSupport está habilitado, se envía un mensaje de AutoSupport que indica que los nodos están fuera del quórum del clúster. Puede ignorar con toda tranquilidad esta notificación y continuar con la actualización.
 
-. Compruebe que la toma de control se ha realizado correctamente: `storage failover show`
+NOTE: Si AutoSupport está habilitado, se envía un mensaje de AutoSupport que indica que los nodos están fuera del quórum del clúster. Puede ignorar con toda tranquilidad esta notificación y continuar con la actualización.
+
+.. Compruebe que la toma de control se ha realizado correctamente:
++
+[source, cli]
+----
+storage failover show
+----
 +
 El siguiente ejemplo muestra que la toma de control se ha realizado correctamente. El nodo B_2 está en el estado "esperando devolución" y el nodo B_1 está en el estado "durante toma de control".
 
@@ -503,54 +623,82 @@ node_B_1       node_B_2       false    In takeover
 node_B_2       node_B_1       -        Waiting for giveback (HA mailboxes)
 2 entries were displayed.
 ----
+
+
+. Espere al menos ocho minutos para asegurarse de las siguientes condiciones:
 +
-.. Espere al menos ocho minutos para asegurarse de las siguientes condiciones:
-+
-*** La multivía del cliente (si está implementada) se estabiliza.
-*** Los clientes se recuperan de la pausa en la I/o que se produce durante la toma de control.
+** La multivía del cliente (si está implementada) se estabiliza.
+** Los clientes se recuperan de la pausa en la I/o que se produce durante la toma de control.
 +
 El tiempo de recuperación es específico del cliente y puede tardar más de ocho minutos en función de las características de las aplicaciones cliente.
 
 
 
-.. Devuelva los agregados a los nodos de destino:
+. Devuelva los agregados a los nodos de destino:
 +
 Después de actualizar la configuración IP de MetroCluster a ONTAP 9.5, los agregados estarán en estado degradado durante un breve periodo de tiempo antes de volver a sincronizar y a un estado reflejado.
 
-
-
-. Proporcione los agregados al partner de recuperación ante desastres en cluster_A: `storage failover giveback –ofnode node_A_2`
-. Proporcione los agregados al partner de recuperación ante desastres en cluster_B: `storage failover giveback –ofnode node_B_2`
++
+.. Proporcione los agregados al partner de recuperación ante desastres en cluster_A:
++
+[source, cli]
+----
+storage failover giveback –ofnode node_A_2
+----
+.. Proporcione los agregados al partner de recuperación ante desastres en cluster_B:
++
+[source, cli]
+----
+storage failover giveback –ofnode node_B_2
+----
 +
 La operación de devolución devuelve primero el agregado raíz al nodo y, después de que el nodo haya terminado de arrancarse, devuelve los agregados que no son raíz.
 
+
+
+. Compruebe que todos los agregados se han devuelto emitiendo el siguiente comando en ambos clústeres:
 +
-.. Compruebe que todos los agregados se han devuelto emitiendo el siguiente comando en ambos clústeres: `storage failover show-giveback`
+[source, cli]
+----
+storage failover show-giveback
+----
 +
 Si el campo Estado de devolución indica que no hay agregados que devolver, se devolverán todos los agregados. Si se vetó la devolución, el comando muestra el progreso de devolución y qué subsistema vetó la devolución.
 
-.. Si no se ha devuelto ningún agregado, realice lo siguiente:
-
-
-. Revise la solución de veto para determinar si desea abordar la condición "vertical" o anular el veto.
-. Si es necesario, tratar la condición "verto" descrita en el mensaje de error, asegurándose de que las operaciones identificadas se cancelen con gracia.
-. Vuelva a introducir el comando de devolución del nodo de respaldo del almacenamiento.
+. Si no se ha devuelto ningún agregado, realice lo siguiente:
++
+.. Revise la solución de veto para determinar si desea abordar la condición "vertical" o anular el veto.
+.. Si es necesario, tratar la condición "verto" descrita en el mensaje de error, asegurándose de que las operaciones identificadas se cancelen con gracia.
+.. Vuelva a introducir el comando de devolución del nodo de respaldo del almacenamiento.
 +
 Si ha decidido anular la condición "VETE", establezca el parámetro -override-vetoes en TRUE.
-. Espere al menos ocho minutos para asegurarse de las siguientes condiciones:
- ** La multivía del cliente (si se implementa) se estabiliza.
- ** Los clientes se recuperan de la pausa en E/S que se produce durante la devolución.
 
+
+
+. Espere al menos ocho minutos para asegurarse de las siguientes condiciones:
 +
+** La multivía del cliente (si está implementada) se estabiliza.
+** Los clientes se recuperan de la pausa en la I/o que se produce durante la devolución.
 +
 El tiempo de recuperación es específico del cliente y puede tardar más de ocho minutos en función de las características de las aplicaciones cliente.
 
+
+
+. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar:
 +
-.. Establezca el nivel de privilegio de admin en Advanced, introduciendo *y* cuando se le solicite continuar: `set -privilege advanced`
+[source, cli]
+----
+set -privilege advanced
+----
 +
 El aviso avanzado (`*>`) aparece.
 
-.. Confirme la versión en cluster_A: `system image show`
+. Confirme la versión en cluster_A:
++
+[source, cli]
+----
+system image show
+----
 +
 El siguiente ejemplo muestra que la imagen 2 del sistema (imagen ONTAP de destino) es la versión predeterminada y actual en node_A_2:
 
@@ -571,7 +719,12 @@ node_A_2
 
 cluster_A::>
 ----
-.. Confirme la versión en cluster_B: `system image show`
+. Confirme la versión en cluster_B:
++
+[source, cli]
+----
+system image show
+----
 +
 El siguiente ejemplo muestra que System image2 (imagen ONTAP de destino) es la versión predeterminada y actual en NODE_B_2:
 
@@ -592,11 +745,21 @@ node_B_2
 
 cluster_A::>
 ----
-.. Para cada nodo del par de alta disponibilidad, habilite la devolución automática: `storage failover modify -node target-node -auto-giveback true`
+. Para cada nodo del par de alta disponibilidad, habilite la devolución automática:
++
+[source, cli]
+----
+storage failover modify -node target-node -auto-giveback true
+----
 +
 Este comando se debe repetir para cada nodo de la pareja de ha.
 
-.. Compruebe que la devolución automática está activada: `storage failover show -fields auto-giveback`
+. Compruebe que la devolución automática está activada:
++
+[source, cli]
+----
+storage failover show -fields auto-giveback
+----
 +
 Este ejemplo muestra que se ha habilitado la devolución automática de control en ambos nodos:
 
@@ -610,6 +773,4 @@ node_x_1 true
 node_x_2 true
 2 entries were displayed.
 ----
-
-
 
