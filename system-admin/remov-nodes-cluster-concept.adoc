@@ -65,31 +65,60 @@ NOTE: Antes de quitar un nodo del clúster, se deben hacer inaccesibles a todos 
 .Pasos
 . Cambie el nivel de privilegio a avanzado:
 +
-`*set -privilege advanced*`
-
-. Compruebe si un nodo del clúster tiene épsilon:
-+
-`*cluster show -epsilon true*`
-
-+
-.. Si un nodo contiene épsilon, cambie su elegibilidad a FALSE.
-+
-`*cluster modify -node <node_name> -eligibility false*`
-
-
-
-. Si el nodo que desea quitar es el nodo maestro actual, habilite otro nodo del clúster para que se elija como nodo maestro cambiando la idoneidad del clúster del nodo maestro `false`:
-+
-`*cluster modify –eligibility false*`
-
-+
-El nodo principal es el nodo que contiene procesos como «mgmt», «vldb», «vifmgr», «bcomd» y «crs». La `cluster ring show` el comando advanced muestra el nodo maestro actual.
-
-+
-[listing]
+[source, cli]
 ----
-cluster::*> cluster modify -node node1 -eligibility false
+set -privilege advanced
 ----
+. Compruebe si un nodo del clúster contiene épsilon:
++
+[source, cli]
+----
+cluster show -epsilon true
+----
+. Si un nodo del clúster contiene épsilon y ese nodo se va a desunir, mueva épsilon a un nodo que no se va a desvincular:
++
+.. Mueva épsilon del nodo que se va a desunir
++
+[source, cli]
+----
+cluster modify -node <name_of_node_to_be_unjoined> -epsilon false
+----
+.. Mueva épsilon a un nodo que no se va a desunir:
++
+[source, cli]
+----
+cluster modify -node <node_name> -epsilon true
+----
+
+
+. Identifique el nodo maestro actual:
++
+[source, cli]
+----
+cluster ring show
+----
++
+El nodo principal es el nodo que contiene procesos como «mgmt», «vldb», «vifmgr», «bcomd» y «crs».
+
+. Si el nodo que desea quitar es el nodo maestro actual, habilite otro nodo del clúster para que se seleccione como nodo maestro:
++
+.. Haga que el nodo maestro actual no sea apto para participar en el cluster:
++
+[source, cli]
+----
+cluster modify – node <node_name> -eligibility false
+----
++
+Cuando el nodo maestro deja de ser elegible, el quórum del clúster selecciona uno de los nodos restantes como el nuevo nodo principal.
+
+.. Haga que el nodo maestro anterior sea apto para participar de nuevo en el clúster:
++
+[source, cli]
+----
+cluster modify – node <node_name> -eligibility true
+----
+
+
 . Inicie sesión en la LIF de gestión de nodos remotos o en la LIF de gestión de clústeres en un nodo que no sea el que se está quitando.
 . Quite el nodo del clúster:
 +
@@ -100,15 +129,19 @@ cluster::*> cluster modify -node node1 -eligibility false
  a| 
 ONTAP 9,3
  a| 
-`*cluster unjoin*`
-
+[source, cli]
+----
+cluster unjoin
+----
 
 
  a| 
 ONTAP 9,4 y versiones posteriores
  a| 
-`*cluster remove-node*`
-
+[source, cli]
+----
+cluster remove-node*
+----
 |===
 +
 Si tiene un clúster de versiones mixtas y va a eliminar el último nodo de la versión inferior, use el `-skip-last-low-version-node-check` parámetro con estos comandos.
@@ -134,13 +167,15 @@ El nodo se reinicia automáticamente después de que se quita correctamente del 
 . Si va a reutilizar el nodo, borre la configuración del nodo e inicialice todos los discos:
 +
 .. Durante el proceso de inicio, pulse Ctrl-C para mostrar el menú de inicio cuando se le solicite.
-.. Seleccione la opción del menú de inicio *(4) limpiar la configuración e inicializar todos los discos*.
+.. Seleccione la opción del menú de inicio (4) Limpiar configuración e inicializar todos los discos.
 
 
 . Volver al nivel de privilegio de administrador:
 +
-`*set -privilege admin*`
-
+[source, cli]
+----
+set -privilege admin
+----
 . Repita los pasos anteriores para eliminar el partner de conmutación por error del clúster.
 
 
