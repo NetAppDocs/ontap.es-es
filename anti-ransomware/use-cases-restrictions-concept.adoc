@@ -79,7 +79,10 @@ La compatibilidad con otras configuraciones y tipos de volúmenes está disponib
 
 | Verificación de varios administradores | ✓ | ✓ |  |  |  
 |===
-.Interoperabilidad de SnapMirror y ARP
+
+
+==== Interoperabilidad de SnapMirror y ARP
+
 A partir de ONTAP 9.12.1, ARP es compatible con volúmenes de destino asíncronos de SnapMirror. ARP no es ** compatible con SnapMirror Synchronous.
 
 Si un volumen de origen de SnapMirror tiene la función ARP habilitada, el volumen de destino de SnapMirror adquiere automáticamente el estado de configuración ARP (aprendizaje, habilitado, etc.), datos de entrenamiento ARP y Snapshot creadas con ARP del volumen de origen. No se requiere habilitación explícita.
@@ -88,10 +91,11 @@ Mientras que el volumen de destino consta de copias Snapshot de solo lectura (RO
 
 En ONTAP 9.10.1 y 9.11.1, SnapMirror no transfiere el estado de configuración de ARP, los datos de formación y las copias Snapshot de los volúmenes de origen a destino. Por ello, cuando el volumen de destino de SnapMirror se convierte en RW, ARP en el volumen de destino debe habilitarse explícitamente en el modo de aprendizaje después de la conversión.
 
-.ARP con VMDK en NFS
-[%collapsible]
-====
-Si tiene pensado utilizar ARP en una configuración VMDK en NFS, existen limitaciones en la protección de ARP. ARP ofrece protección en VDMK en configuraciones NFS, pero no se recomienda para cargas de trabajo con archivos con una gran entropía dentro del equipo virtual.
+
+
+==== ARP y máquinas virtuales
+
+ARP es compatible con máquinas virtuales (VM). La detección de ARP se comporta de manera diferente para los cambios dentro y fuera de la VM. No se recomienda ARP para cargas de trabajo con archivos de alta entropía dentro del equipo virtual.
 
 .Realizar cambios fuera de la máquina virtual
 ARP puede detectar cambios de extensión de archivo en un volumen NFS fuera de la VM si una nueva extensión entra en el volumen cifrado o cambia una extensión de archivo. Los cambios detectables en la extensión de archivo son:
@@ -111,11 +115,10 @@ ARP puede detectar cambios de extensión de archivo en un volumen NFS fuera de l
 
 
 .Cambios dentro de la VM
-Si el ataque de ransomware se dirige a la máquina virtual y los archivos dentro de la máquina virtual se alteran sin hacer cambios fuera de la máquina virtual, ARP detecta la amenaza si la entropía predeterminada de la máquina virtual es baja (por ejemplo, archivos .txt, .docx o .mp4). Aunque ARP creará una instantánea de protección en este escenario, no generará una alerta de amenaza porque las extensiones de archivo fuera de la VM no se han manipulado.
+Si el ataque de ransomware se dirige a la máquina virtual y los archivos dentro de la máquina virtual se alteran sin hacer cambios fuera de la máquina virtual, ARP detecta la amenaza si la entropía predeterminada de la máquina virtual es baja (por ejemplo, archivos .txt, .docx o .mp4). Aunque ARP crea una instantánea de protección en este escenario, no genera una alerta de amenaza porque las extensiones de archivo fuera de la VM no se han manipulado.
 
-Si, por defecto, los archivos son de alta entropía (por ejemplo, .gzip o archivos protegidos con contraseña), ARP no detectará un cambio en la entropía de línea base y, por lo tanto, no detectará la amenaza.
+Si, por defecto, los archivos son de alta entropía (por ejemplo, archivos .gzip o protegidos con contraseña), las capacidades de detección de ARP son limitadas. ARP todavía puede tomar Snapshots proactivos en este caso, sin embargo, no se activarán alertas si las extensiones de archivo no se han manipulado externamente.
 
-====
 
 
 === Configuraciones no admitidas

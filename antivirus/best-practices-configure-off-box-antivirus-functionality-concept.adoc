@@ -13,78 +13,37 @@ summary: Tenga en cuenta las siguientes recomendaciones para configurar la funci
 [role="lead"]
 Tenga en cuenta las siguientes recomendaciones para configurar la funcionalidad de configuración inmediata en Clustered ONTAP.
 
-* Restringir a los usuarios con privilegios a las operaciones de exploración de virus. Se debe desalentar a los usuarios normales
-utilizando credenciales de usuario con privilegios. Esta restricción se puede lograr desactivando los derechos de inicio de sesión para
-Usuarios con privilegios en Active Directory.
-* No es necesario que los usuarios con privilegios formen parte de ningún grupo de usuarios que tenga un gran número de derechos en el
-dominio, como el grupo de administradores o el grupo de operadores de copia de seguridad. Los usuarios con privilegios deben ser
-Validadas solo por el sistema de almacenamiento para que puedan crear conexiones del servidor Vscan y.
-acceso a archivos para detección de virus.
-* Utilice los equipos que ejecutan servidores Vscan solo para fines de detección de virus. Para desalentar general
-Utilizar, desactivar los servicios de terminal de Windows y otras disposiciones de acceso remoto en estas máquinas
-y conceder el derecho de instalar nuevo software en estas máquinas solo a los administradores.
-* Dedicar servidores Vscan a la detección de virus y no los utilice para otras operaciones, como backups.
-Puede decidir ejecutar el servidor Vscan como una máquina virtual (VM). Si este es el caso, asegúrese de que
-Los recursos asignados a la máquina virtual no se comparten y son suficientes para realizar la detección de virus. Consultar
-link:http://www.symantec.com/business/support/index?page=home["Symantec"^] para obtener orientación sobre los requisitos del motor antivirus.
-* Proporcione la capacidad adecuada de CPU, memoria y disco al servidor Vscan para evitar recursos
-cuellos de botella. La mayoría de los servidores Vscan están diseñados para utilizar varios servidores de núcleo de CPU y para distribuir el
-Cargar a través de las CPU. Consultar link:http://www.symantec.com/business/support/index?page=home["Symantec"^] para obtener orientación sobre los requisitos del motor antivirus.
-* NetApp recomienda el uso de una red dedicada con una VLAN privada para la conexión desde la SVM
-Al servidor Vscan de modo que el tráfico de exploración no se vea afectado por otro tráfico de red cliente. Cree un
-NIC independiente dedicada a la VLAN antivirus del servidor Vscan y a la LIF de datos del
-SVM. Este paso simplifica la administración y la solución de problemas en caso de que surjan problemas de red.
-El tráfico AV debe segregarse mediante una red privada. El servidor AV se debe configurar en
-Comunicarse con el controlador de dominio (DC) y Clustered ONTAP de una de las siguientes maneras:
+* Restringir a los usuarios con privilegios a las operaciones de exploración de virus. Los usuarios normales no deben utilizar credenciales de usuario con privilegios. Esta restricción se puede lograr desactivando los derechos de inicio de sesión para los usuarios con privilegios en Active Directory.
+* No es necesario que los usuarios con privilegios formen parte de ningún grupo de usuarios que tenga un gran número de derechos en el dominio, como el grupo de administradores o el grupo de operadores de copia de seguridad. Sólo el sistema de almacenamiento debe validar los usuarios con privilegios para que puedan crear conexiones de servidor Vscan y acceder a archivos para análisis de virus.
+* Utilice los equipos que ejecutan servidores Vscan solo para fines de detección de virus. Para desalentar el uso general, desactive los servicios de terminal de Windows y otras disposiciones de acceso remoto en estas máquinas, y otorgue el derecho de instalar nuevo software en estas máquinas solo a los administradores.
+* Dedicar los servidores Vscan a la detección de virus y no los utilice para otras operaciones, como las copias de seguridad. Puede decidir ejecutar el servidor Vscan como una máquina virtual (VM). Si ejecuta el servidor Vscan como equipo virtual, asegúrese de que los recursos asignados a la máquina virtual no se comparten y son suficientes para realizar análisis de virus.
+* Proporcione una capacidad adecuada de CPU, memoria y disco al servidor Vscan para evitar la asignación excesiva de recursos. La mayoría de los servidores Vscan están diseñados para usar varios servidores principales de CPU y para distribuir la carga entre las CPU.
+* NetApp recomienda utilizar una red dedicada con una VLAN privada para la conexión desde la SVM al servidor Vscan para que el tráfico de análisis no se vea afectado por otro tráfico de red del cliente. Cree una tarjeta de interfaz de red (NIC) separada dedicada a la VLAN antivirus en el servidor Vscan y a las LIF de datos del SVM. Este paso simplifica la administración y la solución de problemas en caso de que surjan problemas de red. El tráfico antivirus debe segregarse mediante una red privada. El servidor antivirus debe configurarse para comunicarse con el controlador de dominio (DC) y ONTAP de una de las siguientes maneras:
 +
-** El DC debe comunicarse con los servidores AV a través de la red privada que se utiliza para segregar el tráfico.
-** El servidor DC y AV debe comunicarse a través de una red diferente (no la red privada mencionada anteriormente), que no es la misma que la red de cliente CIFS.
+** El DC debe comunicarse con los servidores antivirus a través de la red privada que se utiliza para segregar el tráfico.
+** El servidor antivirus y DC deben comunicarse a través de una red diferente (no la red privada mencionada anteriormente), que no es la misma que la red de cliente CIFS.
+** Para habilitar la autenticación de Kerberos para la comunicación antivirus, cree una entrada DNS para las LIF privadas y un nombre principal de servicio en el DC correspondiente a la entrada de DNS creada para la LIF privada. Utilice este nombre cuando agregue una LIF al conector antivirus. El DNS debe ser capaz de devolver un nombre único para cada LIF privado conectado al conector antivirus.
 
 
 
 
-Para que la autenticación Kerberos funcione para la comunicación AV, cree una entrada DNS para la privada
-LIF y un nombre principal de servicio en el DC correspondiente a la entrada DNS creada para el privado
-LIF. Utilice este nombre al agregar una LIF al conector AV. El DNS debe poder devolver a.
-Nombre único de cada LIF privada conectada al conector AV.
 
-
-NOTE: IMPORTANTE: Si la LIF para el tráfico de Vscan está configurada en un puerto distinto al de la LIF para el tráfico de cliente, la LIF de Vscan puede
-conmute por error a otro nodo en caso de que se produzca un fallo del puerto. El cambio hará que no se pueda acceder al servidor Vscan desde
-se producirá un error en el nuevo nodo y en las notificaciones de exploración para las operaciones de archivo en el nodo.
-Asegúrese de que se pueda acceder al servidor Vscan a través de al menos una LIF en un nodo para que pueda procesar la exploración
-solicitudes de operaciones de archivo realizadas en ese nodo.
+TIP: Si la LIF para el tráfico de Vscan está configurada en un puerto distinto al de la LIF para el tráfico de cliente, la LIF Vscan puede conmutar por error a otro nodo si se produce un fallo de puerto. El cambio hace que el servidor Vscan no sea accesible desde el nuevo nodo y las notificaciones de escaneo para las operaciones de archivo en el nodo fallan. Compruebe que se puede acceder al servidor Vscan a través de al menos una LIF en un nodo para que pueda procesar solicitudes de análisis de operaciones de archivo realizadas en ese nodo.
 
 * Conecte el sistema de almacenamiento de NetApp y el servidor Vscan utilizando al menos una red 1GbE.
-* Para un entorno con varios servidores Vscan, conecte todos los servidores que tengan un alto rendimiento similar
-conexiones de red. La conexión de los servidores Vscan mejora el rendimiento al permitir el uso compartido de la carga.
-* En el caso de sitios remotos y sucursales, NetApp recomienda utilizar un servidor Vscan local en lugar de un
-Servidor Vscan remoto porque el primero es un candidato perfecto para alta latencia. Si el coste es un factor, utilice
-Un ordenador portátil o PC para una protección antivirus moderada. Puede programar análisis completos periódicos del sistema de archivos
-al compartir los volúmenes o qtrees y realizar su análisis desde cualquier sistema del sitio remoto.
-* Utilice varios servidores Vscan para analizar los datos de la SVM para lograr un equilibrio de carga y redundancia
-instantáneo. La cantidad de carga de trabajo CIFS y el tráfico antivirus resultante varían según la máquina virtual de almacenamiento. Supervisión de CIFS
-latencias de detección antivirus en la controladora de almacenamiento. Cree tendencias de los resultados a lo largo del tiempo. Si CIFS tiene latencias
-Y las latencias de análisis antivirus aumentan debido a los cuellos de botella de la CPU o las aplicaciones en los servidores Vscan
-Más allá de los umbrales de tendencias, los clientes CIFS pueden experimentar tiempos de espera largos. Agregar servidores Vscan adicionales
+* Para un entorno con varios servidores Vscan, conecte todos los servidores que tengan conexiones de red similares de alto rendimiento. La conexión de los servidores Vscan mejora el rendimiento al permitir el uso compartido de la carga.
+* Para sitios remotos y sucursales, NetApp recomienda usar un servidor Vscan local en lugar de un servidor Vscan remoto porque el primero es un candidato perfecto para alta latencia. Si el costo es un factor, use un ordenador portátil o PC para una protección antivirus moderada. Puede programar análisis periódicos completos del sistema de archivos compartiendo los volúmenes o qtrees y analizándolos desde cualquier sistema del sitio remoto.
+* Utilice varios servidores Vscan para analizar los datos de la SVM con fines de equilibrio de carga y redundancia. La cantidad de carga de trabajo CIFS y el tráfico antivirus resultante varían según la máquina virtual de almacenamiento. Supervisar la latencia de detección de virus y CIFS en la controladora de almacenamiento. Supervise la tendencia de los resultados a lo largo del tiempo. Si la latencia de CIFS y la latencia de análisis de virus aumentan debido a la CPU o las colas de aplicaciones en los servidores Vscan más allá de los umbrales de tendencias, es posible que los clientes CIFS experimenten largos tiempos de espera. Agregar servidores Vscan adicionales
 para distribuir la carga.
-* Instale la última versión de Antivirus Connector. Para obtener información detallada sobre la compatibilidad, consulte
-link:https://imt.netapp.com/matrix/#welcome["Herramienta de matriz de interoperabilidad de NetApp (IMT)"].
-* Mantenga actualizados los motores y definiciones antivirus. Consultar link:https://login.broadcom.com/["Symantec"^] para obtener recomendaciones sobre la actualización
-frecuencia.
-* En un entorno multi-tenancy, un conjunto de escáneres (grupo de servidores Vscan) se puede compartir con varios
-Las SVM siempre han proporcionado que los servidores Vscan y las SVM forman parte del mismo dominio o de un dominio de confianza
-dominio.
-* La directiva de software AV para los archivos infectados debe configurarse para eliminar o poner en cuarentena, que es el valor predeterminado
-Valor definido por la mayoría de los proveedores de antivirus. En caso de que el `vscan-fileop-profile` se establece en `write_only`, y si
-se encuentra un archivo infectado, el archivo permanece en el recurso compartido y se puede abrir ya que no se abrirá un archivo
-active una adquisición. El análisis AV sólo se activa después de cerrar el archivo.
-* La `scan-engine timeout` el valor debe ser menor que el `scanner-pool request-timeout`.
-Si se establece en un valor más alto, el acceso a los archivos podría retrasarse y eventualmente podría agotarse el tiempo de espera.
-Para evitarlo, configure la `scan-engine timeout` a 5 segundos menos que el `scanner-pool
-request-timeout` valor. Consulte la documentación del proveedor del motor de escaneo para obtener instrucciones sobre cómo hacerlo
-cambie el `scan-engine timeout` configuración. La `scanner-pool timeout` puede ser cambiado por
-utilice el siguiente comando en el modo avanzado y proporcionando el valor adecuado para el `request-timeout` parámetro:
-`vserver vscan scanner-pool modify`
-* Para un entorno con un tamaño adecuado para la carga de trabajo de análisis de acceso y que requiera el uso de análisis bajo demanda, se recomienda programar el trabajo de análisis bajo demanda en horas de menor actividad para evitar cargas adicionales en la infraestructura AV existente.
+* Instale la última versión del conector antivirus de ONTAP.
+* Mantenga actualizados los motores y definiciones antivirus. Consulte a los socios para obtener recomendaciones sobre la frecuencia con la que debe actualizar.
+* En un entorno multi-tenancy, un pool de escáner (pool de servidores Vscan) se puede compartir con varias SVM siempre que los servidores Vscan y las SVM formen parte del mismo dominio o dominio de confianza.
+* La política de software antivirus para los archivos infectados debe establecerse en “eliminar” o “cuarentena”, que es el valor predeterminado establecido por la mayoría de los proveedores de antivirus. Si vscan-fileop-profile se establece en “WRITE_ONLY”, y si se encuentra un archivo infectado, el archivo permanece en el recurso compartido y se puede abrir porque abrir un archivo no desencadena una exploración. El análisis antivirus solo se activa después de cerrar el archivo.
+* La `scan-engine timeout` el valor debe ser menor que el `scanner-pool request-timeout` valor.
+Si se establece con un valor mayor, el acceso a los archivos podría retrasarse y podría agotarse el tiempo de espera en algún momento.
+Para evitarlo, configure la `scan-engine timeout` a 5 segundos menos que el `scanner-pool request-timeout` valor. Consulte la documentación del proveedor del motor de escaneo para obtener instrucciones sobre cómo cambiar el `scan-engine timeout` configuración. La `scanner-pool timeout` se puede cambiar utilizando el siguiente comando en modo avanzado y proporcionando el valor adecuado para el `request-timeout` parámetro:
+`vserver vscan scanner-pool modify`.
+* En un entorno con un tamaño adecuado para cargas de trabajo de análisis de acceso y que requiera el uso de análisis bajo demanda, NetApp recomienda programar el trabajo de análisis bajo demanda en horas de menor actividad para evitar cargas adicionales en la infraestructura antivirus existente.
 
+
+Obtenga más información sobre las prácticas recomendadas específicas para los partners en link:https://docs.netapp.com/us-en/ontap/antivirus/vscan-partner-solutions.html["Soluciones de partners de VSCAN"].
