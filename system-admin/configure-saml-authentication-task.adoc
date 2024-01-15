@@ -13,9 +13,26 @@ summary: 'A partir de ONTAP 9.3, puede configurar la autenticación del lenguaje
 [role="lead"]
 A partir de ONTAP 9.3, puede configurar la autenticación del lenguaje de marcado de aserción de seguridad (SAML) para los servicios web. Cuando se configura y se habilita la autenticación SAML, los usuarios se autentican mediante un proveedor de identidades (IDP) externo en lugar de los proveedores de servicio de directorio, como Active Directory y LDAP.
 
-.Lo que necesitará
-* Configuró el IDP para la autenticación SAML.
-* Debe tener el URI de IDP.
+
+
+== Habilite la autenticación SAML
+
+Para habilitar la autenticación SAML con System Manager o con la CLI, realice los siguientes pasos. Si el clúster ejecuta ONTAP 9,7 o una versión anterior, los pasos que debe seguir son diferentes. Consulte la ayuda en línea de System Manager disponible en su sistema.
+
+
+NOTE: Después de habilitar la autenticación SAML, solo los usuarios remotos pueden acceder a la interfaz gráfica de usuario de System Manager. Los usuarios locales no pueden acceder a la interfaz gráfica de usuario de System Manager después de habilitar la autenticación de SAML.
+
+image:workflow_security_mfa_setup.gif["Diagrama de flujo de trabajo de la tarea para configurar la autenticación multfactor con SAML"]
+
+.Antes de empezar
+* Se debe configurar el IDP que se planea usar para la autenticación remota.
++
+[NOTE]
+====
+Consulte la documentación proporcionada por el IDP que se configuró.
+
+====
+* Debe tener el URI del IDP.
 
 
 .Acerca de esta tarea
@@ -42,7 +59,34 @@ Los siguientes IDP se han validado con System Manager:
 * Shibboleth
 
 
+Siga estos pasos en función de su entorno:
+
 .Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Haga clic en *clúster > Configuración*.
+. Junto a *autenticación SAML*, haga clic en image:icon_gear.gif["icono de marcha"].
+. Asegúrese de que haya una Marca en la casilla de verificación *Habilitar autenticación SAML*.
+. Introduzca la URL del URI del IDP (incluido "https://"[]).
+. Modifique la dirección del sistema host, si es necesario.
+. Asegúrese de utilizar el certificado correcto:
++
+** Si su sistema sólo se ha asignado con un certificado con el tipo "servidor", ese certificado se considera el predeterminado y no se muestra.
+** Si su sistema estaba asignado con varios certificados como tipo "servidor", se muestra uno de los certificados.  Para seleccionar un certificado diferente, haga clic en *Cambiar*.
+
+
+. Haga clic en *Guardar*. Una ventana de confirmación muestra la información de metadatos, que se ha copiado automáticamente en el portapapeles.
+. Vaya al sistema IDP especificado y copie los metadatos del portapapeles para actualizar los metadatos del sistema.
+. Vuelva a la ventana de confirmación (en System Manager) y marque la casilla de verificación *he configurado el IDP con el URI de host o metadatos*.
+. Haga clic en *Cerrar sesión* para activar la autenticación basada en SAML.  El sistema IDP mostrará una pantalla de autenticación.
+. En el sistema IDP, introduzca las credenciales basadas en SAML. Una vez verificadas las credenciales, se le dirigirá a la página de inicio de System Manager.
+
+
+--
+.CLI
+--
 . Cree una configuración de SAML para que ONTAP pueda acceder a los metadatos de IDP:
 +
 `*security saml-sp create -idp-uri _idp_uri_ -sp-host _ontap_host_name_*`
@@ -122,16 +166,29 @@ admin1         http        password      backup           no     none
 
 
 
+--
+====
 
 
 == Deshabilite la autenticación SAML
 
 Es posible deshabilitar la autenticación SAML cuando se desea detener la autenticación de usuarios web mediante un proveedor de identidades (IDP) externo. Cuando se deshabilita la autenticación SAML, los proveedores de servicios de directorio configurados, como Active Directory y LDAP, se usan para la autenticación.
 
-.Lo que necesitará
-Debe iniciar sesión desde la consola.
+Siga estos pasos en función de su entorno:
 
 .Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Haga clic en *clúster > Configuración*.
+. En *autenticación SAML*, haga clic en el botón de alternar *Activado*.
+. _Opcional_: También puede hacer clic en  image:icon_gear.gif["icono de marcha"] Junto a *autenticación SAML* y, a continuación, desactive la casilla de verificación *Activar autenticación SAML*.
+
+
+--
+.CLI
+--
 . Deshabilitar la autenticación SAML:
 +
 `*security saml-sp modify -is-enabled false*`
@@ -142,6 +199,8 @@ Debe iniciar sesión desde la consola.
 
 
 
+--
+====
 
 
 == Solucione problemas de la configuración de SAML
