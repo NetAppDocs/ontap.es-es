@@ -17,17 +17,29 @@ Los objetos S3 se conservan en _buckets_--no están anidados como archivos dentr
 Debe existir una máquina virtual de almacenamiento que contenga un servidor S3.
 
 .Acerca de esta tarea
-Para la CLI, cuando crea un bloque, tiene dos opciones de aprovisionamiento:
-
-* Dejar a ONTAP Select los agregados subyacentes y los componentes de FlexGroup (predeterminado)
+* A partir de ONTAP 9.14.1, se habilitó el ajuste de tamaño automático en los volúmenes FlexGroup de S3 TB cuando se crean buckets en ellos. De este modo se elimina la asignación de capacidad excesiva durante la creación de bloques en volúmenes de FlexGroup nuevos y existentes. El tamaño de los volúmenes FlexGroup se cambia a un tamaño mínimo requerido según las siguientes directrices. El tamaño mínimo requerido es el tamaño total de todos los bloques de S3 KB de un volumen FlexGroup.
 +
-** ONTAP crea y configura un volumen de FlexGroup para el primer bloque seleccionando automáticamente los agregados. Seleccionará automáticamente el nivel de servicio más alto disponible para su plataforma, o bien se puede especificar el nivel de servicio de almacenamiento. Todos los bloques adicionales que añada más adelante a la máquina virtual de almacenamiento tendrán el mismo volumen de FlexGroup subyacente.
-** También puede especificar si el bloque se utilizará para la organización en niveles, en cuyo caso ONTAP intentará seleccionar medios de bajo coste con un rendimiento óptimo para los datos organizados en niveles.
+** A partir de ONTAP 9.14.1, si se crea un volumen de S3 FlexGroup como parte de la creación de un bloque nuevo, el volumen de FlexGroup se creará con el tamaño mínimo requerido.
+** Si se creó un volumen FlexGroup de S3 GB antes de ONTAP 9.14.1, el primer bloque creado o eliminado posteriormente a ONTAP 9.14.1 cambia el tamaño del volumen FlexGroup al tamaño mínimo requerido.
+** Si se creó un volumen FlexGroup de S3 GB anterior a ONTAP 9.14.1 y ya tenía el tamaño mínimo requerido, la creación o eliminación de un bloque posterior a ONTAP 9.14.1 mantendrán el tamaño del volumen de S3 FlexGroup.
 
 
-* Puede seleccionar los agregados subyacentes y los componentes de FlexGroup (requiere opciones de comandos de privilegios avanzados).
+* Los niveles de servicio de almacenamiento son grupos de políticas de calidad de servicio (QoS) adaptativos predefinidos, con niveles _Value_, _Performance_ y _Extreme_ predeterminados. En lugar de uno de los niveles de servicio de almacenamiento predeterminados, también puede definir un grupo de políticas de calidad de servicio personalizado y aplicarlo a un bloque. Para obtener más información sobre las definiciones de servicios de almacenamiento, consulte link:storage-service-definitions-reference.html["Definiciones de servicios de almacenamiento"]. Para obtener más información sobre la gestión del rendimiento, consulte link:../performance-admin/index.html["Gestión del rendimiento"].
+A partir de ONTAP 9.8, cuando se aprovisiona el almacenamiento, la calidad de servicio se habilita de forma predeterminada. Puede deshabilitar la calidad de servicio o seleccionar una política de calidad de servicio personalizada durante el proceso de aprovisionamiento o más adelante.
+
+
+* Si va a configurar la organización en niveles de capacidad local, debe crear bloques y usuarios en una máquina virtual de almacenamiento de datos, no en la máquina virtual de almacenamiento del sistema donde está ubicado el servidor S3.
+* Para el acceso de cliente remoto, debe configurar buckets en una máquina virtual de almacenamiento habilitada para S3. Si crea un bloque en una máquina virtual de almacenamiento que no tiene la función S3, solo estará disponible para la organización en niveles local.
+* A partir de ONTAP 9.14.1, puede hacerlo link:create-bucket-mcc-task.html["Cree un bucket en un agregado reflejado o no reflejado en una configuración de MetroCluster"].
+* Para la CLI, cuando crea un bloque, tiene dos opciones de aprovisionamiento:
 +
-** Tiene la opción de seleccionar manualmente los agregados en los que se debe crear el bloque y el volumen de FlexGroup que contiene; a continuación, se especifica el número de componentes en cada agregado. Al añadir cubos adicionales:
+** Dejar a ONTAP Select los agregados subyacentes y los componentes de FlexGroup (predeterminado)
++
+*** ONTAP crea y configura un volumen de FlexGroup para el primer bloque seleccionando automáticamente los agregados. Seleccionará automáticamente el nivel de servicio más alto disponible para su plataforma, o bien se puede especificar el nivel de servicio de almacenamiento. Todos los bloques adicionales que añada más adelante a la máquina virtual de almacenamiento tendrán el mismo volumen de FlexGroup subyacente.
+*** También puede especificar si el bloque se utilizará para la organización en niveles, en cuyo caso ONTAP intentará seleccionar medios de bajo coste con un rendimiento óptimo para los datos organizados en niveles.
+
+
+** Seleccione los agregados subyacentes y los componentes de FlexGroup (requiere opciones de comandos de privilegios avanzados): Tiene la opción de seleccionar manualmente los agregados donde se debe crear el bloque y el volumen de FlexGroup, y luego especificar la cantidad de componentes en cada agregado. Al añadir cubos adicionales:
 +
 *** Si especifica agregados y componentes para un bloque nuevo, se creará una FlexGroup nueva para el bloque nuevo.
 *** Si no se especifican agregados y componentes para un bloque nuevo, el nuevo bloque se añadirá a una FlexGroup existente.
@@ -35,29 +47,17 @@ Consulte xref:../flexgroup/index.html[Gestión de volúmenes de FlexGroup] si qu
 +
 Cuando se especifican agregados y componentes al crear un bloque, no se aplican grupos de políticas de calidad de servicio, predeterminados ni personalizados. Puede hacerlo más tarde con el `vserver object-store-server bucket modify` comando.
 
++
+Consulte link:https://docs.netapp.com/us-en/ontap-cli-9141/vserver-object-store-server-show.html["modificación de bucket object-store-server de vserver"] si quiere más información.
 
-
-
-
-
-
-A partir de ONTAP 9.14.1, puede hacerlo link:create-bucket-mcc-task.html["Cree un bucket en un agregado reflejado o no reflejado en una configuración de MetroCluster"].
-
++
 *Nota:* Si está sirviendo cubos de Cloud Volumes ONTAP, debe utilizar el procedimiento CLI. Se recomienda seleccionar manualmente los agregados subyacentes para garantizar que solo utilicen un nodo. El uso de agregados de ambos nodos puede afectar al rendimiento, ya que los nodos se encuentran en zonas de disponibilidad separadas geográficamente y, por lo tanto, pueden estar expuestos a problemas de latencia.
 
-Los niveles de servicio de almacenamiento son grupos de políticas de calidad de servicio (QoS) adaptativos predefinidos, con niveles _Value_, _Performance_ y _Extreme_ predeterminados. En lugar de uno de los niveles de servicio de almacenamiento predeterminados, también puede definir un grupo de políticas de calidad de servicio personalizado y aplicarlo a un bloque.
 
-A partir de ONTAP 9.8, cuando se aprovisiona el almacenamiento, la calidad de servicio se habilita de forma predeterminada. Puede deshabilitar la calidad de servicio o seleccionar una política de calidad de servicio personalizada durante el proceso de aprovisionamiento o más adelante.
 
-Para obtener más información sobre las definiciones de servicios de almacenamiento, consulte link:storage-service-definitions-reference.html["Definiciones de servicios de almacenamiento"]
 
-Si va a configurar la organización en niveles de capacidad local, debe crear bloques y usuarios en una máquina virtual de almacenamiento de datos, no en la máquina virtual de almacenamiento del sistema donde está ubicado el servidor S3.
 
-Para el acceso de cliente remoto, debe configurar buckets en una máquina virtual de almacenamiento habilitada para S3. Si crea un bloque en una máquina virtual de almacenamiento que no tiene la función S3, solo estará disponible para la organización en niveles local.
 
-Para obtener más información sobre la gestión del rendimiento, consulte link:../performance-admin/index.html["Gestión del rendimiento"]
-
-Consulte `vserver object-store-server bucket` páginas de manual para opciones de visualización y configuración adicionales.
 
 
 
@@ -116,7 +116,7 @@ El valor predeterminado de `-aggr-list-multiplier` el parámetro es 4.
 
 
 .Ejemplo
-En el siguiente ejemplo se crea un bloque para la máquina virtual de almacenamiento VS1 GB de tamaño 1TB y se especifica el agregado:
+El siguiente ejemplo crea un bloque para la máquina virtual de almacenamiento `vs1` de tamaño `1TB` y especificando el agregado:
 
 [listing]
 ----
@@ -181,7 +181,7 @@ Para obtener más información, consulte link:../s3-snapmirror/create-remote-mir
 
 === Verifique el acceso al cucharón
 
-En aplicaciones cliente S3 (ya sea ONTAP S3 o una aplicación externa de 3^rd^), puede verificar el acceso al depósito recién creado introduciendo lo siguiente:
+En aplicaciones cliente S3 (ya sea ONTAP S3 o una aplicación externa de terceros), puede verificar el acceso al depósito recién creado introduciendo lo siguiente:
 
 * El certificado de CA de servidor S3.
 * La clave de acceso y la clave secreta del usuario.
