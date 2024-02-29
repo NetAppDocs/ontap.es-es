@@ -16,6 +16,57 @@ summary: Si se vuelve a cablear un puerto o se cambia la configuración del swit
 [role="lead"]
 Los dominios de retransmisión se crean automáticamente. Sin embargo, si un puerto se vuelve a transferir o si cambia la configuración del switch, es posible que sea necesario reparar un puerto en un dominio de difusión diferente (nuevo o existente).
 
+ONTAP puede detectar y recomendar automáticamente soluciones para problemas de cableado de red en función de la accesibilidad de la capa 2 de un componente de dominio de difusión (puertos ethernet).
+
+El cableado incorrecto durante puede provocar una asignación inesperada del puerto de dominio de retransmisión. A partir de ONTAP 9.10.1, el clúster comprueba automáticamente si hay problemas de cableado de red mediante la verificación de la accesibilidad del puerto después de la configuración del clúster o cuando un nuevo nodo se une a un clúster existente.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Si se detecta un problema de accesibilidad del puerto, System Manager recomienda una operación de reparación para resolver el problema.
+
+Después de configurar el clúster, se informan los problemas de cableado de red en la consola.
+
+Después de unir un nodo nuevo a un clúster, aparecen los problemas de cableado de red en la página Nodes.
+
+También puede ver el estado del cableado de red en el diagrama de red. Los problemas de accesibilidad del puerto se indican en el diagrama de red mediante un icono de error rojo.
+
+== Configuración posterior al clúster
+
+Después de configurar el clúster, si el sistema detecta un problema de cableado de red, aparece un mensaje en la consola.
+
+image:auto-detect-01.png["Mensaje de configuración posterior al clúster"]
+
+.Pasos
+. Corrija el cableado como se indica en el mensaje.
+. Haga clic en el vínculo para abrir el cuadro de diálogo Actualizar dominios de difusión.
+Se abre el cuadro de diálogo Actualizar dominios de difusión.
+image:auto-detect-02.png["Diálogo Actualizar dominios de difusión"]
+. Revise la información sobre el puerto, incluido el nodo, los problemas, el dominio de retransmisión actual y el dominio de retransmisión esperado.
+. Seleccione los puertos que desea reparar y haga clic en *solucionar*.
+El sistema moverá los puertos del dominio de retransmisión actual al dominio de retransmisión esperado.
+
+
+== Unión de nodo posterior
+
+Tras unir un nodo nuevo a un clúster, si el sistema detecta un problema de cableado de red, aparece un mensaje en la página Nodes.
+
+image:auto-detect-03.png["Mensaje de unión del nodo posterior"]
+
+.Pasos
+. Corrija el cableado como se indica en el mensaje.
+. Haga clic en el vínculo para abrir el cuadro de diálogo Actualizar dominios de difusión.
+Se abre el cuadro de diálogo Actualizar dominios de difusión.
+image:auto-detect-02.png["Diálogo Actualizar dominios de difusión"]
+. Revise la información sobre el puerto, incluido el nodo, los problemas, el dominio de retransmisión actual y el dominio de retransmisión esperado.
+. Seleccione los puertos que desea reparar y haga clic en *solucionar*.
+El sistema moverá los puertos del dominio de retransmisión actual al dominio de retransmisión esperado.
+
+
+--
+.CLI
+--
 .Antes de empezar
 Para realizar esta tarea, debe ser un administrador de clústeres.
 
@@ -121,8 +172,6 @@ Si el estado de accesibilidad es "desconocido", espere unos minutos y vuelva a i
 |===
 Después de reparar un puerto, compruebe si hay VLAN y LIF desplazadas. Si el puerto era parte de un grupo de interfaces, también necesita comprender lo que ha sucedido con ese grupo de interfaces.
 
-
-
 == LIF
 
 Cuando se repara un puerto y se mueve a otro dominio de difusión, los LIF configurados en el puerto reparado se asignarán automáticamente a un nuevo puerto doméstico. Si es posible, ese puerto de inicio se selecciona del mismo dominio de difusión en el mismo nodo. Como alternativa, se selecciona un puerto de inicio de otro nodo o, si no existen puertos de inicio adecuados, se borrará el puerto de inicio.
@@ -147,8 +196,6 @@ Si hay alguna LIF desplazada, debe:
 
 
 
-
-
 == VLAN
 
 Si el puerto reparado tenía VLAN, esas VLAN se eliminan automáticamente, pero también se registran como "desplazadas". Puede ver estas VLAN desplazadas:
@@ -167,12 +214,12 @@ Si hay alguna VLAN desplazada, debe:
 
 
 
-
-
 == Grupos de interfaces
 
 Si el puerto reparado formaba parte de un grupo de interfaces, se elimina de ese grupo de interfaces. Si era el único puerto miembro asignado al grupo de interfaces, se elimina el propio grupo de interfaces.
 
+--
+====
 .Temas relacionados
 link:https://docs.netapp.com/us-en/ontap/networking/verify_your_network_configuration.html["Compruebe la configuración de red después de actualizar"]
 

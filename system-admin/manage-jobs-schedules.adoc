@@ -1,0 +1,284 @@
+---
+permalink: system-admin/manage-jobs-schedules.html 
+sidebar: sidebar 
+keywords: job, categories, server, cluster, affiliated, private, commands, managing, show jobs, job schedule, stop a job, delete a job, pause a job, display private jobs, modify, cron, interval, delete, interval schedule 
+summary: Los trabajos se colocan en una cola de trabajos y se ejecutan en segundo plano cuando los recursos están disponibles. Si una tarea consume demasiados recursos del clúster, puede detenerla o pausar hasta que haya menos demanda en el clúster. También puede supervisar y reiniciar los trabajos. 
+---
+= Gestionar trabajos y programar
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+Los trabajos se colocan en una cola de trabajos y se ejecutan en segundo plano cuando los recursos están disponibles. Si una tarea consume demasiados recursos del clúster, puede detenerla o pausar hasta que haya menos demanda en el clúster. También puede supervisar y reiniciar los trabajos.
+
+
+
+== Categorías de trabajo
+
+Hay tres categorías de trabajos que puede administrar: Afiliados al servidor, afiliados al cluster y privados.
+
+Un trabajo puede encontrarse en cualquiera de las siguientes categorías:
+
+* *Trabajos afiliados al servidor*
++
+El marco de gestión pone estos trabajos en cola en un nodo específico para su ejecución.
+
+* *Trabajos afiliados al grupo*
++
+Este trabajo se pone en cola en el marco de gestión de cualquier nodo del clúster que se ejecute.
+
+* *Trabajos privados*
++
+Estos trabajos son específicos de un nodo y no utilizan la base de datos replicada (RDB) ni ningún otro mecanismo del cluster. Los comandos que administran trabajos privados requieren el nivel de privilegio avanzado o superior.
+
+
+
+
+
+== Comandos para gestionar trabajos
+
+Cuando se introduce un comando que invoca un trabajo, normalmente, el comando le informa de que el trabajo se ha puesto en cola y, a continuación, vuelve al símbolo del sistema de la CLI. Sin embargo, algunos comandos, en su lugar, informan el progreso de los trabajos y no vuelven a símbolo del sistema de la CLI hasta que se completa el trabajo. En estos casos, puede pulsar Ctrl-C para mover el trabajo al fondo.
+
+|===
+| Si desea... | Se usa este comando... 
+
+
+ a| 
+Muestra información sobre todos los trabajos
+ a| 
+`job show`
+
+
+
+ a| 
+Muestra información sobre los trabajos nodo a nodo
+ a| 
+`job show bynode`
+
+
+
+ a| 
+Muestra información acerca de los trabajos afiliados al clúster
+ a| 
+`job show-cluster`
+
+
+
+ a| 
+Muestra información sobre los trabajos completados
+ a| 
+`job show-completed`
+
+
+
+ a| 
+Muestra información sobre el historial de trabajos
+ a| 
+`job history show`
+
+Se almacenan hasta 25,000 registros de trabajos para cada nodo del clúster. Por lo tanto, intentar mostrar el historial completo del trabajo puede tardar mucho tiempo. Para evitar tiempos de espera potencialmente largos, debe mostrar trabajos por nodo, máquina virtual de almacenamiento (SVM) o ID de registro.
+
+
+
+ a| 
+Mostrar la lista de trabajos privados
+ a| 
+`job private show` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Muestra información sobre los trabajos privados completados
+ a| 
+`job private show-completed` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Muestra información sobre el estado de inicialización de los gestores de trabajos
+ a| 
+`job initstate show` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Supervise el progreso de un trabajo
+ a| 
+`job watch-progress`
+
+
+
+ a| 
+Supervisar el progreso de un trabajo privado
+ a| 
+`job private watch-progress` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Poner en pausa un trabajo
+ a| 
+`job pause`
+
+
+
+ a| 
+Poner en pausa un trabajo privado
+ a| 
+`job private pause` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Reanudar un trabajo pausado
+ a| 
+`job resume`
+
+
+
+ a| 
+Reanudar un trabajo privado en pausa
+ a| 
+`job private resume` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Detener un trabajo
+ a| 
+`job stop`
+
+
+
+ a| 
+Detener un trabajo privado
+ a| 
+`job private stop` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Eliminar un trabajo
+ a| 
+`job delete`
+
+
+
+ a| 
+Eliminar un trabajo privado
+ a| 
+`job private delete` (nivel de privilegio avanzado)
+
+
+
+ a| 
+Desasociar un trabajo afiliado al clúster con un nodo no disponible que lo posea, de forma que otro nodo pueda hacerse cargo de ese trabajo
+ a| 
+`job unclaim` (nivel de privilegio avanzado)
+
+|===
+[NOTE]
+====
+Puede utilizar el `event log show` comando para determinar el resultado de un trabajo completado.
+
+====
+.Información relacionada
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Comandos de ONTAP 9"^]
+
+
+
+= Comandos para gestionar programaciones de trabajos
+
+Muchas tareas, por ejemplo, copias Snapshot de volumen, se pueden configurar para ejecutarse en programaciones específicas.las programaciones que se ejecuten en momentos específicos se denominan programaciones _cron_ (similares a UNIX) `cron` horarios). Los horarios que se ejecutan a intervalos se denominan programas _INTERVAL_. Utilice la `job schedule` comandos para gestionar programaciones de trabajos.
+
+Las programaciones de trabajos no se ajustan a los cambios manuales en la fecha y la hora del clúster. Estos trabajos se programan para que se ejecuten en función de la hora actual del clúster cuando se creó el trabajo o cuando se ejecutó el trabajo más recientemente. Por lo tanto, si cambia manualmente la fecha o la hora del clúster, debe usar el `job show` y.. `job history show` comandos para verificar que todos los trabajos programados se ponen en cola y se completan de acuerdo con los requisitos que haya.
+
+Si el clúster forma parte de una configuración de MetroCluster, las programaciones de trabajos en ambos clústeres deben ser idénticas. Por lo tanto, si crea, modifica o elimina una programación de trabajos, debe realizar la misma operación en el clúster remoto.
+
+|===
+| Si desea... | Se usa este comando... 
+
+
+ a| 
+Muestra información sobre todos los programas
+ a| 
+`job schedule show`
+
+
+
+ a| 
+Mostrar la lista de trabajos según la programación
+ a| 
+`job schedule show-jobs`
+
+
+
+ a| 
+Mostrar información acerca de las programaciones de cron
+ a| 
+`job schedule cron show`
+
+
+
+ a| 
+Muestra información acerca de los programas de intervalos
+ a| 
+`job schedule interval show`
+
+
+
+ a| 
+Crear una programación Cron
+ a| 
+`job schedule cron create`
+
+A partir de ONTAP 9.10.1, puede incluir la máquina virtual de almacenamiento SVM en su programación de trabajos.
+
+
+
+ a| 
+Cree una programación de intervalo
+ a| 
+`job schedule interval create`
+
+Debe especificar al menos uno de los siguientes parámetros: `-days`, `-hours`, `-minutes`, o. `-seconds`.
+
+
+
+ a| 
+Modificar una programación de cron
+ a| 
+`job schedule cron modify`
+
+
+
+ a| 
+Modificar una programación de intervalo
+ a| 
+`job schedule interval modify`
+
+
+
+ a| 
+Eliminar una programación
+ a| 
+`job schedule delete`
+
+
+
+ a| 
+Eliminar una programación cron
+ a| 
+`job schedule cron delete`
+
+
+
+ a| 
+Eliminar una programación de intervalo
+ a| 
+`job schedule interval delete`
+
+|===
+.Información relacionada
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Comandos de ONTAP 9"^]

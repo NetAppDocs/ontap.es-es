@@ -14,19 +14,34 @@ summary: Las cuotas de árbol limitan el tamaño general del qtree. Para evitar 
 Las cuotas de árbol limitan el tamaño general del qtree. Para evitar que usuarios o grupos individuales consuman todo el qtree, debe especificar una cuota de usuario o de grupo para ese qtree.
 
 .Ejemplo de cuota de usuario en un qtree
-Supongamos que tiene el siguiente archivo de cuotas:
+Supongamos que tiene las siguientes reglas de cuota:
 
 [listing]
 ----
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
 
-#Quota target type            disk files thold sdisk sfile
-#-----------  ----            ---- ----- ----- ----- -----
-*             user@/vol/vol1  50M   -     45M
-jsmith        user@/vol/vol1  80M   -     75M
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB
 ----
-Viene a su atención que un determinado usuario, kjones, está ocupando demasiado espacio en un qtree crítico, qt1, que reside en vol2. Puede restringir el espacio de este usuario agregando la siguiente línea al archivo Quotas:
+Observarás que un determinado usuario, kjones, está ocupando demasiado espacio en un qtree crítico, proj1, que reside en vol1. Puede restringir el espacio de este usuario agregando la siguiente regla de cuota:
 
 [listing]
 ----
-kjones        user@/vol/vol2/qt1  20M  -   15M
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol1 -policy-name default -type user -target "kjones" -qtree "proj1" -disk-limit 20m -threshold 15m
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB
+user   kjones    proj1   off          20MB        -       -        -       15MB
 ----

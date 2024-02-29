@@ -1,0 +1,301 @@
+---
+sidebar: sidebar 
+permalink: networking/use_lldp_to_detect_network_connectivity.html 
+keywords: display, view, show, network, connectivity, neighbor, discovery, protocol, ndp, link, layer, lldp, use lldp to detect network connectivity, enable or disable lldp, view lldp neighbor information, adjust the interval for transmitting lldp advertisements 
+summary: El uso de LLDP para detectar la conectividad de red consiste en revisar consideraciones de implementación, habilitarlo en todos los puertos, ver dispositivos vecinos y ajustar los valores de configuración de LLDP según sea necesario. 
+---
+= Use LLDP para detectar la conectividad de red
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+El uso de LLDP para detectar la conectividad de red consiste en revisar consideraciones de implementación, habilitarlo en todos los puertos, ver dispositivos vecinos y ajustar los valores de configuración de LLDP según sea necesario.
+
+También es necesario habilitar LLDP en cualquier switch y enrutador para poder mostrar la información acerca de los dispositivos vecinos.
+
+ONTAP informa actualmente de las siguientes estructuras de longitud de valor de tipo (TLV):
+
+* Identificador del chasis
+* Identificador del puerto
+* Tiempo de vida (TTL)
+* Nombre del sistema
++
+El TLV del nombre del sistema no se envía en los dispositivos CNA.
+
+
+
+Ciertos adaptadores de red convergentes (CNA), como el adaptador X1143 y los puertos UTA2 integrados, contienen compatibilidad con la descarga para LLDP:
+
+* La descarga de LLDP se utiliza para la creación de puentes en centros de datos (DCB).
+* La información mostrada podría diferir entre el clúster y el switch.
++
+Los datos del identificador del chasis y del identificador del puerto que muestra el switch podrían ser diferentes para los puertos CNA y no CNA.
+
+
+
+Por ejemplo:
+
+* Para puertos que no son CNA:
++
+** El identificador de chasis es una dirección MAC fija de uno de los puertos en el nodo
+** Port ID es el nombre de puerto del puerto correspondiente en el nodo
+
+
+* Para puertos CNA:
++
+** Los identificadores de chasis y de puerto son las direcciones MAC de los respectivos puertos en el nodo.
+
+
+
+
+Sin embargo, los datos que muestra el clúster son consistentes para estos tipos de puerto.
+
+
+NOTE: La especificación LLDP define el acceso a la información recogida a través de una MIB SNMP. Sin embargo, ONTAP no admite actualmente la MIB de LLDP.
+
+
+
+== Habilite o deshabilite LLDP
+
+Para detectar y enviar anuncios a dispositivos vecinos compatibles con LLDP, es necesario habilitar LLDP en cada nodo del clúster. A partir de ONTAP 9.7, LLDP está habilitado en todos los puertos de un nodo de manera predeterminada.
+
+.Acerca de esta tarea
+Para ONTAP 9.10.1 y versiones anteriores, la `lldp.enable` La opción controla si LLDP está habilitada o deshabilitada en los puertos de un nodo:
+
+* `on` Habilita LLDP en todos los puertos.
+* `off` Deshabilita LLDP en todos los puertos.
+
+
+Para ONTAP 9.11.1 y posteriores, el `lldp.enable` La opción controla si LLDP está habilitada o deshabilitada en los puertos no-clúster y no-almacenamiento de un nodo:
+
+* `on` Permite LLDP en todos los puertos que no son de clúster y que no son de almacenamiento.
+* `off` Deshabilita LLDP en todos los puertos que no son de clúster y que no son de almacenamiento.
+
+
+.Pasos
+. Muestra la configuración actual de LLDP para un nodo o para todos los nodos de un clúster:
++
+** Un solo nodo: `run -node node_name options lldp.enable`
+** Todos los nodos: Opciones `lldp.enable`
+
+
+. Habilite o deshabilite LLDP en todos los puertos de un nodo o en todos los puertos de todos los nodos de un clúster:
++
+[cols="30,70"]
+|===
+
+
+| Para habilitar o deshabilitar LLDP en... | Introduzca... 
+
+
+ a| 
+Un nodo
+ a| 
+`run -node node_name options lldp.enable {on|off}`
+
+
+
+ a| 
+Todos los nodos de un clúster
+ a| 
+`options lldp.enable {on|off}`
+
+|===
++
+** Un solo nodo:
++
+....
+run -node node_name options lldp.enable {on|off}
+....
+** Todos los nodos:
++
+....
+options lldp.enable {on|off}
+....
+
+
+
+
+
+
+== Consulte la información sobre vecinos de LLDP
+
+Puede ver información sobre los dispositivos vecinos que están conectados a cada puerto de los nodos del clúster, siempre y cuando el puerto esté conectado a un dispositivo compatible con LLDP. Puede utilizar el comando network device-Discovery show para ver información de los vecinos.
+
+.Paso
+. Muestra información sobre todos los dispositivos compatibles con LLDP que están conectados a los puertos de un nodo del clúster:
++
+....
+network device-discovery show -node node -protocol lldp
+....
++
+El siguiente comando muestra los vecinos que están conectados a los puertos en el nodo cluster-1_01. La salida enumera los dispositivos habilitados para LLDP que están conectados a cada puerto del nodo especificado. Si la `-protocol` Se omite la opción, la salida también enumera los dispositivos habilitados para CDP.
+
++
+....
+network device-discovery show -node cluster-1_01 -protocol lldp
+Node/       Local  Discovered
+Protocol    Port   Device                    Interface         Platform
+----------- ------ ------------------------- ----------------  ----------------
+cluster-1_01/lldp
+            e2a    0013.c31e.5c60            GigabitEthernet1/36
+            e2b    0013.c31e.5c60            GigabitEthernet1/35
+            e2c    0013.c31e.5c60            GigabitEthernet1/34
+            e2d    0013.c31e.5c60            GigabitEthernet1/33
+....
+
+
+
+
+== Ajuste el intervalo para la transmisión de anuncios de LLDP
+
+Los anuncios de LLDP se envían a intervalos periódicos. Es posible aumentar o reducir el intervalo para enviar anuncios de LLDP en función del tráfico de red y los cambios en la topología de red.
+
+.Acerca de esta tarea
+El intervalo predeterminado recomendado por IEEE es de 30 segundos, pero puede introducir un valor de 5 segundos a 300 segundos.
+
+.Pasos
+. Muestre el intervalo de tiempo de anuncio de LLDP actual para un nodo o para todos los nodos de un clúster:
++
+** Un solo nodo:
++
+....
+run -node <node_name> options lldp.xmit.interval
+....
+** Todos los nodos:
++
+....
+options lldp.xmit.interval
+....
+
+
+. Ajuste el intervalo para enviar anuncios de LLDP para todos los puertos de un nodo o para todos los puertos de todos los nodos de un clúster:
++
+** Un solo nodo:
++
+....
+run -node <node_name> options lldp.xmit.interval <interval>
+....
+** Todos los nodos:
++
+....
+options lldp.xmit.interval <interval>
+....
+
+
+
+
+
+
+== Ajuste el tiempo de respuesta de los anuncios de LLDP
+
+El tiempo de vida (TTL) es el período de tiempo durante el cual los anuncios de LLDP se almacenan en la caché en dispositivos vecinos compatibles con LLDP. TTL se anuncia en cada paquete LLDP y se actualiza cada vez que un nodo recibe un paquete LLDP. TTL puede modificarse en tramas LLDP salientes.
+
+.Acerca de esta tarea
+* TTL es un valor calculado, el producto del intervalo de transmisión (`lldp.xmit.interval`) y el multiplicador de retención (`lldp.xmit.hold`) más uno.
+* El valor predeterminado del multiplicador de retención es 4, pero puede introducir valores que oscilen entre 1 y 100.
+* Por lo tanto, el valor predeterminado TTL es de 121 segundos, como recomienda el IEEE, pero al ajustar el intervalo de transmisión y mantener los valores multiplicadores, puede especificar un valor para los fotogramas salientes de 6 segundos a 30001 segundos.
+* Si se elimina una dirección IP antes de que caduque el TTL, la información de LLDP se almacena en caché hasta que caduque el TTL.
+
+
+.Pasos
+. Muestre el valor actual de contener multiplicador para un nodo o para todos los nodos de un clúster:
++
+** Un solo nodo:
++
+....
+run -node <node_name> options lldp.xmit.hold
+....
+** Todos los nodos:
++
+....
+options lldp.xmit.hold
+....
+
+
+. Ajuste el valor de multiplicador de mantenimiento en todos los puertos de un nodo o en todos los puertos de todos los nodos de un clúster:
++
+** Un solo nodo:
++
+....
+run -node <node_name> options lldp.xmit.hold <hold_value>
+....
+** Todos los nodos:
++
+....
+options lldp.xmit.hold <hold_value>
+....
+
+
+
+
+
+
+== Ver o borrar estadísticas de LLDP
+
+Es posible ver las estadísticas de LLDP de los puertos de clúster y no de clúster en cada nodo para detectar posibles problemas de conectividad de red. Las estadísticas de LLDP son acumulativas a partir del momento en que se borraron por última vez.
+
+.Acerca de esta tarea
+Para ONTAP 9.10.1 y versiones anteriores, como LLDP siempre están habilitadas para puertos del clúster, siempre se muestran las estadísticas de LLDP para el tráfico de esos puertos. LLDP debe estar habilitado en puertos que no son del clúster para que se muestren estadísticas de esos puertos.
+
+Para ONTAP 9.11.1 y versiones posteriores, como LLDP siempre está habilitado para los puertos de clúster y de almacenamiento, siempre se muestran las estadísticas de LLDP para el tráfico de esos puertos. LLDP deben estar habilitadas en puertos que no sean del clúster y en puertos del almacenamiento para que se muestren estadísticas de esos puertos.
+
+.Paso
+Muestre o borre las estadísticas actuales de LLDP para todos los puertos en un nodo:
+
+[cols="40,60"]
+|===
+
+
+| Si desea... | Introduzca... 
+
+
+ a| 
+Consulte las estadísticas de LLDP
+ a| 
+`run -node node_name lldp stats`
+
+
+
+ a| 
+Borre las estadísticas de LLDP
+ a| 
+`run -node node_name lldp stats -z`
+
+|===
+
+
+=== Ejemplo de estadísticas show y clear
+
+El siguiente comando muestra las estadísticas de LLDP antes de borrarlas. El resultado muestra el número total de paquetes que se enviaron y recibieron desde la última vez que se borraron las estadísticas.
+
+....
+cluster-1::> run -node vsim1 lldp stats
+
+RECEIVE
+ Total frames:     190k  | Accepted frames:   190k | Total drops:         0
+TRANSMIT
+ Total frames:     5195  | Total failures:      0
+OTHER
+ Stored entries:      64
+....
+El siguiente comando borra las estadísticas de LLDP.
+
+....
+cluster-1::> The following command clears the LLDP statistics:
+run -node vsim1 lldp stats -z
+run -node node1 lldp stats
+
+RECEIVE
+ Total frames:        0  | Accepted frames:     0  | Total drops:         0
+TRANSMIT
+ Total frames:        0  | Total failures:      0
+OTHER
+ Stored entries:      64
+....
+Una vez borradas las estadísticas, comienzan a acumularse después de que se envía o recibe el próximo anuncio de LLDP.

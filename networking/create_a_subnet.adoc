@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar 
 permalink: networking/create_a_subnet.html 
-keywords: move, moving, broadcast, domain, ipspace, create a subnet, network subnet create, network subnet show -ipspace 
-summary: Cree una subred 
+keywords: move, moving, broadcast, domain, ipspace, create a subnet, network subnet create, network subnet show -ipspace, force-update-lif-associations, network subnet rename 
+summary: Cree una subred para asignar o reservar bloques específicos de direcciones IP para la configuración de red de ONTAP 
 ---
 = Cree una subred
 :hardbreaks:
@@ -20,6 +20,14 @@ Esto permite crear LIF con mayor facilidad ya que especifica un nombre de subred
 
 .Antes de empezar
 Para realizar esta tarea, debe ser un administrador de clústeres.
+
+El dominio de retransmisión y el espacio IP en el que va a agregar la subred ya deben existir.
+
+.Acerca de esta tarea
+* Todos los nombres de subred deben ser únicos en un espacio IP.
+* Al añadir rangos de direcciones IP a una subred, debe asegurarse de que no haya direcciones IP superpuestas en la red para que distintas subredes, o hosts, no intenten utilizar la misma dirección IP.
+* Si especifica una puerta de enlace al definir una subred, se añadirá automáticamente a la SVM una ruta predeterminada a esa puerta de enlace cuando se cree una LIF con dicha subred. Si no utiliza subredes, o si no especifica una puerta de enlace al definir una subred, deberá utilizar `route create` Comando para añadir una ruta a la SVM de forma manual.
+
 
 .Procedimiento
 El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
@@ -53,22 +61,44 @@ A partir de ONTAP 9.12.0, puede usar System Manager para crear una subred.
 --
 Use la CLI para crear una subred.
 
-.Pasos
-. Cree una subred.
+....
+network subnet create -subnet-name subnet_name -broadcast-domain <broadcast_domain_name> [- ipspace <ipspace_name>] -subnet <subnet_address> [-gateway <gateway_address>] [-ip-ranges <ip_address_list>] [-force-update-lif-associations <true>]
+....
+* `subnet_name` es el nombre de la subred de la capa 3 que desea crear.
 +
-`network subnet create -broadcast-domain _ipspace1_ -ipspace _ipspace1_ -subnet-name _ipspace1_ -subnet _10.0.0.0/24_ -gateway _10.0.0.1_ -ip-ranges _"10.0.0.128-10.0.0.130,10.0.0.132"_`
+El nombre puede ser una cadena de texto como "Mgmt" o puede ser un valor IP de subred específico como 192.0.2.0/24.
 
+* `broadcast_domain_name` es el nombre del dominio de difusión en el que residirá la subred.
+* `ipspace_name` Es el nombre del espacio IP del que forma parte el dominio de retransmisión.
 +
-El nombre de subred puede ser un valor IP de subred como `192.0.2.0/24` o una cadena como, por ejemplo `ipspace1` como el utilizado en este ejemplo.
+El espacio IP «predeterminado» se utiliza a menos que especifique un valor para esta opción.
 
-. Compruebe que la configuración de la subred es correcta.
+* `subnet_address` Es la dirección IP y la máscara de la subred; por ejemplo, 192.0.2.0/24.
+* `gateway_address` es la puerta de enlace de la ruta predeterminada de la subred; por ejemplo, 192.0.2.1.
+* `ip_address_list` Es la lista o el intervalo de direcciones IP que se asignarán a la subred.
 +
-El resultado de este ejemplo muestra información acerca de la subred denominada ipspace1 en el espacio IP de ipspace1. La subred pertenece al nombre de dominio de broadcast ipspace1. Puede asignar las direcciones IP de esta subred a las LIF de datos para las SVM creadas en el espacio IP ipspace1.
+Las direcciones IP pueden ser direcciones individuales, un rango de direcciones IP o una combinación de ellas en una lista separada por comas.
 
+* El valor `true` se puede establecer para `-force-update-lif-associations` opción.
 +
-`network subnet show -ipspace _ipspace1_`
+Este comando falla si cualquier procesador de servicios o interfaz de red están utilizando actualmente las direcciones IP del rango especificado. Si se establece este valor en true, se asocia cualquier interfaz dirigida manualmente a la subred actual y se permite que el comando se realice correctamente.
 
 
+
+El siguiente comando crea una subred sub1 en el dominio de difusión predeterminado-1 en el espacio IP predeterminado. Añade una máscara y una dirección IP de subred IPv4, la puerta de enlace y un rango de direcciones IP:
+
+....
+network subnet create -subnet-name sub1 -broadcast-domain Default-1 -subnet 192.0.2.0/24 - gateway 192.0.2.1 -ip-ranges 192.0.2.1-192.0.2.100, 192.0.2.122
+....
+El siguiente comando crea una subred sub2 en los valores predeterminados de dominio de difusión en el espacio IP "predeterminado". Añade un rango de direcciones IPv6:
+
+....
+network subnet create -subnet-name sub2 -broadcast-domain Default -subnet 3FFE::/64 - gateway 3FFE::1 -ip-ranges "3FFE::10-3FFE::20"
+....
+.Después de terminar
+Puede asignar SVM e interfaces a un espacio IP en las direcciones de la subred.
+
+Si necesita cambiar el nombre de una subred existente, utilice `network subnet rename` comando.
 
 --
 ====

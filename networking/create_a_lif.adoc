@@ -14,9 +14,13 @@ summary: Cree una LIF, que es una dirección IP asociada con un puerto físico o
 
 
 [role="lead"]
-Una LIF (interfaz de red) es una dirección IP asociada a un puerto físico o lógico. Si hay un fallo de un componente, un LIF puede conmutar al respaldo o migrarse a un puerto físico diferente, lo que continúa comunicándose con la red.
+Una SVM sirve datos a los clientes a través de una o varias interfaces lógicas de red (LIF). Debe crear LIF en los puertos que desee utilizar para acceder a datos. Una LIF (interfaz de red) es una dirección IP asociada a un puerto físico o lógico. Si hay un fallo de un componente, un LIF puede conmutar al respaldo o migrarse a un puerto físico diferente, lo que continúa comunicándose con la red.
+
+.Mejor práctica
+Los puertos de switch conectados a ONTAP se deben configurar como puertos periféricos de árbol de expansión para reducir los retrasos durante la migración de LIF.
 
 .Antes de empezar
+* Para realizar esta tarea, debe ser un administrador de clústeres.
 * El puerto de red físico o lógico subyacente debe haber sido configurado con el estado administrativo activo.
 * Si tiene pensado utilizar un nombre de subred para asignar la dirección IP y el valor de máscara de red para una LIF, la subred ya debe existir.
 +
@@ -29,6 +33,10 @@ Las subredes contienen un grupo de direcciones IP que pertenecen a la misma subr
 * No puede asignar protocolos NAS y SAN a la misma LIF.
 +
 Los protocolos admitidos son SMB, NFS, FlexCache, iSCSI y FC. ISCSI y FC no se pueden combinar con otros protocolos. Sin embargo, puede haber protocolos SAN basados en NAS y Ethernet en el mismo puerto físico.
+
++
+** No debe configurar los LIF que lleven tráfico SMB para revertir automáticamente a sus nodos de inicio. Esta recomendación es obligatoria si el servidor SMB va a alojar una solución para las operaciones no disruptivas con Hyper-V o SQL Server sobre SMB.
+
 
 * Puede crear tanto LIF IPv4 como IPv6 en el mismo puerto de red.
 * Todos los servicios de asignación de nombres y resolución de nombres de host que utiliza una SVM, como DNS, NIS, LDAP y Active Directory, Debe ser accesible desde al menos un LIF que gestiona el tráfico de datos de la SVM.
@@ -66,6 +74,8 @@ Si, tras actualizar a ONTAP 9.11.1 o una versión posterior, tiene LIF iSCSI exi
 link:../san-admin/asa-iscsi-lif-fo-task.html["Conmutación por error de LIF de iSCSI para plataformas ASA"]
 
 
+
+A partir de ONTAP 9.7, ONTAP elige automáticamente el puerto inicial de una LIF, siempre que al menos una LIF ya exista en la misma subred en ese espacio IP. ONTAP elige un puerto principal en el mismo dominio de retransmisión que otras LIF de esa subred. Puede seguir especificando un puerto de inicio, pero ya no será necesario (a menos que aún no haya ninguna LIF en esa subred en el espacio IP especificado).
 
 A partir de ONTAP 9.12.0, el procedimiento que siga depende de la interfaz que utilice--System Manager o la CLI:
 
@@ -117,7 +127,26 @@ A partir de ONTAP 9.12.0, el procedimiento que siga depende de la interfaz que u
 *Utilice la CLI para crear un LIF*
 
 .Pasos
-. Cree una LIF:
+. Determine los puertos de dominio de retransmisión que desea usar para la LIF.
++
+`network port broadcast-domain show -ipspace _ipspace1_`
+
++
+....
+IPspace     Broadcast                       Update
+Name        Domain name   MTU   Port List   Status Details
+ipspace1
+            default       1500
+                                node1:e0d   complete
+                                node1:e0e   complete
+                                node2:e0d   complete
+                                node2:e0e   complete
+....
+. Compruebe que la subred que desea utilizar para las LIF contiene suficientes direcciones IP sin usar.
++
+`network subnet show -ipspace _ipspace1_`
+
+. Cree uno o varios LIF en los puertos que desee utilizar para acceder a los datos.
 +
 ....
 network interface create -vserver _SVM_name_ -lif _lif_name_ -service-policy _service_policy_name_ -home-node _node_name_ -home-port port_name {-address _IP_address_ - netmask _Netmask_value_ | -subnet-name _subnet_name_} -firewall- policy _policy_ -auto-revert {true|false}
@@ -152,7 +181,31 @@ Para obtener la `id`, elija un número hexadecimal aleatorio de 64 bits.
 
 
 
-. Compruebe que la LIF se ha creado mediante el `network interface show` comando.
+. Compruebe que la configuración de la interfaz LIF es correcta.
++
+`network interface show -vserver vs1`
+
++
+....
+          Logical    Status     Network         Current   Current Is
+Vserver   Interface  Admin/Oper Address/Mask    Node      Port    Home
+--------- ---------- ---------- --------------- --------- ------- ----
+vs1
+           lif1       up/up      10.0.0.128/24   node1     e0d     true
+....
+. Confirmar que la configuración del grupo de recuperación tras fallos es la deseada.
++
+`network interface show -failover -vserver _vs1_`
+
++
+....
+         Logical    Home       Failover        Failover
+Vserver  interface  Node:Port  Policy          Group
+-------- ---------- ---------  ---------       --------
+vs1
+         lif1       node1:e0d  system-defined  ipspace1
+Failover Targets: node1:e0d, node1:e0e, node2:e0d, node2:e0e
+....
 . Compruebe que se pueda acceder a la dirección IP configurada:
 
 
@@ -185,6 +238,3 @@ network interface create -vserver vs1.example.com -lif datalif1 -data-protocol n
 ....
 --
 ====
-.Más información
-xref:modify_a_lif.html[Modificar una LIF]
-xref:../nfs-rdma/configure-lifs-task.html[Configure LIF para NFS a través de RDMA]

@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar 
 permalink: networking/configure_ipspaces_@cluster_administrators_only@_overview.html 
-keywords: ipspace, ipspaces, introduction, introducing, overview, ipv4, ipv6, routing, route, domain, configure ipspaces overview 
+keywords: ipspace, ipspaces, introduction, introducing, overview, ipv4, ipv6, routing, route, domain, configure ipspaces overview, example, sample, ipspace, example of using ipspaces, sample using ipspaces, hosts.equiv, standard, property, properties, ipspace, special, ipspaces, svm, cluster, default, understanding, cluster, initialization, initialized, introducing, introduction, overview, standard properties of ipspaces, introducing the default and cluster ipspaces created during cluster initialization, default ipspace, cluster ipspace, system svm 
 summary: 'Un espacio IP define un espacio de dirección IP diferente en el que residen las máquinas virtuales de almacenamiento (SVM)' 
 ---
-= Descripción general
+= Configure la descripción general de IPspaces
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 
@@ -22,3 +22,64 @@ Un espacio IP define un espacio de dirección IP diferente en el que residen las
 NOTE: Los espacios IP admiten direcciones IPv4 e IPv6 en sus dominios de enrutamiento.
 
 Si gestiona almacenamiento para una única organización, no necesitará configurar espacios IP. Si va a gestionar almacenamiento para varias empresas en un único clúster de ONTAP y tiene la seguridad de que ninguno de sus clientes tiene configuraciones de red en conflicto, tampoco necesitará utilizar espacios IP. En muchos casos, el uso de máquinas virtuales de almacenamiento (SVM), con sus propias tablas de enrutamiento IP distintas, puede utilizarse para segregar configuraciones de red únicas en lugar de usar espacios IP.
+
+
+
+== Ejemplo de uso de espacios IP
+
+Una aplicación común para el uso de espacios IP es cuando un proveedor de servicios de almacenamiento (SSP) necesita conectar a los clientes de las empresas A y B a un clúster ONTAP en las instalaciones del SSP y ambas empresas utilizan los mismos rangos de direcciones IP privadas.
+
+El SSP crea SVM en el clúster para cada cliente y proporciona una ruta de red dedicada de dos SVM a la red de la empresa A y de las otras dos SVM a la red de la empresa B.
+
+Este tipo de implementación se muestra en la siguiente ilustración y funciona si ambas empresas utilizan rangos de direcciones IP no privados. Sin embargo, la ilustración muestra a ambas empresas que utilizan los mismos rangos de direcciones IP privadas, lo que causa problemas.
+
+image:ontap_nm_image9.jpeg["Ejemplo de espacio IP"]
+
+Ambas empresas utilizan la subred de direcciones IP privadas 10.0.0.0, causando los siguientes problemas:
+
+* Las SVM del clúster en la ubicación del SSP tienen direcciones IP contradictorias si ambas compañías deciden utilizar la misma dirección IP para sus SVM correspondientes.
+* Incluso si las dos empresas acuerdan usar diferentes direcciones IP para sus SVM, pueden surgir problemas.
+* Por ejemplo, si un cliente en la red de A tiene la misma dirección IP que un cliente en la red de B, los paquetes destinados a un cliente en el espacio de direcciones De A pueden enrutarse a un cliente en el espacio de direcciones de B, y viceversa.
+* Si las dos empresas deciden utilizar espacios de direcciones mutuamente excluyentes (Por ejemplo, A utiliza 10.0.0.0 con una máscara de red de 255.128.0.0 y B utiliza 10.128.0.0 con una máscara de red de 255.128.0.0), El SSP debe configurar las rutas estáticas en el clúster para enrutar el tráfico correctamente a las redes De A y B.
+* Esta solución no es escalable (debido a rutas estáticas) ni segura (el tráfico de difusión se envía a todas las interfaces del clúster).para superar estos problemas, el SSP define dos espacios IP en el clúster, uno para cada empresa. Como no se enrutará ningún tráfico de entre espacios IP, los datos de cada empresa se dirigen de forma segura a su red respectiva aunque todas las SVM se hayan configurado en el espacio de direcciones 10.0.0.0, como se muestra en la siguiente ilustración:
+
+
+image:ontap_nm_image10.jpeg["Ejemplo de espacio IP"]
+
+Además, las direcciones IP a las que hacen referencia los distintos archivos de configuración, como el `/etc/ hosts` archivo, la `/etc/hosts.equiv` archivos, y. `the /etc/rc` Archivo, está relativo a ese espacio IP. Por lo tanto, los espacios IP permiten que el SSP configure la misma dirección IP para los datos de configuración y autenticación de varias SVM, sin conflictos.
+
+
+
+== Propiedades estándar de los espacios IP
+
+Los espacios IP especiales se crean de forma predeterminada cuando se crea por primera vez el clúster. Además, se crean máquinas virtuales de almacenamiento (SVM) especiales para cada espacio IP.
+
+Cuando se inicializa el clúster, se crean dos espacios IP automáticamente:
+
+* Espacio IP «predeterminado»
++
+Este espacio IP es un contenedor de puertos, subredes y SVM que proporcionan datos. Si su configuración no necesita espacios IP separados para los clientes, todas las SVM se pueden crear en este espacio IP. Este espacio IP también contiene los puertos de gestión del clúster y de gestión de nodos.
+
+* Espacio IP de «cluster»
++
+Este espacio IP contiene todos los puertos del clúster de todos los nodos del clúster. Se crea automáticamente cuando se crea el clúster. Proporciona conectividad a la red de clústeres privada interna. A medida que más nodos se unen al clúster, los puertos del clúster de esos nodos se añaden al espacio IP «Cluster».
+
+
+
+Hay una SVM del sistema para cada espacio IP. Cuando crea un espacio IP, se crea una SVM del sistema predeterminada del mismo nombre:
+
+* La SVM del sistema para el espacio IP de «clúster» transporta tráfico de clústeres entre nodos de un clúster en la red de clúster privada interna.
++
+Lo gestiona el administrador del clúster y tiene el nombre «Cluster».
+
+* La SVM del sistema para el espacio IP «predeterminado» transporta el tráfico de gestión del clúster y los nodos, incluido el tráfico de interconexión de clústeres entre clústeres.
++
+Lo gestiona el administrador del clúster y utiliza el mismo nombre que el clúster.
+
+* La SVM del sistema para un espacio IP personalizado que crea transporta el tráfico de gestión de esa SVM.
++
+El administrador del clúster lo gestiona y utiliza el mismo nombre que el espacio IP.
+
+
+
+Puede haber una o varias SVM para los clientes en un espacio IP. Cada SVM del cliente tiene sus propios volúmenes de datos y configuraciones, y se administra independientemente de las otras SVM.
