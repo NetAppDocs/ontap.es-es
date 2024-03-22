@@ -18,3 +18,84 @@ Generalmente, desea que todos los puertos de iniciador o iniciadores de software
 Es posible crear iGroups para especificar qué iniciadores tienen acceso a las LUN antes o después de crear las LUN, pero debe crear iGroups antes de poder asignar una LUN a un igroup.
 
 Los iGroups pueden tener varios iniciadores, y varios iGroups pueden tener el mismo iniciador. Sin embargo, no puede asignar una LUN a varios iGroups que tengan el mismo iniciador. Un iniciador no puede ser miembro de iGroups de tipos de configuración distintos.
+
+
+
+== Ejemplo de cómo los iGroups proporcionan acceso a LUN
+
+Es posible crear varios iGroups para definir qué LUN están disponibles para sus hosts. Por ejemplo, si tiene un clúster de hosts, puede utilizar iGroups para garantizar que determinadas LUN sean visibles solo para un host del clúster o para todos los hosts del clúster.
+
+La siguiente tabla muestra cómo cuatro iGroups dan acceso a las LUN para cuatro hosts diferentes que acceden al sistema de almacenamiento. Los hosts en clúster (Host3 y Host4) son miembros del mismo igroup (group3) y pueden acceder a las LUN asignadas a este igroup. El igroup denominado group4 contiene los WWPN de Host4 para almacenar información local que su socio no debe ver.
+
+[cols="4*"]
+|===
+| Hosts con WWPN de HBA, IQN o EUIs | grupos de iniciadores | WWPN, IQN, EUIs añadidos a iGroups | LUN asignadas a iGroups 
+
+
+ a| 
+Host1, ruta única (iniciador de software iSCSI)
+
+iqn.1991-05.com.microsoft:host1
+ a| 
+grupo1
+ a| 
+iqn.1991-05.com.microsoft:host1
+ a| 
+`/vol/vol2/lun1`
+
+
+
+ a| 
+Host2, multivía (dos HBA)
+
+10:00:00:00:c9:2b:6b:3c
+
+10:00:00:00:c9:2b:02:3c
+ a| 
+grupo 2
+ a| 
+10:00:00:00:c9:2b:6b:3c
+
+10:00:00:00:c9:2b:02:3c
+ a| 
+`/vol/vol2/lun2`
+
+
+
+ a| 
+Host3, multivía, agrupado con host 4
+
+10:00:00:00:c9:2b:32:1b
+
+10:00:00:00:c9:2b:41:02
+ a| 
+grupo 3
+ a| 
+10:00:00:00:c9:2b:32:1b
+
+10:00:00:00:c9:2b:41:02
+
+10:00:00:00:c9:2b:51:2c
+
+10:00:00:00:c9:2b:47:a2
+ a| 
+`/vol/vol2/qtree1/lun3`
+
+
+
+ a| 
+Host4, multivía, agrupado (no visible para Host3)
+
+10:00:00:00:c9:2b:51:2c
+
+10:00:00:00:c9:2b:47:a2
+ a| 
+grupo 4
+ a| 
+10:00:00:00:c9:2b:51:2c
+
+10:00:00:00:c9:2b:47:a2
+ a| 
+`/vol/vol2/qtree2/lun4` `/vol/vol2/qtree1/lun5`
+
+|===
