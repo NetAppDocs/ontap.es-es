@@ -1,7 +1,7 @@
 ---
 permalink: upgrade/concept_upgrade_methods.html 
 sidebar: sidebar 
-keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive 
+keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive, rolling upgrade, rolling update, batch upgrades, batch upgrade, rolling, batch 
 summary: 'El método que utilice para actualizar depende de la configuración.  Si está disponible, la actualización automatizada no disruptiva (ANDU) mediante System Manager es el método preferido.' 
 ---
 = Métodos de actualización del software ONTAP
@@ -15,13 +15,35 @@ Puede realizar una actualización automatizada del software ONTAP con System Man
 
 Una actualización puede ejecutarse mediante el proceso de actualización gradual o el proceso de actualización en lote. Ambos elementos no disruptivos.
 
+Para las actualizaciones automatizadas, ONTAP instala automáticamente la imagen ONTAP de destino en cada nodo, valida los componentes del clúster para garantizar que el clúster se pueda actualizar sin interrupciones y, a continuación, ejecuta una actualización en lote o en segundo plano en función del número de nodos. En el caso de las actualizaciones manuales, el administrador confirma manualmente que cada nodo del clúster está listo para la actualización y, a continuación, realiza los pasos necesarios para ejecutar una actualización gradual.
+
 .Actualizaciones graduales de ONTAP
-En el proceso de actualización gradual, un nodo se desconecta y se actualiza mientras su compañero toma el control de su almacenamiento. Cuando se completa la actualización del nodo, el nodo asociado le devuelve el control al nodo propietario original y el proceso se repite en el nodo asociado. Cada par de alta disponibilidad adicional se actualiza en secuencia hasta que todos los pares de alta disponibilidad ejecutan la versión de destino. El proceso de actualización gradual es la opción predeterminada para los clústeres con menos de 8 nodos.
+El proceso de actualización gradual es la opción predeterminada para los clústeres con menos de 8 nodos.  En el proceso de actualización gradual, un nodo se desconecta y se actualiza mientras su compañero toma el control de su almacenamiento. Cuando se completa la actualización del nodo, el nodo asociado le devuelve el control al nodo propietario original y el proceso se repite en el nodo asociado. Cada par de alta disponibilidad adicional se actualiza en secuencia hasta que todos los pares de alta disponibilidad ejecutan la versión de destino.
 
 .Actualizaciones en lotes de ONTAP
-En el proceso de actualización por lotes, el clúster se divide en varios lotes, cada uno de los cuales contiene varios pares de alta disponibilidad. En el primer lote, se actualiza un nodo de cada par de alta disponibilidad, seguido de sus partners de alta disponibilidad. A continuación, el proceso se repite secuencialmente para los lotes restantes. El proceso de actualización por lotes es el predeterminado para clústeres de 8 nodos o más.
+El proceso de actualización por lotes es el predeterminado para clústeres de 8 nodos o más.  En el proceso de actualización por lotes, el clúster se divide en dos lotes.  Cada lote contiene varios pares de alta disponibilidad. En el primer lote, el primer nodo de cada par de alta disponibilidad se actualiza simultáneamente con el primer nodo de los demás pares de alta disponibilidad del lote.
 
-Para las actualizaciones automatizadas, ONTAP instala automáticamente la imagen ONTAP de destino en cada nodo, valida los componentes del clúster para garantizar que el clúster se pueda actualizar sin interrupciones y, a continuación, ejecuta una actualización en lote o en segundo plano en función del número de nodos. En el caso de las actualizaciones manuales, el administrador confirma manualmente que cada nodo del clúster está listo para la actualización y, a continuación, realiza los pasos necesarios para ejecutar una actualización gradual.
+En el siguiente ejemplo, hay dos pares de alta disponibilidad en cada lote.  Cuando comienza la actualización por lotes, los nodos A y C se actualizan simultáneamente.
+
+image::../media/batch_upgrade_set_1_ieops-1607.png[Paso 1 de actualización por lotes]
+
+Una vez completada la actualización de los primeros nodos de cada par de alta disponibilidad, los nodos asociados del lote 1 se actualizan simultáneamente.
+
+En el siguiente ejemplo, después de actualizar los nodos A y C, los nodos B y D se actualizan simultáneamente.
+
+image::../media/batch_upgrade_set_2_ieops-1619.png[Paso 2 de actualización por lotes]
+
+A continuación, el proceso se repite para los nodos en el lote 2. El primer nodo de cada par de alta disponibilidad se actualiza de forma simultánea con el primer nodo de los demás pares de alta disponibilidad del lote.
+
+En el siguiente ejemplo, el nodo E y el nodo G se actualizan simultáneamente.
+
+image::../media/batch_upgrade_set_3_ieops-1612.png[Paso 3 de actualización por lotes]
+
+Una vez completada la actualización de los primeros nodos de cada par de alta disponibilidad, los nodos asociados del lote 2 se actualizan simultáneamente.
+
+En el siguiente ejemplo, el nodo F y el nodo H se actualizan simultáneamente para completar el proceso de actualización por lotes.
+
+image::../media/batch_upgrade_set_4_ieops-1620.png[Paso 4 de actualización por lotes]
 
 
 
