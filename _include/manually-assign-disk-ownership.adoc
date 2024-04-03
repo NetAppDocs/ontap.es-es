@@ -2,12 +2,28 @@
 :allow-uri-read: 
 
 
-Si el clúster no está configurado para utilizar la asignación de propiedad de disco automática, debe asignar la propiedad de forma manual.
+.Acerca de esta tarea
+* Si va a asignar la propiedad manualmente a un par de alta disponibilidad que no se está inicializando y no tiene solo bandejas DS460C, use la opción 1.
+* Si va a inicializar una pareja de HA que solo contiene DS460C bandejas, use la opción 2 para asignar manualmente la propiedad a las unidades raíz.
 
-No se puede reasignar la propiedad de un disco que esté en uso en un nivel local.
+
+.Opción 1: La mayoría de los pares de alta disponibilidad
+[%collapsible]
+====
+Para un par de alta disponibilidad que no se está inicializando y no tiene solo DS460C bandejas, use este procedimiento para asignar la propiedad manualmente.
+
+.Acerca de esta tarea
+* Los discos a los que asigna la propiedad deben estar en una bandeja que se conecte físicamente al nodo al que asigna la propiedad.
+* Si va a utilizar discos en un nivel local (agregado):
++
+** Un nodo debe pertenecer a los discos para poder utilizarlos en un nivel local (agregado).
+** No es posible reasignar la propiedad de un disco que se está utilizando en un nivel local (agregado).
+
+
+
 
 .Pasos
-. Con la CLI, muestra todos los discos sin propietario:
+. Utilice la CLI para mostrar todos los discos sin propietario:
 +
 `storage disk show -container-type unassigned`
 
@@ -19,3 +35,58 @@ No se puede reasignar la propiedad de un disco que esté en uso en un nivel loca
 Puede utilizar el carácter comodín para asignar más de un disco a la vez. Si va a reasignar un disco de repuesto que ya sea propiedad de un nodo diferente, deberá utilizar la opción « »-force».
 
 
+
+====
+.Opción 2: Una pareja de alta disponibilidad con solo DS460C bandejas
+[%collapsible]
+====
+Para una pareja de alta disponibilidad que va a inicializar y que solo tiene DS460C bandejas, utilice este procedimiento para asignar manualmente la propiedad a las unidades raíz.
+
+.Acerca de esta tarea
+* Cuando se inicializa una pareja de alta disponibilidad que solo contiene DS460C bandejas, debe asignar manualmente las unidades raíz para cumplir con la política de medio cajón.
++
+Después de la inicialización del par de alta disponibilidad (arranque), la asignación automática de propiedad de discos se habilita automáticamente y utiliza la política de medio cajón para asignar la propiedad a las unidades restantes (aparte de las unidades raíz) y a cualquier unidad añadida en el futuro, como reemplazar discos con fallos, responder a un mensaje de «repuestos bajos», o añadir capacidad.
+
++
+Más información sobre la política de medio cajón en el tema link:disk-autoassignment-policy-concept.html["Acerca de la asignación automática de propiedad de disco"].
+
+* RAID necesita un mínimo de 10 unidades para cada par de alta disponibilidad (5 por cada nodo) para cualquiera de las 8TB unidades NL-SAS de una bandeja DS460C.
+
+
+.Pasos
+. Si las bandejas DS460C no están completamente llenas, complete los siguientes subpasos; de lo contrario, vaya al siguiente paso.
++
+.. En primer lugar, instale las unidades en la fila frontal (bahías de unidades 0, 3, 6 y 9) de cada cajón.
++
+La instalación de unidades en la fila delantera de cada cajón permite un flujo de aire adecuado y evita el sobrecalentamiento.
+
+.. Para las unidades restantes, distribuirlas de manera uniforme en cada cajón.
++
+Llene las filas del cajón de adelante hacia atrás. Si no tiene suficientes unidades para llenar filas, instálelas en parejas para que las unidades ocupen el lado izquierdo y derecho de un cajón de manera uniforme.
+
++
+En la siguiente ilustración, se muestra la numeración de las bahías de unidades y las ubicaciones de un cajón de DS460C.
+
++
+image::../media/dwg_trafford_drawer_with_hdds_callouts.gif[cajón dwg trafford con anotaciones a hdd]
+
+
+
+. Inicie sesión en el clustershell usando el LIF de gestión de nodos o la LIF de gestión de clústeres.
+. Asigne manualmente las unidades raíz en cada cajón para satisfacer la política de medio cajón mediante los siguientes subpasos:
++
+La política de medio cajón hace que se asigne la mitad izquierda de las unidades de un cajón (bahías de 0 a 5) al nodo A y la mitad derecha de las unidades de un cajón (bahías de 6 a 11) al nodo B.
+
++
+.. Mostrar todos los discos sin propietario:
+`storage disk show -container-type unassigned``
+.. Asigne los discos raíz:
+`storage disk assign -disk disk_name -owner owner_name`
++
+Puede utilizar el carácter comodín para asignar más de un disco a la vez.
+
+
+
+
+
+====

@@ -2,30 +2,36 @@
 permalink: disks-aggregates/manual-assign-ownership-partitioned-disks-task.html 
 sidebar: sidebar 
 keywords: manual, assign, disk, ownership, partition, disks 
-summary: Puede establecer la propiedad del disco de contenedor o de las particiones manualmente o mediante la asignación automática, igual que en los discos sin particiones. 
+summary: 'Puede asignar manualmente la propiedad del disco contenedor o las particiones en los sistemas de partición avanzada de unidades (ADP). Si va a inicializar una pareja de alta disponibilidad que solo contiene bandejas DS460C, debe asignar manualmente la propiedad a las unidades de contenedor que incluyen particiones raíz.' 
 ---
-= Información general sobre la propiedad de discos con particiones manualmente
+= Asigne manualmente la propiedad de discos con particiones
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Con la CLI, puede establecer la propiedad del disco de contenedor o de las particiones manualmente o mediante la asignación automática, tal como lo hace con discos sin particiones.
+Puede asignar manualmente la propiedad del disco contenedor o las particiones en los sistemas de partición avanzada de unidades (ADP). Si va a inicializar una pareja de alta disponibilidad que solo contiene bandejas DS460C, debe asignar manualmente la propiedad a las unidades de contenedor que incluyen particiones raíz.
 
-[NOTE]
-====
-Si se produce un error en un disco de contenedor en una bandeja ocupada a la mitad y se reemplaza, ONTAP no asignará automáticamente la propiedad. En este caso, deberá realizar manualmente cualquier asignación de discos nuevos. Para que la asignación automática funcione en bandejas medio pobladas, coloque los discos de manera equitativa en la mitad inferior y en 6 en las bahías del extremo derecho para empezar. Es decir, 6 discos de las bahías 0-5 y 6 discos de las bahías 18-23. Una vez asignado el disco de contenedor en un sistema configurado por ADP, el software ONTAP manejará cualquier asignación de particiones y particiones que sea necesaria, sin intervención del usuario.
+.Acerca de esta tarea
+* El tipo de sistema de almacenamiento que tiene determina qué método de ADP es compatible, datos raíz (RD) o datos raíz (RD2).
++
+Los sistemas de almacenamiento de FAS utilizan los sistemas de almacenamiento RD y AFF utilizan RD2.
 
-====
-Puede realizar las siguientes tareas en la CLI:
+* Si va a asignar la propiedad manualmente en un par de alta disponibilidad que no se está inicializando y que no tiene solo DS460C bandejas, use la opción 1 para asignar discos manualmente con particiones de datos raíz (RD) o utilice la opción 2 para asignar manualmente discos con particiones raíz-datos-(RD2).
+* Si va a inicializar una pareja de HA que solo contiene DS460C bandejas, use la opción 3 para asignar manualmente la propiedad para las unidades de contenedor que tienen la partición raíz.
 
-.Asigne manualmente discos mediante particiones de datos raíz
+
+.Opción 1: Asignar manualmente discos con partición de datos raíz (RD)
 [%collapsible]
 ====
 Para la partición de datos raíz, existen tres entidades propiedad (el disco contenedor y las dos particiones) que pertenecen colectivamente al par de alta disponibilidad.
 
-El disco de contenedor y las dos particiones no necesitan ser propiedad del mismo nodo en el par de alta disponibilidad siempre y cuando sean propiedad de uno de los nodos del par de alta disponibilidad. Sin embargo, cuando se utiliza una partición en un nivel local (agregado), debe ser propiedad del mismo nodo que posee el nivel local.
+.Acerca de esta tarea
+* El disco de contenedor y las dos particiones no necesitan ser propiedad del mismo nodo en el par de alta disponibilidad siempre y cuando sean propiedad de uno de los nodos del par de alta disponibilidad. Sin embargo, cuando se utiliza una partición en un nivel local (agregado), debe ser propiedad del mismo nodo que posee el nivel local.
+* Si un disco de contenedor falla en una bandeja medio llena y se reemplaza, es posible que deba asignar manualmente la propiedad del disco porque ONTAP no siempre asigna automáticamente la propiedad en este caso.
+* Una vez asignado el disco contenedor, el software de ONTAP gestiona automáticamente cualquier asignación de partición y partición que sea necesaria.
+
 
 .Pasos
 . Use la interfaz de línea de comandos para mostrar la propiedad actual del disco con particiones:
@@ -37,6 +43,9 @@ El disco de contenedor y las dos particiones no necesitan ser propiedad del mism
 `set -privilege advanced`
 
 . Escriba el comando apropiado, en función de la entidad de propiedad a la que desee asignar la propiedad:
++
+Si alguna de las entidades de propiedad ya está en propiedad, deberá incluir la opción « »-force».
+
 +
 [cols="25,75"]
 |===
@@ -65,24 +74,23 @@ Partición raíz
 `storage disk assign -disk _disk_name_ -owner _owner_name_ -root true`
 
 |===
-+
-Si alguna de las entidades de propiedad ya está en propiedad, deberá incluir la opción « »-force».
-
 
 
 ====
-.Asigne manualmente discos con partición de datos raíz
+.Opción 2: Asignar manualmente discos con particiones root-data-data (RD2)
 [%collapsible]
 ====
-Para la partición raíz-datos, hay cuatro entidades propiedad (el disco contenedor y las tres particiones) que pertenecen colectivamente al par de alta disponibilidad.
-
-La partición raíz-datos-datos crea una partición pequeña como la partición raíz y dos particiones de datos de tamaño similar para los datos.
+Para la partición raíz-datos, hay cuatro entidades propiedad (el disco contenedor y las tres particiones) que pertenecen colectivamente al par de alta disponibilidad. La partición raíz-datos-datos crea una partición pequeña como la partición raíz y dos particiones de datos de tamaño similar para los datos.
 
 .Acerca de esta tarea
-Los parámetros deben utilizarse con `disk assign` comando para asignar la partición correcta de un disco particionado raíz-datos-datos. Estos parámetros no se pueden usar con discos que forman parte de un pool de almacenamiento. El valor predeterminado es «'false'».
+* Los parámetros deben utilizarse con `disk assign` comando para asignar la partición correcta de un disco particionado raíz-datos-datos. Estos parámetros no se pueden usar con discos que forman parte de un pool de almacenamiento. El valor predeterminado es «'false'».
++
+** La `-data1 true` el parámetro asigna la partición "data1" de un disco particionado root-data1-data2.
+** La `-data2 true` el parámetro asigna la partición "data2" de un disco particionado root-data1-data2.
 
-* La `-data1 true` el parámetro asigna la partición "data1" de un disco particionado root-data1-data2.
-* La `-data2 true` el parámetro asigna la partición "data2" de un disco particionado root-data1-data2.
+
+* Si un disco de contenedor falla en una bandeja medio llena y se reemplaza, es posible que deba asignar manualmente la propiedad del disco porque ONTAP no siempre asigna automáticamente la propiedad en este caso.
+* Una vez asignado el disco contenedor, el software de ONTAP gestiona automáticamente cualquier asignación de partición y partición que sea necesaria.
 
 
 .Pasos
@@ -95,6 +103,9 @@ Los parámetros deben utilizarse con `disk assign` comando para asignar la parti
 `set -privilege advanced`
 
 . Escriba el comando apropiado, en función de la entidad de propiedad a la que desee asignar la propiedad:
++
+Si alguna de las entidades de propiedad ya está en propiedad, deberá incluir la opción « »-force».
+
 +
 [cols="25,75"]
 |===
@@ -132,6 +143,54 @@ Partición raíz
 |===
 
 
-Si alguna de las entidades de propiedad ya está en propiedad, deberá incluir la opción « »-force».
+====
+.Opción 3: Asigne manualmente DS460C unidades de contenedor que tengan la partición raíz
+[%collapsible]
+====
+Si va a inicializar una pareja de alta disponibilidad que solo contiene DS460C bandejas, debe asignar manualmente la propiedad a las unidades de contenedor que tienen la partición raíz conforme a la política de medio cajón.
+
+.Acerca de esta tarea
+* Cuando se inicializa una pareja de alta disponibilidad que solo contiene DS460C bandejas, el menú de arranque ADP (disponible con ONTAP 9,2 y versiones posteriores) las opciones 9a y 9b no admiten la asignación automática de propiedad de unidad. Debe asignar manualmente las unidades de contenedor que poseen la partición raíz mediante el cumplimiento de la política de medio cajón.
++
+Después de la inicialización del par de alta disponibilidad (arranque), la asignación automática de propiedad de discos se habilita automáticamente y utiliza la política de medio cajón para asignar la propiedad a las unidades restantes (excepto las unidades de contenedores que tienen la partición raíz) y cualquier unidad que se añada en el futuro, como reemplazar unidades con errores. responder a un mensaje de «piezas de repuesto bajas» o añadir capacidad.
+
+* Más información sobre la política de medio cajón en el tema link:disk-autoassignment-policy-concept.html["Acerca de la asignación automática de propiedad de disco"].
+
+
+.Pasos
+. Si las bandejas DS460C no están completamente llenas, complete los siguientes subpasos; de lo contrario, vaya al siguiente paso.
++
+.. En primer lugar, instale las unidades en la fila frontal (bahías de unidades 0, 3, 6 y 9) de cada cajón.
++
+La instalación de unidades en la fila delantera de cada cajón permite un flujo de aire adecuado y evita el sobrecalentamiento.
+
+.. Para las unidades restantes, distribuirlas de manera uniforme en cada cajón.
++
+Llene las filas del cajón de adelante hacia atrás. Si no tiene suficientes unidades para llenar filas, instálelas en parejas para que las unidades ocupen el lado izquierdo y derecho de un cajón de manera uniforme.
+
++
+En la siguiente ilustración, se muestra la numeración de las bahías de unidades y las ubicaciones de un cajón de DS460C.
+
++
+image::../media/dwg_trafford_drawer_with_hdds_callouts.gif[cajón dwg trafford con anotaciones a hdd]
+
+
+
+. Inicie sesión en el clustershell usando el LIF de gestión de nodos o la LIF de gestión de clústeres.
+. Para cada cajón, asigne manualmente las unidades de contenedor que poseen la partición raíz mediante el cumplimiento de la política de medio cajón, mediante los siguientes subpasos:
++
+La política de medio cajón hace que se asigne la mitad izquierda de las unidades de un cajón (bahías de 0 a 5) al nodo A y la mitad derecha de las unidades de un cajón (bahías de 6 a 11) al nodo B.
+
++
+.. Mostrar todos los discos sin propietario:
+`storage disk show -container-type unassigned`
+.. Asigne las unidades de contenedor que tienen la partición raíz:
+`storage disk assign -disk disk_name -owner owner_name`
++
+Es posible usar el carácter comodín para asignar más de una unidad a la vez.
+
+
+
+
 
 ====

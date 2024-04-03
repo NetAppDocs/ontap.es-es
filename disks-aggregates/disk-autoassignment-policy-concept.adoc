@@ -2,7 +2,7 @@
 permalink: disks-aggregates/disk-autoassignment-policy-concept.html 
 sidebar: sidebar 
 keywords: disk, auto-assign, spare, policy, automatic, assignment, disk ownership 
-summary: La asignación automática de discos sin propiedad está habilitada de forma predeterminada. Las asignaciones de propiedad de disco automáticas se realizan 10 minutos después de la inicialización del sistema y cada cinco minutos durante el funcionamiento normal del sistema. 
+summary: La asignación automática de discos sin propiedad está habilitada de forma predeterminada. La asignación automática de propiedad de discos se produce 10 minutos después de la inicialización del par de alta disponibilidad y cada cinco minutos durante el funcionamiento normal del sistema. 
 ---
 = Acerca de la asignación automática de propiedad de disco
 :allow-uri-read: 
@@ -11,16 +11,16 @@ summary: La asignación automática de discos sin propiedad está habilitada de 
 
 
 [role="lead"]
-La asignación automática de discos sin propiedad está habilitada de forma predeterminada. Las asignaciones de propiedad de disco automáticas se realizan 10 minutos después de la inicialización del sistema y cada cinco minutos durante el funcionamiento normal del sistema.
+La asignación automática de discos sin propiedad está habilitada de forma predeterminada. La asignación automática de propiedad de discos se produce 10 minutos después de la inicialización del par de alta disponibilidad y cada cinco minutos durante el funcionamiento normal del sistema.
 
-Cuando se añaden discos nuevos a un sistema (por ejemplo, al reemplazar discos con fallos, responder a un mensaje de repuestos bajos o añadir capacidad), la política de asignación automática predeterminada asigna la propiedad del disco a un nodo como repuesto. Puede deshabilitar la asignación automática o seleccionar una directiva de asignación automática diferente mediante `storage disk option modify` comando.
+Cuando agrega un nuevo disco a un par de alta disponibilidad, por ejemplo, al reemplazar un disco con errores, responder a un mensaje de «piezas de repuesto bajas» o agregar capacidad, la política de asignación automática predeterminada asigna la propiedad del disco a un nodo como reserva.
 
-La política de asignación automática predeterminada se basa en características específicas de la plataforma, pero utiliza uno de los siguientes métodos para asignar propiedad de disco:
+La política de asignación automática predeterminada se basa en las características específicas de la plataforma, o la bandeja DS460C si el par de alta disponibilidad solo tiene estas bandejas y utiliza uno de los siguientes métodos (políticas) para asignar la propiedad de disco:
 
 |===
 
 
-| Método de asignación | Efecto en las asignaciones de nodos | Plataformas 
+| Método de asignación | Efecto en las asignaciones de nodos | Configuraciones de plataforma que se establecen por defecto en el método de asignación 
 
 
  a| 
@@ -28,7 +28,7 @@ bahía
  a| 
 Las bahías pares están asignadas al nodo A y las bahías impares al nodo B.
  a| 
-Sistemas de gama básica en una configuración de alta disponibilidad con una única bandeja compartida.
+Sistemas de gama básica en una configuración de par de alta disponibilidad con una única bandeja compartida.
 
 
 
@@ -37,16 +37,18 @@ bandeja
  a| 
 Todos los discos de la bandeja están asignados al nodo A.
  a| 
-Sistemas de gama básica en una configuración de alta disponibilidad con una pila de dos o más bandejas, y configuraciones de MetroCluster con una pila por nodo, dos o más bandejas.
+Sistemas de gama básica en una configuración de par de alta disponibilidad con una pila de dos o más bandejas, y configuraciones de MetroCluster con una pila por nodo, dos o más bandejas.
 
 
 
  a| 
 bandeja dividida
+
+Esta política se encuentra bajo el valor de “defecto” para el `-autoassign-policy` parámetro de `storage disk option` comando para las configuraciones de plataforma y bandejas aplicables.
  a| 
-Los discos del lado izquierdo de la bandeja se asignan al nodo A y, en el lado derecho, al nodo B. Las bandejas parciales de los nuevos sistemas se envían de fábrica con discos alojados desde el borde de la bandeja hacia el centro.
+Los discos del lado izquierdo de la bandeja se asignan al nodo A y, en el lado derecho, al nodo B. Las bandejas parciales de parejas de alta disponibilidad salen de fábrica con los discos que ocupan desde el borde de la bandeja al centro.
  a| 
-Sistemas AFF C190 y algunas configuraciones de MetroCluster.
+La mayoría de las plataformas AFF y algunas configuraciones MetroCluster.
 
 
 
@@ -57,20 +59,61 @@ Todos los discos de la pila se asignan al nodo A.
  a| 
 Sistemas de gama básica independientes y todas las demás configuraciones.
 
+
+
+ a| 
+medio cajón
+
+Esta política se encuentra bajo el valor de “defecto” para el `-autoassign-policy` parámetro de `storage disk option` comando para las configuraciones de plataforma y bandejas aplicables.
+ a| 
+Todas las unidades de la mitad izquierda de un cajón de DS460C (bahías de unidades de 0 a 5) se asignan al nodo A; todas las unidades de la mitad derecha de un cajón (bahías de unidades de 6 a 11) se asignan al nodo B.
+
+Al inicializar un par de alta disponibilidad con solo DS460C bandejas, no se admite la asignación automática de propiedad de disco. Debe asignar manualmente la propiedad a las unidades que contienen unidades raíz/contenedor que tengan la partición raíz conforme a la política de medio cajón.
+ a| 
+Pares DE ALTA disponibilidad con solo DS460C bandejas, después de la inicialización del par de alta disponibilidad (arranque).
+
+Después de arrancar una pareja de alta disponibilidad, se habilita automáticamente la asignación automática de propiedad de disco y utiliza la política de medio cajón para asignar la propiedad a las unidades restantes (aparte de las unidades raíz/contenedores que poseen la partición raíz) y cualquier unidad que se añada en el futuro.
+
+Si la pareja de alta disponibilidad tiene DS460C bandejas además de otros modelos de bandeja, no se usa la política de medio cajón. La política por defecto utilizada está dictada por características específicas de la plataforma.
+
 |===
-Si el método de asignación predeterminado no es deseable en el entorno, puede especificar el método de asignación de bahía, bandeja o pila con el `-autoassign-policy` parámetro de la `storage disk option modify` comando. Tenga en cuenta las siguientes reglas:
+Ajustes y modificaciones de asignación automática:
 
-* Si intenta utilizar el `bay autoassign-policy` en el caso de una plataforma de nivel no básico, fallará.
-* No existe ninguna política predeterminada correspondiente para especificar el método de bandeja dividida.
+* Puede visualizar la configuración de asignación automática actual (ON/OFF) con el `storage disk option show` comando.
+* Puede desactivar la asignación automática mediante el `storage disk option modify` comando.
+* Si la política de asignación automática predeterminada no es deseable en el entorno, puede especificar (cambiar) el método de asignación de bahía, bandeja o pila mediante el `-autoassign-policy` en la `storage disk option modify` comando.
++
+Aprenda cómo link:configure-auto-assignment-disk-ownership-task.html["Cambie la configuración de la asignación automática de propiedad de disco"].
+
++
+[NOTE]
+====
+Las políticas de asignación automática predeterminadas de medio cajón y bandeja dividida son únicas porque los usuarios como las políticas de bahía, bandeja y pila no pueden definirlas.
+
+====
 
 
-También puede administrar la asignación de discos manualmente mediante el `storage disk assign` comando.
+En los sistemas de partición avanzada de unidades (ADP), para poder asignar automáticamente el trabajo en bandejas semiocupadas, las unidades deben instalarse en las bahías de bandeja correctas según el tipo de bandeja que tenga:
 
-* Si deshabilita la asignación automática, los nuevos discos no estarán disponibles como repuestos hasta que se asignen a un nodo con el `storage disk assign` comando.
+* Si su bandeja no es una bandeja DS460C, instale las unidades igualmente en el extremo izquierdo y el extremo derecho que se mueven hacia el centro. Por ejemplo, seis unidades en bahías 0-5 y seis unidades en bahías 18-23 de una bandeja DS224C.
+* Si la bandeja es una bandeja DS460C, instale las unidades en la fila frontal (bahías de las unidades 0, 3, 6 y 9) de cada cajón. Para las unidades restantes, distribuya de manera uniforme en cada cajón llenando filas de cajones de la parte delantera hacia atrás. Si no tiene suficientes unidades para llenar filas, instálelas en parejas para que las unidades ocupen el lado izquierdo y derecho de un cajón de manera uniforme.
++
+La instalación de unidades en la fila delantera de cada cajón permite un flujo de aire adecuado y evita el sobrecalentamiento.
+
+
+
+[NOTE]
+====
+Si no se instalan unidades en las bahías de bandeja correctas en bandejas medio llenas, cuando se produce un error y se reemplaza la unidad de contenedor, ONTAP no asigna automáticamente la propiedad. En este caso, la asignación de la nueva unidad de contenedor debe realizarse manualmente. Una vez que haya asignado la propiedad a la unidad de contenedor, ONTAP gestiona automáticamente todas las asignaciones de particiones y particiones de unidades que sean necesarias.
+
+====
+En algunas situaciones en las que la asignación automática no funciona, es necesario asignar manualmente la propiedad del disco mediante el `storage disk assign` comando:
+
+* Si deshabilita la asignación automática, los nuevos discos no se encontrarán disponibles como repuestos hasta que se asignen manualmente a un nodo.
 * Si desea que los discos se asignen automáticamente y tiene varias pilas o bandejas que deben tener una propiedad diferente, debe haber asignado manualmente un disco en cada pila o bandeja, de modo que la asignación de propiedad automática funcione en cada pila o bandeja.
 * Si la asignación automática está habilitada y asigna manualmente una sola unidad a un nodo que no está especificado en la directiva activa, la asignación automática deja de funcionar y se muestra un mensaje EMS.
 
 
-Más información acerca de link:manual-assign-ownership-partitioned-disks-task.html["asignar manualmente la propiedad de disco"].
+Aprenda cómo link:manual-assign-disks-ownership-manage-task.html["Asigne manualmente la propiedad del disco de los discos sin particionar"].
 
-Puede mostrar los ajustes de asignación automática actuales con el `storage disk option show` comando.
+Aprenda cómo link:manual-assign-ownership-partitioned-disks-task.html["Asigne manualmente la propiedad del disco de los discos particionados"].
