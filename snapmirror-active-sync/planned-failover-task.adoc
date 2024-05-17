@@ -1,0 +1,63 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/planned-failover-task.html 
+keywords: SM-BC, testing failover, planned failover, maintenance, quorum, snapmirror active sync 
+summary: Es posible realizar una conmutación al respaldo planificada para probar la configuración de recuperación ante desastres o para realizar tareas de mantenimiento en el clúster principal. 
+---
+= Lleve a cabo una conmutación al respaldo planificada de clústeres en una relación de sincronización activa de SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+En una conmutación al respaldo planificada de los clústeres de ONTAP en una relación de sincronización de SnapMirror activo, debe cambiar los roles de los clústeres principal y secundario, de modo que el clúster secundario asuma el control del clúster principal. Durante una conmutación por error, lo que normalmente funciona el clúster secundario procesa las solicitudes de entrada y salida localmente sin interrumpir las operaciones del cliente.
+
+Quizás desee realizar una conmutación al respaldo planificada para probar el estado de la configuración de recuperación de desastres o realizar tareas de mantenimiento del clúster principal.
+
+.Acerca de esta tarea
+El administrador del clúster secundario inicia una conmutación al respaldo planificada. La operación requiere cambiar los roles primario y secundario de manera que el clúster secundario asuma el control del primario. Después, el nuevo clúster principal puede comenzar a procesar solicitudes de entrada y salida de forma local sin interrumpir las operaciones del cliente.
+
+.Antes de empezar
+* La relación de sincronización activa de SnapMirror debe estar sincronizada.
+* No puede iniciar una conmutación al respaldo planificada cuando hay una operación no disruptiva en proceso. Las operaciones no disruptivas incluyen traslados de volúmenes, reubicaciones de agregados y recuperación tras fallos de almacenamiento.
+* El mediador ONTAP debe estar configurado, conectado y en quórum.
+
+
+.Pasos
+Puede realizar una conmutación al respaldo planificada con la interfaz de línea de comandos de ONTAP o System Manager.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+IMPORTANT: A partir de ONTAP 9,8 a 9.14.1, la sincronización activa de SnapMirror se conoce como continuidad del negocio de SnapMirror (SM-BC).
+
+. En System Manager, seleccione **Protección > Descripción general > Relaciones**.
+. Identificar la relación de sincronización activa de SnapMirror que desea conmutar por error. Junto a su nombre, seleccione la `...` Junto al nombre de la relación, luego seleccione **Failover**.
+. Para supervisar el estado de la conmutación por error, utilice `snapmirror failover show` En la CLI de ONTAP.
+
+
+--
+.CLI
+--
+. Desde el clúster de destino, inicie la operación de conmutación por error:
++
+`destination::>snapmirror failover start -destination-path   vs1_dst:/cg/cg_dst`
+
+. Supervise el progreso de la conmutación por error:
++
+`destination::>snapmirror failover show`
+
+. Cuando finalice la operación de conmutación por error, puede supervisar el estado de la relación de protección síncrona de SnapMirror desde el destino:
++
+`destination::>snapmirror show`
+
+
+
+--
+====

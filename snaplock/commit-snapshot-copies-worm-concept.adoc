@@ -2,7 +2,7 @@
 permalink: snaplock/commit-snapshot-copies-worm-concept.html 
 sidebar: sidebar 
 keywords: snaplock, commit, snapshot, copy, worm, snapvault, protect, snapmirror, clone, snaplock type 
-summary: Puede usar SnapLock para SnapVault para proteger CON WORM las copias Snapshot en el almacenamiento secundario. Puede realizar todas las tareas básicas de SnapLock en el destino de SnapVault. El volumen de destino es de solo lectura montado automáticamente, por lo que no es necesario confirmar explícitamente las copias Snapshot a WORM; por lo tanto, no se admiten la creación de copias Snapshot programadas en el volumen de destino mediante políticas de SnapMirror. 
+summary: Puede usar SnapLock para SnapVault para proteger CON WORM las copias Snapshot en el almacenamiento secundario. Todas las tareas básicas de SnapLock se realizan en el destino del almacén. 
 ---
 = Confirmar copias Snapshot a WORM en un destino de almacén
 :allow-uri-read: 
@@ -14,14 +14,18 @@ summary: Puede usar SnapLock para SnapVault para proteger CON WORM las copias Sn
 Puede usar SnapLock para SnapVault para proteger CON WORM las copias Snapshot en el almacenamiento secundario. Todas las tareas básicas de SnapLock se realizan en el destino del almacén. El volumen de destino es de solo lectura montado automáticamente, por lo que no es necesario confirmar explícitamente las copias Snapshot a WORM; por lo tanto, no se admiten la creación de copias Snapshot programadas en el volumen de destino mediante políticas de SnapMirror.
 
 .Antes de empezar
-* El clúster de origen debe ejecutar ONTAP 8.2.2 o una versión posterior.
+* Si desea usar System Manager para configurar la relación, tanto el clúster de origen como el de destino deben ejecutar ONTAP 9.15.1 o una versión posterior.
+* En el clúster de destino:
++
+** link:../system-admin/install-license-task.html["Instale la licencia de SnapLock"].
+** link:initialize-complianceclock-task.html["Inicialice el reloj de cumplimiento"].
+** Si utiliza la CLI con una versión de ONTAP anterior a 9.10.1, link:create-snaplock-aggregate-task.html["Cree un agregado de SnapLock"].
+
+
+* La política de protección debe ser del tipo «vault».
 * Los agregados de origen y destino deben tener 64 bits.
 * El volumen de origen no puede ser un volumen de SnapLock.
-* Los volúmenes de origen y destino deben crearse en clústeres con una relación entre iguales con SVM.
-+
-Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html["Conexión de clústeres entre iguales"].
-
-* Si se deshabilita el crecimiento automático de un volumen, el espacio libre en el volumen de destino debe ser al menos un cinco por ciento mayor que el espacio usado en el volumen de origen.
+* Si utiliza la CLI de ONTAP, los volúmenes de origen y destino deben crearse en link:../peering/create-cluster-relationship-93-later-task.html["clústeres con conexión entre iguales"] y.. link:../peering/create-intercluster-svm-peer-relationship-93-later-task.html["SVM"].
 
 
 .Acerca de esta tarea
@@ -35,9 +39,13 @@ Es posible clonar volúmenes de SnapLock, pero no es posible clonar archivos en 
 
 NOTE: Los LUN no son compatibles con los volúmenes de SnapLock. Los LUN se admiten en volúmenes de SnapLock solo en casos en los que las copias de Snapshot creadas en un volumen distinto de SnapLock se transfieren a un volumen de SnapLock para la protección como parte de la relación de almacén de SnapLock. Los LUN no son compatibles con los volúmenes de SnapLock de lectura/escritura. Las copias Snapshot a prueba de manipulaciones son compatibles tanto con los volúmenes de origen como con los volúmenes de destino de SnapMirror que contienen LUN.
 
+A partir de ONTAP 9.10.1, los volúmenes de SnapLock y otros de SnapLock pueden existir en el mismo agregado; por lo tanto, ya no es necesario crear un agregado de SnapLock separado si se utiliza ONTAP 9.10.1. Puede usar la opción '-snaplock-type' del volumen para especificar un tipo de volumen Compliance o Enterprise SnapLock. En las versiones de ONTAP anteriores a ONTAP 9.10.1, el modo SnapLock, Compliance o Enterprise, se hereda del agregado. No se admiten los volúmenes de destino con versión flexible. La configuración de idioma del volumen de destino debe coincidir con la configuración de idioma del volumen de origen.
+
+Un volumen SnapLock que es un destino de almacén tiene asignado un período de retención predeterminado. El valor correspondiente a este período se establece inicialmente en un mínimo de 0 años para volúmenes de SnapLock Enterprise y un máximo de 30 años para volúmenes de SnapLock Compliance. Cada copia de Snapshot de NetApp se compromete con el primer período de retención predeterminado. El período de retención se puede ampliar más adelante, si fuera necesario. Para obtener más información, consulte link:set-retention-period-task.html["Establecer información general sobre el tiempo de retención"].
+
 A partir de ONTAP 9.14.1, puede especificar períodos de retención para etiquetas de SnapMirror específicas en la política de SnapMirror de la relación de SnapMirror, de modo que las copias Snapshot replicadas del volumen de origen al de destino se conserven durante el período de retención especificado en la regla. Si no se especifica ningún período de retención, se utiliza el período de retención predeterminado del volumen de destino.
 
-A partir de ONTAP 9.13.1, puede restaurar instantáneamente una copia Snapshot bloqueada en el volumen SnapLock de destino de una relación de almacén de SnapLock mediante la creación de un FlexClone con el `snaplock-type` Opción establecida en «non-snaplock» y especificando la copia Snapshot como la «parent-snapshot» al ejecutar la operación de creación de clones de volúmenes. Más información acerca de link:https://docs.netapp.com/us-en/ontap/volumes/create-flexclone-task.html?q=volume+clone["Creación de un volumen FlexClone con un tipo de SnapLock"].
+A partir de ONTAP 9.13.1, puede restaurar instantáneamente una copia Snapshot bloqueada en el volumen SnapLock de destino de una relación de almacén de SnapLock mediante la creación de un FlexClone con el `snaplock-type` Opción establecida en «non-snaplock» y especificando la copia Snapshot como la «parent-snapshot» al ejecutar la operación de creación de clones de volúmenes. Más información acerca de link:../volumes/create-flexclone-task.html?q=volume+clone["Creación de un volumen FlexClone con un tipo de SnapLock"].
 
 Para las configuraciones de MetroCluster, debe tener en cuenta lo siguiente:
 
@@ -51,34 +59,39 @@ En la siguiente ilustración, se muestra el procedimiento para inicializar una r
 image::../media/snapvault-steps-clustered.gif[En esta ilustración, se muestra el procedimiento para inicializar una relación de almacén de SnapLock: Identificar el clúster de destino,creating a destination volume,creating a policy]
 
 .Pasos
-. Identifique el clúster de destino.
-. En el clúster de destino, link:https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html["Instale la licencia de SnapLock"], link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-complianceclock-task.html["Inicialice el reloj de cumplimiento"], Y, si está utilizando una versión de ONTAP anterior a 9.10.1, link:https://docs.netapp.com/us-en/ontap/snaplock/create-snaplock-aggregate-task.html["Cree un agregado de SnapLock"].
+Puede usar la interfaz de línea de comandos de ONTAP para crear una relación de almacén de SnapLock o, a partir de ONTAP 9.15.1, puede usar System Manager para crear una relación de almacén de SnapLock.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Navegue hasta *Almacenamiento > Volúmenes* y seleccione *Agregar*.
+. En la ventana *Añadir volumen*, selecciona *Más opciones*.
+. Introduzca el nombre del volumen, el tamaño, la política de exportación y el nombre del recurso compartido.
+. Seleccione *Bloquear instantáneas de destino para evitar la eliminación*, y en la sección *Método de bloqueo*, elija *SnapLock for SnapVault*. Esta selección no se muestra si el tipo de política seleccionado no es del tipo “vault”, si la licencia de SnapLock no está instalada, o si el reloj de cumplimiento no está inicializado.
+. Si aún no está habilitado, selecciona *Inicializar reloj de cumplimiento de SnapLock*.
+. Guarde los cambios.
+
+
+--
+--
+.CLI
 . En el clúster de destino, cree un volumen de destino de SnapLock de tipo `DP` que tiene el mismo tamaño o mayor que el volumen de origen:
 +
-`*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -snaplock-type compliance|enterprise -type DP -size _size_*`
-
+[source, cli]
+----
+volume create -vserver <SVM_name> -volume <volume_name> -aggregate <aggregate_name> -snaplock-type <compliance|enterprise> -type DP -size <size>
+----
 +
-[NOTE]
-====
-A partir de ONTAP 9.10.1, los volúmenes de SnapLock y otros de SnapLock pueden existir en el mismo agregado; por lo tanto, ya no es necesario crear un agregado de SnapLock separado si se utiliza ONTAP 9.10.1. La opción volume -snaplock-type se utiliza para especificar el tipo de volumen Compliance o Enterprise SnapLock. En las versiones de ONTAP anteriores a ONTAP 9.10.1, el modo SnapLock, Compliance o Enterprise, se hereda del agregado. No se admiten los volúmenes de destino con versión flexible. La configuración de idioma del volumen de destino debe coincidir con la configuración de idioma del volumen de origen.
-
-====
-+
-El siguiente comando crea una SnapLock de 2 GB `Compliance` volumen denominado `dstvolB` pulg `SVM2` en el agregado `node01_aggr`:
+El siguiente comando crea un volumen de cumplimiento de normativas de SnapLock de 2GB GB llamado `dstvolB` pulg `SVM2` en el agregado `node01_aggr`:
 
 +
 [listing]
 ----
 cluster2::> volume create -vserver SVM2 -volume dstvolB -aggregate node01_aggr -snaplock-type compliance -type DP -size 2GB
 ----
-. En el clúster de destino, establezca el período de retención predeterminado, tal como se describe en xref:set-default-retention-period-task.adoc[Establecer el período de retención predeterminado].
-+
-[NOTE]
-====
-Un volumen SnapLock que es un destino de almacén tiene asignado un período de retención predeterminado. El valor correspondiente a este período se establece inicialmente en un mínimo de 0 años para volúmenes de SnapLock Enterprise y un máximo de 30 años para volúmenes de SnapLock Compliance. Cada copia de Snapshot de NetApp se compromete con el primer período de retención predeterminado. El período de retención se puede ampliar más adelante, si fuera necesario. Para obtener más información, consulte xref:set-retention-period-task.adoc[Establecer información general sobre el tiempo de retención].
-
-====
-. xref:../data-protection/create-replication-relationship-task.adoc[Cree una nueva relación de replicación] Entre el origen que no es de SnapLock y el nuevo destino de SnapLock que creó en el paso 3.
+. En el clúster de destino, link:set-retention-period-task.html["establezca el período de retención predeterminado"].
+. link:../data-protection/create-replication-relationship-task.html["Cree una nueva relación de replicación"] Entre el origen que no es de SnapLock y el nuevo destino de SnapLock que ha creado.
 +
 En este ejemplo, se crea una nueva relación de SnapMirror con el volumen de SnapLock de destino `dstvolB` utilizar una política de `XDPDefault` Para almacenar las copias snapshot etiquetadas como diaria y semanal en una programación horaria:
 
@@ -88,15 +101,15 @@ En este ejemplo, se crea una nueva relación de SnapMirror con el volumen de Sna
 cluster2::> snapmirror create -source-path SVM1:srcvolA -destination-path SVM2:dstvolB -vserver SVM2 -policy XDPDefault -schedule hourly
 ----
 +
-[NOTE]
-====
-xref:../data-protection/create-custom-replication-policy-concept.adoc[Cree una política de replicación personalizada] o a xref:../data-protection/create-replication-job-schedule-task.adoc[programación personalizada] si los valores predeterminados disponibles no son adecuados.
 
-====
-. En la SVM de destino, inicialice la relación de SnapVault creada en el paso 5:
+NOTE: link:../data-protection/create-custom-replication-policy-concept.html["Cree una política de replicación personalizada"] o a link:../data-protection/create-replication-job-schedule-task.html["programación personalizada"] si los valores predeterminados disponibles no son adecuados.
+
+. En la SVM de destino, inicialice la relación de SnapVault creada:
 +
-`*snapmirror initialize -destination-path _destination_path_*`
-
+[source, cli]
+----
+snapmirror initialize -destination-path <destination_path>
+----
 +
 El siguiente comando inicializa la relación entre el volumen de origen `srcvolA` encendido `SVM1` y el volumen de destino `dstvolB` encendido `SVM2`:
 
@@ -105,7 +118,7 @@ El siguiente comando inicializa la relación entre el volumen de origen `srcvolA
 ----
 cluster2::> snapmirror initialize -destination-path SVM2:dstvolB
 ----
-. Después de inicializar y de estar inactiva la relación, utilice `snapshot show` Comando en el destino para comprobar el tiempo de caducidad de la SnapLock aplicado a las copias Snapshot replicadas.
+. Después de inicializar y de estar inactiva la relación, utilice `snapshot show` Comando en el destino para comprobar el tiempo de caducidad de SnapLock aplicado a las copias snapshot replicadas.
 +
 En este ejemplo, se enumeran las copias Snapshot en el volumen `dstvolB` Que tienen la etiqueta de SnapMirror y la fecha de caducidad de SnapLock:
 
@@ -116,6 +129,8 @@ cluster2::> snapshot show -vserver SVM2 -volume dstvolB -fields snapmirror-label
 ----
 
 
+--
+====
 .Información relacionada
 https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html["Relaciones entre iguales de clústeres y SVM"]
 

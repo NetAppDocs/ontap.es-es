@@ -1,0 +1,196 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/protect-task.html 
+keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination 
+summary: Configurar la protección para la continuidad empresarial implica seleccionar LUN en el clúster de origen de ONTAP y añadirlas a un grupo de consistencia. 
+---
+= Proteger con SnapMirror sincronización activa
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+SnapMirror active sync ofrece protección asimétrica y, a partir de ONTAP 9.15.1, protección activo-activo simétrica.
+
+
+
+== Configurar la protección asimétrica
+
+La configuración de la protección asimétrica mediante SnapMirror Active Sync implica seleccionar las LUN en el clúster de origen de ONTAP y añadirlas a un grupo de coherencia.
+
+.Antes de empezar
+* Debe tener una licencia síncrona de SnapMirror.
+* Debe ser un administrador de clústeres o máquinas virtuales de almacenamiento.
+* Todos los volúmenes constituyentes de un grupo de coherencia deben estar en una única máquina virtual de almacenamiento (SVM).
++
+** Los LUN pueden residir en distintos volúmenes.
+
+
+* Los clústeres de origen y destino no pueden ser los mismos.
+* No es posible establecer relaciones de grupos de consistencia de sincronización activa de SnapMirror entre clústeres de ASA y clústeres no-ASA.
+* El espacio IP predeterminado es necesario en la sincronización activa de SnapMirror para las relaciones entre iguales de clústeres. No se admite el espacio IP personalizado.
+* El nombre del grupo de coherencia debe ser único.
+* Los volúmenes en el clúster secundario (de destino) deben ser del tipo DP.
+* Las SVM principales y secundarias deben estar en una relación entre iguales.
+
+
+.Pasos
+Puede configurar un grupo de coherencia con la CLI de ONTAP o System Manager.
+
+A partir de ONTAP 9.10.1, ONTAP ofrece un extremo y un menú de grupo de consistencia en System Manager, y ofrece utilidades de gestión adicionales. Si utiliza ONTAP 9.10.1 o posterior, consulte link:../consistency-groups/configure-task.html["Configurar un grupo de consistencia"] a continuación link:../consistency-groups/protect-task.html["configure la protección"] Para crear una relación de sincronización activa de SnapMirror.
+
+
+IMPORTANT: A partir de ONTAP 9,8 a 9.14.1, la sincronización activa de SnapMirror se conoce como continuidad del negocio de SnapMirror (SM-BC).
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. En el clúster principal, navegue hasta *Protección > Descripción general > Proteger para continuidad empresarial > Proteger LUN*.
+. Seleccione las LUN que desea proteger y añádalas a un grupo de protección.
+. Seleccione el clúster y la SVM de destino.
+. *La opción inicializar relación* está seleccionada de forma predeterminada. Haga clic en *Guardar* para comenzar la protección.
+. Vaya a *Consola > rendimiento* para verificar la actividad de IOPS de las LUN.
+. En el clúster de destino, utilice System Manager para comprobar que la protección de la relación de continuidad de negocio está sincronizada: *Protección > Relaciones*.
+
+
+--
+.CLI
+--
+. Cree una relación de grupo de coherencia a partir del clúster de destino.
+`destination::> snapmirror create -source-path _source-path_ -destination-path _destination-path_ -cg-item-mappings _volume-paths_ -policy _policy-name_`
++
+Puede asignar hasta 12 volúmenes constituyentes mediante el `cg-item-mappings` parámetro en la `snapmirror create` comando.
+
++
+El siguiente ejemplo crea dos grupos de consistencia: `cg_src_ on the source with `vol1` y.. `vol2` y un grupo de consistencia de destino de mirroring, `cg_dst`.
+
++
+`destination::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol_src1:@vol_dst1,vol_src2:@vol_dst2 -policy AutomatedFailOver`
+
+. Desde el clúster de destino, inicialice el grupo de coherencia.
++
+`destination::>snapmirror initialize -destination-path _destination-consistency-group_`
+
+. Confirme que la operación de inicialización se ha realizado correctamente. El estado debe ser `InSync`.
++
+`snapmirror show`
+
+. En cada clúster, cree un igroup para poder asignar las LUN al iniciador en el host de la aplicación.
+`lun igroup create -igroup _name_ -protocol _fcp|iscsi_ -ostype _os_ -initiator _initiator_name_`
+. En cada clúster, asigne las LUN al igroup:
++
+`lun map -path _path_name_ -igroup _igroup_name_`
+
+. Compruebe que la asignación de LUN se ha completado correctamente con el `lun map` comando. Luego, puede detectar las nuevas LUN en el host de la aplicación.
+
+
+--
+====
+
+
+== Configurar la protección activo-activo simétrica
+
+Puede establecer una protección simétrica mediante System Manager o la interfaz de línea de comandos de ONTAP. En ambas interfaces, hay diferentes pasos para xref:index.html#key-concepts[configuraciones uniformes y no uniformes].
+
+.Antes de empezar
+* Ambos clústeres deben ejecutar ONTAP 9.15.1 o una versión posterior.
+* Las configuraciones activo-activo simétricas requieren el `AutomatedFailoverDuplex` política de protección. Alternativamente, puede hacerlo xref:../data-protection/create-custom-replication-policy-concept.html[Crear una política de SnapMirror personalizada] proporcionado el `-type` es `automated-failover-duplex`.
+
+
+.Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Pasos para una configuración uniforme
+. En el sitio principal, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes["Cree un grupo de consistencia mediante nuevas LUN."^]
++
+.. Al crear el grupo de consistencia, especifique iniciadores de host para crear iGroups.
+.. Seleccione la casilla de verificación **Activar SnapMirror** y, a continuación, seleccione la `AutomatedFailoverDuplex` política.
+.. En el cuadro de diálogo que aparece, seleccione la casilla **Replicar iGroups** para replicar iGroups. En **Editar ajustes proximales**, establezca SVM proximales para sus hosts.
+.. Selecciona **Guardar**.
+
+
+
+
+.Pasos para una configuración no uniforme
+. En el sitio principal, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes["Cree un grupo de consistencia mediante nuevas LUN."^]
++
+.. Al crear el grupo de consistencia, especifique iniciadores de host para crear iGroups.
+.. Seleccione la casilla de verificación **Activar SnapMirror** y, a continuación, seleccione la `AutomatedFailoverDuplex` política.
+.. Seleccione **Guardar** para crear las LUN, el grupo de consistencia, el igroup, la relación de SnapMirror y el mapa del igroup.
+
+
+. En el sitio secundario, cree un igroup y asigne las LUN.
++
+.. Vaya a **HOSTS** > **SAN Initiator Groups**.
+.. Seleccione **+Add** para crear un igroup nuevo.
+.. Proporcione un **Nombre**, seleccione el **Sistema Operativo del Host** y, a continuación, elija **Miembros del Grupo Iniciador**.
+.. Selecciona **Guardar**.
+
+
+. Asigne el nuevo igroup a las LUN de destino.
++
+.. Vaya a **Almacenamiento** > **LUN**.
+.. Seleccione todas las LUN que desea asignar al igroup.
+.. Seleccione **Más** y luego **Asignar a grupos de iniciadores**.
+
+
+
+
+--
+.CLI
+--
+.Pasos para una configuración uniforme
+. Cree una nueva relación de SnapMirror que agrupe todos los volúmenes en la aplicación. Asegúrese de designar el `AutomatedFailOverDuplex` política para establecer la replicación sincrónica bidireccional.
++
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -cg-item-mappings _source_volume:@destination_volume_ -policy AutomatedFailOverDuplex`
+
+. Confirme que la operación se ha realizado correctamente esperando el `Mirrored State` para mostrar como `SnapMirrored` y la `Relationship Status` como `Insync`.
++
+`snapmirror show -destination-path _destination_path_`
+
+. En el host, configure la conectividad de host con acceso a cada clúster de acuerdo con sus necesidades.
+. Establezca la configuración del igroup. Establezca las rutas preferidas para los iniciadores en el clúster local. Especifique la opción para replicar la configuración en la afinidad inversa del cluster del mismo nivel.
++
+`SiteA::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -replication-peer _peer_svm_name_ -initiators _host_ -proximal-vserver local`
+
++
+`SiteA::> igroup add -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_ -proximal-vserver _peer_svm_`
+
+. Desde el host, detecte las rutas y verifique que los hosts tengan una ruta activa/optimizada hacia el LUN de almacenamiento desde el clúster preferido.
+. Ponga en marcha la aplicación y distribuya las cargas de trabajo de los equipos virtuales entre los clusters para lograr el equilibrio de carga necesario.
+
+
+.Pasos para una configuración no uniforme
+. Cree una nueva relación de SnapMirror que agrupe todos los volúmenes en la aplicación. Asegúrese de designar la política `AutomatedFailOverDuplex`' para establecer la replicación de sincronización bidireccional.
++
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -cg-item-mappings _source_volume:@destination_volume_ -policy AutomatedFailOverDuplex`
+
+. Confirme que la operación se ha realizado correctamente esperando el `Mirrored State` para mostrar como `SnapMirrored` y la `Relationship Status` como `Insync`.
++
+`snapmirror show -destination-path _destination_path_`
+
+. En el host, configure la conectividad de host con acceso a cada clúster de acuerdo con sus necesidades.
+. Establezca las configuraciones de igroups en los clústeres de origen y destino.
++
+`# primary site
+SiteA::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_1_name_`
+
++
+`# secondary site
+SiteB::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_2_name_`
+
+. Desde el host, detecte las rutas y verifique que los hosts tengan una ruta activa/optimizada hacia el LUN de almacenamiento desde el clúster preferido.
+. Ponga en marcha la aplicación y distribuya las cargas de trabajo de los equipos virtuales entre los clusters para lograr el equilibrio de carga necesario.
+
+
+--
+====

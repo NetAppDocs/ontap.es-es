@@ -1,0 +1,120 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/index.html 
+keywords: SM-BC, SMBC, failover, terms, benefits, snapmirror active sync 
+summary: Utilice la sincronización activa de SnapMirror para proteger las aplicaciones con LUN, lo cual permite que las aplicaciones realicen conmutaciones al respaldo de forma transparente, lo que garantiza la continuidad del negocio en caso de desastre. 
+---
+= Información general sobre sincronización activa de SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+SnapMirror Active Sync (lanzado inicialmente como SnapMirror Business Continuity [SM-BC]) permite que los servicios empresariales continúen funcionando incluso si se produce un fallo total del sitio; así, las aplicaciones pueden recuperarse tras fallos de forma transparente usando una copia secundaria. Se requiere intervención manual ni secuencias de comandos personalizadas para activar una recuperación tras fallos con SnapMirror: Sincronización activa.
+
+La sincronización activa de SnapMirror está disponible a partir de ONTAP 9,9.1. La sincronización activa de SnapMirror se admite en clústeres AFF, clústeres de cabinas All Flash SAN (ASA) y C-Series (AFF o ASA). Los clústeres primario y secundario deben tener del mismo tipo: ASA o AFF. La sincronización activa de SnapMirror protege las aplicaciones con LUN iSCSI o FCP.
+
+A partir de ONTAP 9.15.1, la sincronización activa de SnapMirror es compatible con a. xref:architecture-concept.html[funcionalidad activo-activo simétrica], Permitir operaciones de I/O de lectura y escritura desde ambas copias de un LUN protegido con replicación síncrona bidireccional, lo que permite que ambas copias LUN sirvan las operaciones de I/O de forma local.
+
+
+NOTE: A partir de julio de 2024, el contenido de informes técnicos publicados anteriormente como archivos PDF se ha integrado con la documentación de los productos de ONTAP. La documentación de sincronización activa de SnapMirror de ONTAP ahora incluye contenido de TR-4878: Sincronización activa de SnapMirror.
+
+
+
+== Beneficios
+
+SnapMirror Active Sync ofrece las siguientes ventajas:
+
+* Disponibilidad continua para aplicaciones vitales para el negocio.
+* Capacidad de alojar aplicaciones críticas alternativamente desde sitio primario y secundario.
+* Gestión de aplicaciones simplificada utilizando grupos de coherencia para consistencia de escritura dependiente.
+* Posibilidad de probar la conmutación al respaldo de cada aplicación.
+* Creación instantánea de clones reflejados sin que afecte a la disponibilidad de las aplicaciones.
+* La capacidad para poner en marcha cargas de trabajo protegidas y sin protección en el mismo clúster de ONTAP.
+* La identidad de la LUN sigue siendo la misma, de modo que la aplicación los ve como un dispositivo virtual compartido.
+* La capacidad de reutilizar clústeres secundarios con flexibilidad para crear clones instantáneos para el uso de las aplicaciones con fines de generación de informes, UAT o prueba de desarrollo, sin que el rendimiento ni la disponibilidad de las aplicaciones se vean afectados.
+
+
+La sincronización activa de SnapMirror le permite proteger sus LUN de datos, lo que permite a las aplicaciones conmutar al respaldo de forma transparente, a fin de garantizar la continuidad del negocio en caso de desastre. Para obtener más información, consulte link:use-cases-concept.html["Casos de uso"].
+
+
+
+== Conceptos clave
+
+La sincronización activa de SnapMirror utiliza grupos de consistencia y el Mediador de ONTAP para garantizar que sus datos se repliquen y se sirvan incluso en caso de desastre. A la hora de planificar la puesta en marcha de sincronización activa de SnapMirror, es importante que conozca los conceptos básicos de la sincronización activa de SnapMirror y su arquitectura.
+
+.Asimetría y simetría
+SnapMirror en la sincronización activa admite soluciones activo-activo asimétricas y, a partir de ONTAP 9.15.1, Estas opciones hacen referencia a cómo acceden los hosts a las rutas de almacenamiento y escriben datos. En una configuración asimétrica, los datos del sitio secundario se envían mediante proxy a una LUN. En una configuración activo-activo simétrica, ambos sitios pueden acceder al almacenamiento local para I/O activas
+
+El activo/activo simétrico está optimizado para aplicaciones en clúster, como VMware VMSC, Windows Failover Cluster con SQL y Oracle RAC.
+
+Para obtener más información, consulte xref:architecture-concept.html[Arquitectura de Active Sync de SnapMirror].
+
+.Grupo de consistencia
+A. link:../consistency-groups/index.html["grupo de consistencia"] Es una colección de volúmenes FlexVol que proporcionan una garantía de coherencia para la carga de trabajo de la aplicación que se debe proteger para la continuidad del negocio.
+
+El propósito de un grupo de coherencia es realizar imágenes Snapshot simultáneas de varios volúmenes, lo que garantiza copias consistentes con los fallos de una recogida de volúmenes en un momento específico. Un grupo de consistencia garantiza que todos los volúmenes de un conjunto de datos se pongan en modo inactivo y luego se capturen precisamente en el mismo momento específico. Esto proporciona un punto de restauración coherente con los datos en los volúmenes donde se admite el conjunto de datos. De este modo, un grupo de consistencia mantiene la consistencia dependiente en orden de escritura. Si decide proteger las aplicaciones para la continuidad del negocio, debe añadirse el grupo de volúmenes correspondientes a esta aplicación a un grupo de consistencia para que se establezca una relación de protección de datos entre un grupo de consistencia de origen y un de destino. La coherencia de origen y destino debe contener la misma cantidad y el mismo tipo de volúmenes.
+
+.Componente
+Un volumen o LUN individual que forma parte del grupo de coherencia protegido en la relación de sincronización activa de SnapMirror.
+
+.Mediador ONTAP
+La link:../mediator/index.html["Mediador ONTAP"] Recibe información sobre el estado de los nodos y clústeres de ONTAP con relaciones entre iguales, orquestando entre los dos y determinando si cada nodo/clúster está en buen estado y en funcionamiento. ONTAP Mediator proporciona la información de salud sobre:
+
+* Clústeres de ONTAP entre iguales
+* Nodos del clúster de ONTAP en paridad
+* Grupos de consistencia (que es la unidad de conmutación por error); para cada grupo de consistencia, se proporciona la siguiente información:
++
+** Estado de replicación: No inicializado, en sincronización o fuera de sincronización
+** Qué clúster aloja la copia principal
+** Contexto de operación (utilizado para failover planificado)
+
+
+
+
+Con esta información de estado de ONTAP Mediator, los clusters pueden diferenciar entre distintos tipos de fallos y determinar si se debe realizar una conmutación por error automatizada. ONTAP Mediator es uno de los tres componentes del quórum de sincronización activa de SnapMirror junto con los dos clústeres ONTAP (primario y secundario). Para llegar a un consenso, al menos dos partes en el quórum deben acordar una determinada operación.
+
+
+NOTE: A partir de ONTAP 9.15.1, System Manager muestra el estado de la relación de sincronización activa de SnapMirror en cualquier clúster. También puede supervisar el estado de los mediadores de ONTAP desde cualquier clúster en System Manager. En versiones anteriores de ONTAP, System Manager muestra el estado de las relaciones de sincronización activa de SnapMirror del clúster de origen.
+
+.Conmutación al respaldo planificada
+Operación manual para cambiar los roles de las copias en una relación de sincronización activa de SnapMirror. Los sitios primarios se convierten en los secundarios y los secundarios se convierten en los primarios.
+
+.Sesgo primario-primero y primario
+La sincronización activa de SnapMirror emplea un principio primario, que da preferencia a la copia primaria para servir E/S en caso de una partición de red.
+
+El sesgo primario es una implementación de quórum especial que mejora la disponibilidad de un conjunto de datos protegido con SnapMirror con sincronización activa. Si la copia primaria está disponible, se aplica el sesgo primario cuando no se puede acceder al mediador ONTAP desde ambos clusters.
+
+El sesgo primario-primero y primario se admiten en la sincronización activa de SnapMirror a partir de ONTAP 9.15.1. Las copias primarias se designan en System Manager y la salida con la API DE REST y la CLI.
+
+.Conmutación automática al respaldo no planificada (AUFO)
+Una operación automática para ejecutar una conmutación por error a la copia de mirroring. La operación requiere ayuda del Mediador ONTAP para detectar que la copia primaria no está disponible.
+
+.Fuera de sincronización (OOS)
+Cuando las operaciones de I/O de aplicaciones no se replican en el sistema de almacenamiento secundario, se informará como **fuera de sincronización**. Un estado fuera de sincronización significa que los volúmenes secundarios no se sincronizan con el primario (origen) y que no se está produciendo la replicación de SnapMirror.
+
+Si el estado de reflejo es `Snapmirrored`, esto indica un error de transferencia o un fallo debido a una operación no soportada.
+
+La sincronización activa de SnapMirror admite la resincronización automática, lo cual permite que las copias regresen a un estado InSync.
+
+A partir de ONTAP 9.15.1, se admite la sincronización activa de SnapMirror link:interoperability-reference.html#fan-out-configurations["reconfiguración automática en configuraciones ramificadas"].
+
+.Configuración uniforme y no uniforme
+Al crear la protección con _simétrico activo/activo_, el proceso depende de la configuración:
+
+* **El acceso uniforme al host** significa que los hosts de ambos sitios están conectados a todas las rutas a los clústeres de almacenamiento en ambos sitios. Los caminos de cruce se extienden a lo largo de la distancia.
+* **El acceso al host no uniforme** significa que los hosts en cada sitio están conectados solo al clúster en el mismo sitio. Las rutas entre sitios y las rutas extendidas no están conectadas.
+
+
+
+NOTE: Se admite el acceso uniforme de hosts en cualquier implementación de sincronización activa de SnapMirror; el acceso no uniforme de host solo se admite para implementaciones activo-activo simétricas.
+
+.RPO cero
+RPO es la sigla en inglés para el objetivo de punto de recuperación, que es la cantidad de pérdida de datos que se considera aceptable durante un período de tiempo dado. El RPO de cero significa que no es aceptable ninguna pérdida de datos.
+
+.RTO CERO
+El objetivo de tiempo de recuperación es el objetivo de tiempo de recuperación, que es la cantidad de tiempo que se considera aceptable para que una aplicación regrese a las operaciones normales sin interrupciones después de una interrupción, un fallo u otro evento de pérdida de datos. El objetivo de tiempo de recuperación cero significa que no se acepta ningún tiempo de inactividad.

@@ -13,7 +13,7 @@ summary: A partir de ONTAP 9.13.1, puede modificar la geometría de su grupo de 
 [role="lead"]
 A partir de ONTAP 9.13.1, puede modificar la geometría de un grupo de consistencia. Modificar la geometría de un grupo de coherencia permite modificar la configuración de grupos de coherencia secundarios o primarios sin interrupciones en las operaciones de I/O en curso.
 
-La modificación de la geometría del grupo de coherencia afectará a las copias Snapshot existentes.
+La modificación de la geometría del grupo de consistencia afecta a las copias Snapshot existentes del grupo de consistencia. Para obtener más información, consulte la modificación específica de la geometría que desea realizar.
 
 
 NOTE: No puede modificar la geometría de un grupo de consistencia configurado con una política de protección remota. Primero debe romper la relación de protección, modificar la geometría y, a continuación, restaurar la protección remota.
@@ -24,7 +24,7 @@ NOTE: No puede modificar la geometría de un grupo de consistencia configurado c
 
 A partir de ONTAP 9.13.1, puede agregar un nuevo grupo de consistencia secundario a un grupo de consistencia primario existente.
 
-.Antes de empezar
+.Acerca de esta tarea
 * Un grupo de coherencia primario puede contener un máximo de cinco grupos de coherencia secundarios. Consulte xref:limits.html[límites del grupo de consistencia] para otros límites.
 * No puede agregar un grupo de consistencia secundario a un grupo de consistencia único. Usted debe primero <<promocionar>> el grupo de consistencia, luego puede agregar un grupo de consistencia secundario.
 * Las copias Snapshot existentes del grupo de consistencia capturadas antes de la operación de ampliación se considerarán parciales. Cualquier operación de restauración basada en esa copia Snapshot reflejará el grupo de consistencia en el momento específico de la copia Snapshot.
@@ -37,6 +37,7 @@ A partir de ONTAP 9.13.1, puede agregar un nuevo grupo de consistencia secundari
 --
 A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 
+.Agregue un nuevo grupo de consistencia secundario
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione el grupo de consistencia primario al que desea añadir un grupo de consistencia secundario.
 . Junto al nombre del grupo de consistencia primario, seleccione **Más** y luego **Agregar nuevo grupo de consistencia secundario**.
@@ -54,6 +55,11 @@ A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 .CLI
 --
 A partir de ONTAP 9.14.1, puede agregar un grupo de consistencia secundario mediante la CLI de ONTAP.
+
+.Antes de empezar
+* Debe estar en el nivel de privilegio de administrador para realizar esta tarea.
+* En ONTAP 9.14.1, debe ser un administrador del clúster o de SVM para realizar esta tarea. A partir de ONTAP 9.15.1, cualquier usuario con nivel de privilegio de administrador puede realizar esta tarea.
+
 
 .Añada un grupo de coherencia secundario con volúmenes nuevos
 . Cree el nuevo grupo de consistencia. Proporcionar valores para el nombre del grupo de coherencia, el prefijo del volumen, la cantidad de volúmenes, el tamaño de volumen, el servicio de almacenamiento, y el nombre de la política de exportación:
@@ -77,8 +83,8 @@ A partir de ONTAP 9.14.1, puede agregar un grupo de consistencia secundario medi
 
 A partir de ONTAP 9.13.1, puede quitar un grupo de consistencia secundario de su primario, convirtiéndolo en un grupo de consistencia individual.
 
-.Antes de empezar
-* Al desvincular un grupo de coherencia secundario, las snapshots del grupo de coherencia primario dejan de ser válidas y no se puede acceder a ellas. Las copias Snapshot granulares de volúmenes siguen siendo válidas.
+.Acerca de esta tarea
+* Al desvincular un grupo de consistencia secundario, las copias Snapshot del grupo de consistencia primario dejan de ser válidas y no se puede acceder a ellas. Las copias de Snapshot granulares de volúmenes siguen siendo válidas.
 * Las copias Snapshot existentes del grupo de consistencia individual siguen siendo válidas.
 * Se producirá un error en esta operación si existe un grupo de coherencia único existente con el mismo nombre que el grupo de coherencia secundario que se pretende desvincular. Si se encuentra con esta situación, debe cambiar el nombre del grupo de consistencia al desconectarlo.
 
@@ -90,6 +96,7 @@ A partir de ONTAP 9.13.1, puede quitar un grupo de consistencia secundario de su
 --
 A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 
+.Desvincular un grupo de consistencia secundario
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione el grupo de consistencia primario que contiene el secundario que desea desvincular.
 . Junto al grupo de consistencia hijo que desea separar, seleccione **Más** y luego **Desasociar del padre**.
@@ -102,6 +109,12 @@ A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 --
 A partir de ONTAP 9.14.1, puede desvincular un grupo de consistencia secundario mediante la CLI de ONTAP.
 
+.Antes de empezar
+* Debe estar en el nivel de privilegio de administrador para realizar esta tarea.
+* En ONTAP 9.14.1, debe ser un administrador del clúster o de SVM para realizar esta tarea. A partir de ONTAP 9.15.1, cualquier usuario con nivel de privilegio de administrador puede realizar esta tarea.
+
+
+.Desvincular un grupo de consistencia secundario
 . Desvincule el grupo de consistencia. De manera opcional, cambie el nombre del grupo de consistencia desvinculado con `-new-name` parámetro.
 +
 `consistency-group detach -vserver _SVM_name_ -consistency-group _child_consistency_group_ -parent-consistency-group _parent_consistency_group_ [-new-name _new_name_]`
@@ -116,10 +129,10 @@ A partir de ONTAP 9.14.1, puede desvincular un grupo de consistencia secundario 
 
 A partir de ONTAP 9.13.1, puede convertir un grupo de consistencia único existente en un grupo de consistencia secundario. Puede mover el grupo de consistencia por un grupo de consistencia primario existente o crear un grupo de consistencia primario nuevo durante la operación de movimiento.
 
-.Antes de empezar
+.Acerca de esta tarea
 * El grupo de coherencia primario debe tener cuatro o menos hijos. Un grupo de coherencia primario puede contener un máximo de cinco grupos de coherencia secundarios. Consulte xref:limits.html[límites del grupo de consistencia] para otros límites.
-* Las copias Snapshot existentes del grupo de consistencia _parent_ capturadas antes de esta operación se considerarán parciales. Cualquier operación de restauración basada en una de esas copias Snapshot reflejará el grupo de consistencia en el momento específico de la copia Snapshot.
-* Las copias de Snapshot de grupo de consistencia existentes del grupo de consistencia único siguen siendo válidas.
+* Las copias Snapshot existentes del grupo de consistencia _parent_ capturadas antes de esta operación se consideran parciales. Cualquier operación de restauración basada en una de esas copias Snapshot refleja el grupo de consistencia en el momento específico de la copia Snapshot.
+* Las copias Snapshot de grupo de consistencia existentes del grupo de consistencia único siguen siendo válidas.
 
 
 .Pasos
@@ -129,6 +142,7 @@ A partir de ONTAP 9.13.1, puede convertir un grupo de consistencia único existe
 --
 A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 
+.Mueva un grupo de consistencia único existente bajo un grupo de consistencia primario
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione el grupo de consistencia que desea convertir.
 . Seleccione **Más** y luego **Mover bajo diferente grupo de consistencia**.
@@ -146,6 +160,11 @@ A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 .CLI
 --
 A partir de ONTAP 9.14.1, puede mover un solo grupo de consistencia debajo de un grupo de consistencia primario mediante la CLI de ONTAP.
+
+.Antes de empezar
+* Debe estar en el nivel de privilegio de administrador para realizar esta tarea.
+* En ONTAP 9.14.1, debe ser un administrador del clúster o de SVM para realizar esta tarea. A partir de ONTAP 9.15.1, cualquier usuario con nivel de privilegio de administrador puede realizar esta tarea.
+
 
 .Mover un grupo de consistencia debajo de un nuevo grupo de consistencia primario
 . Cree el nuevo grupo de consistencia primario. La `-consistency-groups` el parámetro migrará cualquier grupo de consistencia existente al nuevo elemento principal.
@@ -169,18 +188,18 @@ A partir de ONTAP 9.14.1, puede mover un solo grupo de consistencia debajo de un
 
 A partir de ONTAP 9.13.1, puede promover un grupo de consistencia a un grupo de consistencia primario. Cuando se promociona el grupo de coherencia único a un elemento primario, también se crea un nuevo grupo de coherencia secundario que hereda todos los volúmenes del grupo de coherencia único original.
 
-.Antes de empezar
+.Acerca de esta tarea
 * Si desea convertir un grupo de consistencia secundario en un grupo de consistencia primario, primero debe <<detach>> el grupo de consistencia secundario y, a continuación, siga este procedimiento.
 * Las copias Snapshot existentes del grupo de consistencia siguen siendo válidas después de promocionar el grupo de consistencia.
 
 
-.Pasos
 [role="tabbed-block"]
 ====
 .System Manager
 --
 A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 
+.Promover un grupo de consistencia secundario
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione el grupo de coherencia que desea promocionar.
 . Seleccione **Más** y luego **Promocionar al grupo de consistencia primario**.
@@ -193,6 +212,12 @@ A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 --
 A partir de ONTAP 9.14.1, puede mover un solo grupo de consistencia debajo de un grupo de consistencia primario mediante la CLI de ONTAP.
 
+.Antes de empezar
+* Debe estar en el nivel de privilegio de administrador para realizar esta tarea.
+* En ONTAP 9.14.1, debe ser un administrador del clúster o de SVM para realizar esta tarea. A partir de ONTAP 9.15.1, cualquier usuario con nivel de privilegio de administrador puede realizar esta tarea.
+
+
+.Promover un grupo de consistencia secundario
 . Promocione el grupo de consistencia. Este comando creará un grupo de coherencia primario y un secundario.
 +
 `consistency-group promote -vserver _SVM_name_ -consistency-group _existing_consistency_group_ -new-name _new_child_consistency_group_`
@@ -207,8 +232,8 @@ A partir de ONTAP 9.14.1, puede mover un solo grupo de consistencia debajo de un
 
 A partir de ONTAP 9.13.1, puede degradar un grupo de consistencia primario a un solo grupo de consistencia. Al degradar el elemento primario, se abre la jerarquía del grupo de consistencia y se eliminan todos los grupos de coherencia secundarios asociados. Todos los volúmenes del grupo de coherencia permanecerán bajo el nuevo grupo de coherencia único.
 
-.Antes de empezar
-* Las copias Snapshot existentes del grupo de consistencia primario siguen siendo válidas después de degradarlas a una sola consistencia. Las copias Snapshot existentes de cualquiera de los grupos de consistencia secundarios asociados de dicho grupo principal dejarán de ser válidas, pero las snapshots de volúmenes individuales que contienen siguen siendo accesibles como snapshots granulares para el volumen.
+.Acerca de esta tarea
+* Las copias Snapshot existentes del grupo de consistencia _parent_ siguen siendo válidas después de degradarlas a una única consistencia. Las copias Snapshot existentes de cualquiera de los grupos de consistencia _child_ asociados de ese primario dejan de ser válidas al degradar. Las copias Snapshot de volumen individual dentro del grupo de consistencia secundario siguen siendo accesibles como copias Snapshot granulares de volumen.
 
 
 .Pasos
@@ -218,6 +243,7 @@ A partir de ONTAP 9.13.1, puede degradar un grupo de consistencia primario a un 
 --
 A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 
+.Degradar un grupo de consistencia
 . Seleccione *almacenamiento > grupos de consistencia*.
 . Seleccione el grupo de consistencia primario que desea degradar.
 . Seleccione **Más** y luego **Descender a un solo grupo de consistencia**.
@@ -229,6 +255,12 @@ A partir de ONTAP 9.13.1, puede realizar esta operación con System Manager.
 --
 A partir de ONTAP 9.14.1, puede degradar un grupo de consistencia mediante la CLI de ONTAP.
 
+.Antes de empezar
+* Debe estar en el nivel de privilegio de administrador para realizar esta tarea.
+* En ONTAP 9.14.1, debe ser un administrador del clúster o de SVM para realizar esta tarea. A partir de ONTAP 9.15.1, cualquier usuario con nivel de privilegio de administrador puede realizar esta tarea.
+
+
+.Degradar un grupo de consistencia
 . Degrade el grupo de consistencia. Utilice el opcional `-new-name` parámetro para cambiar el nombre del grupo de consistencia.
 +
 `consistency-group demote -vserver _SVM_name_ -consistency-group _parent_consistency_group_ [-new-name _new_consistency_group_name_]`

@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar 
 permalink: multi-admin-verify/index.html 
-keywords: ontap, mav, RBAC, protected, operation, multi-admin, administrator, verification, approval, rules 
-summary: 'A partir de ONTAP 9.11.1, puede utilizar la verificación multiprotocolo (MAV) para garantizar que determinadas operaciones, como la eliminación de volúmenes o copias snapshot, solo se puedan ejecutar tras las aprobaciones de administradores designados. ' 
+keywords: ontap, mav, multi admin verify, RBAC, protected, operation, multi-admin, administrator, verification, approval, rules 
+summary: 'A partir de ONTAP 9.11.1, utilice la verificación multi-admin (MAV) para garantizar que algunas operaciones solo se pueden ejecutar después de las aprobaciones de los administradores designados' 
 ---
 = Información general de verificación de varios administradores
 :allow-uri-read: 
@@ -22,17 +22,20 @@ La configuración de la verificación multi-admin consta de:
 
 Tras la configuración inicial, estos elementos sólo los pueden modificar los administradores de un grupo de aprobación MAV (administradores MAV).
 
-Cuando la verificación multi-administrador está habilitada, la finalización de cada operación protegida requiere tres pasos:
+Cuando la verificación multiadministrador está habilitada, completar todas las operaciones protegidas requiere los siguientes pasos:
 
-* Cuando un usuario inicia la operación, un link:request-operation-task.html["se genera la solicitud."]
-* Antes de que pueda ejecutarse, al menos uno link:manage-requests-task.html["El administrador de MAV debe aprobar."]
-* Tras la aprobación, el usuario completa la operación.
+. Cuando un usuario inicia la operación, un link:request-operation-task.html["se genera la solicitud."]
+. Antes de que pueda ejecutarse, al menos uno link:manage-requests-task.html["El administrador de MAV debe aprobar."]
+. Tras la aprobación, el usuario completa la operación.
 
-
-La verificación de varios administradores no está pensada para utilizarse con volúmenes o flujos de trabajo que implican una fuerte automatización, ya que cada tarea automatizada requeriría la aprobación antes de poder completar la operación.  Si desea utilizar la automatización y MAV conjuntamente, se recomienda utilizar consultas para operaciones MAV específicas. Por ejemplo, puede aplicar `volume delete` MAV sólo rige para volúmenes en los que la automatización no está involucrada, y puede designar dichos volúmenes con un esquema de nomenclatura en particular.
 
 
 NOTE: Si necesita deshabilitar la funcionalidad de verificación multi-admin sin la aprobación del administrador de MAV, póngase en contacto con el soporte de NetApp y mencione el siguiente artículo de la base de conocimientos: https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_disable_Multi-Admin_Verification_if_MAV_admin_is_unavailable["Cómo deshabilitar la verificación de administrador múltiple si el administrador de MAV no está disponible"^].
+
+La verificación de varios administradores no está pensada para utilizarse con volúmenes o flujos de trabajo que implican una fuerte automatización, ya que cada tarea automatizada requeriría la aprobación antes de poder completar la operación.  Si desea utilizar la automatización y MAV juntos, se recomienda utilizar consultas para operaciones MAV específicas. Por ejemplo, puede aplicar `volume delete` MAV sólo rige para volúmenes en los que la automatización no está involucrada, y puede designar dichos volúmenes con un esquema de nomenclatura en particular.
+
+
+NOTE: La verificación multi-admin no está disponible con Cloud Volumes ONTAP.
 
 
 
@@ -45,7 +48,7 @@ La verificación multi-admin consta de:
 * Un _motor de reglas_ para identificar y controlar la ejecución de operaciones protegidas.
 
 
-Las reglas de MAV se evalúan después de las reglas de control de acceso basado en funciones (RBAC). Por lo tanto, los administradores que ejecutan o aprueban operaciones protegidas ya deben disponer de privilegios mínimos de RBAC para esas operaciones. link:../authentication/manage-access-control-roles-concept.html["Más información acerca de RBAC."]
+Las reglas de MAV se evalúan después de las reglas de control de acceso basado en funciones (RBAC). Por lo tanto, los administradores que ejecutan o aprueban operaciones protegidas ya deben disponer de privilegios mínimos de RBAC para esas operaciones. link:../authentication/manage-access-control-roles-concept.html["Más información acerca de RBAC"].
 
 
 
@@ -53,15 +56,15 @@ Las reglas de MAV se evalúan después de las reglas de control de acceso basado
 
 Cuando se activa la verificación de varios administradores, las reglas definidas por el sistema (también conocidas como reglas _Guard-Rail_) establecen un conjunto de operaciones MAV para contener el riesgo de eludir el propio proceso MAV. Estas operaciones no se pueden quitar de la tabla de reglas. Una vez activado MAV, las operaciones designadas por un asterisco ( * ) requieren la aprobación de uno o más administradores antes de la ejecución, excepto los comandos *show*.
 
-* `security multi-admin-verify modify` operación*
+* `security multi-admin-verify modify` funcionamiento `*`
 +
 Controla la configuración de la funcionalidad de verificación multi-administrador.
 
-* `security multi-admin-verify approval-group` operaciones*
+* `security multi-admin-verify approval-group` operaciones `*`
 +
 Controlar la pertenencia al conjunto de administradores con credenciales de verificación de varios administradores.
 
-* `security multi-admin-verify rule` operaciones*
+* `security multi-admin-verify rule` operaciones `*`
 +
 Controle el conjunto de comandos que requieren verificación multiadministrador.
 
@@ -75,73 +78,210 @@ Controle el proceso de aprobación.
 
 === Comandos protegidos por reglas
 
-Además de los comandos definidos por el sistema, los siguientes comandos están protegidos de forma predeterminada cuando se habilita la verificación multi-administrador, pero se pueden modificar las reglas para quitar la protección de estos comandos.
+Además de las operaciones definidas por el sistema, los siguientes comandos están protegidos de forma predeterminada cuando se habilita la verificación multiadministrador, pero se pueden modificar las reglas para quitar la protección de estos comandos.
 
 * `security login password`
 * `security login unlock`
 * `set`
 
 
-Los siguientes comandos pueden protegerse en ONTAP 9.11.1 y versiones posteriores.
+Cada versión de ONTAP proporciona más comandos que puede elegir de protección con reglas de verificación multiadministrador. Elija la versión de ONTAP para obtener una lista completa de comandos disponibles para proteger.
 
-[cols="2*"]
-|===
+[role="tabbed-block"]
+====
+.9.15.1
+--
+* `cluster date modify` ^3^
+* `cluster log-forwarding create` ^3^
+* `cluster log-forwarding delete` ^3^
+* `cluster log-forwarding modify` ^3^
+* `cluster peer delete`
+* `cluster time-service ntp server create` ^3^
+* `cluster time-service ntp server delete` ^3^
+* `cluster time-service ntp server key create` ^3^
+* `cluster time-service ntp server key delete` ^3^
+* `cluster time-service ntp server key modify` ^3^
+* `cluster time-service ntp server modify` ^3^
+* `event config modify`
+* `lun delete` ^3^
+* `security anti-ransomware volume attack clear-suspect` 1
+* `security anti-ransomware volume disable` 1
+* `security anti-ransomware volume pause` 1
+* `security audit modify` ^3^
+* `security ipsec config modify` ^3^
+* `security ipsec policy create` ^3^
+* `security ipsec policy delete` ^3^
+* `security ipsec policy modify` ^3^
+* `security login create`
+* `security login delete`
+* `security login modify`
+* `security saml-sp create` ^3^
+* `security saml-sp delete` ^3^
+* `security saml-sp modify` ^3^
+* `snaplock legal-hold end` ^3^
+* `storage aggregate delete` ^3^
+* `storage encryption disk destroy` ^3^
+* `storage encryption disk modify` ^3^
+* `storage encryption disk revert-to-original-state` ^3^
+* `storage encryption disk sanitize` ^3^
+* `system bridge run-cli` ^3^
+* `system controller flash-cache secure-erase run` ^3^
+* `system controller service-event delete` ^3^
+* `system health alert delete` ^3^
+* `system health alert modify` ^3^
+* `system health policy definition modify` ^3^
+* `system node autosupport modify` ^3^
+* `system node autosupport trigger modify` ^3^
+* `system node coredump delete` ^3^
+* `system node coredump delete-all` ^3^
+* `system node hardware nvram-encryption modify` ^3^
+* `system node run`
+* `system node systemshell`
+* `system script delete` ^3^
+* `system service-processor ssh add-allowed-addresses` ^3^
+* `system service-processor ssh remove-allowed-addresses` ^3^
+* `system smtape restore` ^3^
+* `system switch ethernet log disable-collection` ^3^
+* `system switch ethernet log modify` ^3^
+* `timezone` ^3^
+* `volume create` ^3^
+* `volume delete`
+* `volume encryption conversion start` ^3^
+* `volume encryption rekey start` ^3^
+* `volume file privileged-delete` ^3^
+* `volume flexcache delete`
+* `volume modify` ^3^
+* `volume recovery-queue modify` Chapter 2
+* `volume recovery-queue purge` Chapter 2
+* `volume recovery-queue purge-all` Chapter 2
+* `volume snaplock modify` 1
+* `volume snapshot autodelete modify`
+* `volume snapshot create` ^3^
+* `volume snapshot delete`
+* `volume snapshot modify` ^3^
+* `volume snapshot policy add-schedule`
+* `volume snapshot policy create`
+* `volume snapshot policy delete`
+* `volume snapshot policy modify`
+* `volume snapshot policy modify-schedule`
+* `volume snapshot policy remove-schedule`
+* `volume snapshot rename` ^3^
+* `volume snapshot restore`
+* `vserver audit create` ^3^
+* `vserver audit delete` ^3^
+* `vserver audit disable` ^3^
+* `vserver audit modify` ^3^
+* `vserver audit rotate-log` ^3^
+* `vserver delete` ^3^
+* `vserver modify` Chapter 2
+* `vserver object-store-server audit create` ^3^
+* `vserver object-store-server audit delete` ^3^
+* `vserver object-store-server audit disable` ^3^
+* `vserver object-store-server audit modify` ^3^
+* `vserver object-store-server audit rotate-log` ^3^
+* `vserver options` ^3^
+* `vserver peer delete`
+* `vserver security file-directory apply` ^3^
+* `vserver security file-directory remove-slag` ^3^
+* `vserver vscan disable` ^3^
+* `vserver vscan on-access-policy create` ^3^
+* `vserver vscan on-access-policy delete` ^3^
+* `vserver vscan on-access-policy disable` ^3^
+* `vserver vscan on-access-policy modify` ^3^
+* `vserver vscan scanner-pool create` ^3^
+* `vserver vscan scanner-pool delete` ^3^
+* `vserver vscan scanner-pool modify` ^3^
 
 
- a| 
-`cluster peer delete`
-
-`event config modify`
-
-`security login create`
-
-`security login delete`
-
-`security login modify`
-
-`system node run`
-
-`system node systemshell`
-
-`volume delete`
-
-`volume flexcache delete`
- a| 
-`volume snapshot autodelete modify`
-
-`volume snapshot delete`
-
-`volume snapshot policy add-schedule`
-
-`volume snapshot policy create`
-
-`volume snapshot policy delete`
-
-`volume snapshot policy modify`
-
-`volume snapshot policy modify-schedule`
-
-`volume snapshot policy remove-schedule`
-
-`volume snapshot restore`
-
-`vserver peer delete`
-
-|===
-Los siguientes comandos se pueden proteger a partir de ONTAP 9.13.1:
-
-* `volume snaplock modify`
-* `security anti-ransomware volume attack clear-suspect`
-* `security anti-ransomware volume disable`
-* `security anti-ransomware volume pause`
+--
+.9.14.1
+--
+* `cluster peer delete`
+* `event config modify`
+* `security anti-ransomware volume attack clear-suspect` 1
+* `security anti-ransomware volume disable` 1
+* `security anti-ransomware volume pause` 1
+* `security login create`
+* `security login delete`
+* `security login modify`
+* `system node run`
+* `system node systemshell`
+* `volume delete`
+* `volume flexcache delete`
+* `volume recovery-queue modify` Chapter 2
+* `volume recovery-queue purge` Chapter 2
+* `volume recovery-queue purge-all` Chapter 2
+* `volume snaplock modify` 1
+* `volume snapshot autodelete modify`
+* `volume snapshot delete`
+* `volume snapshot policy add-schedule`
+* `volume snapshot policy create`
+* `volume snapshot policy delete`
+* `volume snapshot policy modify`
+* `volume snapshot policy modify-schedule`
+* `volume snapshot policy remove-schedule`
+* `volume snapshot restore`
+* `vserver modify` Chapter 2
+* `vserver peer delete`
 
 
-Los siguientes comandos se pueden proteger a partir de ONTAP 9.14.1:
+--
+.9.13.1
+--
+* `cluster peer delete`
+* `event config modify`
+* `security anti-ransomware volume attack clear-suspect` 1
+* `security anti-ransomware volume disable` 1
+* `security anti-ransomware volume pause` 1
+* `security login create`
+* `security login delete`
+* `security login modify`
+* `system node run`
+* `system node systemshell`
+* `volume delete`
+* `volume flexcache delete`
+* `volume snaplock modify` 1
+* `volume snapshot autodelete modify`
+* `volume snapshot delete`
+* `volume snapshot policy add-schedule`
+* `volume snapshot policy create`
+* `volume snapshot policy delete`
+* `volume snapshot policy modify`
+* `volume snapshot policy modify-schedule`
+* `volume snapshot policy remove-schedule`
+* `volume snapshot restore`
+* `vserver peer delete`
 
-* `volume recovery-queue modify`
-* `volume recovery-queue purge`
-* `volume recovery-queue purge-all`
-* `vserver modify`
+
+--
+.9.12.1 PB/9.11.1
+--
+* `cluster peer delete`
+* `event config modify`
+* `security login create`
+* `security login delete`
+* `security login modify`
+* `system node run`
+* `system node systemshell`
+* `volume delete`
+* `volume flexcache delete`
+* `volume snapshot autodelete modify`
+* `volume snapshot delete`
+* `volume snapshot policy add-schedule`
+* `volume snapshot policy create`
+* `volume snapshot policy delete`
+* `volume snapshot policy modify`
+* `volume snapshot policy modify-schedule`
+* `volume snapshot policy remove-schedule`
+* `volume snapshot restore`
+* `vserver peer delete`
+
+
+--
+====
+. Nuevo comando protegido por reglas para 9.13.1
+. Nuevo comando protegido por reglas para 9.14.1
+. Nuevo comando protegido por reglas para 9.15.1
 
 
 
@@ -172,7 +312,7 @@ Una vez configurados estos parámetros, se requiere la aprobación MAV para modi
 Los administradores de MAV no pueden aprobar sus propias solicitudes para ejecutar operaciones protegidas. Por lo tanto:
 
 * MAV no debe habilitarse en clústeres con un solo administrador.
-* Si sólo hay una persona en el grupo MAV, ese administrador de MAV no puede introducir operaciones protegidas; los administradores regulares deben introducirlas y el administrador de MAV sólo puede aprobarlas.
+* Si sólo hay una persona en el grupo MAV, ese administrador de MAV no puede iniciar operaciones protegidas; los administradores normales deben iniciar operaciones protegidas y el administrador de MAV solo puede aprobar.
 * Si desea que los administradores de MAV puedan ejecutar operaciones protegidas, el número de administradores de MAV debe ser uno mayor que el número de aprobaciones necesarias.
 Por ejemplo, si se necesitan dos aprobaciones para una operación protegida y desea que los administradores de MAV las ejecuten, debe haber tres personas en el grupo de administradores de MAV.
 
@@ -193,7 +333,8 @@ Las notificaciones de correo electrónico se envían a todos los aprobadores aso
 
 Si el solicitante se encuentra en el mismo grupo de aprobación para la operación, recibirá un correo electrónico cuando se apruebe su solicitud.
 
-*Nota:* Un solicitante no puede aprobar sus propias solicitudes, incluso si están en el grupo de aprobación. Pero pueden recibir las notificaciones por correo electrónico. Los solicitantes que no se encuentren en grupos de aprobación (es decir, que no sean administradores de MAV) no recibirán notificaciones por correo electrónico.
+
+NOTE: Un solicitante no puede aprobar sus propias solicitudes aunque estén en el grupo de aprobación. Pueden recibir notificaciones por correo electrónico. Los solicitantes que no se encuentren en grupos de aprobación (es decir, que no sean administradores de MAV) no recibirán notificaciones por correo electrónico.
 
 
 

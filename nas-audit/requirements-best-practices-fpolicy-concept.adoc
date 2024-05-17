@@ -2,7 +2,7 @@
 permalink: nas-audit/requirements-best-practices-fpolicy-concept.html 
 sidebar: sidebar 
 keywords: requirements, considerations, best practices, configure, fpolicy 
-summary: 'Antes de crear y configurar las configuraciones de FPolicy en las máquinas virtuales de almacenamiento (SVM), debe tener en cuenta determinados requisitos, consideraciones y prácticas recomendadas para configurar FPolicy.' 
+summary: Antes de crear y configurar las configuraciones de FPolicy en sus SVM, debe conocer determinados requisitos, consideraciones y prácticas recomendadas. 
 ---
 = Requisitos, consideraciones y prácticas recomendadas para configurar FPolicy
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: 'Antes de crear y configurar las configuraciones de FPolicy en las máq
 
 
 [role="lead"]
-Antes de crear y configurar las configuraciones de FPolicy en las SVM, debe tener en cuenta determinados requisitos, consideraciones y prácticas recomendadas para configurar FPolicy.
+Antes de crear y configurar las configuraciones de FPolicy en las máquinas virtuales de almacenamiento (SVM), debe tener en cuenta determinados requisitos, consideraciones y prácticas recomendadas para configurar FPolicy.
 
 Las funciones de FPolicy se configuran mediante la interfaz de línea de comandos (CLI) o mediante las API DE REST.
 
@@ -43,7 +43,6 @@ Esto incluye los LIF utilizados para conexiones de lectura de paso a través.
 
 
 
-* A partir de ONTAP 9.14.1, FPolicy permite configurar un almacén persistente para capturar eventos de acceso a archivos para políticas asíncronas no obligatorias en la SVM. Los almacenes persistentes pueden ayudar a desacoplar el procesamiento de I/O del cliente del procesamiento de notificaciones de FPolicy para reducir la latencia del cliente. No se admiten las configuraciones síncronas (obligatorias o no obligatorias) y asíncronas obligatorias.
 
 
 
@@ -53,6 +52,64 @@ Esto incluye los LIF utilizados para conexiones de lectura de paso a través.
 Cuando configure FPolicy en máquinas virtuales de almacenamiento (SVM), familiarícese con las mejores prácticas y recomendaciones generales de configuración para garantizar que su configuración de FPolicy ofrece un sólido rendimiento de supervisión y resultados que cumplan con sus requisitos.
 
 Para obtener directrices específicas relacionadas con el rendimiento, el ajuste de tamaño y la configuración, utilice su aplicación de partner de FPolicy.
+
+
+
+=== Almacenes persistentes
+
+A partir de ONTAP 9.14.1, FPolicy permite configurar un almacén persistente para capturar eventos de acceso a archivos para políticas asíncronas no obligatorias en la SVM. Los almacenes persistentes pueden ayudar a desacoplar el procesamiento de I/O del cliente del procesamiento de notificaciones de FPolicy para reducir la latencia del cliente. No se admiten las configuraciones síncronas (obligatorias o no obligatorias) y asíncronas obligatorias.
+
+* Antes de utilizar la funcionalidad de almacén persistente, asegúrese de que sus aplicaciones asociadas admiten esta configuración.
+* Se necesita un almacén persistente para cada SVM donde FPolicy esté habilitado.
++
+** Solo se puede configurar un almacén persistente en cada SVM. Es necesario usar este único almacén persistente para todas las configuraciones de FPolicy en dicho SVM, incluso si las políticas son de partners distintos.
+
+
+* ONTAP 9.15.1 o posterior:
++
+** El almacén persistente, su volumen y su configuración de volumen se manejan de forma automática cuando se crea el almacén persistente.
+
+
+* 9.14.1 de ONTAP:
++
+** El almacén persistente, su volumen y su configuración de volumen se gestionan de forma manual.
+
+
+* Cree el volumen de almacenamiento persistente en el nodo con LIF que esperan que FPolicy supervise el tráfico máximo.
++
+** ONTAP 9.15.1 o posterior: Los volúmenes se crean y configuran automáticamente durante la creación de un almacén persistente.
+** ONTAP 9.14.1: Los administradores del clúster deben crear y configurar un volumen para el almacén persistente en cada una de las SVM donde esté habilitado FPolicy.
+
+
+* Si las notificaciones acumuladas en el almacén persistente superan el tamaño del volumen aprovisionado, FPolicy iniciará la notificación entrante con los mensajes de EMS adecuados.
++
+** ONTAP 9.15.1 o posterior: Además de la `size` parámetro, el `autosize-mode` el parámetro puede ayudar a que el volumen crezca o se reduzca en respuesta a la cantidad de espacio utilizado.
+** ONTAP 9.14.1: El `size` el parámetro se configura durante la creación de volúmenes de modo que se proporcione un límite máximo.
+
+
+* Establezca la política de Snapshot en `none` para el volumen de almacenamiento persistente en lugar de `default`. De este modo se garantiza que no haya ninguna restauración accidental de la instantánea que provoque la pérdida de eventos actuales y que se evite un posible procesamiento de eventos duplicados.
++
+** ONTAP 9.15.1 o posterior: El `snapshot-policy` el parámetro se configura automáticamente como ninguno durante la creación del almacén persistente.
+** ONTAP 9.14.1: El `snapshot-policy` el parámetro se ha configurado a. `none` durante la creación de volúmenes.
+
+
+* Haga que el volumen de almacenamiento persistente no sea accesible para el acceso del protocolo de usuario externo (CIFS/NFS) y evite daños o eliminación accidentales de los registros de eventos persistentes.
++
+** ONTAP 9.15.1 o posterior: ONTAP bloquea automáticamente el volumen del acceso al protocolo de usuario externo (CIFS/NFS) durante la creación del almacén persistente.
+** ONTAP 9.14.1: Después de habilitar FPolicy, desmonte el volumen en ONTAP para eliminar la ruta de unión. Esto lo hace inaccesible para el acceso al protocolo de usuario externo (CIFS/NFS).
+
+
+
+
+Para obtener más información, consulte link:persistent-stores.html["Almacenes persistentes de FPolicy"] y.. link:create-persistent-stores.html["Crear almacenes persistentes"].
+
+
+
+==== Conmutación al nodo de respaldo y retorno al nodo primario en el almacén persistente
+
+El almacén persistente permanece como estaba cuando se recibió el último evento, cuando se produce un reinicio inesperado o FPolicy se deshabilita y vuelve a habilitar. Tras una operación de toma de control, el nodo asociado almacena y procesa los nuevos eventos. Tras una operación de devolución, el almacén persistente reanuda el procesamiento de todos los eventos sin procesar que pudieran permanecer desde el momento en que se produjo la toma de control del nodo. Los eventos en directo tendrán prioridad sobre los eventos no procesados.
+
+Si el volumen de almacenamiento persistente se mueve de un nodo a otro en la misma SVM, las notificaciones que aún se han procesado también se mueven al nuevo nodo. Debe volver a ejecutar el `fpolicy persistent-store create` comando en cualquiera de los nodos después de mover el volumen para garantizar que las notificaciones pendientes se envíen al servidor externo.
 
 
 

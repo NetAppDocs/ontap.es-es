@@ -1,0 +1,155 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/convert-active-sync-task.html 
+keywords: SM-BC, SMBC, convert, SnapMirror synchronous, existing, snapmirror active sync 
+summary: Convierta su relación de SnapMirror a sincronización activa de SnapMirror. 
+---
+= Convertir una relación de SnapMirror existente en una relación de sincronización activa de SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si ha configurado la protección de SnapMirror, puede convertir la relación a sincronización activa de SnapMirror. A partir de ONTAP 9.15.1, puede convertir la relación para utilizar protección activo-activo simétrica.
+
+
+
+== Convertir una relación de SnapMirror existente en una relación de sincronización activa de SnapMirror asimétrica
+
+Si tiene una relación síncrona de SnapMirror entre un clúster de origen y de destino, puede convertirlo en una relación de sincronización activa de SnapMirror asimétrica. De este modo, se pueden asociar los volúmenes reflejados a un grupo de coherencia, garantizando un objetivo de punto de recuperación cero en una carga de trabajo de varios volúmenes. Además, puede conservar los snapshots de SnapMirror existentes si necesita revertir a un momento específico antes de establecer la relación de sincronización activa de SnapMirror.
+
+.Acerca de esta tarea
+* Debe ser un administrador de clústeres y de SVM en los clústeres principales y secundarios.
+* No se puede convertir un objetivo de punto de recuperación de cero en una sincronización de objetivo de tiempo de recuperación de cero cambiando la política de SnapMirror.
+* Debe asegurarse de quitar la asignación de las LUN antes de emitir el `snapmirror create` comando.
++
+Si las LUN existentes en el volumen secundario se asignan y el `AutomatedFailover` la política se configura, la `snapmirror create` el comando activa un error.
+
+
+
+.Antes de empezar
+* Debe existir una relación sincronizada de SnapMirror con objetivo de punto de recuperación cero entre el clúster primario y el secundario.
+* Se deben anular la asignación de todas las LUN del volumen de destino antes de crear la relación de SnapMirror con objetivo de tiempo de recuperación cero.
+* La sincronización activa de SnapMirror solo admite protocolos SAN (no NFS/CIFS). Asegúrese de que no hay ningún componente del grupo de consistencia montado para el acceso NAS.
+
+
+.Pasos
+. Desde el clúster secundario, realice una actualización de SnapMirror en la relación existente:
++
+`SiteB::>snapmirror update -destination-path vs1_dst:vol1`
+
+. Compruebe que la actualización de SnapMirror se ha realizado correctamente:
++
+`SiteB::>snapmirror show`
+
+. Pausar cada una de las relaciones síncronas de objetivo de punto de recuperación cero:
++
+`SiteB::>snapmirror quiesce -destination-path vs1_dst:vol1`
+
++
+`SiteB::>snapmirror quiesce -destination-path vs1_dst:vol2`
+
+. Elimine cada una de las relaciones síncronas de RPO cero:
++
+`SiteB::>snapmirror delete -destination-path vs1_dst:vol1`
+
++
+`SiteB::>snapmirror delete -destination-path vs1_dst:vol2`
+
+. Libere la relación de SnapMirror de origen, pero conserve las copias Snapshot comunes:
++
+`SiteA::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol1`
+
++
+`SiteA::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol2`
+
+. Cree una relación síncrona de SnapMirror con un objetivo de tiempo de recuperación cero:
++
+`SiteB::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol1:@vol1,vol2:@vol2 -policy AutomatedFailover`
+
+. Resincronice el grupo de consistencia:
++
+`SiteB::> snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
+
+. Vuelva a analizar las rutas de I/o del LUN del host para restaurar todas las rutas a los LUN.
+
+
+
+
+== Convierta una relación de SnapMirror existente a activo-activo simétrico
+
+A partir de ONTAP 9.15.1, puede convertir una relación existente de SnapMirror en una relación activo-activo simétrica de sincronización activa de SnapMirror.
+
+.Antes de empezar
+* Debe ejecutar ONTAP 9.15.1 o una versión posterior.
+* Debe existir una relación sincronizada de SnapMirror con objetivo de punto de recuperación cero entre el clúster primario y el secundario.
+* Se deben anular la asignación de todas las LUN del volumen de destino antes de crear la relación de SnapMirror con objetivo de tiempo de recuperación cero.
+* La sincronización activa de SnapMirror solo admite protocolos SAN (no NFS/CIFS). Asegúrese de que no hay ningún componente del grupo de consistencia montado para el acceso NAS.
+
+
+.Pasos
+. Desde el clúster secundario, realice una actualización de SnapMirror en la relación existente:
++
+`SiteB::>snapmirror update -destination-path vs1_dst:vol1`
+
+. Compruebe que la actualización de SnapMirror se ha realizado correctamente:
++
+`SiteB::>snapmirror show`
+
+. Pausar cada una de las relaciones síncronas de objetivo de punto de recuperación cero:
++
+`SiteB::>snapmirror quiesce -destination-path vs1_dst:vol1`
+
++
+`SiteB::>snapmirror quiesce -destination-path vs1_dst:vol2`
+
+. Elimine cada una de las relaciones síncronas de RPO cero:
++
+`SiteB::>snapmirror delete -destination-path vs1_dst:vol1`
+
++
+`SiteB::>snapmirror delete -destination-path vs1_dst:vol2`
+
+. Libere la relación de SnapMirror de origen, pero conserve las copias Snapshot comunes:
++
+`SiteA::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol1`
+
++
+`SiteA::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol2`
+
+. Cree una relación síncrona de SnapMirror con un objetivo de tiempo de recuperación cero con la política de AutomatedFailoverDuplex:
++
+`SiteB::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol1:@vol1,vol2:@vol2 -policy AutomatedFailoverDuplex`
+
+. Si los hosts existentes son locales en el clúster primario, añada el host al clúster secundario y establezca la conectividad con el respectivo acceso a cada clúster.
+. En el sitio secundario, elimine los mapas de LUN de los iGroups asociados con hosts remotos.
++
+
+NOTE: Asegúrese de que el igroup no contiene mapas de LUN no replicadas.
+
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_ -path <>`
+
+. En el sitio primario, modifique la configuración del iniciador para los hosts existentes para establecer la ruta proximal de los iniciadores en el clúster local.
++
+`SiteA::> igroup initiator add-proximal-vserver -vserver _svm_name_ -initiator _host_ -proximal-vserver _server_`
+
+. Añada un igroup y un iniciador nuevos para los hosts nuevos y configure la proximidad de host para la afinidad de host con su sitio local. Replicación de igroup ennable para replicar la configuración e invertir la localidad de host en el clúster remoto.
++
+``
+SiteA::> igroup modify -vserver vsA -igroup ig1 -replication-peer vsB
+SiteA::> igroup initiator add-proximal-vserver -vserver vsA -initiator host2 -proximal-vserver vsB
+``
+
+. Detecte las rutas en los hosts y compruebe que los hosts tengan una ruta de activo/optimizada al LUN de almacenamiento desde el clúster preferido
+. Ponga en marcha la aplicación y distribuya las cargas de trabajo de los equipos virtuales entre los clústeres.
+. Resincronice el grupo de consistencia:
++
+`SiteB::> snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
+
+. Vuelva a analizar las rutas de I/o del LUN del host para restaurar todas las rutas a los LUN.
+

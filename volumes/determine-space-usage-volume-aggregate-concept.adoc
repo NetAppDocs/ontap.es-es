@@ -2,7 +2,7 @@
 permalink: volumes/determine-space-usage-volume-aggregate-concept.html 
 sidebar: sidebar 
 keywords: determine, space usage, volume, aggregate 
-summary: 'Al habilitar una función en ONTAP, es posible que consuma espacio que no conoce ni más espacio del esperado. ONTAP le ayuda a determinar cómo se consume el espacio proporcionando tres perspectivas desde las cuales ver el espacio: El volumen, la huella de un volumen dentro del agregado y el agregado.' 
+summary: ONTAP le ayuda a determinar el consumo de espacio en función del volumen, la huella de un volumen dentro del agregado y el agregado. 
 ---
 = Determine el uso del espacio en un volumen o un agregado
 :allow-uri-read: 
@@ -11,7 +11,11 @@ summary: 'Al habilitar una función en ONTAP, es posible que consuma espacio que
 
 
 [role="lead"]
-Habilitar una función en ONTAP podría consumir más espacio del esperado. ONTAP le ayuda a determinar cómo se consume el espacio proporcionando tres perspectivas desde las cuales ver espacio: El volumen, la huella de un volumen dentro del agregado y el agregado.
+En algunos casos, habilitar una función en ONTAP podría consumir más espacio del esperado. ONTAP le ayuda a determinar cómo se consume el espacio proporcionando tres perspectivas desde las cuales ver espacio: El volumen, la huella de un volumen dentro del agregado y el agregado.
+
+
+
+== Consulta de la asignación de espacio
 
 Un volumen puede quedarse sin espacio debido al consumo de espacio o al espacio insuficiente en el volumen, agregado o una combinación de ambos. Al ver un desglose orientado a las características del uso de espacio desde diferentes perspectivas, puede evaluar qué características puede que desee ajustar o desactivar, o si debe realizar otra acción (como aumentar el tamaño del agregado o volumen).
 
@@ -36,13 +40,13 @@ Utilice la `volume show-footprint` comando para ver la huella de un volumen con 
 
 * Uso de espacio del agregado
 +
-Esta perspectiva incluye los totales del espacio físico utilizado por el volumen de todos los volúmenes contenidos en el agregado, el espacio reservado para las copias Snapshot agregadas y otros metadatos agregados.
+Esta perspectiva incluye los totales de las huellas de volumen de todos los volúmenes contenidos en el agregado, el espacio reservado para las copias Snapshot del agregado y otros metadatos de agregados.
 
 +
 WAFL reserva el 10% del espacio total en disco para el rendimiento y los metadatos a nivel de agregado.  El espacio utilizado para mantener los volúmenes del agregado sale de la reserva de WAFL y no se puede cambiar.
 
 +
-A partir de ONTAP 9.12.1, la reserva de WAFL para agregados superiores a 30TB TB se ha reducido del 10 % al 5 % para las plataformas AFF y para las plataformas FAS500f.  A partir de ONTAP 9.14.1, esta misma reducción se aplica a los agregados en todas las plataformas de FAS, lo que da como resultado un 5 % más de espacio utilizable en los agregados.
+A partir de la versión 9.12.1 de ONTAP, la reserva de WAFL para agregados superiores a 30TB TB se ha reducido del 10 % al 5 % para las plataformas AFF y para las plataformas FAS500f.  A partir de ONTAP 9.14.1, esta misma reducción se aplica a los agregados en todas las plataformas de FAS, lo que da como resultado un 5 % más de espacio utilizable en los agregados.
 
 +
 Utilice la `storage aggregate show-space` comando para ver el uso del espacio del agregado.
@@ -55,3 +59,27 @@ Ciertas funciones, como los respaldos en cinta y la deduplicación, usan espacio
 * link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Space_Usage["Artículo de la base de conocimientos: Uso del espacio"^]
 * link:https://www.netapp.com/blog/free-up-storage-capacity-upgrade-ontap/["Libere hasta un 5 % de su capacidad de almacenamiento actualizando a ONTAP 9.12.1"^]
 
+
+
+
+== Informes de métricas de datos y metadatos de volumen
+
+Históricamente, varias de las métricas de espacio del volumen han informado de los datos totales consumidos como una combinación de dos métricas: Los metadatos y los datos del usuario. A partir de ONTAP 9.15.1, las métricas de metadatos y datos de usuario se informan por separado. Se han introducido dos nuevos contadores de metadatos para admitir esto:
+
+* metadatos totales
++
+Este contador proporciona el tamaño total de metadatos dentro del volumen. No incluye los metadatos del volumen residente del agregado. La generación de informes por separado ayuda a determinar los datos lógicos asignados por el usuario.
+
+* huella de metadatos total
++
+Este contador es la suma de los metadatos residentes del volumen y los metadatos del volumen residente agregado. Proporciona la huella total de metadatos del volumen dentro del agregado. Informar por separado ayuda a determinar los datos físicos asignados por el usuario.
+
+
+
+Además, se han actualizado varios contadores existentes para eliminar el componente de metadatos y presentar solo los datos del usuario:
+
+* Datos de usuarios
+* Huella de datos de volumen
+
+
+Estos cambios proporcionan una vista más precisa de los datos consumidos por el usuario. Esto ofrece varias ventajas, incluida la capacidad de tomar decisiones más precisas sobre el pago por uso.

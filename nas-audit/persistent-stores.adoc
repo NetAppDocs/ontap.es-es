@@ -11,30 +11,12 @@ summary: A partir de ONTAP 9.14.1, FPolicy permite configurar un almacén persis
 
 
 [role="lead"]
-A partir de ONTAP 9.14.1, FPolicy permite configurar un almacén persistente para capturar eventos de acceso a archivos para políticas asíncronas no obligatorias en la SVM. Los almacenes persistentes pueden ayudar a desacoplar el procesamiento de I/O del cliente del procesamiento de notificaciones de FPolicy para reducir la latencia del cliente. No se admiten las configuraciones síncronas (obligatorias o no obligatorias) y asíncronas obligatorias.
+Los almacenes persistentes pueden ayudar a desacoplar el procesamiento de I/O del cliente del procesamiento de notificaciones de FPolicy para reducir la latencia del cliente. A partir de ONTAP 9.14.1, puede configurar un almacén persistente de FPolicy para capturar eventos de acceso a archivos para políticas asíncronas no obligatorias en la SVM. No se admiten las configuraciones síncronas (obligatorias o no obligatorias) y asíncronas obligatorias.
 
 Esta función solo está disponible en el modo externo de FPolicy. La aplicación asociada que utilice necesita admitir esta función. Debe trabajar con su partner para garantizar que esta configuración de FPolicy sea compatible.
 
+A partir de ONTAP 9.15.1, se simplifica la configuración de almacén persistente de FPolicy. La `persistent-store create` El comando automatiza la creación de volúmenes para la SVM y configura el volumen con prácticas recomendadas de almacenamiento persistente.
 
+Para obtener más información sobre las mejores prácticas de almacenamiento persistente, consulte link:requirements-best-practices-fpolicy-concept.html["Requisitos, consideraciones y prácticas recomendadas para configurar FPolicy"].
 
-== Mejores prácticas
-
-Los administradores de clústeres deben configurar un volumen para el almacén persistente en cada SVM en la que FPolicy esté habilitado. Cuando se configura, un almacén persistente captura todos los eventos de FPolicy que coinciden, que se procesan posteriormente en la canalización de FPolicy y se envían al servidor externo.
-
-El almacén persistente permanece igual que cuando se recibió el último evento cuando se produce un reinicio inesperado o FPolicy se deshabilita y vuelve a habilitar. Tras una operación de toma de control, el nodo asociado almacenará y procesará los nuevos eventos. Tras una operación de devolución, el almacén persistente reanuda el procesamiento de todos los eventos sin procesar que pudieran permanecer desde el momento en que se produjo la toma de control del nodo. Los eventos en directo tendrán prioridad sobre los eventos no procesados.
-
-Si el volumen de almacenamiento persistente se mueve de un nodo a otro en la misma SVM, las notificaciones que aún están por procesar también se moverán al nuevo nodo. Deberá volver a ejecutar el `fpolicy persistent-store create` comando en cualquiera de los nodos después de mover el volumen para garantizar que la notificación pendiente se entregue al servidor externo.
-
-El volumen de almacenamiento persistente se configura por SVM. Para cada SVM con FPolicy, deberá crear un volumen de almacenamiento persistente.
-
-Cree el volumen de almacenamiento persistente en el nodo con LIF que esperan que Fpolicy supervise el tráfico máximo.
-
-Si las notificaciones acumuladas en el almacén persistente superan el tamaño del volumen aprovisionado, FPolicy comenzará a borrar la notificación entrante con los mensajes EMS adecuados.
-
-El nombre del volumen de almacenamiento persistente y la ruta de unión especificada en el momento de la creación del volumen deben coincidir.
-
-Establezca la política de Snapshot en `none` para ese volumen en lugar de `default`. De este modo se garantiza que no haya ninguna restauración accidental de la instantánea que provoque la pérdida de eventos actuales y que se evite un posible procesamiento de eventos duplicados.
-
-Haga que el volumen de almacenamiento persistente no sea accesible para el acceso del protocolo de usuario externo (CIFS/NFS) y evite daños o eliminación accidentales de los registros de eventos persistentes. Para lograr esto, después de habilitar FPolicy, desmonte el volumen en ONTAP para eliminar la ruta de unión, esto hace que sea inaccesible para el acceso al protocolo de usuario.
-
-Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/nas-audit/create-persistent-stores.html["Crear almacenes persistentes"].
+Para obtener información sobre cómo agregar almacenes persistentes, consulte link:create-persistent-stores.html["Crear almacenes persistentes"].

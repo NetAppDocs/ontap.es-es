@@ -1,0 +1,326 @@
+---
+permalink: authentication/configure-dynamic-authorization.html 
+sidebar: sidebar 
+keywords: dynamic, authorization, framework, security, login, ssh 
+summary: Configure el marco de autorización dinámica para aumentar la seguridad de los inicios de sesión SSH y restringir la ejecución de ciertos comandos bajo circunstancias sospechosas. 
+---
+= Personalizar la autorización dinámica
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Como administrador, puede personalizar diferentes aspectos de su configuración de autorización dinámica para aumentar la seguridad de las conexiones SSH de administrador remoto al clúster de ONTAP.
+
+Puede personalizar los siguientes ajustes de autorización dinámica en función de sus necesidades de seguridad:
+
+* <<Configure los valores globales de autorización dinámica>>
+* <<Configure los componentes de puntuación de confianza de autorización dinámica>>
+* <<Configurar un proveedor de puntuación de confianza personalizado>>
+* <<Configurar comandos restringidos>>
+* <<Configurar grupos de autorización dinámicos>>
+
+
+
+
+== Configure los valores globales de autorización dinámica
+
+Puede configurar valores globales para la autorización dinámica, incluida la máquina virtual de almacenamiento que se protegerá, el intervalo de supresión para los desafíos de autenticación y los ajustes de la puntuación de confianza.
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization modify` Consulte las páginas del manual de ONTAP.
+
+.Pasos
+. Configure los valores globales para la autorización dinámica. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Actualice los valores entre paréntesis <> para que coincidan con el entorno:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization modify \
+-lower-challenge-boundary <percent> \
+-upper-challenge-boundary <percent> \
+-suppression-interval <interval> \
+-vserver <storage_VM_name>
+----
+. Vea la configuración resultante:
++
+[source, console]
+----
+security dynamic-authorization show
+----
+
+
+
+
+== Configurar comandos restringidos
+
+Al activar la autorización dinámica, la función incluye un conjunto predeterminado de comandos restringidos. Puede modificar esta lista para adaptarla a sus necesidades. Consulte la link:../multi-admin-verify/index.html["Documentación de verificación multi-admin (MAV)"] para obtener información sobre la lista predeterminada de comandos restringidos.
+
+
+
+=== Agregue un comando restringido
+
+Puede agregar un comando a la lista de comandos restringidos con autorización dinámica.
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization rule create` Consulte las páginas del manual de ONTAP.
+
+.Pasos
+. Agregue el comando. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule create \
+-query <query> \
+*-operation <text>* \
+-index <integer> \
+-vserver <storage_VM_name>
+----
+. Vea la lista resultante de comandos restringidos:
++
+[source, console]
+----
+security dynamic-authorization rule show
+----
+
+
+
+
+=== Eliminar un comando restringido
+
+Puede eliminar un comando de la lista de comandos restringidos con autorización dinámica.
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization rule delete` Consulte las páginas del manual de ONTAP.
+
+.Pasos
+. Quite el comando. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule delete \
+*-operation <text>* \
+-vserver <storage_VM_name>
+----
+. Vea la lista resultante de comandos restringidos:
++
+[source, console]
+----
+security dynamic-authorization rule show
+----
+
+
+
+
+== Configurar grupos de autorización dinámicos
+
+De forma predeterminada, la autorización dinámica se aplica a todos los usuarios y grupos tan pronto como la habilite. Sin embargo, puede crear grupos con `security dynamic-authorization group create` de modo que la autorización dinámica solo se aplica a esos usuarios específicos.
+
+
+
+=== Agregue un grupo de autorización dinámica
+
+Puede agregar un grupo de autorización dinámica.
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization group create` Consulte las páginas del manual de ONTAP.
+
+.Pasos
+. Cree el grupo. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group create \
+*-group-name <group-name>* \
+-vserver <storage_VM_name> \
+-exclude-users <user1,user2,user3...>
+
+----
+. Vea los grupos de autorización dinámica resultantes:
++
+[source, console]
+----
+security dynamic-authorization group show
+----
+
+
+
+
+=== Eliminar un grupo de autorización dinámica
+
+Puede eliminar un grupo de autorización dinámica.
+
+.Pasos
+. Elimine el grupo. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group delete \
+*-group-name <group-name>* \
+-vserver <storage_VM_name>
+----
+. Vea los grupos de autorización dinámica resultantes:
++
+[source, console]
+----
+security dynamic-authorization group show
+----
+
+
+
+
+== Configure los componentes de puntuación de confianza de autorización dinámica
+
+Puede configurar el peso máximo de puntuación para cambiar la prioridad de los criterios de puntuación o para eliminar determinados criterios de la puntuación de riesgo.
+
+
+NOTE: Como práctica recomendada, debe dejar los valores predeterminados de ponderación de puntuación en su lugar y ajustarlos solo si es necesario.
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization trust-score-component modify` Consulte las páginas del manual de ONTAP.
+
+Los siguientes son los componentes que puede modificar, junto con su puntuación predeterminada y sus ponderaciones porcentuales:
+
+[cols="4*"]
+|===
+| Criterios | Nombre del componente | Peso bruto por defecto de la puntuación | Peso porcentual predeterminado 
+
+
+| Dispositivo de confianza | `trusted-device` | 20 | 50 
+
+
+| Historial de autenticación de inicio de sesión de usuario | `authentication-history` | 20 | 50 
+|===
+.Pasos
+. Modificar componentes de puntuación de confianza. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component modify \
+*-component <component-name>* \
+*-weight <integer>* \
+-vserver <storage_VM_name>
+----
+. Vea la configuración del componente de puntuación de confianza resultante:
++
+[source, console]
+----
+security dynamic-authorization trust-score-component show
+----
+
+
+
+
+=== Restablezca la puntuación de confianza de un usuario
+
+Si se deniega el acceso a un usuario debido a políticas del sistema y es capaz de probar su identidad, el administrador puede restablecer la puntuación de confianza del usuario.
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization user-trust-score reset` Consulte las páginas del manual de ONTAP.
+
+.Pasos
+. Agregue el comando. Consulte <<Configure los componentes de puntuación de confianza de autorización dinámica>> para obtener una lista de componentes de puntuación de confianza que puede restablecer. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization user-trust-score reset \
+*-username <username>* \
+*-component <component-name>* \
+-vserver <storage_VM_name>
+----
+
+
+
+
+=== Muestra tu puntuación de confianza
+
+Un usuario puede mostrar su propia puntuación de confianza para una sesión de conexión.
+
+.Pasos
+. Mostrar su puntuación de confianza:
++
+[source, console]
+----
+security login whoami
+----
++
+Debería ver una salida similar a la siguiente:
+
++
+[listing]
+----
+User: admin
+Role: admin
+Trust Score: 50
+----
+
+
+
+
+== Configurar un proveedor de puntuación de confianza personalizado
+
+Si ya recibe métodos de puntuación de un proveedor de puntuación de confianza externo, puede agregar el proveedor personalizado a la configuración de autorización dinámica.
+
+.Antes de empezar
+* El proveedor de puntuación de confianza personalizado debe devolver una respuesta JSON. Deben cumplirse los siguientes requisitos de sintaxis:
++
+** El campo que devuelve la puntuación de confianza debe ser un campo escalar y no un elemento de una matriz.
+** El campo que devuelve la puntuación de confianza puede ser un campo anidado, como `trust_score.value`.
+** Debe haber un campo dentro de la respuesta JSON que devuelva una puntuación de confianza numérica. Si esto no está disponible de forma nativa, puede escribir un script de contenedor para devolver este valor.
+
+
+* El valor proporcionado puede ser una puntuación de confianza o una puntuación de riesgo. La diferencia es que la puntuación de confianza está en orden ascendente con una puntuación más alta que indica un nivel de confianza más alto, mientras que la puntuación de riesgo está en orden descendente. Por ejemplo, una puntuación de confianza de 90 para un rango de puntuación de 0 a 100 indica que la puntuación es muy confiable y probable que resulte en un “permiso” sin desafío adicional, mientras que una puntuación de riesgo de 90 para un rango de puntuación de 0 a 100 indica un alto riesgo y es probable que resulte en una “denegación” sin un desafío adicional.
+* Se debe poder acceder al proveedor de puntuación de confianza personalizado a través de la API DE REST DE ONTAP.
+* El proveedor de puntuación de confianza personalizada debe configurarse mediante uno de los parámetros admitidos. No se admiten los proveedores de puntuación de confianza personalizados que requieren una configuración que no esté en la lista de parámetros soportados.
+
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization trust-score-component create` Consulte las páginas del manual de ONTAP.
+
+.Pasos
+. Agregar un proveedor de puntuación de confianza personalizado. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component create \
+-component <text> \
+*-provider-uri <text>* \
+-score-field <text> \
+-min-score <integer> \
+*-max-score <integer>* \
+*-weight <integer>* \
+-secret-access-key "<key_text>" \
+-provider-http-headers <list<header,header,header>> \
+-vserver <storage_VM_name>
+----
+. Vea la configuración del proveedor de puntuación de confianza resultante:
++
+[source, console]
+----
+security dynamic-authorization trust-score-component show
+----
+
+
+
+
+=== Configurar etiquetas personalizadas de proveedor de puntuación de confianza
+
+Puede comunicarse con proveedores de puntuación de confianza externos mediante etiquetas. Esto le permite enviar información en la URL al proveedor de puntuación de confianza sin exponer información confidencial.
+
+Para obtener más información sobre los parámetros y los valores predeterminados de `security dynamic-authorization trust-score-component create` Consulte las páginas del manual de ONTAP.
+
+.Pasos
+. Activar etiquetas de proveedor de puntuación de confianza. Actualice los valores entre paréntesis <> para que coincidan con el entorno. Si no utiliza el `-vserver` parámetro, el comando se ejecuta en el nivel del clúster. Los parámetros en negrita son necesarios:
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component create \
+*-component <component_name>* \
+-weight <initial_score_weight> \
+-max-score <max_score_for_provider> \
+*-provider-uri <provider_URI>* \
+-score-field <REST_API_score_field> \
+*-secret-access-key "<key_text>"*
+----
++
+Por ejemplo:
+
++
+[source, console]
+----
+security dynamic-authorization trust-score-component create -component comp1 -weight 20 -max-score 100 -provider-uri https://<url>/trust-scores/users/<user>/<ip>/component1.html?api-key=<access-key> -score-field score -access-key "MIIBBjCBrAIBArqyTHFvYdWiOpLkLKHGjUYUNSwfzX"
+----
+

@@ -1,0 +1,84 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/architecture-concept.html 
+keywords: SM-BC, SMBC, snapmirror active sync 
+summary: Conoce la arquitectura de SnapMirror Active Sync para garantizar que la protección se configura correctamente para tus aplicaciones. 
+---
+= Arquitectura de Active Sync de SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+La arquitectura de sincronización activa de SnapMirror permite cargas de trabajo activas en ambos clústeres, donde las cargas de trabajo principales se pueden servir a la vez desde ambos clústeres. Las normativas para instituciones financieras de algunos países requieren que las empresas también puedan recibir servicio periódicamente desde sus centros de datos secundarios, las denominadas puestas en marcha de «Tick-Tock» que permite el sincronización activa de SnapMirror.
+
+La relación de protección de datos para proteger la continuidad del negocio se crea entre el sistema de almacenamiento de origen y el sistema de almacenamiento de destino, agregando las LUN específicas de aplicaciones de diferentes volúmenes dentro de una máquina virtual de almacenamiento (SVM) al grupo de consistencia. En las operaciones normales, la aplicación empresarial escribe en el grupo de consistencia primario, que replica de forma síncrona estas I/O en el grupo de consistencia en mirroring.
+
+image:snapmirror-active-sync-architecture.png["Arquitectura de SnapMirror Active"]
+
+Aunque existen dos copias independientes de los datos en la relación de protección de datos, como SnapMirror Active Sync mantiene la misma identidad de LUN, el host de aplicaciones lo ve como un dispositivo virtual compartido con varias rutas mientras solo se escribe una copia LUN cada vez. Cuando un fallo interrumpe la conexión del sistema de almacenamiento principal, ONTAP detecta este fallo y utiliza Mediator para volver a confirmar; si ni ONTAP ni el Mediator pueden hacer ping al sitio principal, ONTAP realiza la operación de conmutación por error automática. Este proceso provoca la conmutación al respaldo de una aplicación específica únicamente sin necesidad de intervención manual o secuencias de comandos, lo que antes era necesario para conmutación al respaldo.
+
+Otros puntos a considerar:
+
+* Los volúmenes no reflejados que existen fuera de la protección para la continuidad del negocio son compatibles.
+* Solo se admite otra relación asíncrona de SnapMirror para los volúmenes que se están protegiendo para la continuidad del negocio.
+* La protección para la continuidad del negocio no admite las topologías en cascada.
+
+
+
+
+== Mediador ONTAP
+
+ONTAP Mediator se instala en un tercer dominio de fallo, distinto de los dos clústeres ONTAP. Su función más importante es actuar como testigo pasivo de las copias sincronizadas activas de SnapMirror. En caso de que una partición de red o la falta de disponibilidad de una copia, SnapMirror active sync usa Mediator para determinar qué copia sigue sirviendo I/O, mientras interrumpe las operaciones de I/O en la otra copia. Hay tres componentes clave en esta configuración:
+
+* Clúster de ONTAP principal que aloja el CG principal de sincronización activa de SnapMirror
+* Clúster ONTAP secundario que aloja el CG de reflejos
+* Mediador ONTAP
+
+
+El mediador de ONTAP desempeña una función fundamental en las configuraciones de sincronización activa de SnapMirror como testigo de quórum pasivo, lo que garantiza el mantenimiento del quórum y facilita el acceso a los datos durante los fallos. Actúa como un proxy de ping para que las controladoras determinen la vida útil de las controladoras iguales. Aunque Mediator no activa las operaciones de switchover, proporciona una función vital al permitir que el nodo superviviente compruebe el estado de su compañero durante los problemas de comunicación de red. En su función como testigo de quórum, el Mediador de ONTAP proporciona una ruta alternativa (que actúa efectivamente como proxy) al clúster de iguales.
+
+Además, permite a los clusters obtener esta información como parte del proceso de quórum. Utiliza el LIF de gestión de nodos y el LIF de gestión de clústeres para fines de comunicación. Establece conexiones redundantes a través de varias rutas para diferenciar entre un fallo del sitio y un fallo de InterSwitch Link (ISL). Cuando un clúster pierde la conexión con el software ONTAP Mediator y todos sus nodos debido a un evento, se considera que no se puede acceder a él. De este modo se activa una alerta y se habilita la conmutación al respaldo automática al grupo de consistencia en mirroring (CG) en el sitio secundario, garantizando así las operaciones de I/O ininterrumpidas del cliente. La ruta de los datos de replicación se basa en un mecanismo de latido y, si un fallo de red o un evento persiste más allá de un determinado periodo, puede provocar fallos en los latidos, lo que provoca que la relación se desincronice. Sin embargo, la presencia de rutas redundantes, como recuperación tras fallos de LIF a otro puerto, puede sostener el latido y evitar dichas interrupciones.
+
+En resumen, ONTAP Mediator se utiliza para los siguientes propósitos:
+
+* Establecer un quórum
+* Disponibilidad continua mediante conmutación por error automática (AUFO)
+* Conmutaciones al respaldo planificadas (PFO)
+
+
+
+NOTE: ONTAP Mediator 1,7 puede gestionar diez pares de clústeres con el fin de la continuidad del negocio.
+
+
+NOTE: Cuando el mediador ONTAP no está disponible, no es posible realizar conmutaciones al respaldo planificadas o automatizadas. Los datos de las aplicaciones continúa replicando de forma síncrona sin interrupción para obtener cero pérdida de datos.
+
+
+
+== Operaciones
+
+La siguiente figura muestra el diseño de SnapMirror sincronización activa a nivel superior.
+
+image:workflow_san_snapmirror_business_continuity.png["Diagrama de arquitectura de sincronización activa de SnapMirror"]
+
+El diagrama muestra una aplicación empresarial alojada en una máquina virtual de almacenamiento (SVM) en el centro de datos principal. La SVM contiene cinco volúmenes, tres de los cuales forman parte de un grupo de coherencia. Los tres volúmenes del grupo de coherencia se reflejan en un centro de datos secundario. En circunstancias normales, todas las operaciones de escritura se realizan en el centro de datos primario; en efecto, este centro de datos sirve como origen de operaciones de I/O, mientras que el centro de datos secundario sirve como destino.
+
+En caso de producirse un desastre en el centro de datos primario, ONTAP indica al centro de datos secundario que actúe como primario, sirviendo todas las operaciones de I/O. Solo se sirven los volúmenes reflejados en el grupo de coherencia. Cualquier operación que pertenezca a los otros dos volúmenes en la SVM se verá afectada por el evento de desastre.
+
+
+
+== Activo-activo simétrico
+
+SnapMirror Active Sync ofrece soluciones asimétricas y simétricas.
+
+En _asimétricas CONFIGURACIONES_, la copia de almacenamiento primario expone una ruta optimizada para activos y presta un servicio activo de I/O del cliente El sitio secundario utiliza una ruta remota para I/O. Las rutas de almacenamiento para el sitio secundario se consideran activas-no optimizadas. El acceso al LUN de escritura se proxy desde el sitio secundario.
+
+En _configuraciones activo/activo simétricas_, las rutas optimizadas para activo se exponen en ambos sitios, son específicas de los hosts y se pueden configurar, lo que significa que los hosts de cualquiera de los lados pueden acceder al almacenamiento local para I/O activo
+
+image:snapmirror-active-sync-symmetric.png["Diagrama de una configuración activa simétrica"]
+
+Activo/activo simétrico está dirigido a aplicaciones en clúster, incluidas VMware Metro Storage Cluster, Oracle RAC y Windows Failover Clustering con SQL.

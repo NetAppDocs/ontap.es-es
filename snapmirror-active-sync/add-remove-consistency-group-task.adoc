@@ -1,0 +1,116 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/add-remove-consistency-group-task.html 
+keywords: SM-BC, SMBC, volume, consistency group, remove volume, add volume, snapmirror active sync 
+summary: Si desea cambiar la composición del grupo de coherencia. Para ello, añada o quite un volumen, primero debe eliminar la relación original y, a continuación, volver a crear el grupo de coherencia con la nueva composición. 
+---
+= Añada o quite volúmenes a un grupo de coherencia
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+A medida que cambian los requisitos de carga de trabajo de la aplicación, es posible que deba añadir o quitar volúmenes de un grupo de coherencia para garantizar la continuidad del negocio. El proceso de añadir y quitar volúmenes en una relación de sincronización activa de SnapMirror depende de la versión de ONTAP que esté utilizando.
+
+En la mayoría de los casos, este es un proceso disruptivo que requiere que se rompa la relación de SnapMirror, se modifique el grupo de consistencia y, a continuación, se reanude la protección. A partir de ONTAP 9.13.1, añadir volúmenes a un grupo de consistencia con una relación de SnapMirror activa es una operación no disruptiva.
+
+.Acerca de esta tarea
+* En ONTAP 9,9.1, puede añadir o quitar volúmenes a un grupo de consistencia mediante la CLI de ONTAP.
+* A partir de ONTAP 9.10.1, se recomienda que los gestione link:../consistency-groups/index.html["grupos de consistencia"] A través de System Manager o con la API DE REST de ONTAP.
++
+Si desea cambiar la composición del grupo de coherencia. Para ello, añada o quite un volumen, primero debe eliminar la relación original y, a continuación, volver a crear el grupo de coherencia con la nueva composición.
+
+* A partir de ONTAP 9.13.1, se pueden añadir volúmenes a un grupo de coherencia con una relación de SnapMirror activa desde el origen o el destino de manera no disruptiva.
++
+Eliminar volúmenes es una operación disruptiva. Debe interrumpir la relación de SnapMirror antes de continuar eliminando los volúmenes.
+
+
+
+[role="tabbed-block"]
+====
+.ONTAP 9,9.1-9.13.0
+--
+.Antes de empezar
+* No puede comenzar a modificar el grupo de consistencia mientras está en la `InSync` estado.
+* El volumen de destino debe ser del tipo DP.
+* El nuevo volumen que añada para expandir el grupo de coherencia debe tener un par de copias de Snapshot comunes entre los volúmenes de origen y de destino.
+
+
+.Pasos
+Los ejemplos que se muestran en dos asignaciones de volúmenes: `vol_src1` <--> `vol_dst1` y.. `vol_src2` <--> `vol_dst2`, en una relación de grupo de coherencia entre los puntos finales `vs1_src:/cg/cg_src` y.. `vs1_dst:/cg/cg_dst`.
+
+. En los clústeres de origen y destino, compruebe que hay una Snapshot común entre los clústeres de origen y destino con el comando `snapshot show -vserver _svm_name_ -volume _volume_name_ -snapshot _snapmirror_`
++
+`source::>snapshot show -vserver vs1_src -volume vol_src3 -snapshot snapmirror*`
+
++
+`destination::>snapshot show -vserver vs1_dst -volume vol_dst3 -snapshot snapmirror*`
+
+. Si no existe ninguna copia Snapshot común, cree e inicialice una relación de SnapMirror de FlexVol:
++
+`destination::>snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst3`
+
+. Elimine la relación del grupo de consistencia:
++
+`destination::>snapmirror delete -destination-path vs1_dst:vol_dst3`
+
+. Libere la relación de SnapMirror de origen y conserve las copias Snapshot comunes:
++
+`source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol_dst3`
+
+. Desasigne las LUN y elimine la relación de grupo de consistencia existente:
++
+`destination::>lun mapping delete -vserver vs1_dst -path <lun_path> -igroup <igroup_name>`
+
++
+
+NOTE: Se anula la asignación de las LUN de destino, mientras que las LUN de la copia principal siguen sirviendo la I/o del host
+
++
+`destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
+
++
+`source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst -relationship-info-only true`
+
+. **Si está utilizando ONTAP 9.10.1 a 9.13.0,** elimine y recree y el grupo de consistencia en la fuente con la composición correcta. Siga los pasos de xref:../consistency-groups/delete-task.html[Eliminar un grupo de consistencia] y después xref:../consistency-groups/configure-task.html[Configure un único grupo de consistencia]. En ONTAP 9.10.1 y versiones posteriores, debe realizar las operaciones de eliminación y creación en System Manager o con la API DE REST de ONTAP; no existe un procedimiento de la CLI.
++
+**Si está utilizando ONTAP 9,9.1, pase al siguiente paso.**
+
+. Cree el nuevo grupo de consistencia en el destino con la nueva composición:
++
+`destination::>snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol_src1:@vol_dst1, vol_src2:@vol_dst2, vol_src3:@vol_dst3`
+
+. Resincronice la relación del grupo de consistencia de objetivo de tiempo de recuperación cero para garantizar que está sincronizada:
++
+`destination::>snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
+
+. Reasigne las LUN no asignadas en el paso 5:
++
+`destination::> lun map -vserver vs1_dst -path _lun_path_ -igroup _igroup_name_`
+
+. Vuelva a analizar las rutas de I/o del LUN del host para restaurar todas las rutas a los LUN.
+
+
+--
+.ONTAP 9.13.1 y versiones posteriores
+--
+A partir de ONTAP 9.13.1, es posible añadir volúmenes de forma no disruptiva a un grupo de coherencia con una relación de sincronización activa de SnapMirror activa. La sincronización activa de SnapMirror admite la adición de volúmenes de origen o destino.
+
+
+IMPORTANT: A partir de ONTAP 9,8 a 9.14.1, la sincronización activa de SnapMirror se conoce como continuidad del negocio de SnapMirror (SM-BC).
+
+Para obtener detalles sobre cómo añadir volúmenes del grupo de coherencia de origen, consulte xref:../consistency-groups/modify-task.html[Modificar un grupo de consistencia].
+
+.Añada un volumen desde el clúster de destino
+. En el clúster de destino, seleccione **Protección** > **Relaciones**.
+. Busque la configuración de SnapMirror a la que desea añadir volúmenes. Seleccione image:icon_kabob.gif["icono de kebab"] Luego **Expandir**.
+. Seleccione las relaciones de volumen cuyos volúmenes se añadirán al grupo de coherencia
+. Seleccione **Expandir**.
+
+
+--
+====
