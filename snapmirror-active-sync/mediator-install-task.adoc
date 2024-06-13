@@ -16,7 +16,7 @@ summary: La sincronización activa de SnapMirror requiere que instale e iniciali
 [role="lead"]
 SnapMirror, la sincronización activa utiliza clústeres con conexión entre iguales para garantizar que los datos estén disponibles en caso de conmutación por error. ONTAP Mediator es un recurso clave que garantiza la continuidad del negocio y supervisa el estado de cada clúster. Para configurar la sincronización activa de SnapMirror, primero debe instalar ONTAP Mediator y asegurarse de que los clústeres primario y secundario están configurados correctamente.
 
-Una vez que haya instalado ONTAP Mediator y configurado los clústeres, debe hacerlo <<initialize-the-ontap-mediator>> Mediador ONTAP para su uso con sincronización activa de SnapMirror. Entonces debe hacerlo xref:../protect-task.html[Cree, inicialice y asigne el grupo de consistencia para la sincronización activa de SnapMirror].
+Una vez que haya instalado ONTAP Mediator y configurado los clústeres, debe hacerlo <<initialize-the-ontap-mediator>> Mediador ONTAP para su uso con sincronización activa de SnapMirror. Entonces debe hacerlo xref:protect-task.html[Cree, inicialice y asigne el grupo de consistencia para la sincronización activa de SnapMirror].
 
 
 
@@ -65,21 +65,21 @@ xref:../smb-config/create-volume-task.html[Creación de un volumen]
 
 . Confirmar que se crea al menos un LIF SAN en cada nodo del clúster.
 +
-link:../san-admin/lifs-cluster-concept.html["Consideraciones para los LIF en un entorno SAN de clúster"]
+link:../san-admin/manage-lifs-all-san-protocols-concept.html["Consideraciones para los LIF en un entorno SAN de clúster"]
 
 +
-link:https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sanag/GUID-4B666C44-694A-48A3-B0A9-517FA7FD2502.html?cp=13_6_4_0["Crear una LIF"^]
+link:../networking/create_a_lif.html["Crear una LIF"]
 
 . Confirmar que las LUN necesarias se crean y asignan a un igroup, que se utiliza para asignar las LUN al iniciador en el host de la aplicación.
 +
-xref:../san-admin/create-luns-mapping-igroups-task.html[Cree LUN y asigne iGroups]
+xref:../san-admin/provision-storage.html[Cree LUN y asigne iGroups]
 
 . Vuelva a analizar el host de la aplicación para detectar todos los LUN nuevos.
 
 
 
 
-== Inicialice el mediador de ONTAP para la sincronización activa de SnapMirror
+== Inicialice ONTAP Mediator para la sincronización activa de SnapMirror mediante certificados autofirmados
 
 Una vez que haya instalado ONTAP Mediator y confirmado la configuración del clúster, debe inicializar ONTAP Mediator para la supervisión del clúster. Puede inicializar ONTAP Mediator mediante System Manager o la CLI de ONTAP.
 
@@ -102,6 +102,27 @@ IMPORTANT: A partir de ONTAP 9,8 a 9.14.1, la sincronización activa de SnapMirr
 ** Certificado
 
 
+. Puede proporcionar la entrada del certificado de dos formas:
++
+** *Opción (A)*: Selecciona *Importar* para navegar al `.crt` archivarla e importarla.
+** *Opción (b)*: Copia el contenido del `.crt` Archiva y pega en el campo *Certificado*.
++
+Cuando todos los detalles se introducen correctamente, el certificado proporcionado se instala en todos los clústeres de iguales.
+
++
+image:configure-mediator-system-manager.png["system manager mediator add"]
+
++
+Cuando la adición del certificado se complete, ONTAP Mediator se añade al clúster de ONTAP.
+
++
+La siguiente imagen muestra una configuración correcta de ONTAP Mediator:
+
++
+image:successful-mediator-installation.png["mediador añadido correctamente"].
+
+
+
 
 
 --
@@ -109,23 +130,104 @@ IMPORTANT: A partir de ONTAP 9,8 a 9.14.1, la sincronización activa de SnapMirr
 --
 Puede inicializar el mediador de ONTAP desde el clúster primario o secundario mediante la CLI de ONTAP. Cuando emita el `mediator add` Comando en un clúster, el Mediador ONTAP se agrega automáticamente al otro clúster.
 
+No se puede inicializar ONTAP Mediator en ONTAP sin un certificado de entidad de certificación (CA) válido. Por lo tanto, debe agregar una autoridad de certificación válida al almacén de certificados para clústeres entre iguales.
+
 .Pasos
-. Inicialice Mediator en uno de los grupos:
+. Busque el certificado de CA de ONTAP Mediator en la ubicación de instalación del software de host/VM de ONTAP Mediator Linux `cd /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config`.
+. Agregue una autoridad de certificado válida al almacén de certificados en el clúster con relación de paridad.
 +
-`snapmirror mediator add -mediator-address IP_Address -peer-cluster cluster_name -username user_name`
+*ejemplo*
+
++
+[listing]
+----
+[root@ontap-mediator server_config]# cat ca.crt
+-----BEGIN CERTIFICATE-----
+MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
+BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
+…
+p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
+-----END CERTIFICATE-----
+----
+. Añada el certificado de CA de ONTAP Mediator a un clúster de ONTAP. Cuando se le solicite, inserte el certificado de CA obtenido del Mediador ONTAP. Repita los pasos en todos los clústeres de iguales:
++
+`security certificate install -type server-ca -vserver <vserver_name>`
 
 +
 *ejemplo*
 
 +
-....
-cluster1::> snapmirror mediator add -mediator-address 192.168.10.1 -peer-cluster cluster2 -username mediatoradmin
+[listing]
+----
+[root@ontap-mediator ~]# cd /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config
+
+[root@ontap-mediator server_config]# cat ca.crt
+-----BEGIN CERTIFICATE-----
+MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
+BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
+…
+p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
+-----END CERTIFICATE-----
+----
++
+[listing]
+----
+C1_test_cluster::*> security certificate install -type server-ca -vserver C1_test_cluster
+
+Please enter Certificate: Press when done
+-----BEGIN CERTIFICATE-----
+MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
+BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
+…
+p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
+-----END CERTIFICATE-----
+
+You should keep a copy of the CA-signed digital certificate for future reference.
+
+The installed certificate's CA and serial number for reference:
+CA: ONTAP Mediator CA
+serial: D86D8E4E87142XXX
+
+The certificate's generated name for reference: ONTAPMediatorCA
+
+C1_test_cluster::*>
+----
+. Vea el certificado de CA autofirmado instalado con el nombre generado del certificado:
++
+`security certificate show -common-name <common_name>`
+
++
+*ejemplo*
+
++
+[listing]
+----
+C1_test_cluster::*> security certificate show -common-name ONTAPMediatorCA
+Vserver    Serial Number   Certificate Name                       Type
+---------- --------------- -------------------------------------- ------------
+C1_test_cluster
+           6BFD17DXXXXX7A71BB1F44D0326D2DEEXXXXX
+                           ONTAPMediatorCA                        server-ca
+    Certificate Authority: ONTAP Mediator CA
+          Expiration Date: Thu Feb 15 14:35:25 2029
+----
+. Inicialice el mediador ONTAP en uno de los clústeres. ONTAP Mediator se añade automáticamente para el otro clúster:
++
+`snapmirror mediator add -mediator-address <ip_address> -peer-cluster <peer_cluster_name> -username user_name`
+
++
+*ejemplo*
+
++
+[listing]
+----
+C1_test_cluster::*> snapmirror mediator add -mediator-address 1.2.3.4 -peer-cluster C2_test_cluster -username mediatoradmin
 Notice: Enter the mediator password.
 
 Enter the password: ******
 Enter the password again: ******
-....
-. Compruebe el estado de la configuración del Mediator:
+----
+. Compruebe el estado de la configuración de ONTAP Mediator:
 +
 `snapmirror mediator show`
 
@@ -133,8 +235,177 @@ Enter the password again: ******
 ....
 Mediator Address Peer Cluster     Connection Status Quorum Status
 ---------------- ---------------- ----------------- -------------
-192.168.10.1     cluster-2        connected         true
+1.2.3.4          C2_test_cluster   connected        true
 ....
++
+`Quorum Status` Indica si las relaciones del grupo de coherencia de SnapMirror se sincronizan con el mediador de ONTAP, el estado de `true` indica una sincronización correcta.
+
+
+
+--
+====
+
+
+== Reinicie ONTAP Mediator con certificados de terceros
+
+Es posible que tenga que volver a inicializar el servicio ONTAP Mediator. Puede haber situaciones que requieran la reinicialización del servicio ONTAP Mediator, como un cambio en la dirección IP de ONTAP Mediator, la caducidad del certificado y más.
+
+El siguiente procedimiento ilustra la reinicialización de ONTAP Mediator para un caso específico cuando un certificado autofirmado necesita ser reemplazado por un certificado de terceros.
+
+.Acerca de esta tarea
+Es necesario sustituir los certificados autofirmados del clúster SM-BC por certificados de terceros, quitar la configuración de ONTAP Mediator de ONTAP y agregar ONTAP Mediator.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Con System Manager, tiene que quitar el mediador de ONTAP configurado con el certificado autofirmado antiguo del clúster de ONTAP y volver a configurar el clúster ONTAP con el certificado de terceros nuevo.
+
+.Pasos
+. Seleccione el icono de opciones de menú y seleccione * Eliminar * para eliminar el Mediador ONTAP.
++
+
+NOTE: Este paso no elimina la CA del servidor autofirmado del clúster de ONTAP. NetApp recomienda navegar a la pestaña *Certificado* y eliminarla manualmente antes de realizar el siguiente paso para agregar un certificado de terceros:
+
++
+image:remove-mediator.png["eliminación del mediador del administrador del sistema"]
+
+. Vuelva a agregar el Mediador ONTAP con el certificado correcto.
+
+
+ONTAP Mediator ahora está configurado con el nuevo certificado autofirmado de terceros.
+
+image:configure-mediator-system-manager.png["system manager mediator add"]
+
+--
+.CLI
+--
+Puede volver a inicializar ONTAP Mediator desde el clúster primario o secundario mediante la CLI de ONTAP para reemplazar el certificado autofirmado por el certificado de terceros.
+
+.Pasos
+. Quite el autofirmado `ca.crt` se instaló anteriormente cuando utilizó certificados autofirmados para todos los clústeres. En el siguiente ejemplo, hay dos clústeres:
++
+*ejemplo*
+
++
+[listing]
+----
+ C1_test_cluster::*> security certificate delete -vserver C1_test_cluster -common-name ONTAPMediatorCA
+ 2 entries were deleted.
+
+ C2_test_cluster::*> security certificate delete -vserver C2_test_cluster -common-name ONTAPMediatorCA *
+ 2 entries were deleted.
+----
+. Elimine el Mediador ONTAP previamente configurado del clúster SM-BC mediante `-force true`:
++
+*ejemplo*
+
++
+[listing]
+----
+C1_test_cluster::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+1.2.3.4          C2_test_cluster   connected         true
+
+C1_test_cluster::*> snapmirror mediator remove -mediator-address 1.2.3.4 -peer-cluster C2_test_cluster -force true
+
+Warning: You are trying to remove the ONTAP Mediator configuration with force. If this configuration exists on the peer cluster, it could lead to failure of a SnapMirror failover operation. Check if this configuration
+         exists on the peer cluster C2_test_cluster and remove it as well.
+Do you want to continue? {y|n}: y
+
+Info: [Job 136] 'mediator remove' job queued
+
+C1_test_cluster::*> snapmirror mediator show
+This table is currently empty.
+----
+. Consulte los pasos descritos en link:../mediator/manage-task.html#Replace-self-signed-certificates-with-trusted-third-party-certificates["Sustituya los certificados autofirmados por certificados de terceros de confianza"] Sobre cómo obtener certificados de CA subordinada, referida como `ca.crt`.
++
+
+NOTE: La `ca.crt` Tiene ciertas propiedades que deriva de la solicitud que deben enviarse a la autoridad PKI, definida en el archivo `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/openssl_ca.cnf`.
+
+. Agregue el nuevo certificado de CA de mediador de ONTAP de terceros `ca.crt` Desde la ubicación de instalación del software host/VM de ONTAP Mediator Linux:
++
+*ejemplo*
+
++
+[listing]
+----
+[root@ontap-mediator ~]# cd /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config
+[root@ontap-mediator server_config]# cat ca.crt
+-----BEGIN CERTIFICATE-----
+MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
+BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
+…
+p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
+-----END CERTIFICATE-----
+----
+. Añada el `ca.crt` archivo al clúster con conexión entre iguales. Repita este paso para todos los clústeres de iguales:
++
+*ejemplo*
+
++
+[listing]
+----
+C1_test_cluster::*> security certificate install -type server-ca -vserver C1_test_cluster
+
+Please enter Certificate: Press when done
+-----BEGIN CERTIFICATE-----
+MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
+BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
+…
+p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
+-----END CERTIFICATE-----
+
+You should keep a copy of the CA-signed digital certificate for future reference.
+
+The installed certificate's CA and serial number for reference:
+CA: ONTAP Mediator CA
+serial: D86D8E4E87142XXX
+
+The certificate's generated name for reference: ONTAPMediatorCA
+
+C1_test_cluster::*>
+----
+. Quite el Mediador de ONTAP previamente configurado del clúster de sincronización activa de snapmirror:
++
+*ejemplo*
+
++
+[listing]
+----
+C1_test_cluster::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+1.2.3.4          C2_test_cluster  connected         true
+
+C1_test_cluster::*> snapmirror mediator remove -mediator-address 1.2.3.4 -peer-cluster C2_test_cluster
+
+Info: [Job 86] 'mediator remove' job queued
+C1_test_cluster::*> snapmirror mediator show
+This table is currently empty.
+----
+. Vuelva a agregar el Mediador ONTAP:
++
+*ejemplo*
+
++
+[listing]
+----
+C1_test_cluster::*> snapmirror mediator add -mediator-address 1.2.3.4 -peer-cluster C2_test_cluster -username mediatoradmin
+
+Notice: Enter the mediator password.
+
+Enter the password:
+Enter the password again:
+
+Info: [Job: 87] 'mediator add' job queued
+
+C1_test_cluster::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+1.2.3.4          C2_test_cluster  connected         true
+----
 +
 `Quorum Status` Indica si las relaciones del grupo de coherencia SnapMirror se sincronizan con el mediador, un estado de `true` indica una sincronización correcta.
 
