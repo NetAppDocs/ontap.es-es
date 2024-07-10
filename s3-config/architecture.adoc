@@ -2,7 +2,7 @@
 permalink: s3-config/architecture.html 
 sidebar: sidebar 
 keywords: s3 architecture, ontap 9 
-summary: En ONTAP, la arquitectura subyacente para un bloque es un volumen FlexGroup, un espacio de nombres único compuesto por varios volúmenes constituyentes, pero que se gestiona como un único volumen. 
+summary: En ONTAP, la arquitectura subyacente de un bloque es un volumen FlexGroup, que es un único espacio de nombres que se compone de múltiples volúmenes miembro, pero que se gestiona como un único volumen. 
 ---
 = Arquitectura
 :allow-uri-read: 
@@ -11,17 +11,53 @@ summary: En ONTAP, la arquitectura subyacente para un bloque es un volumen FlexG
 
 
 [role="lead"]
-En ONTAP, la arquitectura subyacente para un bloque es un volumen FlexGroup, un espacio de nombres único que está compuesto por varios volúmenes constituyentes, pero que se gestiona como un único volumen.
+En ONTAP, la arquitectura subyacente de un bloque es un link:https://docs.netapp.com/us-en/ontap/flexgroup/definition-concept.html["Volumen FlexGroup"]espacio de nombres único que está formado por varios volúmenes miembro constituyentes, pero que se gestiona como un único volumen.
 
-image:fg-overview-s3-config.gif["El volumen de FlexGroup se representa como un grupo de volúmenes de FlexVol denominado constituyentes"]
+image::../media/fg-overview-s3-config.gif[El volumen de FlexGroup se representa como un grupo de volúmenes de FlexVol denominado constituyentes]
 
-Los bloques solo están limitados por los máximos físicos del hardware subyacente, los máximos arquitectónicos podrían ser mayores. Los bloques pueden aprovechar el tamaño elástico de FlexGroup para hacer crecer automáticamente un componente de un volumen FlexGroup si se está quedando sin espacio. Existe un límite de 1000 bloques por volumen de FlexGroup, o 1/3 de la capacidad del volumen de FlexGroup (para hacer frente al crecimiento de datos en bloques).
+El acceso al bloque se proporciona a través de usuarios autorizados y aplicaciones cliente.
+
+image::../media/s3-svm-layout.png[Acceso al cubo de la SVM de S3]
 
 [NOTE]
 ====
-No se permite acceso al protocolo NAS o SAN al volumen FlexGroup que contiene bloques S3.
+Cuando un bloque se utiliza exclusivamente para aplicaciones S3, incluido el uso como extremo de FabricPool, el volumen FlexGroup subyacente solo admitirá el protocolo S3.
+
+A partir de ONTAP 9.12.1, se puede habilitar el protocolo S3 en link:../s3-multiprotocol/index.html["Volúmenes NAS multiprotocolo"] que se hayan preconfigurado para utilizar protocolos NAS. Cuando el protocolo S3 se habilita en volúmenes NAS multiprotocolo, las aplicaciones cliente pueden leer y escribir datos mediante NFS, SMB y S3.
 
 ====
-El acceso al bloque se proporciona a través de usuarios autorizados y aplicaciones cliente.
 
-image:s3-svm-layout.png["Acceso al cubo de la SVM de S3"]
+
+== Límites del cucharón
+
+El tamaño mínimo del cucharón es 95GB. + El tamaño máximo del cucharón está limitado al tamaño máximo de FlexGroup de 60PB.
+
+Hay un límite de 1000 bloques por volumen FlexGroup, o 12.000 bloques por clúster (con 12 volúmenes FlexGroup).
+
+
+
+== Dimensionamiento automático de FlexGroup con ONTAP 9.14.1 y versiones posteriores
+
+A partir de ONTAP 9.14.1, el tamaño de FlexGroup predeterminado se basa en el tamaño de los bloques subyacentes. El volumen FlexGroup aumentará o reducirá automáticamente a medida que se agregan o eliminan bloques.
+
+Por ejemplo, si un Bucket_A inicial se aprovisiona como 100GB, el FlexGroup se aprovisionará con thin-provisioning para que sea 100GB. Si se crean dos buckets más, Bucket_B en 300GB y Bucket_C en 500GB, el volumen FlexGroup aumentará hasta 900GB.
+
+(Bucket_A a 100GB + Bucket_B a 300GB + Bucket_C a 500GB = 900GB.)
+
+Si se elimina Bucket_A, el volumen FlexGroup subyacente se reducirá a 800GB.
+
+
+
+== Se corrigieron los tamaños de FlexGroup predeterminados en ONTAP 9.13.1 y anteriores
+
+Para proporcionar capacidad para la expansión de buckets, la capacidad total utilizada de todos los bloques del volumen FlexGroup debe ser inferior al 33 % de la capacidad máxima del volumen FlexGroup según los agregados de almacenamiento disponibles en el clúster. Si no se puede cumplir esto, el nuevo bloque que se va a crear se aprovisionará en un volumen nuevo de FlexGroup creado automáticamente.
+
+Antes de ONTAP 9.14.1, el tamaño de FlexGroup se fija en un tamaño predeterminado en función de su entorno:
+
+* 1,6PB en ONTAP
+* 100TB en ONTAP Select
+
+
+Si un clúster no tiene suficiente capacidad para aprovisionar un volumen FlexGroup en el tamaño predeterminado, ONTAP reduce el tamaño predeterminado a la mitad hasta que se pueda aprovisionar en el entorno existente.
+
+Por ejemplo, en un entorno 300TB, un volumen FlexGroup se aprovisiona automáticamente a 200TB GB (los volúmenes FlexGroup de 1,6PB GB, 800TB GB y 400TB GB son demasiado grandes para el entorno).
