@@ -1,0 +1,89 @@
+---
+sidebar: sidebar 
+permalink: smb-admin/windows-backup-symlinks.html 
+keywords: windows, windows server, backup, backup application, symbolic link, symlink, unix, unix-style 
+summary: 'Cuando una aplicación de copia de seguridad que se ejecuta en Windows encuentra un enlace simbólico de estilo Unix (symlink), se sigue el enlace y se realiza una copia de seguridad de los datos. A partir de ONTAP 9.15.1, tiene la opción de realizar una copia de seguridad de los symlinks en lugar de los datos. Esta función es totalmente compatible con FlexGroups y FlexVols de ONTAP.' 
+---
+= Aplicaciones de backup de Windows y symlinks de tipo Unix
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando una aplicación de copia de seguridad que se ejecuta en Windows encuentra un enlace simbólico de estilo Unix (symlink), se sigue el enlace y se realiza una copia de seguridad de los datos. A partir de ONTAP 9.15.1, tiene la opción de realizar una copia de seguridad de los symlinks en lugar de los datos. Esta función es totalmente compatible con FlexGroups y FlexVols de ONTAP.
+
+
+
+== Descripción general
+
+Antes de cambiar la forma en que ONTAP maneja los enlaces simbólicos durante una operación de copia de seguridad de Windows, debería estar familiarizado con las ventajas, los conceptos clave y las opciones de configuración.
+
+
+
+=== Beneficios
+
+Cuando esta función está desactivada o no disponible, se recorre cada enlace simbólico y se realiza una copia de seguridad de los datos a los que enlaza. Debido a esto, a veces se puede hacer un backup de los datos innecesarios y en ciertas situaciones la aplicación podría terminar en un bucle. En su lugar, la copia de seguridad de los enlaces simbólicos evita estos problemas. Y como los archivos symlink son muy pequeños en comparación con los datos en la mayoría de los casos, las copias de seguridad tardan menos tiempo en completarse. El rendimiento general del clúster también puede mejorar debido a la reducción de las operaciones de I/O.
+
+
+
+=== Entorno de servidor Windows
+
+Esta función es compatible con aplicaciones de backup que se ejecutan en Windows. Debe comprender los aspectos técnicos relevantes del entorno antes de utilizarlo.
+
+.Atributos ampliados
+Windows admite atributos extendidos (EA) que forman colectivamente metadatos adicionales asociados opcionalmente a los archivos. Estos atributos los utilizan varias aplicaciones, como el subsistema de Windows para Linux, como se describe en https://learn.microsoft.com/en-us/windows/wsl/file-permissions["Permisos de archivo para WSL"^]. Las aplicaciones pueden solicitar atributos ampliados para cada archivo al leer datos de ONTAP.
+
+Los enlaces simbólicos se devuelven en los atributos extendidos cuando la función está activada. Por lo tanto, una aplicación de copia de seguridad debe proporcionar compatibilidad de EA estándar que se utiliza para almacenar los metadatos. Algunas utilidades de Windows admiten y conservan los atributos extendidos. Sin embargo, si el software de copia de seguridad no admite la copia de seguridad y la restauración de los atributos extendidos, no conservará los metadatos asociados con cada archivo y no podrá procesar los enlaces simbólicos correctamente.
+
+.Configuración de Windows
+Las aplicaciones de copia de seguridad que se ejecutan en un servidor de Microsoft Windows pueden tener un privilegio especial que les permite omitir la seguridad de archivos normal. Esto se realiza normalmente agregando las aplicaciones al grupo Operadores de copia de seguridad. A continuación, las aplicaciones pueden realizar copias de seguridad y restaurar archivos según sea necesario, así como realizar otras operaciones relacionadas con el sistema. Se producen sutiles cambios en el protocolo SMB que utilizan las aplicaciones de backup que ONTAP puede detectar a medida que se leen y escriben los datos.
+
+
+
+=== Requisitos
+
+La función de copia de seguridad Symlink tiene varios requisitos, entre los que se incluyen:
+
+* El clúster ejecuta ONTAP 9.15.1 o una versión posterior.
+* Aplicación de copia de seguridad de Windows a la que se han otorgado privilegios de copia de seguridad especiales.
+* La aplicación de backup también debe admitir atributos ampliados y solicitarlos durante las operaciones de backup.
+* La función de backup de symlink de ONTAP está habilitada para la SVM de datos correspondiente.
+
+
+
+
+=== Opciones de configuración
+
+Además de la interfaz de línea de comandos de ONTAP, también es posible gestionar esta función mediante la API de REST. Consulte https://docs.netapp.com/us-en/ontap-automation/whats-new.html["Novedades de la API de REST DE ONTAP y la automatización"^] para obtener más información. La configuración que determina cómo ONTAP procesa los enlaces simbólicos de estilo Unix se debe realizar por separado en cada SVM.
+
+
+
+== Habilite la función de backup de symlink en ONTAP
+
+Se introdujo una opción de configuración en un comando de la CLI existente con ONTAP 9.15.1. Puede utilizar esta opción para activar o desactivar el procesamiento de enlaces simbólicos de estilo Unix.
+
+.Antes de empezar
+Revise el básico <<Requisitos>>. Además:
+
+* Sea capaz de elevar su privilegio de CLI al nivel avanzado.
+* Determine la SVM de datos que desea modificar. La SVM `vs1` se usa en el comando de ejemplo.
+
+
+.Pasos
+. Establezca el nivel de privilegio avanzado.
++
+[source, cli]
+----
+set privilege advanced
+----
+. Active la copia de seguridad de archivos symlink.
++
+[source, cli]
+----
+vserver cifs options modify -vserver vs1 -is-backup-symlink-enabled true
+----
+
