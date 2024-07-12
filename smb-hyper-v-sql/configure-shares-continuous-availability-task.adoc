@@ -2,7 +2,7 @@
 permalink: smb-hyper-v-sql/configure-shares-continuous-availability-task.html 
 sidebar: sidebar 
 keywords: configure, shares, continuous, availability, hyper, v, sql, server, virutal, machine, database, file 
-summary: Puede modificar los recursos compartidos existentes para que estén siempre disponibles y que los servidores de aplicaciones de Hyper-V y SQL Server utilicen para acceder de forma no disruptiva a los archivos de configuración y de máquinas virtuales de Hyper-V, así como a los archivos de bases de datos de SQL Server. 
+summary: Modifique los recursos compartidos para que estén disponibles continuamente. Los servidores de aplicaciones Hyper-V y SQL Server utilizan para un acceso no disruptivo 
 ---
 = Configure los recursos compartidos existentes para una disponibilidad continua
 :allow-uri-read: 
@@ -42,45 +42,52 @@ No se deben establecer las siguientes propiedades compartidas. Si están present
 .Pasos
 . Mostrar la configuración actual de los parámetros de recursos compartidos y la lista actual de propiedades de recursos compartidos configuradas:
 +
-`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_*`
-
-. Si es necesario, modifique los parámetros del recurso compartido para desactivar los enlaces simbólicos y establezca los archivos offline en manual mediante el `vserver cifs share properties modify` comando.
-+
-Puede deshabilitar los enlaces simbólicos estableciendo el valor de `-symlink` parámetro a. `""`.
-
+[source, cli]
+----
+vserver cifs share show -vserver <vserver_name> -share-name <share_name>
+----
+. Si es necesario, modifique los parámetros de uso compartido para deshabilitar los enlaces simbólicos y establezca los archivos sin conexión en manual mediante `vserver cifs share modify` el comando.
 +
 ** Puede deshabilitar los enlaces simbólicos estableciendo el valor de `-symlink` parámetro a. `""`.
 ** Puede ajustar la `-offline-files` especifique el parámetro en el ajuste correcto `manual`.
 
 
-. Añada el `continuously-available` compartir la propiedad y, si es necesario, la `oplocks` compartir propiedad:
+. Agregue `continuously-available` la propiedad Compartir y, si es necesario, la `oplocks` propiedad Compartir:
 +
-`*vserver cifs share properties add -vserver _vserver_name_ -share-name _share_name_ -share-properties continuously-available[,oplock]*`
-
+[source, cli]
+----
+vserver cifs share properties add -vserver <vserver_name> -share-name <share_name> -share-properties continuously-available[,oplock]
+----
 +
 Si la `oplocks` la propiedad share no está establecida, debe añadirla junto con la `continuously-available` compartir propiedad.
 
 . Quite todas las propiedades de recursos compartidos que no sean compatibles con recursos compartidos disponibles de forma continua:
 +
-`*vserver cifs share properties remove -vserver _vserver_name_ -share-name _share_name_ -share-properties properties[,...]*`
-
+[source, cli]
+----
+vserver cifs share properties remove -vserver <vserver_name> -share-name <share_name> -share-properties properties[,...]
+----
 +
 Puede quitar una o varias propiedades de recursos compartidos si especifica las propiedades de recursos compartidos con una lista delimitada por comas.
 
 . Compruebe que el `-symlink` y.. `-offline-files` los parámetros se ajustan correctamente:
 +
-`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_ -fields symlink-properties,offline-files*`
-
+[source, cli]
+----
+vserver cifs share show -vserver <vserver_name> -share-name <share_name> -fields symlink-properties,offline-files
+----
 . Compruebe que la lista de propiedades de recursos compartidos configuradas es correcta:
 +
-`*vserver cifs shares properties show -vserver _vserver_name_ -share-name share_name*`
-
+[source, cli]
+----
+vserver cifs share properties show -vserver <vserver_name> -share-name <share_name>
+----
 
 
 .Ejemplos
-El siguiente ejemplo muestra cómo configurar un recurso compartido existente llamado «shara1» en la máquina virtual de almacenamiento (SVM) vs1 para NDOS con un servidor de aplicaciones en SMB:
+El siguiente ejemplo muestra cómo configurar un recurso compartido existente denominado «share1» en la máquina virtual de almacenamiento (SVM) «VS1» para NDOS con un servidor de aplicaciones mediante SMB:
 
-* Los enlaces simbólicos se desactivan en el recurso compartido estableciendo la `-symlink` parámetro a "".
+* Los vínculos simbólicos se desactivan en el recurso compartido definiendo `-symlink` el parámetro en `""`.
 * La `-offline-file` el parámetro se modifica y se establece en `manual`.
 * La `continuously-available` la propiedad share se agrega al recurso compartido.
 * La `oplocks` la propiedad share ya está en la lista de propiedades de recurso compartido; por lo tanto, no es necesario añadirla.
