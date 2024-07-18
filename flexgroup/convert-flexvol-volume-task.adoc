@@ -13,12 +13,39 @@ summary: A partir de ONTAP 9.7, se puede realizar una conversión sin movimiento
 [role="lead"]
 A partir de ONTAP 9.7, se puede realizar una conversión sin movimiento de un volumen FlexVol a un volumen FlexGroup sin necesidad de una copia de datos ni de espacio en disco adicional.
 
-.Lo que necesitará
-* Los volúmenes en transición se pueden convertir a volúmenes FlexGroup a partir de ONTAP 9.8. Si va a convertir un volumen que ha realizado la transición a FlexGroup, consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_To_Convert_a_Transitioned_FlexVol_to_FlexGroup["Cómo convertir un FlexVol en FlexGroup que se ha realizado la transición"] si quiere más información.
+.Antes de empezar
+* Los volúmenes en transición se pueden convertir a volúmenes FlexGroup a partir de ONTAP 9.8.
 * El volumen FlexVol que se está convirtiendo debe estar en línea.
 * Las operaciones y configuraciones del volumen FlexVol deben ser compatibles con el proceso de conversión.
 +
-Se genera un mensaje de error si el volumen FlexVol tiene alguna incompatibilidad y se anula la conversión de volumen. Puede tomar acciones correctivas y volver a intentar la conversión.
+Compruebe las siguientes condiciones que pueden impedir que la conversión se realice correctamente:
+
++
+** Se realizó la transición de un volumen de FlexVol desde 7-Mode con 7MTT TB (ONTAP 9,7).
++
+Los volúmenes en transición se pueden convertir a partir de ONTAP 9,8.
+
+** Se habilita algo en el volumen que todavía no es compatible con el volumen FlexGroup; por ejemplo, LUN SAN, Windows NFS, SMB1, nomenclatura/eliminación automática de instantáneas, conjunto de vmalign, SnapLock, SLO de espacio o aplicación/generación de informes de espacio lógico. Para obtener más información, consulte link:supported-unsupported-config-concept.html["Configuraciones para volúmenes de FlexGroup admitidas y no compatibles"].
+** La SVM donde se encuentra el volumen de FlexVol que se va a convertir está utilizando actualmente la Recuperación de desastres de SVM.
+** Los volúmenes FlexClone de NetApp están presentes, y el volumen FlexVol es el volumen principal. El volumen que se está convirtiendo no puede ser un elemento principal ni un clon.
+** El volumen es un volumen de origen NetApp FlexCache.
+** Para ONTAP 9,7 y versiones anteriores, las copias Snapshot de NetApp no deben superar los 255 TB. Para ONTAP 9,8 y versiones posteriores, se admiten 1023 copias Snapshot.
+** Las eficiencias del almacenamiento están habilitadas. Estos deben desactivarse y se pueden volver a activar después de la conversión.
+** El volumen es el origen de una relación de SnapMirror y el destino aún no se ha convertido.
+** El volumen forma parte de una relación de SnapMirror activa (no en modo inactivo).
+** Las cuotas están activadas. Estos deben desactivarse y se pueden volver a activar después de la conversión.
+** Los nombres de volúmenes tienen más de 197 caracteres.
+** El volumen está asociado con una aplicación.
++
+Esto solo se aplica a ONTAP 9,7. La limitación se elimina en ONTAP 9,8.
+
+** En ejecución se ejecutan procesos de ONTAP, como mirroring, tareas, wafliron, backup NDMP, y conversión de inode en proceso.
+** El volumen es un volumen raíz de la SVM.
+** El volumen está demasiado lleno.
++
+Si existe alguna de estas incompatibilidades, se genera un mensaje de error si se cancela el volumen FlexVol y la conversión del volumen. Puede tomar acciones correctivas y volver a intentar la conversión.
+
+
 
 * Si el volumen de FlexVol tiene actualmente una capacidad máxima del 80 % o más, considere la posibilidad de copiar los datos a un volumen de FlexGroup recién creado en lugar de realizar una conversión sin movimiento. Aunque los volúmenes miembro de FlexGroup se reequilibrarán naturalmente con el tiempo, convertir un volumen FlexVol de alta capacidad en un volumen FlexGroup puede crear problemas de rendimiento o de equilibrio que no se reequilibrarán rápidamente entre los volúmenes miembro.
 +

@@ -1,0 +1,131 @@
+---
+sidebar: sidebar 
+permalink: ontap-security-hardening/set-up-certificate-based-api-access.html 
+keywords: tr-4569, ontap hardening guide, security, access, certificate, certificate-authenticated API access 
+summary: Configure la autenticación obligatoria basada en certificado para el acceso de la API de REST o la API de SDK de capacidad de gestión de NetApp a ONTAP en lugar de realizar la autenticación de ID de usuario y contraseña. 
+---
+= Configure el acceso de API basado en certificados
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media
+
+
+[role="lead"]
+En lugar de utilizar la autenticación basada en certificado y el ID de usuario para la API de REST o el acceso de la API de SDK de capacidad de gestión de NetApp para ONTAP.
+
+
+NOTE: Como alternativa a la autenticación basada en certificados para la API de REST, utilice link:../ontap-security-hardening/oauth20-token-based-auth-for-rest-api.html["Autenticación basada en token OAuth 2,0"].)
+
+Puede generar e instalar un certificado autofirmado en ONTAP, tal y como se describe en estos pasos.
+
+.Pasos
+. Con OpenSSL, genere un certificado ejecutando el siguiente comando:
++
+[listing]
+----
+openssl req -x509 -nodes -days 1095 -newkey rsa:2048 -keyout test.key -out test.pem \> -subj "/C=US/ST=NC/L=RTP/O=NetApp/CN=cert_user"
+Generating a 2048 bit RSA private key
+..............+++
+..........................+++
+writing new private key to 'test.key'
+----
++
+Este comando genera un certificado público denominado `test.pem` y una clave privada denominada `key.out`. El nombre común, CN, corresponde al ID de usuario de ONTAP.
+
+. Instale el contenido del certificado público en formato de correo mejorado de privacidad (pem) en ONTAP ejecutando el siguiente comando y pegando el contenido del certificado cuando se le solicite:
++
+[listing]
+----
+security certificate install -type client-ca -vserver cluster1
+
+Please enter Certificate: Press <Enter> when done
+----
+. Active ONTAP para permitir el acceso del cliente a través de SSL y defina el ID de usuario para el acceso a la API.
++
+[listing]
+----
+security ssl modify -vserver cluster1 -client-enabled true
+security login create -user-or-group-name cert_user -application ontapi -authmethod cert -role admin -vserver cluster1
+----
++
+En el siguiente ejemplo, el ID de usuario `cert_user` ahora está habilitado para utilizar acceso a API autenticado con certificado. Un script de Python de SDK de gestión simple que utiliza `cert_user` para mostrar la versión de ONTAP aparece de la siguiente manera:
+
++
+[listing]
+----
+#!/usr/bin/python
+
+import sys
+sys.path.append("/home/admin/netapp-manageability-sdk-9.5/netapp-manageability-sdk-9.5/lib/python/NetApp")
+from NaServer import *
+
+cluster = "cluster1"
+transport = "HTTPS"
+port = 443
+style = "CERTIFICATE"
+cert = "test.pem"
+key = "test.key"
+
+s = NaServer(cluster, 1, 30)
+s.set_transport_type(transport)
+s.set_port(port)
+s.set_style(style)
+s.set_server_cert_verification(0)
+s.set_client_cert_and_key(cert, key)
+
+api = NaElement("system-get-version")
+output = s.invoke_elem(api)
+if (output.results_status() == "failed"):
+    r = output.results_reason()
+    print("Failed: " + str(r))
+    sys.exit(2)
+
+ontap_version = output.child_get_string("version")
+print ("V: " + ontap_version)
+----
++
+El resultado del script muestra la versión de ONTAP.
+
++
+[listing]
+----
+./version.py
+
+V: NetApp Release 9.5RC1: Sat Nov 10 05:13:42 UTC 2018
+----
+. Para realizar una autenticación basada en certificados con la API REST DE ONTAP, complete los siguientes pasos:
++
+.. En ONTAP, defina el ID de usuario para el acceso http:
++
+[listing]
+----
+security login create -user-or-group-name cert_user -application http -authmethod cert -role admin -vserver cluster1
+----
+.. En su cliente Linux, ejecute el siguiente comando que genera la versión de ONTAP como resultado:
++
+[listing]
+----
+curl -k --cert-type PEM --cert ./test.pem --key-type PEM --key ./test.key -X GET "https://cluster1/api/cluster?fields=version"
+{
+    "version": {
+        "full": "NetApp Release 9.7P1: Thu Feb 27 01:25:24 UTC 2020",
+        "generation": 9,
+        "major": 7,
+        "minor": 0
+    },
+    "_links": {
+        "self": {
+            "href": "/api/cluster"
+        }
+    }
+}
+----
+
+
+
+
+.Más información
+* link:https://netapp.io/2016/11/08/certificate-based-authentication-netapp-manageability-sdk-ontap/["Autenticación basada en certificados con el SDK de capacidad de gestión de NetApp para ONTAP"^].
+
