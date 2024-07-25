@@ -1,0 +1,226 @@
+---
+sidebar: sidebar 
+permalink: ontap-security-hardening/sysadmin-methods.html 
+keywords: tr-4569, ontap hardening guide, security, access, encryption, MFA, multi-factor authentication, ssh, MOTD, CLI timeout, SAML access for System Manager, Insights 
+summary: Implemente estos métodos para una administración sólida del sistema ONTAP. 
+---
+= Métodos de administración del sistema
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media
+
+
+[role="lead"]
+Estos son parámetros importantes para fortalecer la administración del sistema ONTAP.
+
+
+
+== Acceso en línea de comandos
+
+Establecer un acceso seguro a los sistemas es una parte fundamental del mantenimiento de una solución segura. Las opciones de acceso a la línea de comandos más comunes son SSH, Telnet y RSH. De estos, SSH es la mejor práctica más segura y estándar en el sector para el acceso remoto en línea de comandos. NetApp recomienda encarecidamente el uso de SSH para el acceso de línea de comandos a la solución ONTAP.
+
+
+
+=== Configuraciones de SSH
+
+El `security ssh show` comando muestra las configuraciones de los algoritmos de intercambio de claves SSH, los cifrados y los algoritmos MAC para el clúster y las SVM. El método de intercambio de claves utiliza estos algoritmos y cifrados para especificar cómo se generan las claves de sesión única para el cifrado y la autenticación y cómo se lleva a cabo la autenticación del servidor.
+
+[listing]
+----
+cluster1::> security ssh show
+
+Vserver       Ciphers       Key Exchange Algorithms     MAC Algorithms
+--------  ----------------  --------------------------  --------------
+nsadhanacluster-2
+                aes256-ctr,   diffie-helman-group-      hmac-sha2-256
+                aes192-ctr,	   exchange-sha256,         hmac-sha2-512
+                aes128-ctr    ecdh-sha2-nistp384
+vs0             aes128-gcm    curve25519-sha256         hmac-sha1
+vs1             aes256-ctr,   diffie-hellman-group-     hmac-sha1-96
+                aes192-ctr,   exchange-sha256           hmac-sha2-256
+                aes128-ctr,   ecdh-sha2-nistp384        hmac-sha2-256-
+				3des-cbc,     ecdh-sha2-nistp512        etm
+				aes128-gcm                              hmac-sha2-512
+3 entries were displayed.
+
+----
+
+
+=== Banners de inicio de sesión
+
+Los banners de inicio de sesión permiten a una organización presentar a cualquier operador, administradores e incluso a los intrusos los términos y condiciones de uso aceptable, e indican a quién se le permite acceder al sistema. Este enfoque es útil para establecer las expectativas de acceso y uso del sistema. El `security login banner modify` comando modifica el banner de inicio de sesión. El banner de inicio de sesión se muestra justo antes del paso de autenticación durante el proceso de inicio de sesión del dispositivo de la consola y SSH. El texto del banner debe estar entre comillas dobles (“ ”), como se muestra en el siguiente ejemplo.
+
+[listing]
+----
+cluster1::> security login banner modify -vserver cluster1 -message “Authorized users ONLY!”
+----
+
+
+=== Parámetros del banner de inicio de sesión
+
+[cols="19%,81%"]
+|===
+| Parámetro | Descripción 
+
+
+| `vserver` | Use este parámetro para especificar la SVM con el banner modificado. Utilice el nombre de la SVM de administrador del clúster para modificar el mensaje de nivel del clúster. El mensaje del nivel del clúster se usa como predeterminado para las SVM de datos que no tienen un mensaje definido. 
+
+
+| `message`  a| 
+Este parámetro opcional se puede usar para especificar un mensaje de banner de inicio de sesión. Si el clúster tiene establecido un mensaje de banner de inicio de sesión, todas las SVM de datos también utilizan el banner de inicio de sesión del clúster. Al configurar el banner de inicio de sesión de una SVM de datos, se anula la visualización del banner de inicio de sesión del clúster. Para restablecer un banner de inicio de sesión de SVM de datos y usar el banner de inicio de sesión del clúster, use este parámetro con el valor «-».
+
+Si utiliza este parámetro, el banner de inicio de sesión no puede contener nuevas líneas (también conocidas como ends of lines [EOLs] o saltos de línea). Para introducir un mensaje de banner de inicio de sesión con nuevas líneas, no especifique ningún parámetro. Se le pedirá que introduzca el mensaje de forma interactiva. Los mensajes introducidos de forma interactiva pueden contener nuevas líneas.
+
+Los caracteres no ASCII deben utilizar Unicode UTF-8.
+
+
+
+| `uri`  a| 
+`(ftp|http)://(hostname|IPv4`
+
+Utilice este parámetro para especificar el URI desde el cual se descarga el banner de inicio de sesión.
+
+El mensaje no debe superar los 2048 bytes de longitud. Los caracteres no ASCII se deben proporcionar como Unicode UTF-8.
+
+|===
+
+
+=== Mensaje del día
+
+El `security login motd modify` comando actualiza el mensaje del día (MOTD).
+
+Hay dos categorías de MOTD: El MOTD a nivel de clúster y el MOTD a nivel de SVM de datos. Un usuario que inicie sesión en el clustershell de una SVM de datos puede ver dos mensajes: El MOTD a nivel de clúster seguido por el MOTD a nivel de SVM para esa SVM.
+
+El administrador del clúster puede habilitar o deshabilitar el MOTD a nivel de clúster en cada SVM de forma individual si es necesario. Si el administrador del clúster deshabilita el MOTD a nivel de clúster para una SVM, el usuario que inicie sesión en la SVM no verá el mensaje a nivel de clúster. Solo un administrador del clúster puede habilitar o deshabilitar el mensaje a nivel del clúster.
+
+[cols="22%,78%"]
+|===
+| Parámetro MOTD | Descripción 
+
+
+| Vserver | Utilice este parámetro para especificar la SVM para la que se modifica el MOTD. Utilice el nombre de la SVM de administrador del clúster para modificar el mensaje de nivel del clúster. 
+
+
+| mensaje  a| 
+Este parámetro opcional se puede utilizar para especificar un mensaje. Si utiliza este parámetro, MOTD no puede contener nuevas líneas. Si no especifica ningún parámetro que no sea el `-vserver` parámetro, se le pedirá que introduzca el mensaje de forma interactiva. Los mensajes introducidos de forma interactiva pueden contener nuevas líneas. Los caracteres no ASCII se deben proporcionar como Unicode UTF-8. El mensaje puede contener contenido generado dinámicamente mediante las siguientes secuencias de escape:
+
+* `\\` - Un solo carácter de contragolpe
+* `\b` - Sin salida (compatible solo con Linux)
+* `\C` - Nombre del clúster
+* `\d` - Fecha actual como se establece en el nodo de inicio de sesión
+* `\t` - Hora actual como se establece en el nodo de inicio de sesión
+* `\I` - Dirección IP de LIF entrante (imprime la consola para un `console` inicio de sesión)
+* `\l` - Nombre del dispositivo de inicio de sesión (imprime la consola para un `console` inicio de sesión)
+* `\L` - Último login para el usuario en cualquier nodo del cluster
+* `\m` - Arquitectura de la máquina
+* `\n` - Nodo o nombre de SVM de datos
+* `\N` - Nombre del usuario que inicia sesión
+* `\o` - Igual que \O. Suministrado para compatibilidad con Linux.
+* `\O` - Nombre de dominio DNS del nodo. Tenga en cuenta que la salida depende de la configuración de red y puede estar vacía.
+* `\r` - Número de versión de software
+* `\s` - Nombre del sistema operativo
+* `\u` - Número de sesiones de clustershell activas en el nodo local. Para el administrador de clúster: Todos los usuarios de clustershell. Para el administrador de SVM de datos: Solo sesiones activas para esa SVM de datos.
+* `\U` - Igual que `\u`, pero tiene `user` o `users` anexado
+* `\v` - Cadena efectiva de la versión del clúster
+* `\W` - Sesiones activas en todo el clúster para el usuario que inicia sesión (`who`)
+
+
+|===
+Para obtener más información sobre la configuración del mensaje del día en ONTAP, consulte la link:https://docs.netapp.com/us-en/ontap/system-admin/manage-banner-motd-concept.html["Documentación de ONTAP sobre el mensaje del día"].
+
+
+
+=== Tiempo de espera de sesión de la CLI
+
+El tiempo de espera predeterminado de la sesión de la CLI es de 30 minutos. El tiempo de espera es importante para evitar sesiones obsoletas y el respaldo continuo de sesiones.
+
+Utilice `system timeout show` el comando para ver el tiempo de espera actual de la sesión de la CLI. Para configurar el valor de tiempo de espera, utilice `system timeout modify -timeout <minutes>` el comando.
+
+
+
+== Acceso web con System Manager de NetApp ONTAP
+
+Si un administrador de ONTAP prefiere usar una interfaz gráfica en lugar de la CLI para acceder a un clúster y gestionarlo, use el administrador del sistema de NetApp ONTAP. Se incluye con ONTAP como servicio web, habilitado de forma predeterminada, y accesible mediante un navegador. Dirija el navegador al nombre de host si utiliza DNS o la dirección IPv4 o IPv6 a través de `https://cluster-management-LIF`.
+
+Si el clúster utiliza un certificado digital autofirmado, es posible que el explorador muestre una advertencia que indica que el certificado no es de confianza. Puede reconocer el riesgo para continuar con el acceso o instalar un certificado digital firmado por una entidad de certificación (CA) en el clúster para la autenticación del servidor.
+
+A partir de ONTAP 9,3, la autenticación del lenguaje de marcado de aserción de seguridad (SAML) es una opción para ONTAP System Manager.
+
+
+
+=== Autenticación SAML para ONTAP System Manager
+
+SAML 2,0 es un estándar de la industria ampliamente adoptado que permite a cualquier proveedor de identidad (IDP) que cumpla con SAML de terceros realizar MFA utilizando mecanismos únicos para el IDP que elija la empresa y como fuente de inicio de sesión único (SSO).
+
+Hay tres roles definidos en la especificación SAML: El principal, el IdP y el proveedor de servicios. En la implementación de ONTAP, un principal es el administrador del clúster que obtiene acceso a ONTAP mediante ONTAP System Manager o NetApp Active IQ Unified Manager. El IdP es un software IdP de terceros. A partir de ONTAP 9,3, los Servicios Federados de Active Directory de Microsoft (ADFS) y el IdP de código abierto Shibboleth son compatibles. A partir de ONTAP 9.12.1, Cisco DUO es un IDP compatible. El proveedor de servicios es la funcionalidad SAML integrada en ONTAP que utiliza ONTAP System Manager o la aplicación web Active IQ Unified Manager.
+
+A diferencia del proceso de configuración de dos factores de SSH, una vez que se activa la autenticación SAML, el acceso de ONTAP System Manager o Service Processor de ONTAP requiere que todos los administradores existentes se autentiquen mediante el IdP de SAML. No es necesario realizar cambios en las cuentas de usuario del clúster. Cuando se habilita la autenticación SAML, se añade un nuevo método de autenticación de `saml` a los usuarios existentes con roles de administrador para `http` y `ontapi` aplicaciones.
+
+Una vez habilitada la autenticación SAML, es necesario definir cuentas nuevas adicionales que requieren acceso SAML IdP en ONTAP con el rol de administrador y el método de autenticación saml para `http` las aplicaciones y `ontapi` . Si la autenticación SAML está deshabilitada en algún momento, estas cuentas nuevas requieren que el `password` método de autenticación se defina con el rol de administrador para `http` las aplicaciones y `ontapi` y la adición de la aplicación de consola para la autenticación ONTAP local en el administrador de sistema de ONTAP.
+
+Una vez habilitado el IdP de SAML, el IdP realiza la autenticación para el acceso de ONTAP System Manager mediante los métodos disponibles para IdP, como el protocolo ligero de acceso a directorios (LDAP), Active Directory (AD), Kerberos, contraseña, etc. Los métodos disponibles son únicos para el IdP. Es importante que las cuentas configuradas en ONTAP tengan ID de usuario que se asignen a los métodos de autenticación de IdP.
+
+Los IDP validados por NetApp son Microsoft ADFS, Cisco DUO y Shibboleth IDP de código abierto.
+
+A partir de ONTAP 9.14.1, Cisco DUO se puede utilizar como un segundo factor de autenticación para SSH.
+
+Para obtener más información sobre MFA para el administrador del sistema de ONTAP, Active IQ Unified Manager y SSH, consulte link:http://www.netapp.com/us/media/tr-4647.pdf["TR-4647: Autenticación multifactor en ONTAP 9"^].
+
+
+
+=== Información de System Manager de ONTAP
+
+A partir de ONTAP 9.11.1, System Manager de ONTAP proporciona información para ayudar a los administradores de clúster a simplificar sus tareas diarias. La información sobre seguridad se basa en las recomendaciones de este informe técnico.
+
+[cols="43%,57%"]
+|===
+| Información sobre seguridad | Determinación 
+
+
+| Telnet está activado | NetApp recomienda Secure Shell (SSH) para el acceso remoto seguro. 
+
+
+| Shell remoto (RSH) está activado | NetApp recomienda SSH para un acceso remoto seguro. 
+
+
+| AutoSupport está utilizando un protocolo no seguro | AutoSupport no está configurado para ser enviado a través de enlace:HTTPS. 
+
+
+| El banner de inicio de sesión no está configurado en el clúster a nivel del clúster | Advertencia si el banner de inicio de sesión no está configurado para el clúster. 
+
+
+| SSH está utilizando cifrados no seguros | Advertencia si SSH utiliza cifrados no seguros. 
+
+
+| Hay muy pocos servidores NTP configurados | Advertencia si el número de servidores NTP configurados es inferior a tres. 
+
+
+| El usuario administrador predeterminado no está bloqueado | Cuando no se utiliza ninguna cuenta administrativa predeterminada (admin o diag) para iniciar sesión en System Manager y estas cuentas no están bloqueadas, la recomendación es bloquearlas. 
+
+
+| Defensa contra ransomware: Los volúmenes no tienen políticas Snapshot | No hay una política de Snapshot adecuada anexada a uno o varios volúmenes. 
+
+
+| Protección contra ransomware: Desactiva la eliminación automática de SnapVault | La eliminación automática de Snapshot se establece para uno o varios volúmenes. 
+
+
+| No se supervisan los volúmenes de ataques de ransomware | Diversos volúmenes son compatibles con la protección contra ransomware autónoma, pero no configurados todavía. 
+
+
+| Las SVM no están configuradas para la protección autónoma contra ransomware | La protección autónoma contra ransomware es compatible con varias SVM, pero aún no configurada. 
+
+
+| FPolicy nativo no configurado | FPolicy no está establecido para SVM NAS. 
+
+
+| Habilita el modo activo de protección autónoma contra ransomware | Varios volúmenes completaron el modo de aprendizaje y se puede activar el modo activo 
+
+
+| El cumplimiento de la normativa global FIPS 140-2 está desactivado | El cumplimiento de la normativa global FIPS 140-2 no está activado. 
+
+
+| El clúster no está configurado para notificaciones | Los correos electrónicos, los WebHooks o los hosts de capturas de SNMP no están configurados para recibir notificaciones. 
+|===
+Para obtener más información acerca de los detalles de ONTAP System Manager, consulte la link:https://docs.netapp.com/us-en/ontap/insights-system-optimization-task.html#view-optimization-insights["Documentación de información de System Manager de ONTAP"].

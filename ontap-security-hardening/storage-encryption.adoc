@@ -1,0 +1,78 @@
+---
+sidebar: sidebar 
+permalink: ontap-security-hardening/storage-encryption.html 
+keywords: tr-4569, ontap hardening guide, security, encryption, FIPS, FIPS 140-2, NVE, NAE, NSE, CSfC, NetApp Storage Encryption, NetApp Volume Encryption, NetApp Aggregate Encryption, Onboard Key Manager, External Key Manager, CryptoMod, FIPS-140-2, data at rest encryption 
+summary: El cifrado de almacenamiento de NetApp basado en hardware o el cifrado de volúmenes de NetApp/cifrado de agregados de NetApp basado en software protegen los datos confidenciales. 
+---
+= Cifrado del almacenamiento
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media
+
+
+[role="lead"]
+Para proteger los datos confidenciales en caso de que un disco sea robado, devuelto o reasignado mediante el cifrado de almacenamiento de NetApp basado en hardware o el cifrado de volúmenes de NetApp basado en software/el cifrado de agregados de NetApp. Ambos mecanismos son validados FIPS-140-2 y cuando se utilizan mecanismos basados en hardware con mecanismos basados en software, la solución califica para el programa de soluciones comerciales para clasificados (CSfC). Permite una protección de seguridad mejorada para los datos secretos y secretos en reposo, tanto a nivel de hardware como de software.
+
+El cifrado de datos en reposo es importante para proteger los datos confidenciales en caso de robo, devolución o reasignación de un disco.
+
+ONTAP 9 cuenta con tres soluciones de cifrado de datos en reposo conforme a la normativa FIPS 140-2:
+
+* El cifrado en almacenamiento de NetApp (NSE) es una solución de hardware que usa unidades de autocifrado.
+* El cifrado de volúmenes de NetApp (NVE) es una solución de software que permite el cifrado de cualquier volumen de datos en cualquier tipo de unidad, donde se habilita con una clave única para cada volumen.
+* El cifrado de agregados de NetApp (NAE) es una solución de software que permite el cifrado de cualquier volumen de datos en cualquier tipo de unidad, donde se habilita con claves únicas para cada agregado.
+
+
+NSe, NVE y NAE pueden usar la gestión de claves externa o el gestor de claves incorporado (OKM). El uso de NSE, NVE y NAE no afecta a las funciones de eficiencia del almacenamiento de ONTAP. Sin embargo, los volúmenes NVE se excluyen de la deduplicación de agregados. Los volúmenes NAE participan en la deduplicación agregada y se benefician de ella.
+
+OKM proporciona una solución de cifrado independiente para datos en reposo con NSE, NVE o NAE.
+
+NVE, NAE y OKM usan el CryptoMod de ONTAP. CryptoMod aparece en la lista CMVP de módulos validados FIPS 140-2-2. Consulte link:https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/4144["Certificado FIPS 140-2 n.o 4144"^].
+
+Para iniciar la configuración de OKM, utilice el `security key-manager onboard enable` comando. Para configurar gestores de claves del protocolo de interoperabilidad de gestión de claves (KMIP) externas, utilice `security key-manager external enable` el comando. A partir de ONTAP 9,6, se admite el multi-tenancy para los gestores de claves externos. Utilice el `-vserver <vserver name>` parámetro para habilitar la gestión de claves externa para una SVM específica. Antes de 9,6, el `security key-manager setup` comando se utilizaba para configurar OKM y gestores de claves externos. Para la gestión de claves incorporada, esta configuración guía al operador o administrador a través de la configuración de la clave de acceso y los parámetros adicionales para la configuración de OKM.
+
+En el siguiente ejemplo se proporciona una parte de la configuración:
+
+[listing]
+----
+cluster1::> security key-manager setup
+Welcome to the key manager setup wizard, which will lead you through
+the steps to add boot information.
+
+Enter the following commands at any time
+"help" or "?" if you want to have a question clarified,
+"back" if you want to change your answers to previous questions, and
+"exit" if you want to quit the key manager setup wizard. Any changes
+you made before typing "exit" will be applied.
+
+Restart the key manager setup wizard with "security key-manager setup". To accept a default
+or omit a question, do not enter a value.
+
+Would you like to configure onboard key management? {yes, no} [yes]:
+Enter the cluster-wide passphrase for onboard key management. To continue the configuration, enter the passphrase, otherwise
+type "exit":
+Re-enter the cluster-wide passphrase:
+After configuring onboard key management, save the encrypted configuration data
+in a safe location so that you can use it if you need to perform a manual recovery
+operation. To view the data, use the “security key-manager backup show” command.
+----
+A partir de ONTAP 9,4, puede utilizar `-enable-cc-mode` la opción true con `security key-manager setup` para solicitar que los usuarios introduzcan la frase de acceso después de un reinicio. Para ONTAP 9,6 y versiones posteriores, la sintaxis del comando es `security key-manager onboard enable -cc-mode-enabled yes`.
+
+A partir de ONTAP 9,4, se puede utilizar esta `secure-purge` función con privilegios avanzados para «restregar» datos de forma no disruptiva en los volúmenes habilitados para NVE. El barrido de datos en un volumen cifrado garantiza que no puedan recuperarse del medio físico. El siguiente comando purga de forma segura los archivos eliminados en vol1 en la SVM VS1:
+
+[listing]
+----
+cluster1::> volume encryption secure-purge start -vserver vs1 -volume vol1
+----
+A partir de ONTAP 9,7, NAE y NVE se habilitan de forma predeterminada si la licencia VE está vigente, se configuran OKM o los gestores de claves externos y NSE no se utiliza. Los volúmenes NAE se crean de forma predeterminada en los agregados de NAE, y los volúmenes NVE se crean de forma predeterminada en agregados no NAE. Para anular esto, introduzca el siguiente comando:
+
+[listing]
+----
+cluster1::*> options -option-name encryption.data_at_rest_encryption.disable_by_default true
+----
+A partir de ONTAP 9,6, se puede usar un ámbito de SVM para configurar la gestión de claves externa para una SVM de datos en el clúster. Esto es mejor para entornos multi-tenant en los que cada inquilino utiliza un SVM diferente (o un conjunto de SVM) para servir datos. Solo el administrador de SVM para un inquilino determinado tiene acceso a las claves de ese inquilino. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/enable-external-key-management-96-later-nve-task.html["Habilite la gestión de claves externa en ONTAP 9,6 y versiones posteriores"] en la documentación de ONTAP.
+
+A partir de ONTAP 9.11.1, puede configurar la conectividad con servidores de gestión de claves externos en clúster mediante la designación de servidores de claves primarios y secundarios en una SVM. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/configure-cluster-key-server-task.html["configurar servidores de claves externas en clúster"] en la documentación de ONTAP.
+
+A partir de ONTAP 9.13.1, es posible configurar servidores del administrador de claves externos en System Manager. Para obtener más información, consulte link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/manage-external-key-managers-sm-task.html["Gestione gestores de claves externos"] en la documentación de ONTAP.
