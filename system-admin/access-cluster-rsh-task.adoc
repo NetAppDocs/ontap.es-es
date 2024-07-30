@@ -20,14 +20,6 @@ Para poder utilizar RSH, se deben cumplir las siguientes condiciones:
 +
 La `-application` parámetro de `security login` los comandos especifican el método de acceso para una cuenta de usuario. Para obtener más información, consulte `security login` páginas de manual.
 
-* RSH ya debe estar habilitado en la directiva de firewall de gestión que utilizan las LIF de administración de clúster o nodo para que las solicitudes RSH puedan atravesar el firewall.
-+
-De forma predeterminada, RSH está desactivado. La `system services firewall policy show` con el `-service rsh` Parámetro muestra si RSH se ha habilitado en una directiva de firewall. Para obtener más información, consulte `system services firewall policy` páginas de manual.
-
-* Si utiliza conexiones IPv6, IPv6 ya debe estar configurado y habilitado en el clúster, y las políticas de firewall ya deben estar configuradas con direcciones IPv6.
-+
-La `network options ipv6 show` Command muestra si IPv6 está habilitado. La `system services firewall policy show` comando muestra las directivas de firewall.
-
 
 
 .Acerca de esta tarea
@@ -40,20 +32,35 @@ Debe considerar utilizar SSH para acceder al clúster. SSH proporciona un shell 
 Si el LIF de gestión del clúster reside en el nodo, comparte este límite con la LIF de gestión del nodo.
 
 +
-Si la tasa de conexiones próximas es superior a 10 por segundo, el servicio se deshabilitará temporalmente durante 60 segundos.
+Si la tasa de conexiones entrantes es superior a 10 por segundo, el servicio se deshabilitará temporalmente durante 60 segundos.
 
+* Los comandos RSH requieren privilegios avanzados.
 
 
 .Pasos
-. Desde un host de administración, introduzca el siguiente comando:
+. Confirme que el protocolo de seguridad RSH está activado:
 +
-`*rsh _hostname_or_IP_ -l _username:passwordcommand_*`
+`security protocol show`
 
 +
-`_hostname_or_IP_` Es el nombre de host o la dirección IP de la LIF de gestión de clústeres o una LIF de gestión de nodos. Se recomienda utilizar la LIF de gestión del clúster. Es posible usar una dirección IPv4 o IPv6.
+.. Si el protocolo de seguridad RSH está activado, continúe con el siguiente paso.
+.. Si el protocolo de seguridad RSH no está habilitado, utilice el siguiente comando para activarlo:
++
+`security protocol modify -application rsh -enabled true`
+
+
+
+. Confirme que `management-rsh-server` el servicio existe en las LIF de gestión:
++
+`network interface show -services management-rsh-server`
 
 +
-`_command_` Es el comando que desea ejecutar a través de RSH.
+.. Si el `management-rsh-server` servicio existe, continúe con el siguiente paso.
+.. Si el `management-rsh-server` servicio no existe, utilice el siguiente comando para agregarlo:
++
+`network interface service-policy add-service -vserver cluster1 -policy default-management -service management-rsh-server`
+
+
 
 
 
