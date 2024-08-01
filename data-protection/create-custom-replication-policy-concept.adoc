@@ -13,7 +13,7 @@ summary: Puede crear una directiva de replicación personalizada si la directiva
 [role="lead"]
 Puede crear una directiva de replicación personalizada si la directiva predeterminada para una relación no es adecuada. Puede que desee comprimir datos en una transferencia de red, por ejemplo, o modificar el número de intentos que realiza SnapMirror para transferir copias Snapshot.
 
-Puede usar una directiva predeterminada o personalizada al crear una relación de replicación. Para un archivo personalizado (anteriormente SnapVault) o una política de replicación unificada, debe definir una o más _rules_ que determinen qué copias Snapshot se transfieren durante la inicialización y la actualización. También es posible que desee definir una programación para crear copias Snapshot locales en el destino.
+Puede usar una directiva predeterminada o personalizada al crear una relación de replicación. Para un archivo personalizado (anteriormente SnapVault) o una política de replicación unificada, debe definir una o más _rules_ que determinen qué copias snapshot se transfieren durante la inicialización y actualización. También se recomienda definir una programación para crear copias de Snapshot locales en el destino.
 
 El _policy type_ de la directiva de replicación determina el tipo de relación que admite. En la siguiente tabla se muestran los tipos de directivas disponibles.
 
@@ -63,11 +63,34 @@ SnapMirror Synchronous en el modo Sync (admitido empezando por ONTAP 9.5)
 Al crear una directiva de replicación personalizada, es una buena idea modelar la directiva después de una directiva predeterminada.
 
 ====
-.Paso
+.Pasos
+Puede crear políticas de protección de datos personalizadas con System Manager o la interfaz de línea de comandos de ONTAP. A partir de ONTAP 9.11.1, puede usar System Manager para crear políticas de mirroring y almacén personalizadas, y para mostrar y seleccionar políticas heredadas. Esta función también está disponible en ONTAP 9.8P12 y en parches posteriores de ONTAP 9.8.
+
+Cree políticas de protección personalizadas en los clústeres de origen y destino.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Haga clic en *Protección > Configuración de directiva local*.
+. En *Políticas de protección*, haga clic en image:icon_arrow.gif["Icono de flecha"].
+. En el panel *Políticas de protección*, haga clic en image:icon_add.gif["Icono Agregar"].
+. Escriba el nombre de la nueva política y seleccione el alcance de la misma.
+. Elija un tipo de política. Para agregar una directiva sólo de almacén o sólo de duplicación, seleccione *asíncrona* y haga clic en *utilizar un tipo de directiva heredada*.
+. Complete los campos obligatorios.
+. Haga clic en *Guardar*.
+. Repita estos pasos en el otro clúster.
+
+
+--
+.CLI
+--
 . Cree una política de replicación personalizada:
 +
-`snapmirror policy create -vserver _SVM_ -policy _policy_ -type async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror -comment _comment_ -tries _transfer_tries_ -transfer-priority low|normal -is-network-compression-enabled true|false`
-
+[source, cli]
+----
+snapmirror policy create -vserver <SVM> -policy _policy_ -type <async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror> -comment <comment> -tries <transfer_tries> -transfer-priority <low|normal> -is-network-compression-enabled <true|false>
+----
 +
 Para obtener una sintaxis de comando completa, consulte la página man.
 
@@ -112,3 +135,6 @@ cluster_dst::> snapmirror policy create -vserver svm1 -policy my_strictsync -typ
 En el caso de los tipos de políticas «'vault» y «mercado», deberá definir las reglas que determinen las copias snapshot que se transfieren durante la inicialización y actualización.
 
 Utilice la `snapmirror policy show` Comando para comprobar que la política de SnapMirror se ha creado. Para obtener una sintaxis de comando completa, consulte la página man.
+
+--
+====

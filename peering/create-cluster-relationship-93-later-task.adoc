@@ -2,7 +2,7 @@
 permalink: peering/create-cluster-relationship-93-later-task.html 
 sidebar: sidebar 
 keywords: create, cluster, peer, relationship 
-summary: Es posible usar el comando cluster peer create o System Manager para crear una relación entre iguales entre un clúster local y remoto. Después de crear la relación entre iguales, puede repetir la tarea en el clúster remoto para autenticarla en el clúster local. 
+summary: Cree una relación de paridad de clústeres entre un clúster local y remoto antes de proteger los datos replicándolo en un clúster remoto para fines de backup de datos y recuperación ante desastres. 
 ---
 = Cree una relación de paridad entre clústeres
 :allow-uri-read: 
@@ -11,10 +11,18 @@ summary: Es posible usar el comando cluster peer create o System Manager para cr
 
 
 [role="lead"]
-Puede utilizar el `cluster peer create` comando para crear una relación entre iguales entre un clúster local y remoto. Una vez creada la relación de paridad, puede ejecutarse `cluster peer create` en el clúster remoto para autenticarse en el clúster local.
+Para poder proteger sus datos replicándolos en un clúster remoto con fines de backup de datos y recuperación ante desastres, debe crear una relación de paridad de clústeres entre el clúster local y el remoto.
+
+Existen varias políticas de protección predeterminadas disponibles. Debe haber creado las políticas de protección si desea usar políticas personalizadas.
 
 .Antes de empezar
-* Debe haber creado LIF de interconexión de clústeres en todos los nodos de los clústeres que se están interponiendo.
+* Si utiliza la CLI de ONTAP, debe haber creado LIF de interconexión de clústeres en cada nodo de los clústeres en relación de paridad usando uno de los siguientes métodos:
++
+** link:configure-intercluster-lifs-share-data-ports-task.html["Configure las LIF de interconexión de clústeres en puertos de datos compartidos"]
+** link:configure-intercluster-lifs-use-dedicated-ports-task.html["Configure LIF de interconexión de clústeres en puertos de datos dedicados"]
+** link:configure-intercluster-lifs-use-ports-own-networks-task.html["Configure las LIF de interconexión de clústeres en espacios IP personalizados"]
+
+
 * Los clústeres deben ejecutar ONTAP 9.3 o una versión posterior. (Si los clústeres ejecutan ONTAP 9.2 o una versión anterior, consulte los procedimientos en link:https://library.netapp.com/ecm/ecm_download_file/ECMLP2494079["este documento archivado"^].)
 
 
@@ -26,7 +34,7 @@ Lleve a cabo esta tarea mediante System Manager de ONTAP o la interfaz de línea
 .System Manager
 --
 . En el clúster local, haga clic en *Clúster > Configuración*.
-. En la sección *Intercluster Settings*, haga clic en *Add Network Interfaces* y agregue interfaces de red de interconexión de clústeres para el clúster.
+. En la sección *Intercluster Settings*, haga clic en *Add Network Interfaces* e introduzca la dirección IP y la máscara de subred para agregar interfaces de red de interconexión de clústeres para el cluster.
 +
 Repita este paso en el clúster remoto.
 
@@ -45,7 +53,7 @@ Repita este paso en el clúster remoto.
 +
 [source, cli]
 ----
-cluster peer create -generate-passphrase -offer-expiration <MM/DD/YYYY HH:MM:SS>|1...7days|1...168hours -peer-addrs <peer_LIF_IPs > -initial-allowed-vserver-peers <svm_name>|* -ipspace <ipspace>
+cluster peer create -generate-passphrase -offer-expiration <MM/DD/YYYY HH:MM:SS|1...7days|1...168hours> -peer-addrs <peer_LIF_IPs> -initial-allowed-vserver-peers <svm_name|*> -ipspace <ipspace>
 ----
 +
 Si especifica ambas `-generate-passphrase` y.. `-peer-addrs`, Sólo el clúster cuyas LIF de interconexión de clústeres se especifican en `-peer-addrs` puede utilizar la contraseña generada.
@@ -194,9 +202,6 @@ cluster01-02
 [cols="2"]
 |===
 | Para ejecutar estas tareas con... | Ver este contenido... 
-
-
-| System Manager rediseñado (disponible con ONTAP 9.7 y versiones posteriores) | link:https://docs.netapp.com/us-en/ontap/task_dp_prepare_mirror.html["Prepare el mirroring y el almacenamiento"^] 
 
 
 | System Manager Classic (disponible con ONTAP 9.7 y versiones anteriores) | link:https://docs.netapp.com/us-en/ontap-system-manager-classic/volume-disaster-prep/index.html["Información general de preparación para la recuperación ante desastres de volúmenes"^] 
