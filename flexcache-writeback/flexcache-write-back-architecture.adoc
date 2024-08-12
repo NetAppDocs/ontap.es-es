@@ -1,0 +1,121 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-architecture.html 
+sidebar: sidebar 
+keywords: tr-4743, flexcache writeback, flexcache write-back, flexcache, write-back, write back, lock delegations, data delegations, dirty data, cache scrubbers, disconnected mode, grok it, sequence diagrams, technical report, netapp tr, ontap tr 
+summary: Conozca los detalles más precisos sobre cómo funciona la funcionalidad de escritura-back de FlexCache. 
+---
+= Arquitectura de reescritura de FlexCache
+:allow-uri-read: 
+
+
+[role="lead"]
+Las escrituras en torno a FlexCache se diseñaron teniendo en cuenta la consistencia. Tanto el modo de funcionamiento de escritura simultánea tradicional como el nuevo modo de funcionamiento de escritura inversa introducido en ONTAP 9.15.1 garantizan que los datos a los que se acceda siempre sean 100 % consistentes, actuales y coherentes.
+
+Los siguientes conceptos detallan cómo funciona la reescritura de FlexCache.
+
+
+
+== Delegaciones
+
+Las delegaciones en bloqueo y delegaciones de datos ayudan a FlexCache a mantener tanto los datos almacenados en caché de escritura inversa como de escritura inversa consistentes, coherentes y actualizados. El origen orquesta ambas delegaciones.
+
+
+
+=== Bloquear delegaciones
+
+Una delegación de bloqueo es una autoridad de bloqueo a nivel de protocolo que el origen otorga por archivo a una caché para emitir bloqueos de protocolo a los clientes según sea necesario. Estos incluyen xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Delegaciones de bloqueo exclusivo (XLD)] y xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Delegaciones de bloqueo compartido (SLD)].
+
+.XLD y reescritura
+Para garantizar que ONTAP nunca tenga que conciliar una escritura en conflicto, se concede un XLD a una caché en la que un cliente solicita escribir en un archivo. Es importante destacar que solo puede existir un XLD para cualquier archivo en cualquier momento, lo que significa que nunca habrá más de un escritor a un archivo a la vez.
+
+Cuando la solicitud de escritura en un archivo entra en una caché habilitada para escritura, se realizan los siguientes pasos:
+
+. La caché comprueba si ya tiene un XLD para el archivo solicitado. En ese caso, concederá el bloqueo de escritura al cliente mientras otro cliente no escriba en el archivo de la caché. Si la caché no tiene un XLD para el archivo solicitado, solicitará uno desde el origen. Esta es una llamada exclusiva que atraviesa la red de interconexión de clústeres.
+. Al recibir la solicitud XLD de la caché, el origen comprobará si hay un XLD pendiente para el archivo en otra caché. Si es así, recordará el XLD de ese archivo, lo que desencadena un vaciado de cualquiera de xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[datos con errores] esa caché de vuelta al origen.
+. Una vez que los datos desfasados de esa caché se vacíen y se confirmen en el almacenamiento estable en el origen, el origen otorgará el XLD para el archivo a la caché solicitante.
+. Una vez recibido el XLD del archivo, la caché otorga el bloqueo al cliente, y se inicia la escritura.
+
+
+En el diagrama de secuencia se trata un diagrama de secuencia de alto nivel que cubre algunos de estos pasos <<write-back-sequence-diagram>> .
+
+Desde el punto de vista del cliente, todo el bloqueo funcionará como si se escribiera en un FlexVol o una FlexGroup estándar con un retraso potencial pequeño cuando se solicite el bloqueo de escritura.
+
+En su iteración actual, si una caché habilitada para escritura contiene el XLD para un archivo, ONTAP bloqueará *cualquier* acceso a ese archivo en otras cachés, incluidas `READ` las operaciones.
+
+
+NOTE: Hay un límite de 170 XLDs por componente de origen.
+
+
+
+=== Delegaciones de datos
+
+Una delegación de datos es una garantía por archivo dada a una caché por el origen que indica que los datos almacenados en caché para ese archivo están actualizados. Siempre que la caché tenga una delegación de datos para un archivo, puede proporcionar los datos almacenados en caché para ese archivo al cliente sin tener que ponerse en contacto con el origen. Si la caché no tiene una delegación de datos para el archivo, debe ponerse en contacto con el origen para recibir los datos solicitados por el cliente.
+
+En el modo de reescritura, la delegación de datos de un archivo se revoca si se toma un XLD para ese archivo en otra caché o en el origen. Esto aísla eficazmente el archivo de los clientes en el resto de cachés y el origen, incluso para las lecturas. Esta es una compensación que debe hacerse para garantizar que nunca se acceda a los datos antiguos.
+
+Las lecturas en una caché de retroescritura habilitada generalmente funcionan como lecturas en una caché de escritura inversa. En las cachés de escritura simultánea y de retroescritura habilitada, es posible que haya un acierto de rendimiento inicial `READ` cuando el archivo solicitado tenga un bloqueo de escritura exclusivo en una caché de retroescritura habilitada distinta de la ubicación en la que se emite la lectura. El XLD tiene que ser revocado y los datos desfasados deben ser confirmados en el origen antes de que la lectura en la otra caché pueda ser reparada.
+
+
+
+== Seguimiento de datos sucios
+
+La reescritura de la caché al origen se produce de forma asíncrona. Esto significa que los datos desfasados no se vuelven a escribir inmediatamente en el origen. ONTAP emplea un sistema de registros de datos sucio para realizar un seguimiento de los datos desfasados por archivo. Cada registro de datos sucios (DDR) representa aproximadamente 20MB GB de datos sucios para un archivo en particular. Cuando un archivo se está escribiendo activamente, ONTAP comenzará a vaciar los datos sucios después de que se hayan llenado dos DDR y se haya escrito el tercer DDR. Esto provoca que se queden aproximadamente 40MB TB de datos desfasados en una caché durante las escrituras. En el caso de los protocolos con estado (NFSv4.x, SMB), los 40MB TB restantes de datos se volverán a vaciar en el origen cuando se cierre el archivo. Para los protocolos sin estado (NFSv3), los 40MB GB de datos se volverán a vaciar cuando se solicite el acceso al archivo en una caché diferente o cuando el archivo esté inactivo durante dos o más minutos, hasta un máximo de cinco minutos. Para obtener más información sobre el vaciado de datos sucios activado por temporizador o activado por espacio, consulte <<Depuradores de caché>>.
+
+Además de los DDRs y depuradores, algunas operaciones NAS front-end también activan el vaciado de todos los datos sucios de un archivo:
+
+* `SETATTR`
++
+** `SETATTRs`: Sólo `mtime`, `atime`o `ctime` modificación se procesan en la caché.
+
+
+* `CLOSE`
+* `OPEN` en otra caché
+* `READ` en otra caché
+* `READDIR` en otra caché
+* `READDIRPLUS` en otra caché
+* `WRITE` en otra caché
+
+
+
+
+== Modo desconectado
+
+Cuando un XLD para un archivo se mantiene en una caché de escritura y esa caché se desconecta del origen, las lecturas de ese archivo todavía se permiten en las otras cachés y el origen. Este comportamiento difiere cuando un XLD es retenido por una caché de escritura activada. En este caso, si la caché está desconectada, las lecturas en el archivo se bloquearán en todas partes. Esto ayuda a garantizar que se mantenga el 100% de consistencia, la moneda y la coherencia. Las lecturas se permiten en el modo de escritura simultánea, ya que se garantiza que el origen tenga todos los datos disponibles que se han reconocido de escritura en el cliente. En el modo de reescritura durante una desconexión, el origen no puede garantizar que todos los datos escritos y confirmados por la caché de reescritura habilitada los hayan realizado en el origen antes de que se produjera la desconexión.
+
+En el caso de que una caché con un XLD para un archivo se desconecte durante un período de tiempo prolongado, un administrador del sistema puede revocar manualmente el XLD en el origen. Esto permitirá que la E/S al archivo se reanude en las cachés supervivientes y en el origen.
+
+
+WARNING: La revocación manual del XLD provocará la pérdida de datos desfasados del archivo en la caché desconectada. La revocación manual de un XLD sólo se debe realizar en caso de una interrupción catastrófica entre la caché y el origen.
+
+
+
+== Depuradores de caché
+
+Hay depuradores en ONTAP que se ejecutan en respuesta a eventos específicos, como un temporizador que caduca o umbrales de espacio que se están violando. Los depuradores toman un bloqueo exclusivo en el archivo que se está depurando, congelando efectivamente la E/S en ese archivo hasta que se complete la limpieza.
+
+Los depuradores incluyen:
+
+* *Mtime-based scrubber en la caché:* Este depurador comienza cada cinco minutos y limpia cualquier archivo sentado sin modificar durante dos minutos. Si los datos desfasados del archivo siguen en la caché, la I/O de ese archivo se desactiva y se activa la devolución de escritura. I/O se reanudará una vez finalizada la reescritura.
+* *Mtime-based scrubber on origin:* Al igual que el mtime-based scrubber en la caché, esto también se ejecuta cada cinco minutos. Sin embargo, limpia cualquier archivo sin modificar durante 15 minutos, recordando la delegación del inode. Este depurador no inicia ninguna reescritura.
+* *RW LIMIT-Based scrubber on origin:* ONTAP monitorea cuántas delegaciones de bloqueo RW se entregan por componente de origen. Si este número supera los 170, ONTAP comienza a depurar las delegaciones de bloqueo de escritura sobre una base de uso menos reciente (LRU).
+* *Scrubber basado en el espacio en la caché:* Si un volumen FlexCache alcanza el 90% de su capacidad, la caché se limpia, desalojando en base a LRU.
+* *El depurador basado en el espacio en el origen:* Si un volumen de origen de FlexCache alcanza el 90% lleno, la caché se limpia, desalojando en base a LRU.
+
+
+
+
+== Diagramas de secuencia
+
+Estos diagramas de secuencia representan la diferencia en los reconocimientos de escritura entre el modo de escritura y escritura.
+
+
+
+=== Escritura simultánea
+
+image::flexcache-write-around-sequence-diagram.png[Diagrama de secuencia de escritura simultánea de FlexCache]
+
+
+
+=== Reescritura
+
+image::flexcache-write-back-sequence-diagram.png[Diagrama de secuencia de anotación de FlexCache]

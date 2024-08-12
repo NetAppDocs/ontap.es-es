@@ -1,0 +1,58 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-use-cases.html 
+sidebar: sidebar 
+keywords: tr-4743, flexcache writeback, flexcache write-back, use cases, workloads, technical report, netapp tr, ontap tr 
+summary: Son los perfiles de escritura más adecuados para una FlexCache de escritura-back habilitada. Debería probar su carga de trabajo para ver si la escritura simultánea o la escritura en bloque ofrece el mejor rendimiento. 
+---
+= Casos de uso de escritura de FlexCache
+:allow-uri-read: 
+
+
+[role="lead"]
+Son los perfiles de escritura más adecuados para una FlexCache de escritura-back habilitada. Debería probar su carga de trabajo para ver si la escritura simultánea o la escritura en bloque ofrece el mejor rendimiento.
+
+
+NOTE: La reescritura no es un reemplazo de la emisión de escrituras. Aunque la escritura simultánea está diseñada con cargas de trabajo con un gran volumen de escritura, la escritura simultánea sigue siendo la mejor opción para muchas cargas de trabajo.
+
+
+
+== Cargas de trabajo objetivo
+
+.Tamaño de archivo
+El tamaño del archivo es menos importante que el número de escrituras emitidas entre `OPEN` y `CLOSE` llama a un archivo. Los archivos pequeños inherentemente tienen menos `WRITE` llamadas, lo que los hace menos ideales para la reescritura. Los archivos grandes pueden tener más escrituras entre `OPEN` y `CLOSE` llamadas, pero esto no está garantizado.
+
+.Tamaño de escritura
+Cuando se escribe desde un cliente, se requieren otras llamadas NAS que no sean llamadas de escritura:
+
+* `CREATE`
+* `OPEN`
+* `CLOSE`
+* `READDIR/READDIRPLUS`
+*  `SETATTR`: `SETATTR` llamadas que sólo modifican `mtime`, `atime`o `ctime` se procesan en la caché.
+
+
+Estas llamadas deben procesarse en el origen y activar una reescritura de los datos sucios acumulados en la caché de reescritura activada para el archivo en el que se está operando. El E/S en el archivo se desactivará hasta que se complete la reescritura.
+
+Saber que estas llamadas deben atravesar la WAN le ayuda a identificar las cargas de trabajo adecuadas para la reescritura. Por lo general, cuantas más escrituras se puedan realizar entre `OPEN` y `CLOSE` llamadas sin que se emita una de las otras llamadas <write-size,above>, mejor será la ganancia de rendimiento que proporcione la anotación.
+
+.Lectura tras escritura
+Las cargas de trabajo de lectura tras escritura siempre se han desempeñado mal en FlexCache. Esto se debe al modo de escritura alrededor de la operación anterior a 9.15.1. La `WRITE` llamada al archivo debe confirmarse en el origen, y la llamada posterior `READ` tendría que recuperar los datos a la caché. Esto da como resultado que ambas operaciones incurran en la penalización de la WAN. Por ello, no se recomiendan las cargas de trabajo de lectura tras escritura para FlexCache en modo de escritura simultánea. Con la introducción de la reescritura en 9.15.1, los datos se utilizan ahora en la caché y se pueden leer de inmediato desde la caché, lo que elimina la penalización de WAN. Si la carga de trabajo incluye lectura tras escritura en volúmenes FlexCache, debe configurar la caché para que funcione en modo de retroescritura.
+
+
+TIP: Si la lectura después de la escritura es una parte crucial de la carga de trabajo, debe configurar la caché para que funcione en modo de retroescritura.
+
+.Write-after-write
+Cuando un archivo acumula datos sucios en una caché, la caché vuelve a escribir los datos de forma asíncrona en el origen. Como es natural, esto provoca momentos en los que el cliente cierra el archivo con datos desfasados que siguen esperando para ser vaciados de nuevo en el origen. Si llega otra entrada o escritura para el archivo que se acaba de cerrar y aún tiene datos desfasados, la escritura se suspenderá hasta que todos los datos desfasados se hayan vaciado en el origen.
+
+
+
+== Consideraciones sobre latencia
+
+Cuando FlexCache funciona en modo de devolución de escritura, es más beneficioso para los clientes NAS, puesto que la latencia aumenta entre la caché y el origen. Sin embargo, existe un punto en el que la sobrecarga de la retroescritura supera las ventajas obtenidas en los entornos de baja latencia. En algunas pruebas de NetApp, los beneficios de la escritura iniciada rondaron una latencia mínima entre la caché y el origen de 8ms. Esta latencia varía con la carga de trabajo, por lo que asegúrese de probar los beneficios en el punto de retorno.
+
+El siguiente gráfico muestra el punto de retorno de las escrituras en las pruebas de laboratorio de NetApp.  `x`El eje es el tamaño del archivo y el `y` eje es el tiempo transcurrido. En la prueba se utilizó NFSv3 ms, montaje con un `rsize` y `wsize` de 256KB ms, y 64ms ms de latencia de WAN. Esta prueba se llevó a cabo utilizando una instancia de ONTAP Select pequeña tanto para la caché como para el origen y una única operación de escritura de subprocesos. Sus resultados pueden variar.
+
+image::flexcache-write-back-point-of-return-nfs3.png[Punto de retorno]
+
+
+IMPORTANT: Las operaciones de escritura no se deben utilizar para el almacenamiento en caché dentro del clúster. El almacenamiento en caché dentro del clúster se produce cuando el origen y la caché están en el mismo clúster.

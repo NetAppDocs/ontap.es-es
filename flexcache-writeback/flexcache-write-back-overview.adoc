@@ -1,0 +1,93 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-overview.html 
+sidebar: sidebar 
+keywords: tr-4743, flexcache writeback, flexcache write-back, overview, technical report, netapp tr, ontap tr 
+summary: La anotación-back de FlexCache, que se presenta en ONTAP 9.15.1, es un modo alternativo de operación para la escritura en una caché. 
+---
+= Información general de reescritura de FlexCache
+:allow-uri-read: 
+
+
+[role="lead"]
+La anotación-back de FlexCache, que se presenta en ONTAP 9.15.1, es un modo alternativo de operación para la escritura en una caché. Writeback permite que la escritura se confirme en un almacenamiento estable en la caché y se reconozca en el cliente sin esperar a que los datos lleguen al origen. Los datos se vuelven a vaciar de forma asíncrona en el origen. El resultado es un sistema de archivos distribuido globalmente que permite operaciones de escritura a velocidades casi locales para cargas de trabajo y entornos específicos, lo que ofrece importantes ventajas en cuanto a rendimiento.
+
+
+NOTE: ONTAP 9.12.1 introdujo una función de anotación como una vista previa pública. Esto se conoce como la versión de reescritura 1 (wbv1) y no debe considerarse como lo mismo que la reescritura en ONTAP 9.15.1, que se conoce como la versión de reescritura 2 (wbv2).
+
+
+NOTE: A partir de julio de 2024, el contenido de informes técnicos previamente publicados como archivos PDF se integró con la documentación de los productos de ONTAP. La documentación de seguridad de ONTAP ahora incluye contenido de TR-4743: FlexCache en ONTAP 9.11.1.
+
+
+
+== Reescritura frente a escritura simultánea
+
+Desde que FlexCache se introdujo en ONTAP 9,5, era una memoria caché de lectura y escritura; sin embargo, funcionaba en modo de escritura simultánea. Las escrituras en la caché se enviaron al origen para confirmarse en un almacenamiento estable. Una vez que el origen confirmó correctamente la escritura en el almacenamiento estable, reconoció la escritura en la caché. A continuación, la caché reconocerá la escritura en el cliente. Esto hizo que todas las escrituras incurrieran en la penalización de atravesar la red entre la caché y el origen. La reescritura de FlexCache cambia esto.
+
+
+NOTE: Después de la actualización a ONTAP 9.15.1, puedes convertir una caché de escritura simultánea tradicional a una caché de escritura inversa y, si es necesario, de vuelta a escritura alterna. Sin embargo, esto puede dificultar la lectura de los registros de diagnóstico en caso de que surja un problema.
+
+|===
+|  | Escritura simultánea | Reescritura 
+
+
+| Versión de ONTAP | 9,6 o posterior | 9.15.1 o posterior 
+
+
+| Caso de uso | Carga de trabajo con gran cantidad de lectura | Carga de trabajo con gran cantidad de escritura 
+
+
+| Datos confirmados en | Origen | Almacenamiento en caché 
+
+
+| Experiencia del cliente | Similar a una WAN | LAN-lke 
+
+
+| Límites | 100 por origen | 10 por origen 
+
+
+| https://en.wikipedia.org/wiki/CAP_theorem["Teorema DEL CAP"^] | Disponible y tolerante a la partición | Disponible y consistente 
+|===
+
+
+== Terminología de reescritura de FlexCache
+
+Conozca conceptos y términos clave que trabajan con la anotación de FlexCache.
+
+[cols="12%,88%"]
+|===
+| Periodo | Definición 
+
+
+| [[dirty-data]]*datos sucios* | Datos que se han confirmado en el almacenamiento estable en la caché, pero no se han vaciado en el origen. 
+
+
+| *Exclusive Lock Delegation (XLD)* | Autoridad de bloqueo a nivel de protocolo otorgada por archivo a una caché. Esta autoridad permite que la caché distribuya bloqueos de escritura exclusivos a los clientes sin contactarse con el origen. 
+
+
+| *Delegación de bloqueo compartido (SLD)* | Autoridad de bloqueo a nivel de protocolo otorgada por archivo a una caché. Esta autoridad permite que la caché distribuya bloqueos de lectura compartidos a los clientes sin ponerse en contacto con el origen. 
+
+
+| *Writeback* | Modo de operación de FlexCache en el que las escrituras en una caché se confirman en un almacenamiento estable en esa caché y se reconocen inmediatamente en el cliente. Los datos se vuelven a escribir de forma asíncrona en el origen. 
+
+
+| * Escribir alrededor* | Modo de operación FlexCache en el que las escrituras en una caché se reenvían al origen para confirmarse en un almacenamiento estable. Una vez confirmado, el origen reconocerá la escritura en la caché y la caché reconocerá la escritura en el cliente. 
+
+
+| *Sistema de registro de datos sucios (DDRS)* | Mecanismo propietario que realiza un seguimiento de los datos sucios en una caché con retroescritura habilitada por archivo. 
+
+
+| *Origen* | Un FlexGroup o FlexVol que contiene los datos de origen para todos los volúmenes de caché FlexCache. Es la única fuente de la verdad, orquesta el bloqueo y garantiza una coherencia, divisa y coherencia de los datos del 100 %. 
+
+
+| *Cache* | Un FlexGroup que es un volumen de caché disperso del origen FlexCache. 
+|===
+
+
+=== Consistente, actual y coherente
+
+FlexCache es la solución de NetApp para tener los datos adecuados, en cualquier lugar y en todo momento. FlexCache es 100% consistente, actual y coherente el 100% del tiempo:
+
+* *Consistente:* Los datos son los mismos dondequiera que se acceda.
+* *Actual:* Los datos siempre están actualizados.
+* *Coherente:* Los datos son correctos/no corruptos.
+
