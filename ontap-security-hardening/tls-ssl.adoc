@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar 
 permalink: ontap-security-hardening/tls-ssl.html 
-keywords: tr-4569, ontap hardening guide, security, TLS, FIPS, SSL, cipher, 140-2, SSH, OpenSSL, AES, 3DES, FIPS 140-2 compliance, FIPS 140-3 compliance, security config modify, protocol, ciphers, Perfect Forward Secrecy, SSH, advanced privilege level 
+keywords: tr-4569, ontap hardening guide, security, TLS, FIPS, SSL, cipher, 140-2, SSH, OpenSSL, AES, 3DES, 140-2 compliance, 140-3 compliance, security config modify, protocol, perfect forward secrecy, advanced privilege level 
 summary: 'El comando "security config modify" de ONTAP le permite restringir protocolos y cifrados para las interfaces del plano de control en todo el clúster.' 
 ---
-= Gestión TLS y SSL
+= Modo FIPS y gestión TLS y SSL
 :hardbreaks:
 :allow-uri-read: 
 :icons: font
@@ -13,37 +13,79 @@ summary: 'El comando "security config modify" de ONTAP le permite restringir pro
 
 
 [role="lead"]
-Puede habilitar el modo de cumplimiento de FIPS 140-2/3 para las interfaces del plano de control mediante el establecimiento del `is-fips-enabled` parámetro en true con el comando ONTAP `security config modify` .
-
-A partir de ONTAP 9, puede habilitar el modo de cumplimiento normativo FIPS 140-2 para las interfaces en el plano de control de todo el clúster. De manera predeterminada, se deshabilita el modo FIPS 140-2-only. Puede habilitar el modo de cumplimiento de FIPS 140-2 estableciendo `is-fips-enabled` el parámetro en `true` para el `security config modify` comando. A continuación, puede utilizar `security config show command` para confirmar el estado en línea.
-
-Cuando se habilita el cumplimiento FIPS 140-2, TLSv1 y SSLv3 están deshabilitados y solo TLSv1.1 y TLSv1.2 permanecen habilitados. ONTAP evita que habilite TLSv1 y SSLv3 cuando el cumplimiento de FIPS 140-2 está habilitado. Si habilita FIPS 140-2 y luego la deshabilita posteriormente, TLSv1 y SSLv3 seguirán deshabilitados, pero TLSv1,2 o TLSv1,1 y TLSv1,2 permanecerán habilitados, según la configuración anterior.
-
-El `security config modify` comando modifica la configuración de seguridad existente en todo el clúster. Si habilita el modo conforme a FIPS, el clúster selecciona automáticamente solo los protocolos TLS. Utilice el `-supported-protocols` parámetro para incluir o excluir protocolos TLS independientemente del modo FIPS. De forma predeterminada, el modo FIPS está deshabilitado y ONTAP admite los protocolos TLSv1,2, TLSv1,1 y TLSv1.
-
-Para obtener compatibilidad con versiones anteriores, ONTAP admite añadir SSLv3 a la `supported-protocols` lista cuando se deshabilita el modo FIPS. Use `-supported-cipher-suites` el parámetro para configurar solo el estándar de cifrado avanzado (AES) o AES y 3DES. También puede desactivar los cifrados débiles como RC4 especificando !RC4. Por defecto, el valor de cifrado soportado es `ALL:!LOW:!aNULL:!EXP:!eNULL`. Esta configuración significa que todos los conjuntos de cifrado admitidos para los protocolos están habilitados, excepto los que no tienen autenticación, ningún cifrado, ninguna exportación y conjuntos de cifrado de bajo cifrado. Se trata de suites que utilizan algoritmos de cifrado de 64 o 56 bits.
-
-Seleccione un conjunto de cifrado que esté disponible con el protocolo seleccionado correspondiente. Una configuración no válida puede provocar que algunas funcionalidades no funcionen correctamente.
-
-Para obtener la sintaxis correcta de la cadena de cifrado, consulte la link:https://www.openssl.org/docs/man1.1.1/man1/ciphers.html["cifrados"^] página en OpenSSL (publicada por la base de software OpenSSL). A partir de ONTAP 9.9.1 y versiones posteriores, ya no es necesario reiniciar todos los nodos manualmente después de modificar la configuración de seguridad.
+La norma FIPS 140-2 especifica los requisitos de seguridad para los módulos criptográficos dentro de los sistemas de seguridad que protegen la información confidencial en sistemas informáticos y de telecomunicaciones. El estándar FIPS 140-2 se aplica _específicamente_ al módulo criptográfico, en lugar del producto, la arquitectura, los datos o el ecosistema. El módulo criptográfico es el componente específico (hardware, software, firmware o una combinación de los tres) que implementa funciones de seguridad aprobadas por el NIST.
 
 La habilitación del cumplimiento FIPS 140-2 tiene efectos en otros sistemas y comunicaciones internos y externos a ONTAP 9. NetApp recomienda encarecidamente probar esta configuración en un sistema no de producción que tenga acceso a la consola.
-
-
-NOTE: Si se utiliza SSH para administrar ONTAP 9, debe utilizar un cliente OpenSSH 5,7 o posterior. Los clientes SSH deben negociar con el algoritmo de clave pública del algoritmo de firma digital de curva elíptica (ECDSA) para que la conexión sea exitosa.
-
-La seguridad TLS puede reforzarse aún más si solo habilita TLS 1,2 y utiliza conjuntos de cifrado compatibles con el secreto directo perfecto (PFS). PFS es un método de intercambio de claves que, cuando se utiliza en combinación con protocolos de cifrado como TLS 1,2, ayuda a evitar que un atacante descifre todas las sesiones de red entre un cliente y un servidor. Para habilitar sólo conjuntos de cifrados compatibles con TLS 1,2 y PFS, utilice el `security config modify` comando del nivel de privilegio avanzado como se muestra en el siguiente ejemplo.
-
-
-NOTE: Antes de cambiar la configuración de la interfaz SSL, es importante recordar que el cliente debe admitir el cifrado mencionado (DHE, ECDHE) al conectarse a ONTAP. De lo contrario, no se permite la conexión.
-
-[listing]
-----
-cluster1::*> security config modify -interface SSL -supported-protocols TLSv1.2 -supported-cipher-suites PSK:DHE:ECDHE:!LOW:!aNULL:!EXP:!eNULL:!3DES:!kDH:!kECDH
-----
-Confirmar `y` para cada petición de datos. Para obtener más información sobre PFS, consulte link:https://blog.netapp.com/protecting-your-data-perfect-forward-secrecy-pfs-with-netapp-ontap/["Este blog de NetApp"^].
 
 Desde el soporte de ONTAP 9.11.1 y TLS 1,3, puede validar FIPS 140-3.
 
 
 NOTE: La configuración FIPS se aplica a ONTAP y a la plataforma BMC.
+
+
+
+== Configuración FIPS-Mode de NetApp ONTAP
+
+NetApp ONTAP tiene una configuración en modo FIPS que instancia un nivel de seguridad añadido al plano de control:
+
+* A partir de ONTAP 9.11,1, cuando se habilita el modo de cumplimiento de FIPS 140-2, TLSv1, TLSv1,1 y SSLv3 están deshabilitados y solo TSLv1,2 y TSLv1,3 permanecen habilitados. Afecta a otros sistemas y comunicaciones internos y externos a ONTAP 9. Si habilita el modo de cumplimiento FIPS 140-2 y, a continuación, se deshabilita TLSv1, TLSv1.1 y SSLv3. En función de la configuración anterior, las opciones TLLSv.1 o TLSv1.3 permanecerán habilitadas.
+* Para las versiones de ONTAP anteriores a 9.11.1 cuando se habilita el modo de cumplimiento de FIPS 140-2, tanto TLSv1 como SSLv3 están deshabilitados y solo TLSv1,1 y TLSv1,2 se encuentran habilitados. ONTAP evita que habilite TLSv1 y SSLv3 cuando el modo de cumplimiento FIPS 140-2 está habilitado. Si activa el modo de cumplimiento FIPS 140-2 y lo deshabilita posteriormente, TLSv1 y SSLv3 permanecen deshabilitados, pero TLSv1.2 o TLSv1.1 y TLSv1.2 se habilitan en función de la configuración anterior.
+* https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/4297["Módulo de seguridad criptográfica de NetApp (NCSM)"^], Que es FIPS 140-2 nivel 1 validado, proporciona el cumplimiento basado en software.
+
+
+
+NOTE: NIST ha enviado un estándar FIPS-140-3, y NCSM tendrá validaciones FIPS-140-2 y FIPS-140-3. Todas las validaciones FIPS 140-2 pasarán al estado histórico el 21 de septiembre de 2026, que es cinco años después del último día para el envío de nuevos certificados.
+
+
+
+== Habilite el modo de cumplimiento de normativas FIPS-140-2 y FIPS-140-3
+
+A partir de ONTAP 9, puede habilitar el modo de cumplimiento FIPS-140-2 y FIPS-140-3 para las interfaces del plano de control para todo el clúster.
+
+* link:../networking/configure_network_security_using_federal_information_processing_standards_@fips@.html#enable-fips["Habilite FIPS"]
+* link:../networking/configure_network_security_using_federal_information_processing_standards_@fips@.html#view-fips-compliance-status["Ver el estado de FIPS"]
+
+
+
+
+== Habilitación y protocolos FIPS
+
+El `security config modify` comando permite modificar la configuración de seguridad existente en todo el clúster. Si habilita el modo conforme a FIPS, el clúster selecciona automáticamente solo los protocolos TLS.
+
+* Utilice el `-supported-protocols` parámetro para incluir o excluir protocolos TLS independientemente del modo FIPS. De forma predeterminada, el modo FIPS está deshabilitado y ONTAP admite los protocolos TLSv1,2, TLSv1,1 y TLSv1.
+* Para obtener compatibilidad con versiones anteriores, ONTAP admite la adición de SSLv3 a la lista de protocolos compatibles cuando el modo FIPS está deshabilitado.
+
+
+
+
+== Habilitación y cifrados FIPS
+
+* Use `-supported-cipher-suites` el parámetro para configurar solo el estándar de cifrado avanzado (AES) o AES y 3DES.
+* Puede desactivar los cifrados débiles como RC4 especificando `!RC4`. Por defecto, el valor de cifrado soportado es `ALL:!LOW:!aNULL:!EXP:!eNULL`. Esta configuración significa que todos los conjuntos de cifrado admitidos para los protocolos están habilitados, excepto los que utilizan algoritmos de cifrado de 64 o 56 bits sin autenticación, sin cifrado, sin exportaciones y conjuntos de cifrado de bajo cifrado.
+* Seleccione un conjunto de cifrado que esté disponible con el protocolo seleccionado correspondiente. Una configuración no válida puede provocar que algunas funcionalidades no funcionen correctamente.
+* Para obtener la sintaxis correcta de la cadena de cifrado, consulte el https://www.openssl.org/docs/man1.1.1/man1/ciphers.html["cifrados"^] en OpenSSL (publicado por la base de software OpenSSL). A partir de ONTAP 9.9.1 y versiones posteriores, ya no es necesario reiniciar todos los nodos manualmente después de modificar la configuración de seguridad.
+
+
+
+
+== Refuerzo de la seguridad de SSH y TLS
+
+La administración SSH de ONTAP 9 requiere un cliente OpenSSH 5,7 o posterior. Los clientes SSH deben negociar con el algoritmo de clave pública del algoritmo de firma digital de curva elíptica (ECDSA) para que la conexión sea exitosa.
+
+Para reforzar la seguridad TLS, habilite solo TLS 1,2 y utilice conjuntos de cifrado capaces de secreto directo perfecto (PFS). PFS es un método de intercambio de claves que, cuando se utiliza en combinación con protocolos de cifrado como TLS 1,2, ayuda a evitar que un atacante descifre todas las sesiones de red entre un cliente y un servidor.
+
+
+
+== Active conjuntos de cifrado compatibles con TLSv1,2 y PFS
+
+Para habilitar sólo conjuntos de cifrado compatibles con TLS 1,2 y PFS, utilice el `security config modify` comando desde el nivel de privilegio avanzado.
+
+
+NOTE: Antes de cambiar la configuración de la interfaz SSL, asegúrese de que el cliente admite los cifrados DHE y ECDHE al conectarse a ONTAP para mantener la conectividad con ONTAP.
+
+.Ejemplo
+[listing]
+----
+cluster1::*> security config modify -interface SSL -supported-protocols TLSv1.2 -supported-cipher-suites PSK:DHE:ECDHE:!LOW:!aNULL:!EXP:!eNULL:!3DES:!kDH:!kECDH
+----
+Confirmar `y` para cada petición de datos. Para obtener más información sobre PFS, consulte este https://blog.netapp.com/protecting-your-data-perfect-forward-secrecy-pfs-with-netapp-ontap/["Blog de NetApp"^].
