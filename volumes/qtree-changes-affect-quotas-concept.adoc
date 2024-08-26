@@ -1,10 +1,10 @@
 ---
 permalink: volumes/qtree-changes-affect-quotas-concept.html 
 sidebar: sidebar 
-keywords: how, qtree, changes, affect, quotas 
+keywords: how, qtree, quota, delete qtree, rename qtree, tree quotas, security, style of a qtree, security style, style 
 summary: Cuando se elimina, se cambia el nombre o se cambia el estilo de seguridad de un qtree, las cuotas aplicadas por ONTAP podrían cambiar en función de las cuotas actuales que se estén aplicando. 
 ---
-= Información general sobre cómo afectan los cambios en los qtrees
+= Cómo afectan los cambios de qtree a las cuotas
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -12,3 +12,44 @@ summary: Cuando se elimina, se cambia el nombre o se cambia el estilo de segurid
 
 [role="lead"]
 Cuando se elimina, se cambia el nombre o se cambia el estilo de seguridad de un qtree, las cuotas aplicadas por ONTAP podrían cambiar en función de las cuotas actuales que se estén aplicando.
+
+
+
+== Eliminación de qtrees y cuotas de árbol
+
+Cuando se elimina un qtree, ONTAP ya no aplica todas las cuotas aplicables a ese qtree, ya sean explícitas o derivadas.
+
+Si persisten las reglas de cuota depende del lugar donde se elimine el qtree:
+
+* Si elimina un qtree mediante ONTAP, las reglas de cuota de ese qtree se eliminan automáticamente, incluidas las reglas de cuota de árbol y cualquier regla de cuota de usuario y de grupo configurada para ese qtree.
+* Si elimina un qtree mediante el cliente CIFS o NFS, debe eliminar cualquier regla de cuota para ese qtree para evitar que se produzcan errores al reiniciar las cuotas. Si crea un qtree nuevo con el mismo nombre que el que eliminó, las reglas de cuota existentes no se aplicarán al nuevo qtree hasta que se reinicien las cuotas.
+
+
+
+
+== Cómo afecta el cambio de nombre a un qtree a las cuotas
+
+Cuando se cambia el nombre de un qtree mediante ONTAP, las reglas de cuota de ese qtree se actualizan automáticamente. Si cambia el nombre de un qtree mediante el cliente CIFS o NFS, debe actualizar las reglas de cuota de ese qtree.
+
+
+NOTE: Si cambia el nombre de un qtree mediante su cliente CIFS o NFS y no actualiza las reglas de cuotas de ese qtree con el nuevo nombre antes de reiniciar las cuotas, no se aplicarán las cuotas al qtree. Las cuotas explícitas para el qtree, incluidas las cuotas de árbol y las cuotas de usuario o grupo del qtree, se pueden convertir en cuotas derivadas.
+
+
+
+== Estilos de seguridad Qtree y cuotas de usuarios
+
+Puede aplicar listas de control de acceso (ACL) en qtrees utilizando NTFS o estilos de seguridad mixtos, pero no utilizando el estilo de seguridad UNIX. El cambio del estilo de seguridad de un qtree puede afectar a la forma en la que se calculan las cuotas. Siempre debe reiniciar las cuotas después de cambiar el estilo de seguridad de un qtree.
+
+Si cambia el estilo de seguridad de un qtree de NTFS o mixto a UNIX, se ignoran todas las ACL de los archivos en ese qtree y el uso del archivo se cobra por los ID de usuario de UNIX.
+
+Si cambia el estilo de seguridad de un qtree de UNIX a uno mixto o NTFS, se vuelven visibles las ACL ocultas anteriormente. Además, cualquier ACL que se ignoraron vuelve a ser efectiva y se ignora la información de usuario de NFS. Si no había ninguna ACL antes, la información de NFS se sigue utilizando en el cálculo de la cuota.
+
+
+NOTE: Para asegurarse de que los usos de la cuota para los usuarios de UNIX y Windows se calculen correctamente después de cambiar el estilo de seguridad de un qtree, debe reiniciar las cuotas del volumen que contiene ese qtree.
+
+.Ejemplo
+En el siguiente ejemplo, se muestra cómo un cambio en el estilo de seguridad de un qtree concreto se traduce en que se carga a otro usuario por el uso de un archivo en el qtree concreto.
+
+Suponga que la seguridad NTFS está vigente en el qtree A, y una ACL otorga a los usuarios de Windows `corp\joe` la propiedad de un archivo 5MB. El usuario `corp\joe` debe pagar 5MB GB de uso de espacio en disco para el qtree A.
+
+Ahora se cambia el estilo De seguridad Del qtree A de NTFS a UNIX. Una vez reinicializadas las cuotas, el usuario de Windows `corp\joe` ya no se cobra por este archivo; en su lugar, el usuario UNIX correspondiente al UID del archivo se cobra por el archivo. El UID podría ser un usuario UNIX asignado `corp\joe` o el usuario raíz.

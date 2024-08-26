@@ -1,7 +1,7 @@
 ---
 permalink: volumes/examples-quota-config-concept.html 
 sidebar: sidebar 
-keywords: examples, quota, configuration 
+keywords: examples, quota, configuration, volume quota policy 
 summary: Estos ejemplos le ayudan a comprender cómo configurar cuotas y leer informes de cuotas. 
 ---
 = Ejemplos de configuración de cuotas
@@ -13,37 +13,44 @@ summary: Estos ejemplos le ayudan a comprender cómo configurar cuotas y leer in
 [role="lead"]
 Estos ejemplos le ayudan a comprender cómo configurar cuotas y leer informes de cuotas.
 
-Para los siguientes ejemplos, supongamos que tiene un sistema de almacenamiento que incluye una SVM, vs1, con un volumen, vol1. Para comenzar a configurar cuotas, debe crear una nueva política de cuotas para la SVM con el siguiente comando:
+.Acerca de estos ejemplos
+Para los ejemplos siguientes, supongamos que tiene un sistema de almacenamiento que incluye una SVM, `vs1`, con un volumen, `vol1`.
 
+. Para comenzar a configurar cuotas, debe crear una nueva política de cuotas para la SVM:
++
 [listing]
 ----
 cluster1::>volume quota policy create -vserver vs1 -policy-name quota_policy_vs1_1
 ----
-Dado que la política de cuota es nueva, se la asigna a la SVM:
-
+. Dado que la política de cuota es nueva, se la asigna a la SVM:
++
 [listing]
 ----
 cluster1::>vserver modify -vserver vs1 -quota-policy quota_policy_vs1_1
 ----
-.Ejemplo 1: Cuota de usuario predeterminada
-Usted decide imponer un límite duro de 50 MB para cada usuario en vol1:
 
+
+.Ejemplo 1: Cuota de usuario predeterminada
+. Decide imponer un límite estricto de 50MB para cada usuario en `vol1`:
++
 [listing]
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target "" -disk-limit 50MB -qtree ""
 ----
-Para activar la nueva regla, se inicializan las cuotas en el volumen:
-
+. Para activar la nueva regla, se inicializan las cuotas en el volumen:
++
 [listing]
 ----
 cluster1::>volume quota on -vserver vs1 -volume vol1 -foreground
 ----
-Para ver el informe de cuotas, escriba el siguiente comando:
-
+. Puede ver el informe de cuotas:
++
 [listing]
 ----
 cluster1::>volume quota report
 ----
+
+
 El informe de cuotas resultante es similar al siguiente informe:
 
 [listing]
@@ -56,28 +63,33 @@ vol1               user    *           0B   50MB       0       -   *
 vol1               user    jsmith    49MB   50MB      37       -   *
 vol1               user    root        0B      -       1       -
 ----
-La primera línea muestra la cuota de usuario predeterminada que ha creado, incluido el límite de discos. Al igual que todas las cuotas predeterminadas, esta cuota de usuario predeterminada no muestra información acerca del uso de discos o archivos. Además de la cuota que se creó, aparecen otras dos cuotas: Una cuota para cada usuario que actualmente posee archivos en vol1. Estas cuotas adicionales son cuotas de usuario que se derivan automáticamente de la cuota de usuario predeterminada. La cuota de usuario derivada para el jsmith de usuario tiene el mismo límite de disco de 50 MB que la cuota de usuario predeterminada. La cuota de usuario derivada para el usuario raíz es una cuota de seguimiento (sin límites).
+La primera línea muestra la cuota de usuario predeterminada que ha creado, incluido el límite de discos. Al igual que todas las cuotas predeterminadas, esta cuota de usuario predeterminada no muestra información acerca del uso de discos o archivos. Además de la cuota que se creó, aparecen otras dos cuotas. Hay una cuota para cada usuario que actualmente posee archivos en `vol1`. Estas cuotas adicionales son cuotas de usuario que se derivan automáticamente de la cuota de usuario predeterminada. La cuota de usuario derivada para el usuario `jsmith` tiene el mismo límite de 50MB discos que la cuota de usuario predeterminada. La cuota de usuario derivada para el usuario raíz es una cuota de seguimiento (sin límites).
 
-Si algún usuario del sistema (distinto del usuario root) intenta realizar una acción que utilizaría más de 50 MB en vol1 (por ejemplo, escribir en un archivo desde un editor), la acción falla.
+Si algún usuario del sistema (que no sea el usuario root) intenta realizar una acción que utilice más de 50MB en `vol1` (por ejemplo, escribir en un archivo desde un editor), la acción falla.
 
 .Ejemplo 2: Cuota de usuario explícita que anula una cuota de usuario predeterminada
-Si tiene que proporcionar más espacio en el volumen vol1 al usuario jsmith, introduzca el siguiente comando:
-
+. Si necesita proporcionar más espacio en el `vol1` volumen al usuario `jsmith`, introduzca el siguiente comando:
++
 [listing]
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target jsmith -disk-limit 80MB -qtree ""
 ----
++
 Se trata de una cuota de usuario explícita, ya que el usuario aparece explícitamente como destino de la regla de cuota.
 
-Se trata de un cambio en un límite de cuota existente, ya que cambia el límite de disco de la cuota de usuario derivada para el jsmith de usuario del volumen. Por lo tanto, no es necesario que se reinicien las cuotas en el volumen para activar el cambio.
++
+Se trata de un cambio en un límite de cuota existente, ya que cambia el límite de disco de la cuota de usuario derivada del usuario `jsmith` en el volumen. Por lo tanto, no es necesario que se reinicien las cuotas en el volumen para activar el cambio.
 
-Para cambiar el tamaño de las cuotas:
-
+. Para cambiar el tamaño de las cuotas:
++
 [listing]
 ----
 cluster1::>volume quota resize -vserver vs1 -volume vol1 -foreground
 ----
++
 Las cuotas permanecen vigentes mientras cambia el tamaño, y el proceso de cambio de tamaño es breve.
+
+
 
 El informe de cuotas resultante es similar al siguiente informe:
 
@@ -93,22 +105,25 @@ vol1               user    jsmith    50MB   80MB      37       -   jsmith
 vol1               user    root        0B      -       1       -
 3 entries were displayed.
 ----
-La segunda línea muestra ahora un límite de disco de 80 MB y un especificador de cuota de jsmith.
+La segunda línea muestra ahora un límite de disco de `80MB` y un especificador de cuota de `jsmith` .
 
-Por lo tanto, jsmith puede utilizar hasta 80 MB de espacio en vol1, aunque todos los demás usuarios todavía están limitados a 50 MB.
+Por lo tanto, `jsmith` puede utilizar hasta 80MB de espacio `vol1`, aunque todos los demás usuarios todavía están limitados a 50MB.
 
 .Ejemplo 3: Umbrales
-Supongamos que desea recibir una notificación cuando los usuarios alcanzan los 5 MB de sus límites de disco. Para crear un umbral de 45 MB para todos los usuarios y un umbral de 75 MB para jsmith, se cambian las reglas de cuota existentes:
+Supongamos que desea recibir una notificación cuando los usuarios alcanzan los 5 MB de sus límites de disco.
 
+. Para crear un umbral de 45MB para todos los usuarios y un umbral de 75MB para `jsmith`, cambie las reglas de cuota existentes:
++
 [listing]
 ----
 cluster1::>volume quota policy rule modify -vserver vs1 -policy quota_policy_vs1_1 -volume vol1 -type user -target "" -qtree "" -threshold 45MB
 cluster1::>volume quota policy rule modify -vserver vs1 -policy quota_policy_vs1_1 -volume vol1 -type user -target jsmith -qtree "" -threshold 75MB
 ----
-Dado que se modifican los tamaños de las reglas existentes, se cambia el tamaño de las cuotas en el volumen para activar los cambios. Espere hasta que termine el proceso de cambio de tamaño.
++
+Debido a que los tamaños de las reglas existentes han cambiado, se puede cambiar el tamaño de las cuotas en el volumen para activar los cambios. Espere hasta que termine el proceso de cambio de tamaño.
 
-Para ver el informe de cuotas con umbrales, agregue `-thresholds` parámetro de la `volume quota report` comando:
-
+. Para ver el informe de cuotas con umbrales, agregue `-thresholds` parámetro de la `volume quota report` comando:
++
 [listing]
 ----
 cluster1::>volume quota report -thresholds
@@ -125,26 +140,35 @@ vol1               user    root        0B      -       1       -
                                            ( -)
 3 entries were displayed.
 ----
++
 Los umbrales aparecen entre paréntesis en la columna Disk Limit.
 
+
+
 .Ejemplo 4: Cuotas de qtrees
-Supongamos que necesita particionar un poco de espacio para dos proyectos. Puede crear dos qtrees, llamados projo1 y proja2, para alojar esos proyectos dentro del vol1.
+Supongamos que necesita particionar un poco de espacio para dos proyectos. Puede crear dos qtrees, con el nombre `proj1` y `proj2`, para acomodar esos proyectos en `vol1`.
 
-Actualmente, los usuarios pueden usar tanto espacio en un qtree como se asignan para todo el volumen (siempre y cuando no superen el límite del volumen utilizando el espacio en la raíz u otro qtree). Además, cada uno de los qtrees puede crecer para consumir el volumen completo. Si desea asegurarse de que ninguno de los qtrees supere los 20 GB, puede crear una cuota de árbol predeterminada en el volumen:
+Actualmente, los usuarios pueden usar tanto espacio en un qtree como se asignan para todo el volumen (siempre y cuando no superen el límite del volumen utilizando el espacio en la raíz u otro qtree). Además, cada uno de los qtrees puede crecer para consumir el volumen completo.
 
+. Si desea asegurarse de que ninguno de los qtrees supere los 20 GB, puede crear una cuota de árbol predeterminada en el volumen:
++
 [listing]
 ----
 cluster1:>>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type tree -target "" -disk-limit 20GB
 ----
-Observe que el tipo correcto es _tree_, no Qtree.
++
 
-Como se trata de una cuota nueva, no se puede activar cambiando el tamaño. Las cuotas se reinician en el volumen:
+NOTE: El tipo correcto es _tree_, no Qtree.
 
+. Como se trata de una cuota nueva, no se puede activar cambiando el tamaño. Las cuotas se reinician en el volumen:
++
 [listing]
 ----
 cluster1:>>volume quota off -vserver vs1 -volume vol1
 cluster1:>>volume quota on -vserver vs1 -volume vol1 -foreground
 ----
+
+
 [NOTE]
 ====
 Debe asegurarse de esperar unos cinco minutos antes de volver a activar las cuotas en cada volumen afectado, ya que intenta activarlos casi inmediatamente después de ejecutar el `volume quota off` el comando puede generar errores. Como alternativa, es posible ejecutar los comandos para volver a inicializar las cuotas de un volumen desde el nodo que contiene el volumen en particular.
@@ -152,7 +176,7 @@ Debe asegurarse de esperar unos cinco minutos antes de volver a activar las cuot
 ====
 Las cuotas no se aplican durante el proceso de reinicialización, lo que lleva más tiempo que el proceso de redimensionamiento.
 
-Cuando se muestra un informe de cuotas, tiene varias líneas nuevas: Algunas líneas son para las cuotas de árbol y algunas líneas para las cuotas de usuario derivadas.
+Cuando se muestra un informe de cuotas, tiene varias líneas nuevas. Algunas líneas son para cuotas de árbol y algunas líneas son para cuotas de usuario derivadas.
 
 Las siguientes líneas nuevas son para las cuotas de árbol:
 
@@ -168,7 +192,7 @@ vol1     proj1     tree    1           0B   20GB       1       -   proj1
 vol1     proj2     tree    2           0B   20GB       1       -   proj2
 ...
 ----
-La cuota de árbol predeterminada que ha creado aparece en la primera línea nueva, que tiene un asterisco (*) en la columna ID. En respuesta a la cuota de árbol predeterminada de un volumen, ONTAP crea automáticamente cuotas de árbol derivadas para cada qtree del volumen. Estos se muestran en las líneas en las que aparecen el proyecto 1 y el proyecto 2 en la columna árbol.
+La cuota de árbol predeterminada que ha creado aparece en la primera línea nueva, que tiene un asterisco (*) en la columna ID. En respuesta a la cuota de árbol predeterminada de un volumen, ONTAP crea automáticamente cuotas de árbol derivadas para cada qtree del volumen. Estos se muestran en las líneas donde `proj1` y `proj2` aparecen en la `Tree` columna.
 
 Las siguientes líneas nuevas son para cuotas de usuario derivadas:
 
@@ -190,16 +214,19 @@ Las cuotas de usuario predeterminadas de un volumen se heredan automáticamente 
 Como el usuario raíz es el propietario de un archivo, cuando se crearon cuotas de usuario predeterminadas para cada uno de los qtrees, también se crearon cuotas de seguimiento especiales para el usuario raíz de cada uno de los qtrees. Estos se muestran en las líneas en las que el ID es raíz.
 
 .Ejemplo 5: Cuota de usuario en un qtree
-Decide limitar a los usuarios a menos espacio en el qtree del proyecto 1 del que consiguen en el volumen como un todo. Desea evitar que utilicen más de 10 MB en el qtree del proyecto 1. Por lo tanto, debe crear una cuota de usuario predeterminada para el qtree:
-
+. Usted decide limitar a los usuarios a menos espacio en el `proj1` qtree que el que tienen en el volumen en su conjunto. Desea evitar que utilicen más de 10MB GB en el `proj1` qtree. Por lo tanto, debe crear una cuota de usuario predeterminada para el qtree:
++
 [listing]
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target "" -disk-limit 10MB -qtree proj1
 ----
++
 Se trata de un cambio en una cuota existente, ya que cambia la cuota de usuario predeterminada para el qtree proj1 que se derivó de la cuota de usuario predeterminada del volumen. Por lo tanto, puede activar el cambio cambiando el tamaño de las cuotas. Una vez completado el proceso de cambio de tamaño, puede ver el informe de cuotas.
 
++
 En el informe de cuotas se muestra la siguiente línea nueva que muestra la nueva cuota de usuario explícita para el qtree:
 
++
 [listing]
 ----
 
@@ -208,13 +235,19 @@ Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
 -------  --------  ------  -------  -----  -----  ------  ------   ---------
 vol1     proj1     user    *           0B   10MB       0       -   *
 ----
-Sin embargo, se está impidiendo al usuario jsmith escribir más datos en el qtree proj1 porque la cuota que creó para anular la cuota de usuario predeterminada (para proporcionar más espacio) se encontraba en el volumen. Tal como se ha añadido una cuota de usuario predeterminada en el qtree proj1, se está aplicando esa cuota y se limita todo el espacio del usuario en ese qtree, incluido jsmith. Para proporcionar más espacio al jsmith de usuario, se debe añadir una regla de cuota de usuario explícita para el qtree con un límite de disco de 80 MB para anular la regla de cuota de usuario predeterminada para el qtree:
++
+Sin embargo, `jsmith` se evita que el usuario escriba más datos en el qtree de proj1, ya que la cuota que creó para anular la cuota de usuario predeterminada (para proporcionar más espacio) estaba en el volumen. Al añadir una cuota de usuario predeterminada al `proj1` qtree, esa cuota se aplicará y limitará todo el espacio de los usuarios en ese qtree, incluido `jsmith`el .
 
+. Para proporcionar más espacio al usuario `jsmith`, se añade una regla de cuota de usuario explícita para el qtree con un límite de 80MB discos para anular la regla de cuota de usuario predeterminada del qtree:
++
 [listing]
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target jsmith -disk-limit 80MB -qtree proj1
 ----
-Como se trata de una cuota explícita para la que ya existe una cuota predeterminada, se activa el cambio mediante el cambio de tamaño de las cuotas. Una vez completado el proceso de cambio de tamaño, se muestra un informe de cuota.
++
+Dado que se trata de una cuota explícita para la que ya existe una cuota por defecto, puede activar el cambio cambiando el tamaño de las cuotas. Una vez completado el proceso de cambio de tamaño, se muestra un informe de cuota.
+
+
 
 En el informe de cuotas aparece la siguiente línea nueva:
 
@@ -248,9 +281,9 @@ vol1               user    root        0B      -       3       -
 vol1     proj1     user    jsmith    61MB   80MB      57       -   jsmith
 11 entries were displayed.
 ----
-El jsmith de usuario debe cumplir los siguientes límites de cuota para escribir en un archivo de proj1:
+El usuario `jsmith` debe cumplir los siguientes límites de cuota para escribir en un archivo en `proj1`:
 
-. La cuota de árbol para el qtree del proyecto 1.
-. La cuota de usuario en el qtree del proyecto 1.
+. La cuota de árbol del `proj1` qtree.
+. La cuota de usuario en el `proj1` qtree.
 . La cuota de usuario en el volumen.
 
