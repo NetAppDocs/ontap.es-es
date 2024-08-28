@@ -13,7 +13,34 @@ summary: Puede enviar solicitudes Telnet al clúster para realizar tareas admini
 [role="lead"]
 Puede enviar solicitudes Telnet al clúster para realizar tareas administrativas. Telnet está desactivado de forma predeterminada.
 
-.Lo que necesitará
+Con el tiempo, ha cambiado la forma en que ONTAP gestiona el tipo de tráfico admitido en las LIF.
+
+* ONTAP 9, el 5 y las versiones anteriores utilizan las funciones de LIF y los servicios de firewall
+* ONTAP 9.6 y versiones posteriores utilizan políticas de servicio de LIF
++
+** ONTAP 9, la versión 5, introdujo las políticas de servicio de LIF
+** ONTAP 9.6 sustituyó los roles de LIF por políticas de servicio de LIF
+** ONTAP 9.10,1 reemplazó los servicios de firewall por políticas de servicio de LIF
+
+
+
+
+El método que configure dependerá de la versión de ONTAP que utilice.
+
+Más información sobre:
+
+* Directivas de firewall, consulte link:https://docs.netapp.com/us-en/ontap-cli//system-services-firewall-policy-show.html["Comando: Firewall-policy-show"^]
+* Roles de LIF, consulte link:../networking/lif_roles95.html["Roles de LIF (ONTAP 9,5 y anteriores)"]
+* Políticas de servicio de LIF, consulte link:../networking/lifs_and_service_policies96.html["LIF y políticas de servicio (ONTAP 9,6 y posteriores)"]
+
+
+Telnet y RSH no son protocolos seguros, debe considerar el uso de SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva. Para obtener más información, consulte link:./access-cluster-ssh-task.html["Acceda al clúster mediante SSH"]
+
+[role="tabbed-block"]
+====
+.ONTAP 9,6 o posterior
+--
+.Antes de empezar
 Para poder utilizar Telnet para acceder al clúster se deben cumplir las siguientes condiciones:
 
 * Debe tener una cuenta de usuario local de clúster configurada para utilizar Telnet como método de acceso.
@@ -76,3 +103,65 @@ login: joe
 Password:
 cluster1::>
 ----
+--
+.ONTAP 9.5 o anterior
+--
+.Antes de empezar
+Para poder utilizar Telnet para acceder al clúster se deben cumplir las siguientes condiciones:
+
+* Debe tener una cuenta de usuario local de clúster configurada para utilizar Telnet como método de acceso.
++
+ `-application`El parámetro de los comandos security login especifica el método de acceso para una cuenta de usuario. Para obtener más información, consulte las páginas del comando man de inicio de sesión de seguridad.
+
+* Telnet debe estar activado en la política de firewall de gestión que utilizan las LIF de administración del clúster o nodo para que las solicitudes Telnet puedan pasar por el firewall.
++
+De forma predeterminada, Telnet está desactivado. El comando system services firewall policy show con el parámetro `-service telnet `muestra si Telnet se ha habilitado en una política de firewall. Para obtener más información, consulte las páginas del comando man de política de firewall de servicios del sistema.
+
+* Si utiliza conexiones IPv6, IPv6 ya debe estar configurado y habilitado en el clúster, y las políticas de firewall ya deben estar configuradas con direcciones IPv6.
++
+El comando network options IPv6 show muestra si IPv6 está habilitado. El comando system services firewall policy show muestra las políticas de firewall.
+
+
+
+.Acerca de esta tarea
+* Telnet no es un protocolo seguro.
++
+Debe considerar utilizar SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva.
+
+* ONTAP admite un máximo de 50 sesiones Telnet simultáneas por nodo.
++
+Si el LIF de gestión del clúster reside en el nodo, comparte este límite con la LIF de gestión del nodo.
+
++
+Si la tasa de conexiones próximas es superior a 10 por segundo, el servicio se deshabilitará temporalmente durante 60 segundos.
+
+* Si desea acceder a la CLI de ONTAP desde un host de Windows, puede utilizar una herramienta de otro proveedor, como PuTTY.
+
+
+.Pasos
+. Desde un host de administración, introduzca el siguiente comando:
++
+`telnet hostname_or_IP`
+
++
+`hostname_or_IP` Es el nombre de host o la dirección IP de la LIF de gestión del clúster o una LIF de gestión de nodos. Se recomienda utilizar la LIF de gestión del clúster. Es posible usar una dirección IPv4 o IPv6.
+
+
+
+.Ejemplo de una solicitud Telnet
+En el siguiente ejemplo, se muestra cómo el usuario llamado “joe”, que se ha configurado con acceso Telnet, puede emitir una solicitud Telnet para acceder a un clúster cuyo LIF de administración de clúster es 10.72.137.28:
+
+[listing]
+----
+
+admin_host$ telnet 10.72.137.28
+
+Data ONTAP
+login: joe
+Password:
+
+cluster1::>
+
+----
+--
+====

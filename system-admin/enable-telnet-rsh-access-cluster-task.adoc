@@ -1,7 +1,7 @@
 ---
 permalink: system-admin/enable-telnet-rsh-access-cluster-task.html 
 sidebar: sidebar 
-keywords: enable, telnet, rsh, access, cluster, mgmt, management, service, policy 
+keywords: enable, telnet, rsh, access, cluster, mgmt, management, service, policy, firewall, roles 
 summary: Como práctica recomendada de seguridad, Telnet y RSH están desactivados por defecto. Para permitir que el clúster acepte solicitudes Telnet o RSH, debe habilitar el servicio en la política de servicio de gestión predeterminada. 
 ---
 = Active el acceso Telnet o RSH al clúster
@@ -14,6 +14,33 @@ summary: Como práctica recomendada de seguridad, Telnet y RSH están desactivad
 [role="lead"]
 Como práctica recomendada de seguridad, Telnet y RSH están desactivados por defecto. Para permitir que el clúster acepte solicitudes Telnet o RSH, debe habilitar el servicio en la política de servicio de gestión predeterminada.
 
+Con el tiempo, ha cambiado la forma en que ONTAP gestiona el tipo de tráfico admitido en las LIF.
+
+* ONTAP 9, el 5 y las versiones anteriores utilizan las funciones de LIF y los servicios de firewall
+* ONTAP 9.6 y versiones posteriores utilizan políticas de servicio de LIF
++
+** ONTAP 9, la versión 5, introdujo las políticas de servicio de LIF
+** ONTAP 9.6 sustituyó los roles de LIF por políticas de servicio de LIF
+** ONTAP 9.10,1 reemplazó los servicios de firewall por políticas de servicio de LIF
+
+
+
+
+El método que configure dependerá de la versión de ONTAP que utilice.
+
+Más información sobre:
+
+* Directivas de firewall, consulte link:https://docs.netapp.com/us-en/ontap-cli//system-services-firewall-policy-show.html["Comando: Firewall-policy-show"^]
+* Roles de LIF, consulte link:../networking/lif_roles95.html["Roles de LIF (ONTAP 9,5 y anteriores)"]
+* Políticas de servicio de LIF, consulte link:../networking/lifs_and_service_policies96.html["LIF y políticas de servicio (ONTAP 9,6 y posteriores)"]
+
+
+Telnet y RSH no son protocolos seguros, debe considerar el uso de SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva. Para obtener más información, consulte link:./access-cluster-ssh-task.html["Acceda al clúster mediante SSH"]
+
+[role="tabbed-block"]
+====
+.ONTAP 9,6 o posterior
+--
 .Acerca de esta tarea
 * RSH no es un protocolo seguro.
 +
@@ -64,3 +91,38 @@ o.
 
 
 
+
+--
+.ONTAP 9.5 o anterior
+--
+.Acerca de esta tarea
+ONTAP evita que cambie las políticas de firewall predefinidas, pero puede crear una nueva política clonando la `mgmt` política de firewall de administración predefinida y, a continuación, habilitando TELNET o RSH en la nueva política.
+
+.Pasos
+. Entre en el modo de privilegio avanzado:
++
+`set advanced`
+
+. Activar un protocolo de seguridad (RSH o Telnet):
++
+`security protocol modify -application security_protocol -enabled true`
+
+. Cree una nueva política de firewall de administración basada en `mgmt` la política de firewall de administración:
++
+`system services firewall policy clone -policy _mgmt_ -destination-policy _policy-name_`
+
+. Active Telnet o RSH en la nueva política de firewall de administración:
++
+`system services firewall policy create -policy _policy-name_ -service _security_protocol_ -action allow -ip-list _ip_address/netmask_`
+
++
+Para permitir todas las direcciones IP, debe especificar `-ip-list _0.0.0.0/0_`
+
+. Asocie la nueva política con la LIF de gestión del clúster:
++
+`network interface modify -vserver cluster_management_LIF -lif cluster_mgmt -firewall-policy policy-name`
+
+
+
+--
+====
