@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: s3-snapmirror/create-cloud-backup-new-bucket-task.html 
 keywords: create, backup, relationship, new, bucket 
-summary: Cuando crea nuevos buckets de S3, puede realizar backups inmediatamente en un bloque de destino de SnapMirror S3 en un proveedor de almacenamiento de objetos, que puede ser un sistema StorageGRID o una implementación de Amazon S3. 
+summary: Cuando crea nuevos buckets S3, puede respaldarlos inmediatamente en un bloque de destino de SnapMirror S3 en un proveedor de almacén de objetos, que puede ser un sistema StorageGRID o una implementación de Amazon S3. 
 ---
 = Crear una relación de backup para un bloque nuevo (destino cloud)
 :hardbreaks:
@@ -16,7 +16,7 @@ summary: Cuando crea nuevos buckets de S3, puede realizar backups inmediatamente
 
 
 [role="lead"]
-Cuando crea nuevos buckets de S3, puede realizar backups inmediatamente en un bloque de destino de SnapMirror S3 en un proveedor de almacenamiento de objetos, que puede ser un sistema StorageGRID o una implementación de Amazon S3.
+Cuando crea nuevos buckets S3, puede respaldarlos inmediatamente en un bloque de destino de SnapMirror S3 en un proveedor de almacén de objetos, que puede ser un sistema StorageGRID o una implementación de Amazon S3.
 
 .Antes de empezar
 * Tiene credenciales de cuenta válidas e información de configuración para el proveedor de almacenes de objetos.
@@ -54,14 +54,14 @@ Consulte link:../task_object_provision_add_s3_users_groups.html["Añada usuarios
 
 
 
-. Cree una política de SnapMirror de S3 si no tiene una existente y no desea usar la directiva predeterminada:
+. Cree una política de SnapMirror S3 si no tiene una existente y no desea usar la política predeterminada:
 +
 .. Haga clic en *Protección > Descripción general* y, a continuación, en *Configuración de directivas locales*.
 .. Haga clic image:../media/icon_arrow.gif["Icono de flecha"] junto a *Políticas de protección* y luego haga clic en *Agregar*.
 +
 *** Escriba el nombre de la política y una descripción.
 *** Seleccione el alcance de las políticas, el clúster o la SVM
-*** Seleccione *Continuous* para las relaciones de SnapMirror de S3.
+*** Seleccione *Continuo* para las relaciones de SnapMirror S3.
 *** Introduzca los valores *acelerador* y *objetivo de punto de recuperación*.
 
 
@@ -96,13 +96,9 @@ Al hacer clic en *Guardar*, se crea un nuevo bloque en el equipo virtual de alma
 --
 .CLI
 --
-. Si esta es la primera relación SnapMirror de S3 para esta SVM, compruebe que existen claves de usuario raíz para las SVM de origen y de destino y vuelva a regenerarlas si no:
-`vserver object-store-server user show`
- +
-Confirmar que existe una clave de acceso para el usuario raíz. Si no lo hay, introduzca:
-`vserver object-store-server user regenerate-keys -vserver svm_name -user _root_`
- +
-No vuelva a generar la clave si ya existe.
+. Si esta es la primera relación de SnapMirror S3 para esta SVM, verifique que existan las claves de usuario raíz tanto para las SVM de origen como de destino y vuelva a generarlas si no lo hacen:
+`vserver object-store-server user show` + Confirme que existe una clave de acceso para el usuario raíz. Si no lo hay, introduzca:
+`vserver object-store-server user regenerate-keys -vserver svm_name -user _root_` + No vuelva a generar la clave si ya existe una.
 . Crear un bloque en la SVM de origen:
 `vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size _integer_[KB|MB|GB|TB|PB]] [-comment _text_] [_additional_options_]`
 . Agregar reglas de acceso a la directiva de bloque predeterminada:
@@ -113,13 +109,10 @@ No vuelva a generar la clave si ya existe.
 ----
 clusterA::> vserver object-store-server bucket policy add-statement -bucket test-bucket -effect allow -action GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts -principal - -resource test-bucket, test-bucket /*
 ----
-. Cree una política de SnapMirror de S3 si no tiene una existente y no desea usar la directiva predeterminada:
+. Cree una política de SnapMirror S3 si no tiene una existente y no desea usar la política predeterminada:
 `snapmirror policy create -vserver svm_name -policy policy_name -type continuous [-rpo _integer_] [-throttle _throttle_type_] [-comment _text_] [_additional_options_]`
 +
-Parámetros:
-* `type continuous` : El único tipo de política para relaciones SnapMirror de S3 (obligatorio).
-* `-rpo` – especifica el tiempo para el objetivo de punto de recuperación, en segundos (opcional).
-* `-throttle` – especifica el límite superior de rendimiento/ancho de banda, en kilobytes/segundos (opcional).
+Parámetros: * `type continuous`: El único tipo de política para las relaciones de SnapMirror S3 (obligatorio). * `-rpo` – especifica el tiempo para el objetivo de punto de recuperación, en segundos (opcional). * `-throttle` – especifica el límite superior de rendimiento/ancho de banda, en kilobytes/segundos (opcional).
 
 +
 .Ejemplo
@@ -150,7 +143,7 @@ Consulte `snapmirror object-store config create` manual para más detalles.
 ----
 src_cluster::> snapmirror object-store config create -vserver vs0 -object-store-name sgws-store -usage data -provider-type SGWS -server sgws.example.com -container-name target-test-bucket -is-ssl-enabled true -port 443 -access-key abc123 -secret-password xyz890
 ----
-. Cree una relación de SnapMirror de S3:
+. Crear una relación de SnapMirror S3:
 `snapmirror create -source-path _svm_name_:/bucket/_bucket_name_ -destination-path _object_store_name_:/objstore -policy _policy_name_`
 +
 Parámetros:
