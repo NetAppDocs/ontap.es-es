@@ -13,33 +13,8 @@ summary: Puede emitir solicitudes RSH al clúster para realizar tareas administr
 [role="lead"]
 Puede emitir solicitudes RSH al clúster para realizar tareas administrativas. RSH no es un protocolo seguro y está deshabilitado de forma predeterminada.
 
-Con el tiempo, ha cambiado la forma en que ONTAP gestiona el tipo de tráfico admitido en las LIF.
+Telnet y RSH no son protocolos seguros; debe considerar el uso de SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva. Para obtener más información, consulte link:./access-cluster-ssh-task.html["Acceda al clúster mediante SSH"].
 
-* ONTAP 9, el 5 y las versiones anteriores utilizan las funciones de LIF y los servicios de firewall
-* ONTAP 9.6 y versiones posteriores utilizan políticas de servicio de LIF
-+
-** ONTAP 9, la versión 5, introdujo las políticas de servicio de LIF
-** ONTAP 9.6 sustituyó los roles de LIF por políticas de servicio de LIF
-** ONTAP 9.10,1 reemplazó los servicios de firewall por políticas de servicio de LIF
-
-
-
-
-El método que configure dependerá de la versión de ONTAP que utilice.
-
-Más información sobre:
-
-* Directivas de firewall, consulte link:https://docs.netapp.com/us-en/ontap-cli//system-services-firewall-policy-show.html["Comando: Firewall-policy-show"^]
-* Roles de LIF, consulte link:../networking/lif_roles95.html["Roles de LIF (ONTAP 9,5 y anteriores)"]
-* Políticas de servicio de LIF, consulte link:../networking/lifs_and_service_policies96.html["LIF y políticas de servicio (ONTAP 9,6 y posteriores)"]
-
-
-Telnet y RSH no son protocolos seguros, debe considerar el uso de SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva. Para obtener más información, consulte link:./access-cluster-ssh-task.html["Acceda al clúster mediante SSH"]
-
-[role="tabbed-block"]
-====
-.ONTAP 9,6 o posterior
---
 .Antes de empezar
 Para poder utilizar RSH, se deben cumplir las siguientes condiciones:
 
@@ -50,10 +25,6 @@ La `-application` parámetro de `security login` los comandos especifican el mé
 
 
 .Acerca de esta tarea
-* RSH no es un protocolo seguro.
-+
-Debe considerar utilizar SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva.
-
 * ONTAP admite un máximo de 50 sesiones de RSH simultáneas por nodo.
 +
 Si el LIF de gestión del clúster reside en el nodo, comparte este límite con la LIF de gestión del nodo.
@@ -64,6 +35,10 @@ Si la tasa de conexiones entrantes es superior a 10 por segundo, el servicio se 
 * Los comandos RSH requieren privilegios avanzados.
 
 
+[role="tabbed-block"]
+====
+.ONTAP 9,6 o posterior
+--
 .Pasos
 . Confirme que el protocolo de seguridad RSH está activado:
 +
@@ -91,31 +66,11 @@ Si la tasa de conexiones entrantes es superior a 10 por segundo, el servicio se 
 
 
 
-.Ejemplo de una solicitud RSH
-El siguiente ejemplo muestra cómo el usuario llamado "'joe'", que se ha configurado con acceso RSH, puede emitir una solicitud RSH para ejecutar el `cluster show` comando:
-
-[listing]
-----
-
-admin_host$ rsh 10.72.137.28 -l joe:password cluster show
-
-Node                  Health  Eligibility
---------------------- ------- ------------
-node1                 true    true
-node2                 true    true
-2 entries were displayed.
-
-admin_host$
-----
 --
 .ONTAP 9.5 o anterior
 --
 .Antes de empezar
 Para poder utilizar RSH, se deben cumplir las siguientes condiciones:
-
-* Es necesario tener una cuenta de usuario local de clúster que se haya configurado para utilizar RSH como método de acceso.
-+
-El parámetro -application de los comandos security login especifica el método de acceso para una cuenta de usuario. Para obtener más información, consulte las páginas del comando man de inicio de sesión de seguridad.
 
 * RSH ya debe estar habilitado en la directiva de firewall de gestión que utilizan las LIF de administración de clúster o nodo para que las solicitudes RSH puedan atravesar el firewall.
 +
@@ -124,20 +79,6 @@ De forma predeterminada, RSH está desactivado. El comando system services firew
 * Si utiliza conexiones IPv6, IPv6 ya debe estar configurado y habilitado en el clúster, y las políticas de firewall ya deben estar configuradas con direcciones IPv6.
 +
 El `network options ipv6 show` comando muestra si IPv6 está habilitado. El `system services firewall policy show` comando muestra las políticas de firewall.
-
-
-
-.Acerca de esta tarea
-* RSH no es un protocolo seguro.
-+
-Debe considerar utilizar SSH para acceder al clúster. SSH proporciona un shell remoto seguro y una sesión de red interactiva.
-
-* ONTAP admite un máximo de 50 sesiones de RSH simultáneas por nodo.
-+
-Si el LIF de gestión del clúster reside en el nodo, comparte este límite con la LIF de gestión del nodo.
-
-+
-Si la tasa de conexiones próximas es superior a 10 por segundo, el servicio se deshabilitará temporalmente durante 60 segundos.
 
 
 
@@ -154,22 +95,21 @@ Si la tasa de conexiones próximas es superior a 10 por segundo, el servicio se 
 
 
 
+--
+====
 .Ejemplo de una solicitud RSH
-El siguiente ejemplo muestra cómo el usuario llamado “joe”, que se ha configurado con acceso RSH, puede emitir una solicitud RSH para ejecutar el comando cluster show:
+El siguiente ejemplo muestra cómo el usuario llamado "'joe'", que se ha configurado con acceso RSH, puede emitir una solicitud RSH para ejecutar el `cluster show` comando:
 
 [listing]
 ----
+
 admin_host$ rsh 10.72.137.28 -l joe:password cluster show
 
-Node  Health Eligibility
-----  ------ -----------
-node1 true   true
-node2 true   true
-
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
 2 entries were displayed.
 
-admin_host
-
+admin_host$
 ----
---
-====
