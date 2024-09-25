@@ -1,7 +1,7 @@
 ---
 permalink: system-admin/forward-command-history-log-file-destination-task.html 
 sidebar: sidebar 
-keywords: forward, audit, log, destination, cluster, forwarding, splunk 
+keywords: forward, audit, log, destination, cluster, forwarding, splunk, RFC-3164, RFC-5424 
 summary: Es posible reenviar el registro de auditoría a un máximo de 10 destinos. Por ejemplo, es posible reenviar el registro a un servidor de Splunk o syslog para que realice tareas de supervisión, análisis o backup. 
 ---
 = Permite gestionar destinos de registro de auditoría
@@ -16,12 +16,20 @@ Es posible reenviar el registro de auditoría a un máximo de 10 destinos. Por e
 .Acerca de esta tarea
 Para configurar el reenvío, debe proporcionar la dirección IP del host de syslog o Splunk, su número de puerto, un protocolo de transmisión y la facilidad de syslog que se usarán para los registros reenviados. https://datatracker.ietf.org/doc/html/rfc5424["Obtenga información sobre las instalaciones de syslog"^].
 
-Puede seleccionar uno de los siguientes valores de transmisión:
+Puede seleccionar uno de los siguientes valores de transmisión mediante el `-protocol` parámetro:
 
 UDP no cifrado:: Protocolo de datagramas de usuario sin seguridad (predeterminado)
 TCP sin cifrar:: Protocolo de control de la transmisión sin seguridad
 Cifrado TCP:: Protocolo de control de transmisión con seguridad de la capa de transporte (TLS) +
 Una opción *Verificar servidor* está disponible cuando se selecciona el protocolo cifrado TCP.
+
+
+El puerto predeterminado es 514 para UDP y 6514 para TCP, pero puede designar cualquier puerto que satisfaga las necesidades de su red.
+
+Puede seleccionar uno de los siguientes formatos de mensaje mediante el `-message-format` comando:
+
+legacy-NetApp:: Una variación del formato Syslog RFC-3164 (formato: <PRIVAL>TIMESTAMP HOSTNAME: MSG)
+rfc-5424:: Formato syslog según RFC-5424 (formato: <PRIVAL>VERSION TIMESTAMP HOSTNAME: MSG)
 
 
 Es posible reenviar registros de auditoría desde la interfaz de línea de comandos de ONTAP y a partir de ONTAP 9.11.1, desde System Manager.
@@ -45,7 +53,7 @@ cluster1::> cluster log-forwarding create -destination 192.168.123.96
 -port 514 -facility user
 
 cluster1::> cluster log-forwarding create -destination 192.168.123.98
--port 514 -protocol tcp-encrypted -facility user
+-port 6514 -protocol tcp-encrypted -facility user
 ----
 +
 ** Si la `cluster log-forwarding create` el comando no puede hacer ping al host de destino para verificar la conectividad; se produce un error en el comando. Aunque no se recomienda, utilice la `-force` parámetro con el comando omite la verificación de conectividad.
@@ -62,12 +70,12 @@ cluster1::> cluster log-forwarding show
 Destination Host          Port   Protocol        Server Facility
 ------------------------- ------ --------        ------ --------
 192.168.123.96            514    udp-unencrypted false  user
-192.168.123.98            514    tcp-encrypted   true   user
+192.168.123.98            6514   tcp-encrypted   true   user
 2 entries were displayed.
 ----
 
 
-Consulte las páginas de manual para obtener más información.
+Consulte `cluster log-forwarding create` la página del comando man para obtener más información.
 
 --
 ====
