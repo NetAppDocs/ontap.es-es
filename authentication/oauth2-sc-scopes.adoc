@@ -1,0 +1,132 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-sc-scopes.html 
+keywords: self-contained scopes, scopes 
+summary: Los ámbitos autónomos son cadenas que se llevan en el token de acceso. Cada una de ellas es una definición de función personalizada completa e incluye todo lo que ONTAP necesita para tomar una decisión de acceso. El ámbito está separado y distinto de cualquiera de los roles de REST definidos en el propio ONTAP. 
+---
+= Alcances OAuth 2,0 autónomos
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Los ámbitos autónomos son cadenas que se llevan en el token de acceso. Cada una de ellas es una definición de función personalizada completa e incluye todo lo que ONTAP necesita para tomar una decisión de acceso. El ámbito está separado y distinto de cualquiera de los roles de REST definidos en el propio ONTAP.
+
+
+
+== Formato de la cadena de ámbito
+
+En un nivel base, el ámbito se representa como una cadena contigua y se compone de seis valores separados por dos puntos. Los parámetros utilizados en la cadena de ámbito se describen a continuación.
+
+
+
+=== ONTAP literal
+
+El ámbito debe comenzar con el valor literal `ontap` en minúscula. Identifica el ámbito como específico de ONTAP.
+
+
+
+=== Clúster
+
+Esto define al cluster de ONTAP al que se aplica el ámbito. Los valores pueden incluir:
+
+* UUID de clúster
++
+Identifica un único clúster.
+
+* Asterisco (***)
++
+Indica que el ámbito se aplica a todos los clusters.
+
+
+
+Puede usar el comando de la CLI de ONTAP `cluster identity show` Para mostrar el UUID del clúster. Si no se especifica, el ámbito se aplica a todos los clusters.
+
+
+
+=== Función
+
+Nombre del rol REST contenido en el ámbito autónomo. ONTAP no examina este valor ni se relaciona con ningún rol de REST existente definido con ONTAP. El nombre se utiliza para el registro.
+
+
+
+=== Nivel de acceso
+
+Este valor indica el nivel de acceso aplicado a la aplicación cliente cuando se utiliza el punto final de API en el ámbito. Hay seis valores posibles, como se describe en la tabla siguiente.
+
+[cols="25,75"]
+|===
+| Nivel de acceso | Descripción 
+
+
+| ninguno | Deniega todo el acceso al punto final especificado. 
+
+
+| sólo lectura | Permite solo el acceso de lectura mediante GET. 
+
+
+| read_create | Permite el acceso de lectura, así como la creación de nuevas instancias de recursos mediante POST. 
+
+
+| read_modify | Permite el acceso de lectura, así como la capacidad de actualizar los recursos existentes MEDIANTE PARCHE. 
+
+
+| read_create_modify | Permite todos los accesos excepto eliminar. Las operaciones permitidas incluyen GET (READ), POST (CREATE) y PARCHE (UPDATE). 
+
+
+| todo | Permite un acceso completo. 
+|===
+
+
+=== SVM
+
+El nombre de la SVM dentro del clúster al que se aplica el ámbito. Utilice el valor *** (asterisco) para indicar todas las SVM.
+
+
+CAUTION: Esta función no es totalmente compatible con ONTAP 9.14.1. Puede ignorar el parámetro SVM y usar un asterisco como marcador de posición. Revise la https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508["Notas de la versión de ONTAP"^] Para comprobar si hay compatibilidad futura con SVM.
+
+
+
+=== URI DE LA API DE REST
+
+Ruta de acceso completa o parcial a un recurso o juego de recursos relacionados. La cadena debe comenzar por `/api`. Si no especifica un valor, el alcance se aplica a todos los extremos de API en el clúster de ONTAP.
+
+
+
+== Ejemplos de ámbito
+
+A continuación se presentan algunos ejemplos de ámbitos autónomos.
+
+ontap:*:joes-role:read_create_modify:*:/api/cluster:: Proporciona al usuario asignado a este rol acceso de lectura, creación y modificación al `/cluster` extremo.
+
+
+
+
+== Herramienta administrativa de la CLI
+
+Para que la administración de los ámbitos autónomos sea más sencilla y menos propensa a errores, ONTAP proporciona el comando de la CLI `security oauth2 scope` para generar cadenas de alcance basadas en los parámetros de entrada.
+
+El comando `security oauth2 scope` tiene dos casos de uso basados en su información:
+
+* Parámetros de CLI para la cadena de ámbito
++
+Puede utilizar esta versión del comando para generar una cadena de ámbito basada en los parámetros de entrada.
+
+* Cadena de ámbito para parámetros de CLI
++
+Puede utilizar esta versión del comando para generar los parámetros del comando basados en la cadena de ámbito de entrada.
+
+
+
+.Ejemplo
+El siguiente ejemplo genera una cadena de ámbito con la salida incluida después del siguiente ejemplo de comando. La definición se aplica a todos los clusters.
+
+[listing]
+----
+security oauth2 scope cli-to-scope -role joes-role -access readonly -api /api/cluster
+----
+`ontap:*:joes-role:readonly:*:/api/cluster`

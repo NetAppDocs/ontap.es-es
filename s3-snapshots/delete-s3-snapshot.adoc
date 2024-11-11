@@ -1,0 +1,67 @@
+---
+sidebar: sidebar 
+permalink: s3-snapshots/delete-s3-snapshot.html 
+keywords: s3 snapshots, delete S3 snapshots 
+summary: Puede eliminar S3 snapshots que ya no necesite y liberar espacio de almacenamiento de sus buckets. 
+---
+= Elimine S3 snapshots
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede eliminar S3 snapshots que ya no necesite y liberar espacio de almacenamiento en sus buckets. Es posible eliminar manualmente snapshots de S3 o modificar las políticas de Snapshot vinculadas a los bloques S3 para cambiar el número de snapshots que se retendrán para una programación.
+
+Las políticas de Snapshot para bloques S3 siguen las mismas reglas de eliminación que las políticas de snapshot de ONTAP tradicionales. Para obtener más información sobre la creación de políticas de snapshot, consulte link:../data-protection/create-snapshot-policy-task.html["Crear una política de Snapshot"].
+
+.Acerca de esta tarea
+* Si se captura una versión de objeto (en un bloque con versiones) o un objeto (en un bloque sin versiones) en varias instantáneas, el objeto se eliminará del sistema de archivos solo después de eliminar la última instantánea que lo proteja.
+* Si necesita eliminar un bucket de S3 que contiene objetos con snapshots, asegúrese de haber eliminado todas las snapshots de todos los objetos de ese bucket.
+* Si necesita revertir un clúster a una versión de ONTAP anterior a ONTAP 9.16,1, asegúrese de haber eliminado todas las snapshots de S3 de todos los bloques. También es posible que deba ejecutar `vserver object-store-server bucket clear-snapshot-metadata` el comando para quitar los metadatos de Snapshot de un bloque de S3. Para obtener más información, consulte link:../s3-snapshots/delete-s3-snapshot.html#clear-s3-snapshots-metadata["Borrar los metadatos de S3 Snapshot"].
+* Cuando se eliminan instantáneas en lotes, puede eliminar un gran número de objetos capturados en varias instantáneas, lo que libera más espacio de lo que podría causar la eliminación individual de snapshots. Como resultado, puede reclamar más espacio para los objetos de almacenamiento.
+
+
+.Pasos
+. Para eliminar una copia de Snapshot de S3 específica, ejecute este comando:
++
+[listing]
+----
+vserver object-store-server bucket snapshot delete -vserver <svm_name> -bucket <bucket_name> -snapshot <snapshot_name>
+----
+. Para eliminar todas las S3 copias Snapshot de un bloque, ejecute este comando:
++
+[listing]
+----
+vserver object-store-server bucket snapshot delete -vserver <svm_name> -bucket <bucket_name> -snapshot *
+----
+
+
+
+
+== Borrar los metadatos de S3 Snapshot
+
+Con S3 Snapshot, los metadatos de copias Snapshot también se generan en un bloque. Los metadatos de la copia Snapshot siguen estando en el bloque aunque todas las copias Snapshot se hayan eliminado de él. La presencia de metadatos de instantánea bloquea las siguientes operaciones:
+
+* El clúster vuelve a una versión de ONTAP anterior a ONTAP 9.16,1
+* La configuración de S3 SnapMirror en el bloque
+
+
+Antes de realizar estas operaciones, debe borrar todos los metadatos de instantáneas del bloque.
+
+.Antes de empezar
+Asegúrese de haber eliminado todas las S3 instantáneas de un depósito antes de empezar a borrar los metadatos.
+
+.Pasos
+. Para borrar los metadatos de Snapshot de un bloque, ejecute este comando:
+
+
+[listing]
+----
+vserver object-store-server bucket clear-snapshot-metadata -vserver <svm_name> -bucket <bucket_name>
+----

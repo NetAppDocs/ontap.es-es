@@ -1,0 +1,117 @@
+---
+sidebar: sidebar 
+permalink: s3-snapshots/create-s3-snapshot.html 
+keywords: s3 snapshots, snapshot create 
+summary: Puede generar manualmente copias Snapshot S3 o configurar políticas de Snapshot para crear automáticamente Snapshot S3 para usted. 
+---
+= Cree S3 snapshots
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede generar manualmente copias Snapshot S3 o configurar políticas de Snapshot para crear automáticamente Snapshot S3 para usted. Las snapshots sirven como copias estáticas de objetos que se usan para backup y recuperación de datos. Para determinar la tenencia de la retención de Snapshot, se pueden crear políticas Snapshot que facilitan la creación automática de snapshots en intervalos especificados.
+
+Las copias Snapshot de S3 le ayudan a proteger sus datos de objetos en bloques S3 con o sin el control de versiones de objetos habilitado.
+
+
+TIP: Las Snapshot pueden ser especialmente útiles para establecer la protección de datos cuando el control de versiones de objetos no está habilitado en un bloque S3, ya que actúan como registros de un momento específico que se pueden utilizar para operaciones de restauración cuando una versión de objeto anterior no está disponible.
+
+.Acerca de esta tarea
+* Las siguientes reglas de nomenclatura se aplican a Snapshot (tanto en snapshots manuales como automáticas):
++
+** Los nombres de snapshots de S3 pueden tener hasta 30 caracteres
+** S3 Los nombres de snapshots pueden consistir únicamente de letras minúsculas, números, puntos (.) y guiones (-)
+** S3 Los nombres de instantáneas deben terminar con una letra o un número
+** S3 nombres de instantáneas no pueden contener subcadena `s3snap`
+
+
+* En el contexto del protocolo S3, las restricciones de nomenclatura de bloques limitan un nombre de bloque a 63 caracteres. Como las copias Snapshot de ONTAP S3 se presentan como bloques a través del protocolo S3, se aplican restricciones similares a los nombres de los bloques de snapshots. De forma predeterminada, el nombre de cubo original se utiliza como nombre de cubo base.
+* Para facilitar la identificación de qué instantánea pertenece a qué depósito, el nombre del depósito de instantáneas consta del nombre del depósito base, junto con una cadena especial `-s3snap-` , que tiene el prefijo del nombre de la instantánea. Los nombres de los depósitos de instantáneas tienen el formato `<base_bucket_name>-s3snap-<snapshot_name>` .
++
+Por ejemplo, al ejecutar el siguiente comando para crear `snap1` en `bucket-a`, se crea un depósito de instantáneas con nombre `bucket-a-s3snap-snap1`, al que puede acceder mediante clientes S3 si tiene permisos para acceder al depósito base.
+
++
+[listing]
+----
+vserver object-store-server bucket snapshot create -bucket bucket-a -snapshot snap1
+----
+* No se puede crear una instantánea que da como resultado un nombre de cubo de instantáneas con más de 63 caracteres.
+* El nombre automático de Snapshot contiene el nombre de la programación de la política y la marca de hora, que es similar a la convención de nomenclatura de las copias de Snapshot de volúmenes tradicionales. Por ejemplo, los nombres de las instantáneas programadas pueden ser `daily-2024-01-01-0015` y. `hourly-2024-05-22-1105`
+
+
+
+
+== Cree manualmente S3 instantáneas
+
+Puede crear manualmente una copia Snapshot de S3 con la interfaz de línea de comandos de ONTAP. El procedimiento crea una instantánea solo en el clúster local.
+
+.Pasos
+. Cree una copia Snapshot de S3:
++
+[listing]
+----
+vserver object-store-server bucket snapshot create -vserver <svm_name> -bucket <bucket_name> -snapshot <snapshot_name>
+----
++
+En el siguiente ejemplo se crea una snapshot llamada `pre-update` en la `vs0` máquina virtual y el bloque de almacenamiento `website-data`:
+
++
+[listing]
+----
+vserver object-store-server bucket snapshot create -vserver vs0 -bucket website-data -snapshot pre-update
+----
+
+
+
+
+== Asigne una política de Snapshot de S3 a un bloque
+
+Cuando se configuran las políticas Snapshot en el nivel del bloque de S3, ONTAP crea automáticamente copias Snapshot de S3 programadas para usted. Al igual que las políticas de Snapshot tradicionales, es posible configurar hasta cinco programaciones para S3 copias Snapshot.
+
+Una política de Snapshot generalmente especifica las programaciones que permiten crear Snapshot, la cantidad de copias que deben conservarse para cada programación y el prefijo de la programación. Por ejemplo, una política puede crear una instantánea de S3 cada día a las 12:10 AM, conservar las dos copias más recientes y llamarlas `daily-<timestamp>` .
+
+La política de Snapshot predeterminada conserva lo siguiente:
+
+* Seis snapshots cada hora
+* Dos snapshots diarias
+* Dos snapshots semanales
+
+
+.Antes de empezar
+* Debe haberse creado una política de Snapshot antes de asignarla al bloque de S3.
+
+
+
+NOTE: Las políticas para snapshots de S3 siguen las mismas reglas que otras políticas de snapshot de ONTAP. Sin embargo, una política de Snapshot con un período de retención configurado en cualquiera de las programaciones de Snapshot no puede asignarse a un bloque S3.
+
+Para obtener más información sobre la creación de políticas Snapshot para generar automáticamente snapshots, consulte link:../data-protection/configure-custom-snapshot-policies-concept.html["Configure la visión general de las políticas de instantáneas personalizadas"].
+
+.Pasos
+. Asigne la política de Snapshot en su bloque:
++
+[listing]
+----
+vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> -snapshot-policy <policy_name>
+----
++
+o.
+
++
+[listing]
+----
+vserver object-store-server bucket modify -vserver <svm_name> -bucket <bucket_name> -snapshot-policy <policy_name>
+----
+
+
+
+NOTE: Si necesita revertir un cluster a una versión de ONTAP anterior a ONTAP 9.16,1, asegúrese de que el valor para `snapshot-policy` todos los buckets se haya establecido en `none` (o `-`).
+
+.Información relacionada
+link:../s3-snapshots/index.html["S3 Información general de instantáneas"]

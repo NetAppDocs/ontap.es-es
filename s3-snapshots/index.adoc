@@ -1,0 +1,83 @@
+---
+sidebar: sidebar 
+permalink: s3-snapshots/index.html 
+keywords: s3 snapshots, S3 Snapshot copy overview, what is S3 snapshot, can you create S3 snapshots 
+summary: Cree un backup puntual de su bloque de S3 con la tecnología Snapshot de S3. 
+---
+= S3 Información general de instantáneas
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.16,1, se puede usar la tecnología de copias Snapshot de ONTAP para generar imágenes puntuales de solo lectura de sus bloques de ONTAP S3.
+
+Con la función S3 Snapshot, se pueden crear Snapshot manualmente o generarlas automáticamente mediante políticas de Snapshot. S3 instantáneas se presentan como bloques S3 para S3 clientes. Puede examinar y restaurar el contenido de las snapshots mediante clientes S3.
+
+En ONTAP 9.16,1, las instantáneas de S3 solo capturan las versiones actuales de los objetos en bloques S3. Las versiones no actuales de los bloques con versiones no se capturan en las instantáneas S3. Además, las etiquetas de objetos de un momento específico no se capturan en las snapshots si las etiquetas de los objetos se modifican después de que se tomen las snapshots.
+
+
+TIP: S3 Las copias Snapshot se basan en la hora del clúster. Debe configurar el servidor NTP en el clúster para sincronizar la hora. Para obtener más información, consulte link:../system-admin/manage-cluster-time-concept.html["Gestione la hora del clúster"].
+
+.Cuota y aprovechamiento del espacio
+Las cuotas realizan un seguimiento del número de objetos y el tamaño lógico utilizados en un bloque de S3. Cuando se crean S3 snapshots, los objetos capturados en las S3 snapshots se cuentan para el número y el tamaño de objetos del bucket utilizados, hasta que se eliminen las copias de Snapshot del sistema de archivos.
+
+.Objetos de varias partes
+En el caso de objetos de varias partes, sólo se capturan los objetos finales en las instantáneas. Las cargas parciales de objetos de varias partes no se capturan en las instantáneas.
+
+
+
+== Instantáneas en bloques versionados y no versionados
+
+Puede crear instantáneas tanto en bloques con versiones como en bloques sin versiones. La instantánea solo contiene las versiones de objeto actuales en un momento en el que se captura la instantánea.
+
+.Buckets e instantáneas con versiones
+En los depósitos con el control de versiones de objetos activado, una instantánea conserva el contenido de la versión de objeto más reciente después de la cual se tomó la instantánea. Excluye las versiones no actuales en el bloque.
+
+Considere este ejemplo: En un bloque donde el control de versiones de objetos está habilitado, el objeto `obj1` tiene las versiones v1, v2, v3, v4, v5. Ha creado una instantánea de `snap1` `obj1` v3 (la versión más reciente en el punto de captura). Al navegar `snap1`, `obj1` aparecerá como un objeto con contenido creado en v3. No se devolverá el contenido de las versiones anteriores.
+
+
+NOTE: Las versiones no actuales se conservan en el sistema de archivos hasta que se eliminan las instantáneas.
+
+.Buckets e instantáneas sin versiones
+En los bloques sin versiones, las instantáneas S3 conservan el contenido de las últimas confirmaciones antes de la creación de la instantánea.
+
+Considere este ejemplo: En un depósito donde el control de versiones de objetos no está disponible, el objeto `obj1` se ha sobrescrito varias veces en (T1, T2, T3, T4 y T5). Creó una snapshot de S3 `snap1` en algún momento entre T3 y T4. Al navegar `snap1`, `obj1` aparecerá con el contenido creado en T3.
+
+
+
+== Caducidad de objetos y snapshots
+
+La caducidad de objetos en ONTAP S3 y las S3 copias Snapshot funcionan de forma independiente. La función de caducidad de objetos de ONTAP vence las versiones de los objetos según las reglas de gestión del ciclo de vida definidas para el bloque de S3. Las copias de Snapshot de S3 son copias estáticas de los objetos del bloque en un momento específico en el que se crea la copia de Snapshot.
+
+Si el control de versiones de objetos está activado en un depósito, cuando se elimina una versión específica de un objeto debido a una regla de caducidad definida para ese depósito, el contenido de la versión de objeto caducado continúa permaneciendo en el sistema de archivos si la versión se ha capturado como una versión actual en una o más S3 instantáneas. Esa versión de objeto dejará de existir en el sistema de archivos sólo cuando se elimine esa instantánea.
+
+Del mismo modo, en un depósito en el que se desactiva el control de versiones, si un objeto se elimina según una regla de caducidad, pero el objeto sigue capturándose en algunas instantáneas de S3 existentes, el objeto se conservará en el sistema de archivos. El objeto se eliminará permanentemente del sistema de archivos cuando se eliminen las instantáneas que lo capturan.
+
+Para obtener información sobre la caducidad de objetos S3 y la gestión del ciclo de vida, consulte link:../s3-config/create-bucket-lifecycle-rule-task.html["Cree una regla de gestión del ciclo de vida del bloque"].
+
+
+
+== Limitaciones con S3 Snapshot
+
+Tenga en cuenta las siguientes exclusiones y escenarios de funciones en ONTAP 9.16,1:
+
+* Es posible generar hasta 1023 snapshots para un bloque de S3.
+* Es necesario eliminar todas las S3 snapshots y metadatos de todos los bloques de un clúster antes de revertir el clúster a una versión de ONTAP anterior a ONTAP 9.16,1.
+* Si necesita eliminar un bucket de S3 que contiene objetos con snapshots, asegúrese de haber eliminado todas las instantáneas correspondientes de todos los objetos de ese bucket.
+* Las copias Snapshot de S3 no son compatibles con estas configuraciones:
++
+** En buckets de una relación de SnapMirror
+** En los depósitos en los que el bloqueo de objetos está activado
+** En NetApp BlueXP 
+** En System Manager
+** En configuraciones de ONTAP MetroCluster
+
+
+

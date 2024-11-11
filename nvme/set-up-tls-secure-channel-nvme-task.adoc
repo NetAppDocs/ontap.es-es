@@ -1,0 +1,64 @@
+---
+permalink: nvme/set-up-tls-secure-channel-nvme-task.html 
+sidebar: sidebar 
+keywords: manage, nvme, secure, encryption, in-flight, tls secure channel, tcp, tls, encrypt, enable, set up 
+summary: A partir de ONTAP 9.16,1, puede habilitar y deshabilitar el canal seguro TLS para las conexiones NVMe/TCP. 
+---
+= Configure el canal seguro de TLS para NVMe/TCP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.16,1, puede configurar un canal seguro TLS para las conexiones NVMe/TCP. Puede usar System Manager o la interfaz de línea de comandos de ONTAP para añadir un subsistema NVMe nuevo con TLS habilitado, o bien para habilitar TLS para un subsistema NVMe existente.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+A partir de ONTAP 9.16,1, se puede usar System Manager para configurar TLS para conexiones NVMe/TCP al crear o actualizar un subsistema NVMe, crear o clonar espacios de nombres NVMe, o bien añadir grupos de coherencia con nuevos espacios de nombres NVMe.
+
+.Pasos
+. En el Administrador del sistema, haga clic en *Hosts > Subsistema NVMe* y, a continuación, haga clic en *Agregar*.
+. Añada el nombre del subsistema NVMe y seleccione la máquina virtual de almacenamiento y el sistema operativo del host.
+. Introduzca el NQN del host.
+. Seleccione *Requerir Seguridad de la capa de transporte (TLS)* junto al NQN del host.
+. Proporcione la clave precompartida (PSK).
+. Haga clic en *Guardar*.
+. Para comprobar que el canal seguro TLS está activado, selecciona *System Manager > Hosts > Subsistema NVMe > Grid > Vista Peek*.
+
+
+--
+.CLI
+--
+.Pasos
+. Añada un host de subsistema NVMe que admita un canal seguro TLS. Puede proporcionar una clave precompartida (PSK) mediante el `tls-configured-psk` argumento o utilizar un PSK generado mediante el `tls-generated-psk` argumento:
++
+[source, cli]
+----
+vserver nvme subsystem host add -vserver <svm_name> -subsystem <subsystem> -host-nqn <host_nqn> {-tls-configured-psk <key_text> | -tls-generated-psk true}
+----
+. Compruebe que el host del subsistema NVMe está configurado para el canal seguro TLS. Opcionalmente, puede utilizar el `tls-key-type` argumento para mostrar sólo los hosts que utilizan ese tipo de clave:
++
+[source, cli]
+----
+vserver nvme subsystem host show -vserver <svm_name> -subsystem <subsystem> -host-nqn <host_nqn> -tls-key-type {none|configured|generated}
+----
+. Compruebe que la controladora de host del subsistema NVMe esté configurada para el canal seguro TLS. Opcionalmente, puede utilizar cualquiera de los `tls-key-type` `tls-identity` argumentos , o `tls-cipher` para mostrar sólo los controladores que tienen esos atributos TLS:
++
+[source, cli]
+----
+vserver nvme subsystem controller show -vserver <svm_name> -subsystem <subsystem> -host-nqn <host_nqn> -tls-key-type {none|configured|generated} -tls-identity <text> -tls-cipher {none|TLS_AES_128_GCM_SHA256|TLS_AES_256_GCM_SHA384}
+----
+
+
+--
+====
+.Leer más
+Consulte las páginas del manual de ONTAP para obtener información sobre estos comandos:
+
+* https://docs.netapp.com/us-en/ontap-cli/vserver-nvme-subsystem-host-add.html["adición de host del subsistema nvme de vserver"^]
+* https://docs.netapp.com/us-en/ontap-cli/vserver-nvme-subsystem-host-show.html["show de host del subsistema nvme del vserver"^]
+* https://docs.netapp.com/us-en/ontap-cli/vserver-nvme-subsystem-controller-show.html["show del controlador del subsistema nvme del vserver"^]
+

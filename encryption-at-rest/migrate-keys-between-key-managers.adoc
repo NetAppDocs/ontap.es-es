@@ -1,0 +1,157 @@
+---
+permalink: encryption-at-rest/migrate-keys-between-key-managers.html 
+sidebar: sidebar 
+keywords: onboard key manager, external key manager, configure, migrate keys, store keys, authentication keys, encryption keys 
+summary: 'Es posible usar el administrador de claves incorporado de ONTAP o un gestor de claves externo o ambos (en un caso) para gestionar las claves de cifrado de datos.' 
+---
+= Migrar las claves de cifrado de datos de ONTAP entre gestores de claves
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede gestionar sus claves de cifrado de datos mediante el gestor de claves incorporado de ONTAP o un gestor de claves externo (o ambos). Solo es posible habilitar los administradores de claves externos en el nivel de máquina virtual de almacenamiento. En el nivel de clúster de ONTAP, es posible habilitar el gestor de claves incorporado o un gestor de claves externo.
+
+[cols="2,2"]
+|===
+| Si habilita su gestor de claves en... | Puede usar... 
+
+
+| Solo a nivel de cluster  a| 
+Puede usar el gestor de claves incorporado o un gestor de claves externo
+
+
+
+| Solo nivel de SVM | Solo un gestor de claves externo 
+
+
+ a| 
+El nivel de clúster y SVM
+ a| 
+Una de las siguientes combinaciones de gestor de claves:
+
+* Opción 1
++
+Nivel de clúster: Gestor de claves incorporado
+
++
+Nivel de SVM: Gestor de claves externo
+
+* Opción 2
++
+Nivel de clúster: Gestor de claves externo
+
++
+Nivel de SVM: Gestor de claves externo
+
+
+
+|===
+
+
+== Migre claves entre gestores de claves en el nivel del clúster de ONTAP
+
+A partir de ONTAP 9.16,1 puede utilizar la interfaz de línea de comandos (CLI) de ONTAP para migrar claves entre gestores de claves a nivel del clúster.
+
+[role="tabbed-block"]
+====
+.Desde el gestor de claves incorporado a el gestor de claves externo
+--
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Cree una configuración del gestor de claves externo inactivo:
++
+[source, cli]
+----
+security key-manager external create-config
+----
+. Cambie al gestor de claves externo:
++
+[source, cli]
+----
+security key-manager keystore enable -vserver <svm_name> -type KMIP
+----
+. Elimine la configuración del gestor de claves incorporado:
++
+[source, cli]
+----
+security key-manager keystore delete-config -vserver <svm_name> -type OKM
+----
+. Configure el nivel de privilegio en admin:
++
+[source, cli]
+----
+set -privilege admin
+----
+
+
+--
+.Desde el gestor de claves externo a el gestor de claves incorporado
+--
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Cree una configuración de gestor de claves incorporada inactiva:
++
+[source, cli]
+----
+security key-manager onboard create-config
+----
+. Habilite la configuración del gestor de claves incorporado:
++
+[source, cli]
+----
+security key-manager keystore enable -vserver <svm_name> -type OKM
+----
+. Elimine la configuración del gestor de claves externo
++
+[source, cli]
+----
+security key-manager keystore delete-config -vserver <svm_name> -type KMIP
+----
+. Configure el nivel de privilegio en admin:
++
+[source, cli]
+----
+set -privilege admin
+----
+
+
+--
+====
+
+
+== Migrar claves entre los administradores de claves en todo el clúster de ONTAP y los niveles de máquina virtual de almacenamiento
+
+Puede usar la interfaz de línea de comandos (CLI) de ONTAP para migrar claves entre el administrador de claves en el nivel del clúster y un administrador de claves en el nivel de máquina virtual de almacenamiento.
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Migrar las claves:
++
+[source, cli]
+----
+security key-manager key migrate -from-vserver <svm_name> -to-vserver <svm_name>
+----
+. Configure el nivel de privilegio en admin:
++
+[source, cli]
+----
+set -privilege admin
+----
+

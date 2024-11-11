@@ -1,0 +1,121 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-determine-access.html 
+keywords: oauth 2.0, oauth2, scopes, groups, roles, users, determine access 
+summary: Para diseñar e implementar correctamente OAuth 2,0, es necesario comprender cómo ONTAP utiliza su configuración de autorización para tomar decisiones de acceso para los clientes. 
+---
+= Cómo determina ONTAP el acceso del cliente
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Para diseñar e implementar correctamente OAuth 2,0, es necesario comprender cómo ONTAP utiliza su configuración de autorización para tomar decisiones de acceso para los clientes. Los pasos principales utilizados para determinar el acceso se presentan a continuación en función de la versión de ONTAP.
+
+
+NOTE: No hubo actualizaciones significativas de OAuth 2,0 con ONTAP 9.15,1. Si utiliza la versión 9.15.1, consulte la descripción de ONTAP 9.14,1.
+
+.Información relacionada
+* link:../authentication/oauth2-as-servers.html#oauth-2-0-features-supported-in-ontap["Funciones de OAuth 2,0 admitidas en ONTAP"]
+
+
+
+
+== ONTAP 9.16.1
+
+ONTAP 9.16,1 amplía la compatibilidad estándar con OAuth 2,0 para incluir extensiones específicas de Microsoft Entra ID para grupos nativos de Entra ID, así como la asignación de roles externos.
+
+.Determine el acceso de clientes para ONTAP 9.16,1
+[%collapsible]
+====
+.Paso 1: Ámbitos autónomos
+Si el token de acceso contiene cualquier ámbito autónomo, ONTAP examina estos ámbitos primero. Si no hay ámbitos autónomos, vaya al paso 2.
+
+Con uno o más ámbitos independientes presentes, ONTAP aplica cada ámbito hasta que se pueda tomar una decisión explícita de *PERMITIR* o *NEGAR*. Si se toma una decisión explícita, el procesamiento finaliza.
+
+Si ONTAP no puede tomar una decisión de acceso explícita, continúe con el paso 2.
+
+.Paso 2: Compruebe el indicador de roles locales
+ONTAP examina el parámetro booleano `use-local-roles-if-present` . El valor de este indicador se define por separado para cada servidor de autorización definido en ONTAP.
+
+* Si el valor es `true` continúe con el paso 3.
+* Si el valor es `false` el procesamiento finaliza y se deniega el acceso.
+
+
+.Paso 3: Se denomina rol REST ONTAP
+Si el token de acceso contiene un rol REST con nombre en el `scope` campo o `scp`, o como una reclamación, ONTAP utiliza el rol para tomar la decisión de acceso. Esto siempre da como resultado una decisión *ALLOW* o *DENY* y el procesamiento termina.
+
+Si no hay ningún rol REST con nombre o no se encuentra el rol, continúe con el paso 4.
+
+.Paso 4: Usuarios
+Extraiga el nombre de usuario del token de acceso e intente hacer coincidir el nombre con los usuarios que tienen acceso a la aplicación «http». Los usuarios se examinan según el método de autenticación en el siguiente orden:
+
+* contraseña
+* Dominio (Active Directory)
+* Conmutador ns(LDAP)
+
+
+Si se encuentra un usuario coincidente, ONTAP utiliza el rol definido para el usuario para tomar una decisión de acceso. Esto siempre resulta en una decisión *ALLOW* o *DENY* y el procesamiento termina.
+
+Si un usuario no coincide o no hay nombre de usuario en el token de acceso, continúe con el paso 5.
+
+.Paso 5: Grupos
+Si se incluyen uno o más grupos, se examina el formato. Si los grupos se representan como UUID, se busca en una tabla de asignación de grupos internos. Si hay una coincidencia de grupo y un rol asociado, ONTAP utiliza el rol definido para el grupo para tomar una decisión de acceso. Esto siempre resulta en una decisión *ALLOW* o *DENY* y el procesamiento termina. Para obtener más información, consulte link:../authentication/oauth2-groups.html["Trabajar con grupos"].
+
+Si los grupos se representan como nombres y se configuran con autorización de dominio o nsswitch, ONTAP intenta relacionarlos con un grupo de Active Directory o LDAP, respectivamente. Si hay una coincidencia de grupo, ONTAP utiliza el rol definido para el grupo para tomar una decisión de acceso. Esto siempre resulta en una decisión *ALLOW* o *DENY* y el procesamiento termina.
+
+Si no hay ninguna coincidencia de grupo o si no hay ningún grupo en el token de acceso, el acceso se deniega y el procesamiento finaliza.
+
+====
+
+
+== ONTAP 9.14.1
+
+OAuth 2,0 inicial admitido se introduce con ONTAP 9.14,1 basado en las características estándar de OAuth 2,0.
+
+.Determine el acceso de clientes para ONTAP 9.14,1
+[%collapsible]
+====
+.Paso 1: Ámbitos autónomos
+Si el token de acceso contiene cualquier ámbito autónomo, ONTAP examina estos ámbitos primero. Si no hay ámbitos autónomos, vaya al paso 2.
+
+Con uno o más ámbitos independientes presentes, ONTAP aplica cada ámbito hasta que se pueda tomar una decisión explícita de *PERMITIR* o *NEGAR*. Si se toma una decisión explícita, el procesamiento finaliza.
+
+Si ONTAP no puede tomar una decisión de acceso explícita, continúe con el paso 2.
+
+.Paso 2: Compruebe el indicador de roles locales
+ONTAP examina el parámetro booleano `use-local-roles-if-present` . El valor de este indicador se define por separado para cada servidor de autorización definido en ONTAP.
+
+* Si el valor es `true` continúe con el paso 3.
+* Si el valor es `false` el procesamiento finaliza y se deniega el acceso.
+
+
+.Paso 3: Se denomina rol REST ONTAP
+Si el token de acceso contiene un rol REST con nombre en el `scope` campo OR `scp`, ONTAP utiliza el rol para tomar la decisión de acceso. Esto siempre da como resultado una decisión *ALLOW* o *DENY* y el procesamiento termina.
+
+Si no hay ningún rol REST con nombre o no se encuentra el rol, continúe con el paso 4.
+
+.Paso 4: Usuarios
+Extraiga el nombre de usuario del token de acceso e intente hacer coincidir el nombre con los usuarios que tienen acceso a la aplicación «http». Los usuarios se examinan según el método de autenticación en el siguiente orden:
+
+* contraseña
+* Dominio (Active Directory)
+* Conmutador ns(LDAP)
+
+
+Si se encuentra un usuario coincidente, ONTAP utiliza el rol definido para el usuario para tomar una decisión de acceso. Esto siempre resulta en una decisión *ALLOW* o *DENY* y el procesamiento termina.
+
+Si un usuario no coincide o no hay nombre de usuario en el token de acceso, continúe con el paso 5.
+
+.Paso 5: Grupos
+Si se incluyen uno o más grupos y se configuran con autorización de dominio o nsswitch, ONTAP intenta relacionarlos con un grupo LDAP o Active Directory, respectivamente.
+
+Si hay una coincidencia de grupo, ONTAP utiliza el rol definido para el grupo para tomar una decisión de acceso. Esto siempre resulta en una decisión *ALLOW* o *DENY* y el procesamiento termina.
+
+Si no hay ninguna coincidencia de grupo o si no hay ningún grupo en el token de acceso, el acceso se deniega y el procesamiento finaliza.
+
+====

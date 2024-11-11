@@ -9,7 +9,7 @@ summary: Restricción del acceso a cuentas de administrador y diag
 :allow-uri-read: 
 :icons: font
 :linkattrs: 
-:imagesdir: ../media
+:imagesdir: ../media/
 
 
 [role="lead"]
@@ -47,87 +47,6 @@ autosupport      console     password  autosupport      no     no
 6 entries were displayed.
 
 ----
-
-
-== Elimine la cuenta de administrador predeterminada
-
-La `admin` cuenta tiene el rol de administrador y se le permite el acceso utilizando todas las aplicaciones.
-
-.Pasos
-. Cree otra cuenta de nivel de administrador.
-+
-Para eliminar por completo la cuenta predeterminada `admin` , primero debe crear otra cuenta de nivel de administrador que utilice la `console` aplicación de inicio de sesión.
-
-+
-
-NOTE: Hacer estos cambios puede causar algunos efectos no deseados. Pruebe siempre los nuevos ajustes que puedan afectar el estado de seguridad de la solución en un clúster que no sea de producción primero.
-
-+
-Ejemplo:
-
-+
-[listing]
-----
-cluster1::*> security login create -user-or-group-name NewAdmin -application console -authentication-method password -vserver cluster1
-----
-+
-[listing]
-----
-cluster1::*> security login show -vserver cluster1
-
-Vserver: cluster1
-                             Authentication             Acct   Is-Nsswitch
-User/Group Name  Application Method    Role Name        Locked Group
----------------- ----------- --------- ---------------- ------ -----------
-NewAdmin         console     password  admin            no     no
-admin            console     password  admin            no     no
-admin            http        password  admin            no     no
-admin            ontapi      password  admin            no     no
-admin            service-processor password admin       no     no
-admin            ssh         password  admin            no     no
-autosupport      console     password  autosupport      no     no
-7 entries were displayed.
-----
-. Después de crear la nueva cuenta de administrador, pruebe el acceso a esa cuenta con el `NewAdmin` inicio de sesión de la cuenta. Con la `NewAdmin` conexión, configure la cuenta para que tenga las mismas aplicaciones de conexión que la cuenta de administración predeterminada o anterior (por ejemplo, `http` `ontapi`, , `service-processor`o `ssh`). Este paso garantiza que se mantenga el control de acceso.
-+
-Ejemplo:
-
-+
-[listing]
-----
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application ssh -authentication-method password
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application http -authentication-method password
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application ontapi -authentication-method password
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application service-processor -authentication-method password
-----
-. Después de probar todas las funciones, puede desactivar la cuenta de administrador para todas las aplicaciones antes de eliminarla de ONTAP. Este paso sirve como prueba final para confirmar que no hay funciones persistentes que se basen en la cuenta de administrador anterior.
-+
-[listing]
-----
-cluster1::*> security login lock -vserver cluster1 -user-or-group-name admin -application *
-----
-. Para eliminar la cuenta de administrador predeterminada y todas las entradas para ella, ejecute el siguiente comando:
-+
-[listing]
-----
-cluster1::*> security login delete -vserver cluster1 -user-or-group-name admin -application *
-cluster1::*> security login show -vserver cluster1
-
-Vserver: cluster1
-                             Authentication             Acct   Is-Nsswitch
-User/Group Name  Application Method    Role Name        Locked Group
----------------- ----------- --------- ---------------- ------ -----------
-NewAdmin         console     password  admin            no     no
-NewAdmin         http        password  admin            no     no
-NewAdmin         ontapi      password  admin            no     no
-NewAdmin         service-processor password admin       no     no
-NewAdmin         ssh         password  admin            no     no
-autosupport      console     password  autosupport      no     no
-7 entries were displayed.
-
-----
-
-
 
 
 == Establezca la contraseña de la cuenta de diagnóstico (diag)
