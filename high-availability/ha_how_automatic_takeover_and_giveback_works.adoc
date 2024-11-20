@@ -20,7 +20,7 @@ De forma predeterminada, si uno de los nodos de la pareja de alta disponibilidad
 
 También se pueden producir tomas automáticas si uno de los nodos deja de responder.
 
-La devolución automática se produce de forma predeterminada. Si prefiere controlar el impacto de devolución en los clientes, puede desactivar la devolución automática y utilizar la `storage failover modify -auto-giveback false -node <node>` comando. Antes de realizar la devolución automática (independientemente de lo que la haya activado), el nodo del partner espera una cantidad fija de tiempo, controlada por el `-delay- seconds` parámetro de `storage failover modify` comando. El retardo predeterminado es de 600 segundos. Al retrasar la devolución, el proceso provoca dos breves interrupciones del servicio: Una durante la toma de control y otra durante la devolución.
+La devolución automática se produce de forma predeterminada. Si prefiere controlar el impacto del retorno de entrada en los clientes, puede desactivar el retorno de entrada automático y utilizar `storage failover modify -auto-giveback false -node <node>` el comando. Antes de realizar la devolución automática (independientemente de lo que lo haya activado), el nodo del partner espera una cantidad de tiempo fija, según lo controla el `-delay- seconds` parámetro `storage failover modify` del comando. El retardo predeterminado es de 600 segundos.
 
 Este proceso evita una única interrupción prolongada que incluye el tiempo necesario para:
 
@@ -45,18 +45,18 @@ Los siguientes pasos ocurren durante el proceso de toma de control:
 . Si la toma de control negociada está iniciada por el usuario, los datos agregados se mueven desde el nodo del partner al nodo que está realizando la toma de control. Se produce una breve interrupción del servicio cuando el propietario actual de cada agregado (excepto el agregado raíz) cambia a el nodo de toma de control. Esta interrupción es más breve que una interrupción que se produce durante una toma de control sin necesidad de reubicar agregados.
 +
 
-NOTE: Una toma negociada durante el pánico no puede ocurrir en el caso de un pánico.  Una toma de control puede ser el resultado de un fallo no asociado a una caída del pánico. Un fallo se experimenta cuando se pierde la comunicación entre un nodo y su compañero, también llamado pérdida de latido. Si se produce una toma de control debido a un fallo, la interrupción del servicio podría tardar más porque el nodo asociado necesita tiempo para detectar la pérdida de latido.
+NOTE: Una toma de control negociada durante el pánico no puede ocurrir en el caso de un pánico. Una toma de control puede ser el resultado de un fallo no asociado a una caída del pánico. Un fallo se experimenta cuando se pierde la comunicación entre un nodo y su compañero, también llamado pérdida de latido. Si se produce una toma de control debido a un fallo, la interrupción del servicio podría tardar más porque el nodo asociado necesita tiempo para detectar la pérdida de latido.
 
 +
-** Puede supervisar el progreso con el `storage failover show‑takeover` comando.
-** Puede evitar la reubicación de agregados durante esta instancia de toma de control mediante la `‑bypass‑optimization` con el `storage failover takeover` comando.
+** Puede supervisar el progreso con `storage failover show-takeover` el comando.
+** Puede evitar la reubicación del agregado durante esta instancia de toma de control mediante el `-bypass-optimization` parámetro con `storage failover takeover` el comando.
 +
 Los agregados se reubican en serie durante las operaciones de toma de control planificadas para reducir las interrupciones del cliente. Si se omite la reubicación de agregados, se produce una interrupción del servicio del cliente mayor durante los eventos de toma de control planificados.
 
 
 
 . Si la toma de control iniciada por el usuario es una toma de control negociada, el nodo de destino se cierra correctamente, seguido de la toma de control del agregado raíz del nodo de destino y de los agregados que no se reubicaron en el primer paso.
-. Las LIF de datos (interfaces lógicas) migran desde el nodo de destino al nodo de toma de control, o a cualquier otro nodo del clúster según las reglas de conmutación al nodo de respaldo de LIF. Puede evitar la migración de LIF utilizando `‑skip‑lif-migration` el parámetro con `storage failover takeover` el comando. En caso de toma de control iniciada por el usuario, los LIF de datos se migran antes de que se inicie la toma de control del almacenamiento. En caso de alarma o fallo, según su configuración, los LIF de datos podrían migrarse con el almacenamiento o después de que se complete la toma del control.
+. Las LIF de datos (interfaces lógicas) migran desde el nodo de destino al nodo de toma de control, o a cualquier otro nodo del clúster según las reglas de conmutación al nodo de respaldo de LIF. Puede evitar la migración de LIF utilizando `-skip-lif-migration` el parámetro con `storage failover takeover` el comando. En caso de toma de control iniciada por el usuario, los LIF de datos se migran antes de que se inicie la toma de control del almacenamiento. En caso de alarma o fallo, según su configuración, los LIF de datos podrían migrarse con el almacenamiento o después de que se complete la toma del control.
 . Las sesiones SMB existentes se desconectan cuando se produce la toma de control.
 +
 
@@ -127,8 +127,8 @@ Las actualizaciones en segundo plano del firmware de disco afectarán a la toma 
 
 En la lista siguiente se describe cómo las actualizaciones del firmware del disco en segundo plano afectan a la toma de control, el retorno al nodo primario y la reubicación de agregados:
 
-* Si se produce una actualización del firmware del disco en segundo plano en un disco de cualquiera de los nodos, las operaciones de toma de control iniciadas manualmente se retrasan hasta que la actualización del firmware del disco finalice en dicho disco. Si la actualización del firmware del disco en segundo plano tarda más de 120 segundos, se cancelan las operaciones de toma de control y se deben reiniciar manualmente una vez finalizada la actualización del firmware del disco. Si la toma de control se ha iniciado con `‑bypass‑optimization` parámetro de `storage failover takeover` comando establecido en `true`, la actualización del firmware del disco en segundo plano que se produce en el nodo de destino no afecta a la toma de control.
-* Si se produce una actualización de firmware de disco en segundo plano en un disco del nodo de origen (o toma de control) y la toma de control se inició manualmente con el `‑options` parámetro de `storage failover takeover` comando establecido en `immediate`, las operaciones de toma de control se inician inmediatamente.
+* Si se produce una actualización del firmware del disco en segundo plano en un disco de cualquiera de los nodos, las operaciones de toma de control iniciadas manualmente se retrasan hasta que la actualización del firmware del disco finalice en dicho disco. Si la actualización del firmware del disco en segundo plano tarda más de 120 segundos, se cancelan las operaciones de toma de control y se deben reiniciar manualmente una vez finalizada la actualización del firmware del disco. Si la toma de control se inició con `-bypass-optimization` el parámetro del `storage failover takeover` comando establecido en `true`, la actualización del firmware del disco en segundo plano que se produce en el nodo de destino no afecta a la toma de control.
+* Si se está produciendo una actualización de firmware de disco en segundo plano en un disco del nodo de origen (o de toma de control) y la toma de control se inició manualmente con el `-options` parámetro `storage failover takeover` del comando establecido en `immediate`, las operaciones de toma de control se inician inmediatamente.
 * Si se produce una actualización del firmware del disco en segundo plano en un disco de un nodo y produce una alarma, la conmutación por error del nodo que ha entran en pánico se inicia de inmediato.
 * Si se está produciendo una actualización del firmware del disco en segundo plano en un disco de cualquiera de los nodos, la restauración de los agregados de datos se retrasa hasta que la actualización del firmware del disco finaliza en ese disco.
 * Si la actualización del firmware del disco en segundo plano tarda más de 120 segundos, se cancelan las operaciones de devolución y se deben reiniciar manualmente una vez finalizada la actualización del firmware del disco.
