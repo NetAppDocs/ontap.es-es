@@ -1,25 +1,34 @@
 ---
 permalink: revert/task_things_to_verify_before_revert.html 
 sidebar: sidebar 
-keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation 
-summary: Diversas opciones de configuración pueden afectar a la preparación de la actualización del clúster. 
+keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation, pre-revert, checks, verification, cluster health, storage health, system time, jobs 
+summary: Antes de revertir ONTAP, debe comprobar el estado del clúster, el estado del almacenamiento y la hora del sistema. También debe verificar que no existan trabajos en ejecución en el clúster. 
 ---
-= Cosas que verificar antes de revertir
+= Las verificaciones del sistema que se deben realizar antes de revertir un clúster de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Antes de revertir, debe comprobar el estado del clúster, el estado del almacenamiento y la hora del sistema.  También debe eliminar todos los trabajos de clúster que se estén ejecutando y terminar correctamente las sesiones de SMB que no estén disponibles continuamente.
+Antes de revertir un clúster de ONTAP, debe comprobar el estado del clúster, el estado del almacenamiento y la hora del sistema. También debe verificar que no existan trabajos en ejecución en el clúster.
 
 
 
 == Compruebe el estado del clúster
 
-Antes de revertir el clúster, debe comprobar que los nodos están en buen estado y que pueden participar en el clúster, así como que el clúster tiene quórum.
+Antes de revertir un clúster ONTAP, debe verificar que los nodos estén en buen estado y que puedan participar en el clúster y que el clúster esté en quórum.
 
-. Compruebe que los nodos del clúster estén en línea y que puedan participar en el clúster: `cluster show`
+.Pasos
+. Compruebe que los nodos del clúster estén en línea y que puedan participar en el clúster:
++
+[source, cli]
+----
+cluster show
+----
++
+En este ejemplo, todos los nodos están en buen estado y pueden participar en el clúster.
+
 +
 [listing]
 ----
@@ -32,8 +41,12 @@ node1                 true    true
 +
 Si alguno de los nodos no es saludable o no apto, compruebe los registros de EMS en busca de errores y realice acciones correctivas.
 
-. Establezca el nivel de privilegio en Advanced: +
-`set -privilege advanced`
+. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 Introduzca `y` para continuar.
 
@@ -53,29 +66,37 @@ Tenga en cuenta que cada anillo puede tener un maestro de quórum diferente.
  a| 
 Aplicación de gestión
  a| 
-`cluster ring show -unitname mgmt`
-
+[source, cli]
+----
+cluster ring show -unitname mgmt
+----
 
 
  a| 
 Base de datos de ubicación del volumen
  a| 
-`cluster ring show -unitname vldb`
-
+[source, cli]
+----
+cluster ring show -unitname vldb
+----
 
 
  a| 
 Administrador de interfaz virtual
  a| 
-`cluster ring show -unitname vifmgr`
-
+[source, cli]
+----
+cluster ring show -unitname vifmgr
+----
 
 
  a| 
 Daemon de gestión de SAN
  a| 
-`cluster ring show -unitname bcomd`
-
+[source, cli]
+----
+cluster ring show -unitname bcomd
+----
 |===
 +
 Este ejemplo muestra el proceso de la base de datos de ubicación del volumen:
@@ -94,9 +115,18 @@ node3     vldb     154      154      14847    node0     secondary
 ----
 
 
-. Vuelva al nivel de privilegio de administrador: +
-`set -privilege admin`
-. Si va a trabajar en un entorno SAN, compruebe que cada nodo se encuentra en quórum DE SAN: `event log show  -severity informational -message-name scsiblade.*`
+. Vuelva al nivel de privilegio de administrador:
++
+[source, cli]
+----
+set -privilege admin
+----
+. Si va a trabajar en un entorno SAN, compruebe que cada nodo se encuentra en quórum DE SAN:
++
+[source, cli]
+----
+event log show  -severity informational -message-name scsiblade.*
+----
 +
 El mensaje de evento scsiblade más reciente para cada nodo debe indicar que el scsi-blade está en quórum.
 
@@ -118,8 +148,9 @@ link:../system-admin/index.html["Administración del sistema"]
 
 == Comprobación del estado del almacenamiento
 
-Antes de revertir un clúster, debe comprobar el estado de los discos, los agregados y los volúmenes.
+Antes de revertir un clúster de ONTAP, debe comprobar el estado de los discos, los agregados y los volúmenes.
 
+.Pasos
 . Compruebe el estado del disco:
 +
 [cols="2*"]
@@ -130,7 +161,12 @@ Antes de revertir un clúster, debe comprobar el estado de los discos, los agreg
  a| 
 Discos rotos
  a| 
-.. Mostrar cualquier disco roto: `storage disk show -state broken`
+.. Mostrar cualquier disco roto:
++
+[source, cli]
+----
+storage disk show -state broken
+----
 .. Retire o sustituya los discos rotos.
 
 
@@ -139,12 +175,22 @@ Discos rotos
  a| 
 Discos sometidos a mantenimiento o reconstrucción
  a| 
-.. Muestre cualquier disco en estado de mantenimiento, pendiente o reconstrucción: `storage disk show -state maintenance|pending|reconstructing`
+.. Muestre cualquier disco en estado de mantenimiento, pendiente o reconstrucción:
++
+[source, cli]
+----
+storage disk show -state maintenance|pending|reconstructing
+----
 .. Espere a que la operación de mantenimiento o reconstrucción finalice antes de continuar.
 
 
 |===
-. Compruebe que todos los agregados están en línea mostrando el estado del almacenamiento físico y lógico, incluidos los agregados de almacenamiento: `storage aggregate show -state !online`
+. Compruebe que todos los agregados están en línea mostrando el estado de almacenamiento físico y lógico, incluidos los agregados de almacenamiento: +
++
+[source, cli]
+----
+storage aggregate show -state !online
+----
 +
 Este comando muestra los agregados que _not_ están en línea. Todos los agregados deben estar en línea antes y después de realizar una actualización o versión posterior principales.
 
@@ -154,7 +200,12 @@ Este comando muestra los agregados que _not_ están en línea. Todos los agregad
 cluster1::> storage aggregate show -state !online
 There are no entries matching your query.
 ----
-. Verifique que todos los volúmenes estén en línea mostrando los volúmenes que _not_ en línea: `volume show -state !online`
+. Verifique que todos los volúmenes estén en línea mostrando los volúmenes que _not_ en línea:
++
+[source, cli]
+----
+volume show -state !online
+----
 +
 Todos los volúmenes deben estar en línea antes y después de realizar una actualización o versión posterior principales.
 
@@ -164,7 +215,12 @@ Todos los volúmenes deben estar en línea antes y después de realizar una actu
 cluster1::> volume show -state !online
 There are no entries matching your query.
 ----
-. Compruebe que no haya volúmenes incoherentes: `volume show -is-inconsistent true`
+. Compruebe que no haya volúmenes incoherentes:
++
+[source, cli]
+----
+volume show -is-inconsistent true
+----
 +
 Consulte el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent["Volumen que muestra una incoherencia de WAFL"] sobre la forma de abordar los volúmenes incoherentes.
 
@@ -175,12 +231,23 @@ link:../disks-aggregates/index.html["Gestión de discos y agregados"]
 
 
 
-== Verificación de la hora del sistema
+== Compruebe la hora del sistema
 
-Antes de revertir, debe verificar que NTP está configurado y que la hora está sincronizada en todo el clúster.
+Antes de revertir un clúster de ONTAP, debe comprobar que NTP esté configurado y que la hora esté sincronizada en todo el clúster.
 
-. Compruebe que el clúster esté asociado con un servidor NTP: `cluster time-service ntp server show`
-. Compruebe que cada nodo tiene la misma fecha y hora: `cluster date show`
+.Pasos
+. Compruebe que el clúster esté asociado con un servidor NTP:
++
+[source, cli]
+----
+cluster time-service ntp server show
+----
+. Compruebe que cada nodo tiene la misma fecha y hora:
++
+[source, cli]
+----
+cluster date show
+----
 +
 [listing]
 ----
@@ -199,9 +266,18 @@ node3     4/6/2013 20:54:38   GMT
 
 == Compruebe que no hay trabajos en ejecución
 
-Antes de revertir el software ONTAP, debe comprobar el estado de los trabajos del clúster. Si cualquier trabajo de agregado, volumen, NDMP (volcado o restauración) o Snapshot (como crear, eliminar, mover, modificar, replicar, y los trabajos de montaje) están en ejecución o en cola, debe permitir que los trabajos finalicen correctamente o detener las entradas en cola.
+Antes de revertir un clúster ONTAP, debe comprobar el estado de los trabajos del clúster. Si cualquier trabajo de agregado, volumen, NDMP (volcado o restauración) o Snapshot (como trabajos de creación, eliminación, movimiento, modificación, replicación y montaje) se está ejecutando o en cola, debe permitir que los trabajos se finalicen correctamente o detener las entradas en cola.
 
-. Revise la lista de trabajos en ejecución o en cola de agregados, volúmenes o copias Snapshot: `job show`
+.Pasos
+. Revise la lista de trabajos en ejecución o en cola de agregados, volúmenes o copias Snapshot:
++
+[source, cli]
+----
+job show
+----
++
+En este ejemplo, hay dos trabajos en cola:
+
 +
 [listing]
 ----
@@ -214,17 +290,19 @@ Job ID Name                 Vserver    Node           State
 8630   Certificate Expiry Check
                             cluster1   -              Queued
        Description: Certificate Expiry Check
-.
-.
-.
 ----
-. Elimine cualquier trabajo que esté en ejecución o en cola de agregados, volúmenes o copias Snapshot: `job delete -id job_id`
+. Elimine cualquier trabajo que esté en ejecución o en cola de agregados, volúmenes o copias Snapshot:
 +
-[listing]
+[source, cli]
 ----
-cluster1::> job delete -id 8629
+job delete -id <job_id>
 ----
-. Compruebe que no haya trabajos de agregado, volumen ni Snapshot en ejecución ni en la cola: `job show`
+. Compruebe que no haya trabajos de agregado, volumen ni Snapshot en ejecución ni en la cola:
++
+[source, cli]
+----
+job show
+----
 +
 En este ejemplo, se han eliminado todos los trabajos en ejecución y en cola:
 
@@ -244,65 +322,3 @@ Job ID Name                 Vserver    Node           State
 2 entries were displayed
 ----
 
-
-
-
-== Sesiones SMB que deben finalizar
-
-Antes de revertir, debe identificar y terminar con dignidad cualquier sesión SMB que no esté disponible de forma continua.
-
-No es necesario terminar los recursos compartidos SMB disponibles de forma continua, a los que acceden los clientes de Hyper-V o Microsoft SQL Server con el protocolo SMB 3.0 antes de la actualización o la degradación.
-
-. Identifique cualquier sesión SMB establecida que no esté disponible continuamente: `vserver cifs session show -continuously-available No -instance`
-+
-Este comando muestra información detallada sobre cualquier sesión SMB que no tiene disponibilidad continua. Debe terminarlas antes de continuar con la degradación de ONTAP.
-
-+
-[listing]
-----
-cluster1::> vserver cifs session show -continuously-available No -instance
-
-                        Node: node1
-                     Vserver: vs1
-                  Session ID: 1
-               Connection ID: 4160072788
-Incoming Data LIF IP Address: 198.51.100.5
-      Workstation IP address: 203.0.113.20
-    Authentication Mechanism: NTLMv2
-                Windows User: CIFSLAB\user1
-                   UNIX User: nobody
-                 Open Shares: 1
-                  Open Files: 2
-                  Open Other: 0
-              Connected Time: 8m 39s
-                   Idle Time: 7m 45s
-            Protocol Version: SMB2_1
-      Continuously Available: No
-1 entry was displayed.
-----
-. Si es necesario, identifique los archivos que están abiertos para cada sesión SMB que ha identificado: `vserver cifs session file show -session-id session_ID`
-+
-[listing]
-----
-cluster1::> vserver cifs session file show -session-id 1
-
-Node:       node1
-Vserver:    vs1
-Connection: 4160072788
-Session:    1
-File    File      Open Hosting                               Continuously
-ID      Type      Mode Volume          Share                 Available
-------- --------- ---- --------------- --------------------- ------------
-1       Regular   rw   vol10           homedirshare          No
-Path: \TestDocument.docx
-2       Regular   rw   vol10           homedirshare          No
-Path: \file1.txt
-2 entries were displayed.
-----
-
-
-
-
-== Autenticación NVMe en banda
-
-Si va a revertir desde ONTAP 9.12.1 o posterior a ONTAP 9.12.0 o anterior, debe link:../nvme/disable-secure-authentication-nvme-task.html["desactive la autenticación en banda"] antes de revertir.  Si la autenticación en banda con DH-HMAC-CHAP no está desactivada, se producirá un error en la reversión.

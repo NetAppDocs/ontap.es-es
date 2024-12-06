@@ -11,71 +11,73 @@ summary: Primero debe descargar el software ONTAP; después, puede instalarlo.
 
 
 [role="lead"]
-Primero, tiene que descargar el software ONTAP del sitio de soporte de NetApp; entonces puede instalarlo.
+Antes de revertir su software ONTAP actual, debe descargar la versión del software de destino del sitio de soporte de NetApp e instalarlo.
 
 
 
-== Descargue la imagen del software
+== Descargue la imagen del software ONTAP
 
-Para degradar o revertir de ONTAP 9.4 y versiones posteriores, puede copiar la imagen del software ONTAP del sitio de soporte de NetApp a una carpeta local. Para una degradación o para revertir a ONTAP 9.3 o una versión anterior, debe copiar la imagen del software ONTAP en un servidor HTTP o FTP de la red.
+Las imágenes de software son específicas para los modelos de la plataforma. Debe obtener la imagen correcta para su clúster. Las imágenes de software, la información de versión de firmware y el firmware más reciente para el modelo de su plataforma están disponibles en el sitio de soporte de NetApp. Las imágenes de software incluyen la versión más reciente del firmware del sistema disponible cuando se publicó una versión concreta de ONTAP.
 
-Debe tener en cuenta la siguiente información importante:
 
-* Las imágenes de software son específicas para los modelos de la plataforma.
+NOTE: Si va a revertir un sistema con cifrado de volúmenes NetApp de ONTAP 9,5 o versiones posteriores, debe descargar la imagen del software ONTAP para países sin restricciones, que incluyen el cifrado de volúmenes NetApp. Si utiliza la imagen del software ONTAP para países restringidos para revertir un sistema con cifrado de volumen NetApp, el sistema produce una alarma y pierde el acceso a los volúmenes.
+
+.Pasos
+. Busque el software de ONTAP de destino en link:http://mysupport.netapp.com/NOW/cgi-bin/software["Descargas de software"^]el área del sitio de soporte de NetApp.
+. Copie la imagen de software (por ejemplo, 97_q_image.tgz) del sitio de soporte de NetApp
 +
-Debe obtener la imagen correcta para su clúster. Las imágenes de software, la información de versión de firmware y el firmware más reciente para el modelo de su plataforma están disponibles en el sitio de soporte de NetApp.
+Puede copiar la imagen en el directorio del servidor HTTP o FTP desde el que se servirá la imagen o en una carpeta local.
 
-* Las imágenes de software incluyen la versión más reciente del firmware del sistema disponible cuando se publicó una versión concreta de ONTAP.
-* Si va a cambiar a un sistema con el cifrado de volúmenes de NetApp desde ONTAP 9.5 o posterior, debe descargar la imagen del software ONTAP para países no restringidos, que incluye el cifrado de volúmenes de NetApp.
+
+
+
+
+== Instale la imagen del software de ONTAP
+
+Después de descargar la imagen del software ONTAP de destino desde el sitio de soporte de NetApp, instálela en los nodos del clúster.
+
+.Pasos
+. Configure el nivel de privilegio en Advanced:
 +
-Si utiliza la imagen de software de ONTAP para países restringidos a fin de degradar o revertir un sistema con el cifrado de volúmenes de NetApp, el sistema tendrá una alarma y perderá el acceso a los volúmenes.
-
-+
-.. Busque el software de ONTAP de destino en link:http://mysupport.netapp.com/NOW/cgi-bin/software["Descargas de software"^]el área del sitio de soporte de NetApp.
-.. Copie la imagen del software.
-+
-*** Para ONTAP 9.3 o una versión anterior, copie la imagen de software (por ejemplo, 93_q_image.tgz) del sitio de soporte de NetApp en el directorio del servidor HTTP o FTP a partir del que se servirá la imagen.
-*** Para ONTAP 9.4 o posterior, copie la imagen de software (por ejemplo, 97_q_image.tgz) del sitio de soporte de NetApp en el directorio del servidor HTTP o FTP a partir del que se servirá la imagen o en una carpeta local.
-
-
-
-
-
-
-
-
-== Instale la imagen del software
-
-Debe instalar la imagen de software de destino en los nodos del clúster.
-
-* Si va a degradar o revertir un sistema con cifrado de volumen de NetApp desde ONTAP 9.5 o posterior, debe haber descargado la imagen del software ONTAP para países no restringidos, que incluye el cifrado de volúmenes de NetApp.
-+
-Si utiliza la imagen de software de ONTAP para países restringidos a fin de degradar o revertir un sistema con el cifrado de volúmenes de NetApp, el sistema tendrá una alarma y perderá el acceso a los volúmenes.
-
-+
-.. Establezca el nivel de privilegio en avanzado, introduzca *y* cuando se le solicite continuar: `set -privilege advanced`
+[source, cli]
+----
+set -privilege advanced
+----
 +
 El aviso avanzado (`*>`) aparece.
 
-.. Instale la imagen de software en los nodos.
+. Introduzca `y` para continuar cuando se le solicite .
+. Instale la imagen de software:
 +
-Este comando descarga e instala la imagen de software en todos los nodos al mismo tiempo. Para descargar e instalar la imagen en cada nodo de uno en uno, no especifique el parámetro -background.
-
+** Para configuraciones estándar o una configuración de MetroCluster de dos nodos, introduzca el comando siguiente:
 +
-*** Si va a degradar o revertir una configuración que no sea de MetroCluster o una configuración de MetroCluster de dos nodos:``system node image update -node * -package location -replace-package true -setdefault true -background true``
+[source, cli]
+----
+system node image update -node * -package location -replace-package true -setdefault true -background true
+----
 +
-Este comando utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como imagen alternativa, para que sea la imagen predeterminada del nodo.
+Este comando descarga e instala la imagen de software en todos los nodos al mismo tiempo. Para descargar e instalar la imagen en cada nodo de uno en uno, no especifique el `-background` parámetro. Este comando también utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como imagen alternativa, para que sea la imagen predeterminada del nodo.
 
-*** Si va a revertir una configuración MetroCluster de cuatro u ocho nodos, debe emitir el siguiente comando en ambos clústeres: `system node image update -node * -package location -replace-package true true -background true -setdefault false`
+** Para una configuración de MetroCluster de cuatro u ocho nodos, introduzca el siguiente comando en ambos clústeres:
 +
-Este comando utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como la imagen alternativa en cada nodo.
-
-
-
-.. Introduzca `y` para continuar cuando se le solicite.
-.. Compruebe que la imagen de software se haya descargado e instalado en cada nodo: `system node image show-update-progress -node *`
+[source, cli]
+----
+system node image update -node * -package location -replace-package true true -background true -setdefault false
+----
 +
-Este comando muestra el estado actual de la descarga e instalación de la imagen de software. Debe continuar ejecutando este comando hasta que todos los nodos informen sobre un estado de ejecución de salida y un estado de salida correcto.
+Este comando descarga e instala la imagen de software en todos los nodos al mismo tiempo. Para descargar e instalar la imagen en cada nodo de uno en uno, no especifique el `-background` parámetro. Este comando también utiliza una consulta ampliada para cambiar la imagen de software de destino, que se instala como imagen alternativa de cada nodo.
+
+
+
+. Introduzca `y` para continuar cuando se le solicite.
+. Compruebe que la imagen de software se haya descargado e instalado en cada nodo:
++
+[source, cli]
+----
+system node image show-update-progress -node *
+----
++
+Este comando muestra el estado actual de la descarga e instalación de la imagen de software. Debe continuar ejecutando este comando hasta que todos los nodos notifiquen un *Estado de ejecución* de “Salido” y un *Estado de salida* de “Correcto”.
 
 +
 El comando de actualización de imagen del nodo del sistema puede fallar y mostrar mensajes de error o advertencia. Después de resolver errores o advertencias, puede volver a ejecutar el comando.
@@ -101,6 +103,4 @@ Status of most recent operation:
         Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
 2 entries were acted on.
 ----
-
-
 

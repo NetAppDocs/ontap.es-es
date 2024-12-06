@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: revert, reverting, reversion, ipv6, firewall, entries, verify 
 summary: Una nueva versión de cualquier versión de ONTAP 9 podría resultar en que falten entradas predeterminadas del firewall IPv6 para algunos servicios en las políticas del firewall. Debe comprobar que las entradas de firewall necesarias se han restaurado en el sistema. 
 ---
-= Verifique las entradas del firewall IPv6
+= Verifique las entradas del firewall IPv6 después de una reversión de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -13,7 +13,13 @@ summary: Una nueva versión de cualquier versión de ONTAP 9 podría resultar en
 [role="lead"]
 Una nueva versión de cualquier versión de ONTAP 9 podría resultar en que falten entradas predeterminadas del firewall IPv6 para algunos servicios en las políticas del firewall. Debe comprobar que las entradas de firewall necesarias se han restaurado en el sistema.
 
-. Compruebe que todas las directivas de firewall son correctas comparándolas con las directivas predeterminadas: `system services firewall policy show`
+.Pasos
+. Compruebe que todas las directivas de firewall son correctas comparándolas con las directivas predeterminadas:
++
+[source, cli]
+----
+system services firewall policy show
+----
 +
 En el siguiente ejemplo, se muestran las políticas predeterminadas:
 
@@ -44,18 +50,16 @@ data
 .
 .
 ----
-. Agregue manualmente todas las entradas predeterminadas del firewall IPv6 que falten creando una nueva política de firewall: `system services firewall policy create`
+. Agregue manualmente todas las entradas predeterminadas del firewall IPv6 que falten creando una nueva política de firewall:
 +
-[listing]
+[source, cli]
 ----
-cluster1::*> system services firewall policy create -policy newIPv6
--service ssh -action allow -ip-list ::/0
+system services firewall policy create -policy <policy_name> -service ssh -action allow -ip-list <ip_list>
 ----
-. Aplique la nueva política a la LIF para permitir el acceso a un servicio de red: `network interface modify`
+. Aplique la nueva política a la LIF para permitir el acceso a un servicio de red:
 +
-[listing]
+[source, cli]
 ----
-cluster1::*> network interface modify -vserver VS1 -lif LIF1
--firewall-policy newIPv6
+network interface modify -vserve <svm_name> -lif <lif_name> -firewall-policy <policy_name>
 ----
 

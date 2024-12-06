@@ -4,34 +4,56 @@ sidebar: sidebar
 keywords: ontap, revert, reverting, reversion, snapshot, copies, prepare, preparing, disable, delete 
 summary: Antes de revertir a una versión de ONTAP anterior, debe deshabilitar todas las políticas de copia de Snapshot y eliminar las copias de Snapshot que se crearon después de actualizar a la versión actual. 
 ---
-= Prepare las copias Snapshot antes de revertir
+= Preparar las instantáneas antes de revertir un clúster ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Antes de revertir a una versión de ONTAP anterior, debe deshabilitar todas las políticas de copia de Snapshot y eliminar las copias de Snapshot que se crearon después de actualizar a la versión actual.
+Antes de revertir un clúster de ONTAP desde cualquier versión de ONTAP 9, debe deshabilitar todas las políticas de copias de Snapshot y eliminar las copias de Snapshot que se hayan creado después de actualizar a la versión actual.
 
 Si va a revertir en un entorno de SnapMirror, primero debe eliminar las siguientes relaciones de reflejo:
 
 * Todas las relaciones de mirroring de uso compartido de carga
 * Todas las relaciones de mirroring de protección de datos que se crearon en ONTAP 8.3.x.
 * Todas las relaciones de mirroring de protección de datos si el clúster se volvió a crear en ONTAP 8.3.x.
-+
-.. Deshabilite las políticas de copia Snapshot para todas las SVM de datos: `volume snapshot policy modify -vserver * -enabled false`
-.. Deshabilite las políticas de copia Snapshot para los agregados de cada nodo:
-+
-... Identifique los agregados del nodo mediante el comando run-nodenodenameaggr status.
-... Deshabilite la política de copia Snapshot de cada agregado: `run -node nodename aggr options aggr_name nosnap on`
-... Repita este paso con cada uno de los nodos restantes.
 
 
-.. Deshabilite las políticas de copia Snapshot para el volumen raíz de cada nodo:
+.Pasos
+. Deshabilite las políticas de copia Snapshot para todas las SVM de datos:
 +
-... Identifique el volumen raíz del nodo mediante el comando run-nodenodesmalevol status.
+[source, cli]
+----
+volume snapshot policy modify -vserver * -enabled false
+----
+. Deshabilite las políticas de copia Snapshot para los agregados de cada nodo:
 +
-El volumen raíz se identifica por la palabra root en la columna Options del resultado del comando vol status.
+.. Identifique los agregados del nodo:
++
+[source, cli]
+----
+run -node <nodename> -command aggr status
+----
+.. Deshabilite la política de copia Snapshot de cada agregado:
++
+[source, cli]
+----
+run -node <nodename> -command aggr options aggr_name nosnap on
+----
+.. Repita este paso con cada uno de los nodos restantes.
+
+
+. Deshabilite las políticas de copia Snapshot para el volumen raíz de cada nodo:
++
+.. Identifique el volumen raíz del nodo:
++
+[source, cli]
+----
+run-node <node_name> -command vol status
+----
++
+Usted identifica el volumen raíz por la palabra root en la columna *Options* de la `vol status` salida del comando.
 
 +
 [listing]
@@ -42,20 +64,40 @@ vs1::> run -node node1 vol status
            vol0 online          raid_dp, flex     root, nvfail=on
                                 64-bit
 ----
-... Deshabilite la política de copia Snapshot en el volumen raíz: `run -node nodename vol options root_volume_name nosnap on`
-... Repita este paso con cada uno de los nodos restantes.
-
-
-.. Elimine todas las copias Snapshot que se crearon después de actualizar a la versión actual:
+.. Deshabilite la política de copia Snapshot en el volumen raíz:
 +
-... Configure el nivel de privilegio en Advanced: `set -privilege advanced`
-... Desactive las instantáneas:``snapshot policy modify -vserver * -enabled false``
-... Elimine las copias Snapshot de la versión más reciente del nodo: `volume snapshot prepare-for-revert -node nodename`
+[source, cli]
+----
+run -node <node_name> vol options root_volume_name nosnap on
+----
+.. Repita este paso con cada uno de los nodos restantes.
+
+
+. Elimine todas las copias Snapshot que se crearon después de actualizar a la versión actual:
++
+.. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Desactive las instantáneas:
++
+[source, cli]
+----
+snapshot policy modify -vserver * -enabled false
+----
+.. Elimine las copias Snapshot de la versión más reciente del nodo:
++
+[source, cli]
+----
+volume snapshot prepare-for-revert -node <node_name>
+----
 +
 Este comando elimina las copias Snapshot de una versión más reciente en cada volumen de datos, agregado raíz y volumen raíz.
 
 +
-Si alguna copia de Snapshot no se puede eliminar, el comando falla y notifica las acciones necesarias que debe realizar para poder eliminar las copias de Snapshot. Debe completar las acciones necesarias y volver a ejecutar el comando prepare-for-revert de la snapshot del volumen antes de continuar con el siguiente paso.
+Si alguna copia de Snapshot no se puede eliminar, el comando falla y notifica las acciones necesarias que debe realizar para poder eliminar las copias de Snapshot. Debe completar las acciones necesarias y volver a ejecutar `volume snapshot prepare-for-revert` el comando antes de continuar con el siguiente paso.
 
 +
 [listing]
@@ -65,18 +107,28 @@ cluster1::*> volume snapshot prepare-for-revert -node node1
 Warning: This command will delete all Snapshot copies that have the format used by the current version of ONTAP. It will fail if any Snapshot copy polices are enabled, or
          if any Snapshot copies have an owner. Continue? {y|n}: y
 ----
-... Compruebe que las copias Snapshot se han eliminado: `volume snapshot show -node nodename`
+.. Compruebe que las copias Snapshot se han eliminado:
 +
-Si queda alguna copia Snapshot de la versión más reciente, obligue a eliminar: `volume snapshot delete {-fs-version 9.0 -node nodename -is-constituent true} -ignore-owners -force`
-
-... Repita este paso c para cada uno de los nodos restantes.
-... Vuelva al nivel de privilegio de administrador: `set -privilege admin`
-
-
-
-
+[source, cli]
+----
+volume snapshot show -node nodename
+----
+.. Si queda alguna copia Snapshot de la versión más reciente, obligue a eliminar:
 +
+[source, cli]
+----
+volume snapshot delete {-fs-version 9.0 -node nodename -is-constituent true} -ignore-owners -force
+----
+.. Repita estos pasos para cada uno de los nodos restantes.
+.. Vuelva al nivel de privilegio de administrador:
++
+[source, cli]
+----
+set -privilege admin
+----
+
+
+
+
 
 NOTE: Estos pasos deben ejecutarse en los dos clústeres de la configuración de MetroCluster.
-
-
