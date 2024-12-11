@@ -13,8 +13,91 @@ summary: A partir de ONTAP 9.8, si es un administrador de clúster en el nivel d
 [role="lead"]
 A partir de ONTAP 9.8, si es un administrador de clúster en el nivel de privilegio avanzado, puede promocionar datos de manera proactiva en el nivel de rendimiento desde el nivel de cloud con una combinación de `tiering-policy` y la `cloud-retrieval-policy` ajuste.
 
-
-
-== Acerca de esta tarea
-
+.Acerca de esta tarea
 Puede hacer esto si desea detener el uso de FabricPool en un volumen o si tiene un `snapshot-only` La política de organización en niveles y desea devolver los datos de copias Snapshot restaurados al nivel de rendimiento.
+
+
+
+== Promocione todos los datos de un volumen de FabricPool al nivel de rendimiento
+
+Puede recuperar de forma proactiva todos los datos de un volumen de FabricPool en el nivel de cloud y promocionarlos al nivel de rendimiento.
+
+.Pasos
+. Utilice la `volume modify` comando que se va a definir `tiering-policy` para `none` y.. `cloud-retrieval-policy` para `promote`.
++
+[listing]
+----
+volume modify -vserver <vserver-name> -volume <volume-name> -tiering-policy none -cloud-retrieval-policy promote
+----
+
+
+
+
+== Promocione los datos del sistema de archivos al nivel de rendimiento
+
+Puede recuperar datos del sistema de archivos activos de forma proactiva desde una copia Snapshot restaurada en el nivel de cloud y promoverla al nivel de rendimiento.
+
+.Pasos
+. Utilice la `volume modify` comando que se va a definir `tiering-policy` para `snapshot-only` y.. `cloud-retrieval-policy` para `promote`.
++
+[listing]
+----
+volume modify -vserver <vserver-name> -volume <volume-name> -tiering-policy snapshot-only cloud-retrieval-policy promote
+----
+
+
+
+
+== Comprobar el estado de una promoción de nivel de rendimiento
+
+Puede comprobar el estado de la promoción del nivel de rendimiento para determinar cuándo se completó la operación.
+
+.Pasos
+. Utilice el volumen `object-store` con el `tiering` opción para comprobar el estado de la promoción de nivel de rendimiento.
++
+[listing]
+----
+volume object-store tiering show [ -instance | -fields <fieldname>, ... ] [ -vserver <vserver name> ] *Vserver
+[[-volume] <volume name>] *Volume [ -node <nodename> ] *Node Name [ -vol-dsid <integer> ] *Volume DSID
+[ -aggregate <aggregate name> ] *Aggregate Name
+----
++
+[listing]
+----
+volume object-store tiering show v1 -instance
+
+                                  Vserver: vs1
+                                   Volume: v1
+                                Node Name: node1
+                              Volume DSID: 1023
+                           Aggregate Name: a1
+                                    State: ready
+                      Previous Run Status: completed
+                 Aborted Exception Status: -
+               Time Scanner Last Finished: Mon Jan 13 20:27:30 2020
+                 Scanner Percent Complete: -
+                      Scanner Current VBN: -
+                         Scanner Max VBNs: -
+      Time Waiting Scan will be scheduled: -
+                           Tiering Policy: snapshot-only
+     Estimated Space Needed for Promotion: -
+                        Time Scan Started: -
+  Estimated Time Remaining for scan to complete: -
+                    Cloud Retrieve Policy: promote
+----
+
+
+
+
+== Ejecución de la migración y la organización en niveles programadas
+
+A partir de ONTAP 9.8, puede activar una solicitud de análisis por niveles en cualquier momento si prefiere no esperar al análisis por niveles predeterminado.
+
+.Pasos
+. Utilice la `volume object-store` con el `trigger` opción para solicitar migración y organización en niveles.
++
+[listing]
+----
+volume object-store tiering trigger [ -vserver <vserver name> ] *VServer Name [-volume] <volume name> *Volume Name
+----
+

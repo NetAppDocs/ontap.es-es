@@ -50,35 +50,35 @@ NOTE: El comando para anular la partición de un disco solo está disponible a n
 También puede consultar el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Cómo desparticionar una unidad de reserva en ONTAP"^]
 
 +
-`disk unpartition _disk_name_`
+`disk unpartition <disk_name>`
 
 . Desinfecte los discos especificados:
 +
-`disk sanitize start [-p _pattern1_|-r [-p _pattern2_|-r [-p _pattern3_|-r]]] [-c _cycle_count_] _disk_list_`
+`disk sanitize start [-p <pattern1>|-r [-p <pattern2>|-r [-p <pattern3>|-r]]] [-c <cycle_count>] <disk_list>`
 
 +
 
 NOTE: No apague el nodo, interrumpa la conectividad de almacenamiento ni elimine los discos de destino mientras se está saneando. Si se interrumpe la operación durante la fase de formateo, se debe reiniciar la fase de formateo y se debe permitir que finalice antes de que los discos se sanearan y estén listos para ser devueltos al pool de reserva. Si necesita anular el proceso de saneamiento, puede hacerlo utilizando el `disk sanitize abort` comando. Si los discos especificados se están sometiendo a la fase de formateo del saneamiento, la interrupción no se producirá hasta que se complete la fase.
 
 +
- `-p` `_pattern1_` `-p` `_pattern2_` `-p` `_pattern3_` especifica un ciclo de uno a tres patrones de sobrescritura de bytes hex definidos por el usuario que se pueden aplicar sucesivamente a los discos que se están saneando. El patrón predeterminado son tres pasadas, usando 0x55 para la primera pasada, 0xaa para la segunda pasada y 0x3c para la tercera pasada.
+ `-p` `<pattern1>` `-p` `<pattern2>` `-p` `<pattern3>` especifica un ciclo de uno a tres patrones de sobrescritura de bytes hexadecimales definidos por el usuario que se pueden aplicar sucesivamente a los discos que se están saneando. El patrón predeterminado son tres pasadas, usando 0x55 para la primera pasada, 0xaa para la segunda pasada y 0x3c para la tercera pasada.
 
 +
 `-r` reemplaza una sobrescritura con patrón por una sobrescritura aleatoria para cualquiera de las pasadas o para todas ellas.
 
 +
-`-c` `_cycle_count_` especifica el número de veces que se aplican los patrones de sobrescritura especificados. El valor predeterminado es un ciclo. El valor máximo es siete ciclos.
+`-c` `<cycle_count>` especifica el número de veces que se aplican los patrones de sobrescritura especificados. El valor predeterminado es un ciclo. El valor máximo es siete ciclos.
 
 +
-`_disk_list_` Especifica una lista separada por espacio de los ID de los discos de repuesto que se van a desinfectar.
+`<disk_list>` Especifica una lista separada por espacios de los ID de los discos de repuesto que se van a sanear.
 
 . Si lo desea, compruebe el estado del proceso de saneamiento de disco:
 +
-`disk sanitize status [_disk_list_]`
+`disk sanitize status [<disk_list>]`
 
 . Una vez completado el proceso de saneamiento, devuelva los discos al estado de reserva de cada disco:
 +
-`disk sanitize release _disk_name_`
+`disk sanitize release <disk_name>`
 
 . Salga del modo de mantenimiento.
 
@@ -87,7 +87,7 @@ NOTE: No apague el nodo, interrumpa la conectividad de almacenamiento ni elimine
 .Desinfecte un disco con y#8220;nodeshell&#8221; comandos (todas las versiones de ONTAP 9)
 [%collapsible]
 ====
-Para todas las versiones de ONTAP 9, cuando se habilita el saneamiento de disco mediante comandos nodeshell, se deshabilitan algunos comandos ONTAP de bajo nivel. Cuando el saneamiento de disco está habilitado en un nodo, no se puede deshabilitar.
+Una vez habilitada la función de saneamiento de disco con comandos nodeshell en un nodo, no se puede deshabilitar.
 
 .Antes de empezar
 * Los discos deben ser discos de repuesto; deben ser propiedad de un nodo, pero no se usan en un nivel local (agregado).
@@ -113,11 +113,11 @@ NOTE: El comando para anular la partición de un disco solo está disponible a n
 
 --
 +
-`disk unpartition _disk_name_`
+`disk unpartition <disk_name>`
 
 . Introduzca el nodo que posee los discos que desea desinfectar:
 +
-`system node run -node _node_name_`
+`system node run -node <node_name>`
 
 . Habilitar el saneamiento de disco:
 +
@@ -132,7 +132,7 @@ Se le pide que confirme el comando porque es irreversible.
 
 . Desinfecte los discos especificados:
 +
-`disk sanitize start [-p pattern1|-r [-p pattern2|-r [-p pattern3|-r]]] [-c cycle_count] disk_list`
+`disk sanitize start [-p <pattern1>|-r [-p <pattern2>|-r [-p <pattern3>|-r]]] [-c <cycle_count>] <disk_list>`
 
 +
 
@@ -144,30 +144,27 @@ comando abort. Si los discos especificados están pasando por la fase de formate
 la interrupción no se produce hasta que se completa la fase.
 
 +
-`-p pattern1 -p pattern2 -p pattern3` especifica un ciclo de uno a tres bytes hexadecimales definidos por el usuario
-patrones de sobrescritura que se pueden aplicar sucesivamente a los discos que se están saneando. El valor predeterminado
-el patrón es de tres pasadas, usando 0x55 para la primera pasada, 0xaa para la segunda pasada, y 0x3c para la
-tercera pasada.
+`-p <pattern1> -p <pattern2> -p <pattern3>` especifica un ciclo de uno a tres patrones de sobrescritura de bytes hexadecimales definidos por el usuario que se pueden aplicar sucesivamente a los discos que se están saneando. El patrón predeterminado son tres pasadas, usando 0x55 para la primera pasada, 0xaa para la segunda pasada y 0x3c para la tercera pasada.
 
 +
 `-r` reemplaza una sobrescritura con patrón por una sobrescritura aleatoria para cualquiera de las pasadas o para todas ellas.
 
 +
-`-c cycle_count` especifica el número de veces que se aplican los patrones de sobrescritura especificados.
+`-c <cycle_count>` especifica el número de veces que se aplican los patrones de sobrescritura especificados.
 
 +
 El valor predeterminado es un ciclo. El valor máximo es siete ciclos.
 
 +
-`disk_list` Especifica una lista separada por espacio de los ID de los discos de repuesto que se van a desinfectar.
+`<disk_list>` Especifica una lista separada por espacios de los ID de los discos de repuesto que se van a sanear.
 
 . Si desea comprobar el estado del proceso de saneamiento de disco:
 +
-`disk sanitize status [disk_list]`
+`disk sanitize status [<disk_list>]`
 
 . Una vez finalizado el proceso de saneamiento, devuelva los discos a estado de repuesto:
 +
-`disk sanitize release _disk_name_`
+`disk sanitize release <disk_name>`
 
 . Volver al nivel de privilegios de administración nodesinfierno:
 +
@@ -201,11 +198,11 @@ Complete los siguientes pasos:
 
 .. Asigne los discos sanitizados sin asignar al nodo adecuado para cada disco:
 +
-`storage disk assign -disk _disk_name_ -owner _node_name_`
+`storage disk assign -disk <disk_name> -owner <node_name>`
 
 .. Devuelva los discos al estado de repuesto de cada disco:
 +
-`storage disk unfail -disk _disk_name_ -s -q`
+`storage disk unfail -disk <disk_name> -s -q`
 
 .. Volver al modo administrativo:
 +
