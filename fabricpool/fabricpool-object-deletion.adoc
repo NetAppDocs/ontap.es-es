@@ -1,0 +1,135 @@
+---
+permalink: fabricpool/fabricpool-object-deletion.html 
+sidebar: sidebar 
+keywords: fabricpool, fabric pool, tiering, delete, defrag, unreclaimed, threshold 
+summary: FabricPool elimina los objetos después de que ONTAP deje de hacer referencia a un cierto porcentaje de bloques del objeto. 
+---
+= Eliminación y desfragmentación de objetos FabricPool
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+FabricPool no elimina bloques de almacenes de objetos conectados. En su lugar, FabricPool elimina los objetos después de que un cierto porcentaje de bloques del objeto ya no haga referencia en ONTAP.
+
+Por ejemplo, hay bloques de 1.024 4KB KB en un objeto de 4MB Gb organizado en niveles en Amazon S3. La desfragmentación y eliminación no se producen hasta que ONTAP haga referencia a menos de 205 4KB bloques (el 20 % de 1.024). Cuando suficientes bloques (1.024) tienen cero referencias, sus objetos 4MB originales se eliminan y se crea un nuevo objeto.
+
+Puede personalizar el porcentaje del umbral de espacio sin reclamar y configurarlo en diferentes niveles predeterminados para diferentes almacenes de objetos. La configuración predeterminada es:
+
+|===
+
+
+| Almacén de objetos | ONTAP 9,3 y anteriores | ONTAP 9,4 a 9,7 | ONTAP 9,8 y versiones posteriores | Cloud Volumes ONTAP 
+
+
+ a| 
+Amazon S3
+ a| 
+0%
+ a| 
+20 %
+ a| 
+20 %
+ a| 
+30 %
+
+
+
+ a| 
+Google Cloud Storage
+ a| 
+n.a.
+ a| 
+12%
+ a| 
+20 %
+ a| 
+35%
+
+
+
+ a| 
+Almacenamiento BLOB de Microsoft Azure
+ a| 
+n.a.
+ a| 
+15 %
+ a| 
+25%
+ a| 
+35%
+
+
+
+ a| 
+NetApp ONTAP S3
+ a| 
+n.a.
+ a| 
+n.a.
+ a| 
+40 %
+ a| 
+n.a.
+
+
+
+ a| 
+StorageGRID de NetApp
+ a| 
+0%
+ a| 
+40 %
+ a| 
+40 %
+ a| 
+n.a.
+
+|===
+
+
+== Umbral de espacio no reclamado
+
+Si se cambia la configuración predeterminada del umbral de espacio no reclamado, se aumentará o disminuirá la cantidad aceptada de fragmentación del objeto. Si se reduce la fragmentación, se reducirá la cantidad de capacidad física utilizada por el nivel de cloud a expensas de recursos de almacenamiento de objetos adicionales (lecturas y escrituras).
+
+
+
+=== Reducción de umbral
+
+Para evitar gastos adicionales, considere reducir los umbrales de espacio no reclamado al utilizar esquemas de precios de almacenes de objetos que reducen el coste del almacenamiento pero aumentan el coste de las lecturas. Entre los ejemplos se incluyen Standard-IA de Amazon y Azure Blob Storage's Cool.
+
+Por ejemplo, organizar en niveles un volumen de proyectos de 10 años de antigüedad que se han guardado por razones legales puede ser menos costoso cuando se usa un esquema de precios como Standard-IA o Cool que cuando se usan esquemas de precios estándar. Aunque las lecturas son más caras en un volumen de este tipo, incluidas las lecturas necesarias para la desfragmentación del objeto, es poco probable que se produzcan con frecuencia.
+
+
+
+=== El umbral aumenta
+
+También puede considerar aumentar los umbrales de espacio sin reclamar si la fragmentación de objetos hace que se utilice mucha más capacidad de almacén de objetos de la necesaria para los datos a los que ONTAP hace referencia. Por ejemplo, utilizar un umbral de espacio sin reclamar del 20 % en el peor de los casos en los que todos los objetos se fragmentan igualmente hasta la extensión máxima permitida significa que es posible que ONTAP no haga referencia al 80 % de la capacidad total del nivel de cloud. Por ejemplo:
+
+2TB TB referenciada por ONTAP + 8TB TB no referenciadas por ONTAP = 10TB TB de capacidad total utilizada por el nivel de cloud.
+
+En esta situación, puede ser ventajoso aumentar el umbral de espacio no reclamado o aumentar los días de refrigeración mínimos del volumen para reducir la capacidad utilizada por bloques no referenciados.
+
+[NOTE]
+====
+A medida que los objetos se desfragmentan y hacen que el almacenamiento sea más eficiente, los archivos subyacentes pueden fragmentarse a medida que los bloques de referencia se escriben en objetos nuevos y más eficientes. Por este motivo, el aumento significativo del umbral de espacio no reclamado genera objetos con una mayor eficiencia del almacenamiento, pero, posiblemente, reduce el rendimiento de lectura secuencial.
+
+====
+
+
+== Cambie el umbral de espacio sin reclamar
+
+Es posible personalizar el porcentaje del umbral de espacio sin reclamar para diferentes almacenes de objetos.
+
+.Antes de empezar
+Se requiere el nivel de privilegio avanzado.
+
+.Pasos
+. Para cambiar el umbral de espacio no reclamado predeterminado, personalice y ejecute el siguiente comando:
++
+[source, cli]
+----
+storage aggregate object-store modify -aggregate <name> -object-store-name <name> -unreclaimedspace-threshold <%> (0%-99%)
+----
+
