@@ -1,0 +1,40 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-guidelines.html 
+sidebar: sidebar 
+keywords: tr-4743, flexcache writeback, flexcache write-back, flexcache, write-back, write back, guidelines, best practices, performance, ontap tr, netapp tr 
+summary: Siga estas directrices para garantizar un rendimiento óptimo cuando utilice la reescritura de FlexCache. 
+---
+= Directrices de reescritura de ONTAP FlexCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La reescritura de FlexCache implica muchas interacciones complejas entre el origen y los cachés. Para obtener un rendimiento óptimo, debe asegurarse de que el entorno siga estas directrices. Estas directrices se basan en la última versión principal de ONTAP (ONTAP 9.15.1.) disponible en el momento de la creación de contenido.
+
+**MEJOR PRÁCTICA:** Pruebe su carga de trabajo de producción en un entorno no productivo. Esto es incluso más importante si va a implementar la devolución de datos de FlexCache fuera de estas directrices.
+
+Las siguientes directrices han sido bien probadas internamente en NetApp. Es *_strong_* recomendable que te quedes dentro de ellos. Si no lo hace, podría ocurrir un comportamiento inesperado.
+
+* En ONTAP 9.15.1P5 se han introducido importantes mejoras en la devolución de datos de FlexCache. *_strong_* recomienda ejecutar la versión recomendada actual después de 9.15.1P5 en los clusters de origen y caché.
+* En su iteración actual, los cachés de retroescritura FlexCache deben configurarse con un único componente para todo el volumen FlexCache. Los FlexCaches de varios componentes pueden provocar expulsiones no deseadas de datos de la caché.
+* Se han ejecutado pruebas para archivos menores de 100GB GB y tiempos de ida y vuelta WAN entre la caché y el origen que no exceden los 100ms GB. Cualquier carga de trabajo que no supere estos límites puede producir características de rendimiento inesperadas.
+* Al escribir en flujos de datos alternativos de SMB, el archivo principal se expulsa de la caché. Todos los datos desfasados del archivo principal deben vaciarse en el origen antes de poder realizar otras operaciones en ese archivo. El flujo de datos alternativo también se reenvía al origen.
+* Cambiar el nombre de un archivo hace que el archivo sea expulsado de la caché. Todos los datos desfasados del archivo deben vaciarse en el origen antes de poder realizar otras operaciones en ese archivo.
+* En este momento, los únicos atributos que se pueden cambiar o configurar en un archivo del volumen FlexCache con la función de escritura-retroescritura habilitada son:
++
+** Fecha/hora
+** Bits de modo
+** ACL NT
+** Propietario
+** Grupo
+** Tamaño
++
+Cualquier otro atributo que se modifique o defina se reenviará al origen, lo que podría provocar el desalojo del archivo de la caché. Si necesita cambiar o establecer otros atributos en la memoria caché, pida a su equipo de cuentas que abra un PVR.
+
+
+
+* Las instantáneas tomadas en origen provocan la recuperación de todos los datos desfasados pendientes de cada caché con retroescritura habilitada asociada con ese volumen de origen. Esto puede requerir varios reintentos de la operación si hay una actividad de reescritura significativa en curso, ya que los expulsos de esos archivos desfasados pueden tardar algún tiempo.
+* El origen debe permanecer por debajo del 80% completo. A los volúmenes de caché no se les otorgan delegaciones de bloqueo exclusivo si no queda al menos un 20% de espacio en el volumen de origen. En esta situación, las llamadas a una caché con reescritura activada se reenvían al origen. Esto ayuda a evitar que se quede sin espacio en el origen, lo que provocaría que los datos desfasados queden huérfanos en una caché con retroescritura habilitada.
+

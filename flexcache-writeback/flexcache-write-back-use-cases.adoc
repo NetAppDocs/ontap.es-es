@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: tr-4743, flexcache writeback, flexcache write-back, use cases, workloads, technical report, netapp tr, ontap tr 
 summary: Son los perfiles de escritura más adecuados para una FlexCache de escritura-back habilitada. Debería probar su carga de trabajo para ver si la escritura simultánea o la escritura en bloque ofrece el mejor rendimiento. 
 ---
-= Casos de uso de escritura de FlexCache
+= Casos de uso de reescritura de ONTAP FlexCache
 :allow-uri-read: 
 
 
@@ -21,17 +21,19 @@ NOTE: La reescritura no es un reemplazo de la emisión de escrituras. Aunque la 
 .Tamaño de archivo
 El tamaño del archivo es menos importante que el número de escrituras emitidas entre `OPEN` y `CLOSE` llama a un archivo. Los archivos pequeños inherentemente tienen menos `WRITE` llamadas, lo que los hace menos ideales para la reescritura. Los archivos grandes pueden tener más escrituras entre `OPEN` y `CLOSE` llamadas, pero esto no está garantizado.
 
+Consulte link:../flexcache-writeback/flexcache-write-back-guidelines.html["Directrices de reescritura de FlexCache"]la página para obtener las recomendaciones más recientes sobre el tamaño máximo del archivo.
+
 .Tamaño de escritura
-Cuando se escribe desde un cliente, se requieren otras llamadas NAS que no sean llamadas de escritura:
+Cuando se escribe desde un cliente, otras llamadas de modificación del NAS se involucran aparte de las llamadas de escritura. Estos incluyen, pero no se limitan a:
 
 * `CREATE`
 * `OPEN`
 * `CLOSE`
-* `READDIR/READDIRPLUS`
-*  `SETATTR`: `SETATTR` llamadas que sólo modifican `mtime`, `atime`o `ctime` se procesan en la caché.
+* `SETATTR`
+* `SET_INFO`
 
 
-Estas llamadas deben procesarse en el origen y activar una reescritura de los datos sucios acumulados en la caché de reescritura activada para el archivo en el que se está operando. El E/S en el archivo se desactivará hasta que se complete la reescritura.
+`SETATTR` y `SET_INFO` las llamadas que establecen `mtime`, , `atime`, , , , , `ctime` `owner` `group` o `size` se procesan en la caché. El resto de estas llamadas se deben procesar en el origen y activar una anotación de todos los datos sucios acumulados en la caché de escritura activada para el archivo en el que se está operando. El E/S en el archivo se desactivará hasta que se complete la reescritura.
 
 Saber que estas llamadas deben atravesar la WAN le ayuda a identificar las cargas de trabajo adecuadas para la reescritura. Por lo general, cuantas más escrituras se puedan realizar entre `OPEN` y `CLOSE` llamadas sin que se emita una de las otras llamadas enumeradas anteriormente, mejor será la anotación de ganancia de rendimiento.
 
@@ -48,7 +50,7 @@ Cuando un archivo acumula datos sucios en una caché, la caché vuelve a escribi
 
 == Consideraciones sobre latencia
 
-Cuando FlexCache funciona en el modo de escritura, se vuelve más beneficioso para los clientes NAS a medida que aumenta la latencia. Sin embargo, existe un punto en el que la sobrecarga de la retroescritura supera las ventajas obtenidas en los entornos de baja latencia. En algunas pruebas de NetApp, los beneficios de la escritura iniciada rondaron una latencia mínima entre la caché y el origen de 8ms. Esta latencia varía con la carga de trabajo, por lo que asegúrese de probar los beneficios en el punto de retorno.
+Cuando FlexCache funciona en el modo de escritura, se vuelve más beneficioso para los clientes NAS a medida que aumenta la latencia. Sin embargo, existe un punto en el que la sobrecarga de la retroescritura supera las ventajas obtenidas en los entornos de baja latencia. En algunas pruebas de NetApp, las ventajas de la retroescritura comenzaron alrededor de una latencia mínima entre la caché y el origen de 8ms. Esta latencia varía con la carga de trabajo, por lo que asegúrese de probar el punto de retorno de la carga de trabajo.
 
 El siguiente gráfico muestra el punto de retorno de las escrituras en las pruebas de laboratorio de NetApp.  `x`El eje es el tamaño del archivo y el `y` eje es el tiempo transcurrido. En la prueba se utilizó NFSv3 ms, montaje con un `rsize` y `wsize` de 256KB ms, y 64ms ms de latencia de WAN. Esta prueba se llevó a cabo utilizando una instancia de ONTAP Select pequeña tanto para la caché como para el origen y una única operación de escritura de subprocesos. Sus resultados pueden variar.
 
