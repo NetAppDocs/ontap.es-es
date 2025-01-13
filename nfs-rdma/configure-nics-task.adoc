@@ -17,20 +17,41 @@ NFS a través de RDMA requiere la configuración de NIC tanto para el sistema cl
 
 == Configuración de la plataforma de almacenamiento
 
-Es necesario instalar un adaptador RDMA X1148 en el servidor. Si se utiliza una configuración ha, debe tener el adaptador X1148 correspondiente en el partner de conmutación por error para que el servicio RDMA pueda continuar durante la conmutación por error. La NIC debe ser compatible con roce.
+Para obtener información sobre el soporte RNIC de destino, consulte la https://hwu.netapp.com/["Hardware Universe de NetApp"^].
 
-A partir de ONTAP 9.10.1, es posible ver una lista de protocolos de descarga RDMA con el comando:
-`network port show -rdma-protocols roce`
+Si se utiliza una configuración de alta disponibilidad (HA), ambos nodos deben usar la misma RNIC para admitir conmutación al nodo de respaldo RDMA. La NIC debe ser compatible con RoCE.
+
+* A partir de ONTAP 9.10.1, es posible ver una lista de protocolos de descarga RDMA con el comando:
++
+[source, cli]
+----
+network port show -rdma-protocols roce
+----
+* A partir de ONTAP 9.16.1, se recomienda utilizar el control de flujo de prioridad (PFC). Configure PFC con `network port modify` el comando:
++
+[source, cli]
+----
+network port modify -node <nodename> -port <portname> -flowcontrol-admin pfc -pfc-queues-admin 3
+----
+* Antes de ONTAP 9.16.1, se recomienda utilizar el control de flujo global (GFC) predeterminado. Si se ha cambiado el ajuste de control de flujo, configure GFC con el `network port modify` comando:
++
+[source, cli]
+----
+network port modify -node <nodename> -port <portname> -flowcontrol-admin full
+----
+
 
 
 
 == Configuración del sistema cliente
 
-Los clientes Mellanox deben utilizar tarjetas NIC compatibles con RDMA (p. ej. X1148) y software de red Mellanox OFED. Consulte la documentación de Mellanox para conocer modelos y versiones compatibles. Aunque el cliente y el servidor pueden conectarse directamente, se recomienda el uso de switches debido a un rendimiento mejorado de la conmutación por error con un switch.
+Para obtener información sobre los sistemas operativos cliente compatibles para NFS a través de RDMA, consulte https://imt.netapp.com/matrix/["Matriz de interoperabilidad de NetApp (IMT)"^] el . Para obtener información sobre las RNIC compatibles con RoCE v2, consulte la documentación del proveedor de RNIC correspondiente.
 
-El cliente, el servidor, los switches y todos los puertos de los switches deben configurarse con tramas gigantes. Asegúrese también de que el control de flujo de prioridad está en vigor en cualquier conmutador.
+Aunque el cliente y el servidor pueden conectarse directamente, se recomienda el uso de switches para mejorar el rendimiento de la conmutación por error.
 
-Una vez confirmada esta configuración, puede montar el NFS.
+El cliente, el servidor, los switches y todos los puertos de los switches deben configurarse con tramas gigantes. La configuración de control de flujo en los clientes y switches debe coincidir con la configuración de control de flujo de ONTAP. A partir de ONTAP 9.16.1, se recomienda habilitar y configurar el control de flujo de prioridad en ONTAP, los switches y los clientes. Antes de ONTAP 9.16.1, se recomienda utilizar el control de flujo global.
+
+Después de confirmar esta configuración, puede montar la exportación NFS con RDMA.
 
 [role="tabbed-block"]
 ====
@@ -52,24 +73,24 @@ Al agregar interfaces de red, tendrá la opción de seleccionar *utilizar puerto
 --
 . Compruebe si el acceso RDMA está habilitado en el servidor NFS con el comando:
 +
-`vserver nfs show-vserver _SVM_name_`
+`vserver nfs show-vserver <SVM_name>`
 
 +
 De forma predeterminada, `-rdma` debe estar activado. Si no lo está, habilite el acceso RDMA en el servidor NFS:
 
 +
-`vserver nfs modify -vserver _SVM_name_ -rdma enabled`
+`vserver nfs modify -vserver <SVM_name> -rdma enabled`
 
 . Monte el cliente a través de NFSv4.0 por RDMA:
 +
 .. La entrada del parámetro proto depende de la versión del protocolo IP del servidor. Si es IPv4, utilice `proto=rdma`. Si es IPv6, utilice `proto=rdma6`.
 .. Especifique el puerto de destino NFS como `port=20049` en lugar del puerto estándar 2049:
 +
-`mount -o vers=4,minorversion=0,proto=rdma,port=20049 _Server_IP_address_:/_volume_path_ _mount_point_`
+`mount -o vers=4,minorversion=0,proto=rdma,port=20049 <Server_IP_address>:/<volume_path> <mount_point>`
 
 
 
-. *OPCIONAL*: Si necesita desmontar el cliente, ejecute el comando `unmount _mount_path_`
+. *OPCIONAL*: Si necesita desmontar el cliente, ejecute el comando `unmount <mount_path>`
 
 
 --
