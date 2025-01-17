@@ -470,12 +470,14 @@ El siguiente ejemplo demuestra la sustitución de los actores de certificados au
 
 [NOTE]
 ====
-* En ONTAP Mediator 1,8 y versiones anteriores, los archivos CA utilizados son: `ca.key`, `ca.csr`, `ca.srl` Y `ca.crt`. A partir de ONTAP Mediator 1,9, los archivos necesarios son `intermediate.key`, , `intermediate.csr` `intermediate.srl` y `intermediate.crt`.
 * En el ejemplo se muestran los criterios necesarios para los certificados requeridos para el servicio de mediador ONTAP. Puede obtener los certificados de una autoridad PKI de una manera que pueda ser diferente a este procedimiento. Ajuste el procedimiento de acuerdo a su necesidad de negocio.
 
 
 ====
-.Pasos
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 . Cree una clave privada `intermediate.key` y un archivo de configuración `openssl_ca.cnf` que consumirá la autoridad PKI para generar un certificado.
 +
 .. Generar la clave privada `intermediate.key` :
@@ -517,10 +519,60 @@ NOTE: Para los clústeres de continuidad del negocio de SnapMirror (SM-BC), es n
 
 
 
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+. Cree una clave privada `ca.key` y un archivo de configuración `openssl_ca.cnf` que consumirá la autoridad PKI para generar un certificado.
++
+.. Generar la clave privada `ca.key` :
++
+*ejemplo*
+
++
+`openssl genrsa -aes256 -out ca.key 4096`
+
+.. El archivo de configuración `openssl_ca.cnf` (ubicado en `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/openssl_ca.cnf`) define las propiedades que debe tener el certificado generado.
+
+
+. Utilice la clave privada y el archivo de configuración para crear una solicitud de firma de certificado `ca.csr`:
++
+*Ejemplo:*
+
++
+`openssl req -key <private_key_name>.key -new -out <certificate_csr_name>.csr -config <config_file_name>.cnf`
+
++
+[listing]
+----
+[root@scs000216655 server_config]# openssl req -key ca.key -new -config openssl_ca.cnf -out ca.csr
+Enter pass phrase for ca.key:
+[root@scs000216655 server_config]# cat ca.csr
+-----BEGIN CERTIFICATE REQUEST-----
+MIIE6TCCAtECAQAwgaMxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlh
+...
+erARKhY9z0e8BHPl3g==
+-----END CERTIFICATE REQUEST-----
+----
+. Envíe la solicitud de firma de certificado `ca.csr` a una autoridad de PKI para su firma.
++
+La autoridad de PKI verifica la solicitud y firma la , generando el `.csr`certificado `ca.crt`. Además, debe obtener `root_ca.crt that signed the `ca.crt` el certificado de la autoridad PKI.
+
++
+
+NOTE: Para los clústeres de continuidad del negocio de SnapMirror (SM-BC), es necesario añadir `ca.crt` los certificados y `root_ca.crt` a un clúster de ONTAP. Consulte link:../snapmirror-active-sync/mediator-install-task.html["Configurar el mediador de ONTAP y los clústeres para la sincronización activa de snapmirror"].
+
+
+
+--
+====
 
 
 === Paso 2: Genere un certificado de servidor firmando con una certificación de CA de terceros
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 Un certificado de servidor debe estar firmado por la clave privada `intermediate.key` y el certificado de terceros `intermediate.crt` . Además, el archivo de configuración `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/openssl_server.cnf` contiene ciertos atributos que especifican las propiedades necesarias para los certificados de servidor emitidos por OpenSSL.
 
 Los siguientes comandos pueden generar un certificado de servidor.
@@ -539,15 +591,47 @@ NOTE: Estos archivos se obtuvieron de una autoridad PKI. Si utiliza un nombre de
 `openssl x509 -extfile openssl_server.cnf -extensions v3_req -CA intermediate.crt -CAkey intermediate.key -CAcreateserial -sha512 -days 1095 -req -in ontap_mediator_server.csr -out ontap_mediator_server.crt`
 
 +
-**  `-CAcreateserial`La opción se utiliza para generar los `ca.srl` archivos o `intermediate.srl` , según el nombre del certificado que esté utilizando.
+** La `-CAcreateserial` opción se utiliza para generar `intermediate.srl` los archivos.
 
 
 
 
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+Un certificado de servidor debe estar firmado por la clave privada `ca.key` y el certificado de terceros `ca.crt` . Además, el archivo de configuración `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/openssl_server.cnf` contiene ciertos atributos que especifican las propiedades necesarias para los certificados de servidor emitidos por OpenSSL.
+
+Los siguientes comandos pueden generar un certificado de servidor.
+
+.Pasos
+. Para generar una solicitud de firma de certificación (CSR) del servidor, ejecute el siguiente comando en `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config` la carpeta:
++
+`openssl req -config openssl_server.cnf -extensions v3_req -nodes -newkey rsa:4096 -sha512 -keyout ontap_mediator_server.key -out ontap_mediator_server.csr`
+
+. [[STEP_2_INTERMEDIATE_INFO]]Para generar un certificado de servidor desde la CSR, ejecute el siguiente comando desde `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config` la carpeta:
++
+
+NOTE: Estos archivos se obtuvieron de una autoridad PKI. Si utiliza un nombre de certificado diferente, sustituya `ca.crt` y `ca.key` por los nombres de archivo correspondientes.
+
++
+`openssl x509 -extfile openssl_server.cnf -extensions v3_req -CA ca.crt -CAkey ca.key -CAcreateserial -sha512 -days 1095 -req -in ontap_mediator_server.csr -out ontap_mediator_server.crt`
+
++
+** La `-CAcreateserial` opción se utiliza para generar `ca.srl` los archivos.
+
+
+
+
+--
+====
 
 
 === Paso 3: Reemplace el nuevo certificado de CA de terceros y el certificado de servidor en la configuración de ONTAP Mediator
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 La configuración del certificado se proporciona al servicio de mediador de ONTAP en el archivo de configuración ubicado en `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.config.yaml`. El archivo incluye los siguientes atributos:
 
 [listing]
@@ -599,10 +683,70 @@ Actualizar los valores de `mediator_cert`, `mediator_key`y `ca_certificate`:
 
 
 
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+La configuración del certificado se proporciona al servicio de mediador de ONTAP en el archivo de configuración ubicado en `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.config.yaml`. El archivo incluye los siguientes atributos:
+
+[listing]
+----
+cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt'
+key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key'
+ca_cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.crt'
+ca_key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.key'
+ca_serial_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.srl'
+----
+* `cert_path` y.. `key_path` son variables de certificado del servidor.
+* `ca_cert_path`, `ca_key_path`, y. `ca_serial_path` Son variables de certificado de CA.
+
+
+.Pasos
+. Reemplace todos `ca.*` los archivos con los certificados de terceros.
+. Cree una cadena de certificados desde los `ca.crt` certificados y `ontap_mediator_server.crt` :
++
+`cat ontap_mediator_server.crt ca.crt > ontap_mediator_server_chain.crt`
+
+. Actualice `/opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini` el archivo.
++
+Actualizar los valores de `mediator_cert`, `mediator_key`y `ca_certificate`:
+
++
+`set-placeholder = mediator_cert = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server_chain.crt`
+
++
+`set-placeholder = mediator_key = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key`
+
++
+`set-placeholder = ca_certificate = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/root_ca.crt`
+
++
+**  `mediator_cert`El valor es la ruta del `ontap_mediator_server_chain.crt` archivo.
+**  `mediator_key value`Es la ruta de acceso clave del `ontap_mediator_server.crt` archivo, que es `ontap_mediator_server.key`.
+**  `ca_certificate`El valor es la ruta del `root_ca.crt` archivo.
+
+
+. Compruebe que los siguientes atributos de los certificados recién generados se han definido correctamente:
++
+** Propietario del Grupo Linux: `netapp:netapp`
+** Permisos de Linux: `600`
+
+
+. Reinicie el Mediador ONTAP:
++
+`systemctl restart ontap_mediator`
+
+
+
+--
+====
 
 
 === Paso 4: Opcionalmente, utilice una ruta o un nombre diferente para sus certificados de terceros
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 Puede utilizar certificados de terceros con un nombre diferente `intermediate.*` o almacenar los certificados de terceros en una ubicación diferente.
 
 .Pasos
@@ -683,6 +827,91 @@ NOTE: Para los clústeres de continuidad del negocio de SnapMirror (SM-BC), es n
 
 
 
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+Puede utilizar certificados de terceros con un nombre diferente `ca.*` o almacenar los certificados de terceros en una ubicación diferente.
+
+.Pasos
+. Configure el `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.user_config.yaml` archivo para sustituir los valores de variables por defecto en el `ontap_mediator.config.yaml` archivo.
++
+Si ha obtenido `ca.crt` de una autoridad PKI y almacena su clave privada `ca.key` en la ubicación `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config`, el `ontap_mediator.user_config.yaml` archivo debe tener el siguiente ejemplo:
+
++
+
+NOTE: Si utilizó `ca.crt` para firmar el `ontap_mediator_server.crt` certificado,  `ca.srl` se genera el archivo. Consulte <<step_2_intermediate_info,Paso 2: Genere un certificado de servidor firmando con una certificación de CA de terceros>> para obtener más información.
+
++
+[listing]
+----
+[root@scs000216655 server_config]# cat  ontap_mediator.user_config.yaml
+
+# This config file can be used to override the default settings in ontap_mediator.config.yaml
+# To override a setting, copy the property key from ontap_mediator.config.yaml to this file and
+# set the property to the desired value. e.g.,
+#
+# The default value for 'default_mailboxes_per_target' is 4 in ontap_mediator.config.yaml
+#
+# To override this value with 6 mailboxes per target, add the following key/value pair
+# below this comment:
+#
+# 'default_mailboxes_per_target': 6
+#
+cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt'
+key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key'
+ca_cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.crt'
+ca_key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.key'
+ca_serial_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.srl'
+
+----
++
+.. Si está utilizando una estructura de certificados donde el `root_ca.crt` certificado proporciona un `ca.crt` certificado que firma el `ontap_mediator_server.crt` certificado, cree una cadena de certificados a partir de los `ca.crt` certificados y. `ontap_mediator_server.crt`
++
+
+NOTE: Debe haber obtenido los `ca.crt` certificados y `ontap_mediator_server.crt` de una autoridad PKI anteriormente en el procedimiento.
+
++
+`cat ontap_mediator_server.crt ca.crt > ontap_mediator_server_chain.crt`
+
+.. Actualice `/opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini` el archivo.
++
+Actualizar los valores de `mediator_cert`, `mediator_key`y `ca_certificate`:
+
++
+`set-placeholder = mediator_cert = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server_chain.crt`
+
++
+`set-placeholder = mediator_key = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key`
+
++
+`set-placeholder = ca_certificate = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/root_ca.crt`
+
++
+***  `mediator_cert`El valor es la ruta del `ontap_mediator_server_chain.crt` archivo.
+***  `mediator_key`El valor es la ruta de acceso clave del `ontap_mediator_server.crt` archivo, que es `ontap_mediator_server.key`.
+***  `ca_certificate`El valor es la ruta del `root_ca.crt` archivo.
++
+
+NOTE: Para los clústeres de continuidad del negocio de SnapMirror (SM-BC), es necesario añadir `ca.crt` los certificados y `root_ca.crt` a un clúster de ONTAP. Consulte link:../snapmirror-active-sync/mediator-install-task.html["Configurar el mediador de ONTAP y los clústeres para la sincronización activa de snapmirror"].
+
+
+
+.. Compruebe que los siguientes atributos de los certificados recién generados se han definido correctamente:
++
+*** Propietario del Grupo Linux: `netapp:netapp`
+*** Permisos de Linux: `600`
+
+
+
+
+. Reinicie ONTAP Mediator cuando se actualicen los certificados en el archivo de configuración:
++
+`systemctl restart ontap_mediator`
+
+
+
+--
+====
 
 
 == Solucionar problemas relacionados con los certificados
@@ -693,8 +922,12 @@ Puede comprobar ciertas propiedades de los certificados.
 
 === Verifique el vencimiento del certificado
 
-Utilice el siguiente comando para identificar el rango de validez de certificados:
+Utilice el siguiente comando para identificar el rango de validez del certificado.
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 [listing]
 ----
 [root@scs000216982 server_config]# openssl x509 -in intermediate.crt -text -noout
@@ -705,12 +938,31 @@ Certificate:
             Not Before: Feb 22 19:57:25 2024 GMT
             Not After : Feb 15 19:57:25 2029 GMT
 ----
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+[listing]
+----
+[root@scs000216982 server_config]# openssl x509 -in ca.crt -text -noout
+Certificate:
+    Data:
+...
+        Validity
+            Not Before: Feb 22 19:57:25 2024 GMT
+            Not After : Feb 15 19:57:25 2029 GMT
+----
+--
+====
 
 
 === Verifique las extensiones X509v3 en la certificación CA
 
 Utilice el siguiente comando para verificar las extensiones X509v3 en la certificación CA.
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 Las propiedades definidas en `*v3_ca*` en `openssl_ca.cnf` se muestran como `X509v3 extensions` en `intermediate.crt`.
 
 [listing, subs="+quotes"]
@@ -741,6 +993,41 @@ Certificate:
             X509v3 Key Usage: critical
                 Digital Signature, Certificate Sign, CRL Sign
 ----
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+Las propiedades definidas en `*v3_ca*` en `openssl_ca.cnf` se muestran como `X509v3 extensions` en `ca.crt`.
+
+[listing, subs="+quotes"]
+----
+[root@scs000216982 server_config]# pwd
+/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config
+
+[root@scs000216982 server_config]# cat openssl_ca.cnf
+...
+[ v3_ca ]
+*subjectKeyIdentifier = hash*
+*authorityKeyIdentifier = keyid:always,issuer*
+*basicConstraints = critical, CA:true*
+*keyUsage = critical, cRLSign, digitalSignature, keyCertSign*
+
+[root@scs000216982 server_config]# openssl x509 -in ca.crt -text -noout
+Certificate:
+    Data:
+...
+        *X509v3 extensions:*
+            X509v3 Subject Key Identifier:
+                9F:06:FA:47:00:67:BA:B2:D4:82:70:38:B8:48:55:B5:24:DB:FC:27
+            X509v3 Authority Key Identifier:
+                keyid:9F:06:FA:47:00:67:BA:B2:D4:82:70:38:B8:48:55:B5:24:DB:FC:27
+
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+            X509v3 Key Usage: critical
+                Digital Signature, Certificate Sign, CRL Sign
+----
+--
+====
 
 
 === Verifique las extensiones X509v3 en el certificado del servidor y los nombres alternativos del asunto
@@ -751,6 +1038,10 @@ En el siguiente ejemplo, puede obtener las variables en el `alt_names` secciones
 
 Consulte con el administrador de red los valores correctos de las variables.
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 [listing]
 ----
 [root@scs000216982 server_config]# pwd
@@ -785,14 +1076,57 @@ Certificate:
             X509v3 Subject Alternative Name:
                 DNS:abc.company.com, DNS:abc-v6.company.com, IP Address:1.2.3.4, IP Address:abcd:abcd:abcd:abcd:abcd:abcd
 ----
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+[listing]
+----
+[root@scs000216982 server_config]# pwd
+/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config
+
+[root@scs000216982 server_config]# cat openssl_server.cnf
+...
+[ v3_req ]
+basicConstraints       = CA:false
+extendedKeyUsage       = serverAuth
+keyUsage               = keyEncipherment, dataEncipherment
+subjectAltName         = @alt_names
+
+[ alt_names ]
+DNS.1 = abc.company.com
+DNS.2 = abc-v6.company.com
+IP.1 = 1.2.3.4
+IP.2 = abcd:abcd:abcd:abcd:abcd:abcd
+
+[root@scs000216982 server_config]# openssl x509 -in ca.crt -text -noout
+Certificate:
+    Data:
+...
+
+        X509v3 extensions:
+            X509v3 Basic Constraints:
+                CA:FALSE
+            X509v3 Extended Key Usage:
+                TLS Web Server Authentication
+            X509v3 Key Usage:
+                Key Encipherment, Data Encipherment
+            X509v3 Subject Alternative Name:
+                DNS:abc.company.com, DNS:abc-v6.company.com, IP Address:1.2.3.4, IP Address:abcd:abcd:abcd:abcd:abcd:abcd
+----
+--
+====
 
 
 === Verifique que una clave privada coincida con un certificado
 
 Puede verificar si una clave privada concreta coincide con un certificado.
 
-Utilice los siguientes comandos OpenSSL en la clave y el certificado respectivamente:
+Utilice los siguientes comandos OpenSSL en la clave y el certificado respectivamente.
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 [listing]
 ----
 [root@scs000216982 server_config]# openssl rsa -noout -modulus -in intermediate.key | openssl md5
@@ -801,6 +1135,19 @@ Enter pass phrase for intermediate.key:
 [root@scs000216982 server_config]# openssl x509 -noout -modulus -in intermediate.crt | openssl md5
 (stdin)= 14c6b98b0c7c59012b1de89eee4a9dbc
 ----
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+[listing]
+----
+[root@scs000216982 server_config]# openssl rsa -noout -modulus -in ca.key | openssl md5
+Enter pass phrase for ca.key:
+(stdin)= 14c6b98b0c7c59012b1de89eee4a9dbc
+[root@scs000216982 server_config]# openssl x509 -noout -modulus -in ca.crt | openssl md5
+(stdin)= 14c6b98b0c7c59012b1de89eee4a9dbc
+----
+--
+====
 Si la `-modulus` atributo para ambas coincidencias, indica que la clave privada y el par de certificados son compatibles y pueden trabajar entre sí.
 
 
@@ -809,9 +1156,23 @@ Si la `-modulus` atributo para ambas coincidencias, indica que la clave privada 
 
 Puede utilizar el siguiente comando para verificar que el certificado de servidor se cree a partir de un certificado de CA particular.
 
+[role="tabbed-block"]
+====
+.ONTAP Mediator 1,9 y posteriores
+--
 [listing]
 ----
 [root@scs000216982 server_config]# openssl verify -CAfile intermediate.crt ontap_mediator_server.crt
 ontap_mediator_server.crt: OK
 ----
+--
+.ONTAP Mediator 1,8 y anteriores
+--
+[listing]
+----
+[root@scs000216982 server_config]# openssl verify -CAfile ca.crt ontap_mediator_server.crt
+ontap_mediator_server.crt: OK
+----
+--
+====
 Si se está utilizando la validación del protocolo de estado de certificado en línea (OCSP), utilice el comando link:https://www.openssl.org/docs/manmaster/man1/openssl-verify.html["openssl-verify"^].

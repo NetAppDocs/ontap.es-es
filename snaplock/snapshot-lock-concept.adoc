@@ -1,52 +1,60 @@
 ---
 permalink: snaplock/snapshot-lock-concept.html 
 sidebar: sidebar 
-keywords: snaplock, snapshot copy, lock, tamperproof 
-summary: A partir de ONTAP 9.12.1, puede bloquear una copia Snapshot en un volumen que no sea de SnapLock para proporcionar protección contra ataques de ransomware. El bloqueo de las copias Snapshot garantiza que no se puedan eliminar accidental o con malas intenciones. 
+keywords: snaplock, snapshot, lock, tamperproof 
+summary: A partir de ONTAP 9.12.1, puede bloquear una copia Snapshot en un volumen no perteneciente a SnapLock para proporcionar protección contra ataques de ransomware. El bloqueo de instantáneas garantiza que no se puedan eliminar por accidente o de forma malintencionada. 
 ---
-= Bloquee una copia Snapshot para obtener protección contra ataques de ransomware
+= Bloquea una snapshot para protegerte frente a ataques de ransomware
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-A partir de ONTAP 9.12.1, puede bloquear una copia Snapshot en un volumen que no sea de SnapLock para proporcionar protección contra ataques de ransomware. El bloqueo de las copias Snapshot garantiza que no se puedan eliminar accidental o con malas intenciones.
+A partir de ONTAP 9.12.1, puede bloquear una copia Snapshot en un volumen no perteneciente a SnapLock para proporcionar protección contra ataques de ransomware. El bloqueo de instantáneas garantiza que no se puedan eliminar por accidente o de forma malintencionada.
 
-La función de reloj de cumplimiento de normativas de SnapLock le permite bloquear las copias Snapshot durante un período determinado para que no se puedan eliminar hasta que llegue el momento de caducidad. Bloquear copias Snapshot las protege a prueba de manipulaciones e impedir las amenazas de ransomware. Puede usar copias Snapshot bloqueadas para recuperar los datos si un volumen se ve afectado por un ataque de ransomware.
+Puede utilizar la función de reloj de SnapLock Compliance para bloquear las instantáneas durante un período especificado, de modo que no se puedan eliminar hasta que se alcance la hora de caducidad. Bloquear snapshots las copias snapshot las protege frente a cualquier manipulación y las protege de las amenazas de ransomware. Puede usar snapshots bloqueados para recuperar datos si un volumen se ve afectado por un ataque de ransomware.
 
-A partir de ONTAP 9.14.1, el bloqueo de copias Snapshot admite copias Snapshot de retención a largo plazo en destinos de almacenes SnapLock y en volúmenes de destino que no sean de SnapMirror de SnapLock. El bloqueo de copia de Snapshot se habilita configurando el período de retención mediante las reglas de políticas de SnapMirror asociadas a un xref:Modify an existing policy to apply long-term retention[etiqueta de política existente]. La regla anula el período de retención predeterminado establecido en el volumen. Si no existe un período de retención asociado con la etiqueta de SnapMirror, se utiliza el período de retención predeterminado del volumen.
+A partir de ONTAP 9.14.1, el bloqueo de copias Snapshot es compatible con instantáneas de retención a largo plazo en destinos de almacenes SnapLock y en volúmenes de destino no SnapLock SnapMirror. El bloqueo de instantáneas se activa mediante la definición del período de retención mediante las reglas de política de SnapMirror asociadas a un xref:Modify an existing policy to apply long-term retention[etiqueta de política existente]. La regla anula el período de retención predeterminado establecido en el volumen. Si no existe un período de retención asociado con la etiqueta de SnapMirror, se utiliza el período de retención predeterminado del volumen.
 
-.Requisitos y consideraciones sobre copias Snapshot a prueba de manipulaciones
+.Requisitos y consideraciones de Snapshot a prueba de manipulación
 * Si utiliza la CLI de ONTAP, todos los nodos del clúster deben ejecutar ONTAP 9.12.1 o una versión posterior. Si utiliza System Manager, todos los nodos deben ejecutar ONTAP 9.13.1 o una versión posterior.
 * link:../system-admin/install-license-task.html["La licencia de SnapLock debe instalarse en el clúster"]. Esta licencia está incluida en link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["ONTAP One"].
 * link:../snaplock/initialize-complianceclock-task.html["Es necesario inicializar el reloj de cumplimiento de normativas del clúster"].
-* Cuando se habilita el bloqueo de snapshots en un volumen, es posible actualizar los clústeres a una versión de ONTAP posterior a ONTAP 9.12.1; Sin embargo, no puede revertir a una versión anterior de ONTAP hasta que todas las copias snapshot bloqueadas hayan alcanzado su fecha de caducidad y se eliminen, y el bloqueo de la copia snapshot se ha deshabilitado.
-* Cuando se bloquea una instantánea, el tiempo de caducidad del volumen se establece en el tiempo de caducidad de la copia snapshot. Si más de una copia Snapshot está bloqueada, el tiempo de caducidad del volumen refleja el mayor tiempo de caducidad de todas las copias Snapshot.
-* El período de retención para las copias Snapshot bloqueadas tiene prioridad sobre el número de copias de Snapshot conservadas; esto significa que no se respeta el límite de conservación de recuento si no ha caducado el período de retención de copia de Snapshot para copias Snapshot bloqueadas.
-* En una relación de SnapMirror, puede establecer un período de retención en una regla de política de reflejo-almacén y el período de retención se aplica a las copias Snapshot replicadas en el destino si el volumen de destino tiene la función de bloqueo de copias Snapshot habilitada. El período de retención tiene prioridad sobre el recuento de retenciones; por ejemplo, las copias Snapshot que no hayan sobrepasado su vencimiento se retendrán aunque se supere el recuento de retenciones.
-* Puede cambiar el nombre de una copia Snapshot en un volumen que no sea de SnapLock. Las operaciones de cambio de nombre de Snapshot en el volumen primario de una relación de SnapMirror se reflejan en el volumen secundario solo si la política es MirrorAllSnapshots. Para otros tipos de políticas, la copia Snapshot cuyo nombre se ha cambiado no se propaga durante las actualizaciones.
-* Si utiliza la CLI de ONTAP, puede restaurar una copia Snapshot bloqueada con el `volume snapshot restore` Comando solo si la copia snapshot bloqueada es la más reciente. Si hay alguna copia Snapshot sin expirar más adelante que la que se va a restaurar, se produce un error en la operación de restauración de la copia de Snapshot.
+* Cuando se habilita el bloqueo de snapshots en un volumen, se pueden actualizar los clústeres a una versión de ONTAP posterior a ONTAP 9.12.1. Sin embargo, no se puede revertir a una versión anterior de ONTAP hasta que todas las Snapshot bloqueadas hayan alcanzado su fecha de caducidad, se eliminen y se deshabilite el bloqueo de snapshots.
+* Cuando una copia de Snapshot está bloqueada, la hora de caducidad del volumen se establece en la hora de caducidad de la copia de Snapshot. Si más de una instantánea está bloqueada, el tiempo de caducidad del volumen refleja el mayor tiempo de caducidad de todas las instantáneas.
+* El período de retención para instantáneas bloqueadas tiene prioridad sobre el recuento de instantáneas guardadas, lo que significa que no se respeta el límite de mantenimiento de recuento si el período de retención de instantáneas para instantáneas bloqueadas no ha caducado.
+* En una relación de SnapMirror, se puede establecer un período de retención en una regla de política de reflejo-almacén y el período de retención se aplica a las copias de Snapshot replicadas en el destino si el volumen de destino tiene bloqueo de Snapshot habilitado. El período de retención tiene prioridad sobre el recuento KEEP; por ejemplo, las instantáneas que no hayan superado su caducidad se conservarán incluso si se supera el recuento KEEP.
+* Es posible cambiar el nombre de una copia Snapshot en un volumen que no sea de SnapLock. Las operaciones de cambio de nombre de Snapshot en el volumen primario de una relación de SnapMirror se reflejan en el volumen secundario solo si la política es MirrorAllSnapshots. Para otros tipos de directivas, la instantánea a la que se ha cambiado el nombre no se propaga durante las actualizaciones.
+* Si utiliza la CLI de ONTAP, puede restaurar una instantánea bloqueada con el `volume snapshot restore` comando solo si la instantánea bloqueada es la más reciente. Si hay alguna instancia de Snapshot sin caducar más tarde que la que se está restaurando, la operación de restauración de Snapshot falla.
 
 
-.Funciones compatibles con copias Snapshot a prueba de manipulaciones
+.Funciones compatibles con instantáneas a prueba de manipulaciones
 * link:https://docs.netapp.com/us-en/bluexp-cloud-volumes-ontap/reference-worm-snaplock.html["Cloud Volumes ONTAP"^]
 * Volúmenes de FlexGroup
 +
-Los volúmenes de FlexGroup admiten el bloqueo de copias Snapshot. El bloqueo de instantáneas solo se realiza en la copia snapshot que forma parte del componente raíz. Solo se permite eliminar el volumen FlexGroup si ha transcurrido el tiempo de caducidad del componente raíz.
+Se admite el bloqueo de snapshots en los volúmenes de FlexGroup. El bloqueo de instantáneas sólo se produce en la instantánea del componente raíz. Solo se permite eliminar el volumen FlexGroup si ha transcurrido el tiempo de caducidad del componente raíz.
 
 * Conversión de FlexVol a FlexGroup
 +
-Puede convertir un volumen FlexVol con copias snapshot bloqueadas en un volumen FlexGroup. Las copias snapshot permanecen bloqueadas después de la conversión.
+Es posible convertir un FlexVol volume con copias Snapshot bloqueadas en un volumen de FlexGroup. Las instantáneas permanecen bloqueadas después de la conversión.
+
+* SnapMirror asíncrono
++
+El reloj de cumplimiento debe inicializarse tanto en el origen como en el destino.
+
+* DR DE SVM
++
+El reloj de cumplimiento debe inicializarse tanto en el origen como en el destino.
 
 * Clon de volumen y clon de archivo
 +
-Es posible crear clones de volúmenes y clones de archivos a partir de una copia Snapshot bloqueada.
+Es posible crear clones de volúmenes y archivos a partir de una copia de Snapshot bloqueada.
 
 
 
 .Funciones no admitidas
-En la actualidad, las siguientes funciones no son compatibles con las copias Snapshot a prueba de manipulaciones:
+Actualmente, las siguientes funciones no se admiten con instantáneas a prueba de manipulaciones:
 
 * Grupos de consistencia
 * FabricPool
@@ -60,9 +68,9 @@ En la actualidad, las siguientes funciones no son compatibles con las copias Sna
 
 
 
-== Habilite el bloqueo de las copias snapshot al crear un volumen
+== Active el bloqueo de instantáneas al crear un volumen
 
-A partir de ONTAP 9.12.1, se puede habilitar el bloqueo de copias snapshot cuando se crea un volumen nuevo o se modifica un volumen existente mediante el `-snapshot-locking-enabled` con la `volume create` y.. `volume modify` Comandos de la CLI. A partir de ONTAP 9.13.1, puede usar System Manager para habilitar el bloqueo de copias de SnapVault.
+A partir de ONTAP 9.12.1, puede habilitar el bloqueo de snapshots al crear un volumen nuevo o cuando se modifica un volumen existente con la opción con `volume create` los comandos y `volume modify` de la CLI. `-snapshot-locking-enabled` A partir de ONTAP 9.13.1, se puede usar System Manager para habilitar el bloqueo de snapshots.
 
 [role="tabbed-block"]
 ====
@@ -75,24 +83,24 @@ A partir de ONTAP 9.12.1, se puede habilitar el bloqueo de copias snapshot cuand
 . Si aún no está habilitado, selecciona *Inicializar reloj de cumplimiento de SnapLock*.
 . Guarde los cambios.
 . En la ventana *Volúmenes*, selecciona el volumen que actualizaste y selecciona *Resumen*.
-. Verifique que *SnapLock Bloqueo de copia instantánea* se muestre como *habilitado*.
+. Compruebe que *SnapLock Bloqueo de instantáneas* se muestra como *habilitado*.
 
 
 --
 .CLI
 --
-. Para crear un nuevo volumen y habilitar el bloqueo de copias Snapshot, introduzca el siguiente comando:
+. Para crear un volumen nuevo y habilitar el bloqueo de instantáneas, escriba el siguiente comando:
 +
 `volume create -vserver _vserver_name_ -volume _volume_name_ -snapshot-locking-enabled true`
 
 +
-El siguiente comando habilita el bloqueo de copias Snapshot en un nuevo volumen denominado vol1:
+El siguiente comando habilita el bloqueo Snapshot en un nuevo volumen llamado vol1:
 
 +
 [listing]
 ----
 > volume create -volume vol1 -aggregate aggr1 -size 100m -snapshot-locking-enabled true
-Warning: Snapshot copy locking is being enabled on volume “vol1” in Vserver “vs1”. It cannot be disabled until all locked Snapshot copies are past their expiry time. A volume with unexpired locked Snapshot copies cannot be deleted.
+Warning: snapshot locking is being enabled on volume “vol1” in Vserver “vs1”. It cannot be disabled until all locked snapshots are past their expiry time. A volume with unexpired locked snapshots cannot be deleted.
 Do you want to continue: {yes|no}: y
 [Job 32] Job succeeded: Successful
 ----
@@ -102,9 +110,9 @@ Do you want to continue: {yes|no}: y
 ====
 
 
-== Habilite el bloqueo de copias snapshot en un volumen existente
+== Active el bloqueo de instantáneas en un volumen existente
 
-A partir de ONTAP 9.12.1, puede habilitar el bloqueo de copia de snapshot en un volumen existente mediante la interfaz de línea de comandos de ONTAP. A partir de ONTAP 9.13.1, puede usar System Manager para habilitar el bloqueo de copias de Snapshot en un volumen existente.
+A partir de ONTAP 9.12.1, puede habilitar el bloqueo de snapshots en un volumen existente mediante la interfaz de línea de comandos de ONTAP. A partir de ONTAP 9.13.1, puede usar System Manager para habilitar el bloqueo de instantáneas en un volumen existente.
 
 [role="tabbed-block"]
 ====
@@ -112,20 +120,20 @@ A partir de ONTAP 9.12.1, puede habilitar el bloqueo de copia de snapshot en un 
 --
 . Vaya a *almacenamiento > volúmenes*.
 . Selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Editar > Volumen*.
-. En la ventana *Editar volumen*, localice la sección Configuración de copias snapshot (locales) y seleccione *Habilitar bloqueo de instantáneas*.
+. En la ventana *Editar volumen*, localice la sección Configuración de instantáneas (local) y seleccione *Habilitar bloqueo de instantáneas*.
 +
 Esta selección no se muestra si la licencia de SnapLock no está instalada.
 
 . Si aún no está habilitado, selecciona *Inicializar reloj de cumplimiento de SnapLock*.
 . Guarde los cambios.
 . En la ventana *Volúmenes*, selecciona el volumen que actualizaste y selecciona *Resumen*.
-. Verifique que *SnapLock Bloqueo de copia instantánea* se muestre como *habilitado*.
+. Compruebe que *SnapLock Bloqueo de instantáneas* se muestra como *habilitado*.
 
 
 --
 .CLI
 --
-. Para modificar un volumen existente para habilitar el bloqueo de copias Snapshot, introduzca el siguiente comando:
+. Para modificar un volumen existente y habilitar el bloqueo Snapshot, introduzca el siguiente comando:
 +
 `volume modify -vserver _vserver_name_ -volume _volume_name_ -snapshot-locking-enabled true`
 
@@ -135,13 +143,13 @@ Esta selección no se muestra si la licencia de SnapLock no está instalada.
 ====
 
 
-== Cree una política de copia de Snapshot bloqueada y aplique retención
+== Crear una política de instantáneas bloqueadas y aplicar retención
 
-A partir de ONTAP 9.12.1, puede crear políticas de copias de Snapshot para aplicar un período de retención de copias de Snapshot y aplicar la política a un volumen para bloquear las copias de Snapshot durante el período especificado. También puede bloquear una copia Snapshot mediante la configuración manual de un período de retención. A partir de ONTAP 9.13.1, puede usar System Manager para crear políticas de bloqueo de copias de Snapshot y aplicarlas a un volumen.
+A partir de ONTAP 9.12.1, puede crear políticas de Snapshot para aplicar un período de retención de Snapshot y aplicar la política a un volumen para bloquear las copias de Snapshot durante el período especificado. También es posible bloquear una copia de Snapshot mediante la configuración manual de un período de retención. A partir de ONTAP 9.13.1, puede usar System Manager para crear políticas de bloqueo de snapshots y aplicarlas a un volumen.
 
 
 
-=== Cree una política de bloqueo de copias snapshot
+=== Cree una política de bloqueo de instantáneas
 
 [role="tabbed-block"]
 ====
@@ -152,8 +160,8 @@ A partir de ONTAP 9.12.1, puede crear políticas de copias de Snapshot para apli
 . Localice *Políticas de instantánea* y seleccione image:icon_arrow.gif["Icono de flecha"].
 . En la ventana *Add Snapshot Policy*, introduzca el nombre de la política.
 . Seleccione image:icon_add.gif["Icono Agregar"].
-. Proporcione los detalles de la programación de la copia de Snapshot, incluido el nombre de la programación, el número máximo de copias de Snapshot que se deben conservar y el período de retención de SnapLock.
-. En la columna *SnapLock Retention Period*, introduzca el número de horas, días, meses o años que se van a conservar las copias snapshot. Por ejemplo, una política de copia de Snapshot con un período de retención de 5 días bloquea una copia de Snapshot por 5 días desde el momento en que se creó y no puede eliminarse durante ese período. Se admiten los siguientes rangos de períodos de retención:
+. Proporcione los detalles de la programación de Snapshot, incluido el nombre de la programación, el número máximo de Snapshot que se deben conservar y el período de retención de SnapLock.
+. En la columna *SnapLock Retention Period*, introduzca el número de horas, días, meses o años para retener las instantáneas. Por ejemplo, una política de Snapshot con un período de retención de 5 días bloquea una snapshot durante 5 días desde el momento en que se creó y no se puede eliminar durante ese periodo. Se admiten los siguientes rangos de períodos de retención:
 +
 ** Años: 0 - 100
 ** Meses: 0 - 1200
@@ -167,12 +175,12 @@ A partir de ONTAP 9.12.1, puede crear políticas de copias de Snapshot para apli
 --
 .CLI
 --
-. Para crear una política de copias Snapshot, introduzca el siguiente comando:
+. Para crear una política de Snapshot, introduzca el siguiente comando:
 +
 `volume snapshot policy create -policy policy_name -enabled true -schedule1 _schedule1_name_ -count1 _maximum_Snapshot_copies -retention-period1 _retention_period_`
 
 +
-El siguiente comando crea una política de bloqueo de copias de Snapshot:
+El siguiente comando crea una política de bloqueo de instantáneas:
 
 +
 [listing]
@@ -180,7 +188,7 @@ El siguiente comando crea una política de bloqueo de copias de Snapshot:
 cluster1> volume snapshot policy create -policy policy_name -enabled true -schedule1 hourly -count1 24 -retention-period1 "1 days"
 ----
 +
-No se reemplaza una copia Snapshot si se encuentra sujeta a una retención activa; es decir, el número de retención no se respetará si hay copias Snapshot bloqueadas que aún no han caducado.
+Una instantánea no se sustituye si se encuentra bajo retención activa; es decir, el recuento de retención no se respetará si hay instantáneas bloqueadas que aún no han caducado.
 
 
 
@@ -196,16 +204,16 @@ No se reemplaza una copia Snapshot si se encuentra sujeta a una retención activ
 --
 . Vaya a *almacenamiento > volúmenes*.
 . Selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Editar > Volumen*.
-. En la ventana *Editar volumen*, selecciona *Programar copias snapshot*.
-. Seleccione la política de copias de Snapshot bloqueadas de la lista.
-. Si el bloqueo de copias snapshot no está activado, selecciona *Activar bloqueo de instantáneas*.
+. En la ventana *Editar volumen*, selecciona *Programar instantáneas*.
+. Seleccione la política de instantáneas de bloqueo de la lista.
+. Si el bloqueo de instantáneas aún no está activado, selecciona *Activar bloqueo de instantáneas*.
 . Guarde los cambios.
 
 
 --
 .CLI
 --
-. Para aplicar una política de bloqueo de copias Snapshot a un volumen existente, introduzca el siguiente comando:
+. Para aplicar una política de bloqueo de Snapshot a un volumen existente, introduzca el siguiente comando:
 +
 `volume modify -volume volume_name -vserver vserver_name -snapshot-policy policy_name`
 
@@ -215,31 +223,31 @@ No se reemplaza una copia Snapshot si se encuentra sujeta a una retención activ
 ====
 
 
-=== Aplicación del período de retención durante la creación manual de las copias de Snapshot
+=== Aplicar período de retención durante la creación manual de instantáneas
 
-Es posible aplicar un período de retención de copia Snapshot cuando se crea manualmente una copia Snapshot. Debe estar habilitado el bloqueo de copia de snapshot en el volumen; de lo contrario, se ignorará la configuración del período de retención.
+Es posible aplicar el período de retención de Snapshot cuando se crea manualmente una copia de Snapshot. Debe estar habilitado el bloqueo de snapshots en el volumen; de lo contrario, se ignorará la configuración del período de retención.
 
 [role="tabbed-block"]
 ====
 .System Manager
 --
 . Navegue hasta *Almacenamiento > Volúmenes* y seleccione un volumen.
-. En la página de detalles del volumen, seleccione la pestaña *Copias de instantánea*.
+. En la página de detalles del volumen, seleccione la pestaña *Snapshots*.
 . Seleccione image:icon_add.gif["Icono Agregar"].
-. Introduzca el nombre de la copia Snapshot y la hora de caducidad de SnapLock. Puede seleccionar el calendario para elegir la fecha y la hora de caducidad de la retención.
+. Introduzca el nombre de la snapshot y la hora de caducidad del SnapLock. Puede seleccionar el calendario para elegir la fecha y la hora de caducidad de la retención.
 . Guarde los cambios.
-. En la página *Volúmenes > Copias de instantáneas*, seleccione *Mostrar/Ocultar* y elija *Tiempo de caducidad de SnapLock* para mostrar la columna *Tiempo de caducidad de SnapLock* y verifique que el tiempo de retención esté establecido.
+. En la página *Volúmenes > Instantáneas*, seleccione *Mostrar/Ocultar* y elija *Tiempo de caducidad de SnapLock* para mostrar la columna *Tiempo de caducidad de SnapLock* y verifique que el tiempo de retención esté establecido.
 
 
 --
 .CLI
 --
-. Para crear una copia Snapshot manualmente y aplicar un período de retención de bloqueo, introduzca el siguiente comando:
+. Para crear una instantánea manualmente y aplicar un período de retención de bloqueo, introduzca el siguiente comando:
 +
 `volume snapshot create -volume _volume_name_ -snapshot _snapshot_copy_name_ -snaplock-expiry-time _expiration_date_time_`
 
 +
-El siguiente comando crea una nueva copia Snapshot y establece el período de retención:
+El siguiente comando crea una nueva copia de Snapshot y configura el período de retención:
 
 +
 [listing]
@@ -252,28 +260,28 @@ cluster1> volume snapshot create -vserver vs1 -volume vol1 -snapshot snap1 -snap
 ====
 
 
-=== Aplique el período de retención a una copia Snapshot existente
+=== Aplicar el período de retención a una instantánea existente
 
 [role="tabbed-block"]
 ====
 .System Manager
 --
 . Navegue hasta *Almacenamiento > Volúmenes* y seleccione un volumen.
-. En la página de detalles del volumen, seleccione la pestaña *Copias de instantánea*.
-. Seleccione la copia snapshot, seleccione image:icon_kabob.gif["Icono de opciones de menú"]y elija *Modificar hora de caducidad de SnapLock*. Puede seleccionar el calendario para elegir la fecha y la hora de caducidad de la retención.
+. En la página de detalles del volumen, seleccione la pestaña *Snapshots*.
+. Seleccione la instantánea, seleccione image:icon_kabob.gif["Icono de opciones de menú"]y elija *Modificar hora de caducidad de SnapLock*. Puede seleccionar el calendario para elegir la fecha y la hora de caducidad de la retención.
 . Guarde los cambios.
-. En la página *Volúmenes > Copias de instantáneas*, seleccione *Mostrar/Ocultar* y elija *Tiempo de caducidad de SnapLock* para mostrar la columna *Tiempo de caducidad de SnapLock* y verifique que el tiempo de retención esté establecido.
+. En la página *Volúmenes > Instantáneas*, seleccione *Mostrar/Ocultar* y elija *Tiempo de caducidad de SnapLock* para mostrar la columna *Tiempo de caducidad de SnapLock* y verifique que el tiempo de retención esté establecido.
 
 
 --
 .CLI
 --
-. Para aplicar manualmente un período de retención a una copia Snapshot existente, introduzca el siguiente comando:
+. Para aplicar manualmente un período de retención a una snapshot existente, introduzca el siguiente comando:
 +
 `volume snapshot modify-snaplock-expiry-time -volume _volume_name_ -snapshot _snapshot_copy_name_ -expiry-time _expiration_date_time_`
 
 +
-En el siguiente ejemplo se aplica un período de retención a una copia Snapshot existente:
+En el siguiente ejemplo se aplica un período de retención a una copia de Snapshot existente:
 
 +
 [listing]
@@ -288,13 +296,13 @@ cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot sna
 
 === Modifique una política existente para aplicar la retención a largo plazo
 
-En una relación de SnapMirror, puede establecer un período de retención en una regla de política de reflejo-almacén y el período de retención se aplica a las copias Snapshot replicadas en el destino si el volumen de destino tiene la función de bloqueo de copias Snapshot habilitada. El período de retención tiene prioridad sobre el recuento de retenciones; por ejemplo, las copias Snapshot que no hayan sobrepasado su vencimiento se retendrán aunque se supere el recuento de retenciones.
+En una relación de SnapMirror, se puede establecer un período de retención en una regla de política de reflejo-almacén y el período de retención se aplica a las copias de Snapshot replicadas en el destino si el volumen de destino tiene bloqueo de Snapshot habilitado. El período de retención tiene prioridad sobre el recuento KEEP; por ejemplo, las instantáneas que no hayan superado su caducidad se conservarán incluso si se supera el recuento KEEP.
 
-A partir de ONTAP 9.14.1, puede modificar una política de SnapMirror existente añadiendo una regla para establecer una retención a largo plazo de copias Snapshot. La regla se utiliza para anular el período de retención de volúmenes predeterminado en destinos de almacén de SnapLock y en volúmenes de destino que no son de SnapMirror de SnapLock.
+A partir de ONTAP 9.14.1, puede modificar una política de SnapMirror existente añadiendo una regla para establecer la retención a largo plazo de copias Snapshot. La regla se utiliza para anular el período de retención de volúmenes predeterminado en destinos de almacén de SnapLock y en volúmenes de destino que no son de SnapMirror de SnapLock.
 
 . Agregue una regla a una política de SnapMirror existente:
 +
-`snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of Snapshot copies> -retention-period [<integer> days|months|years]`
+`snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of snapshots> -retention-period [<integer> days|months|years]`
 
 +
 En el siguiente ejemplo se crea una regla que aplica un período de retención de 6 meses a la política existente denominada «lockvault»:
