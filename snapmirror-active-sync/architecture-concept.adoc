@@ -35,14 +35,14 @@ Otros puntos a considerar:
 
 ONTAP Mediator se instala en un tercer dominio de fallo, distinto de los dos clústeres ONTAP. Su función más importante es actuar como testigo pasivo de las copias sincronizadas activas de SnapMirror. En caso de que una partición de red o la falta de disponibilidad de una copia, SnapMirror active sync usa Mediator para determinar qué copia sigue sirviendo I/O, mientras interrumpe las operaciones de I/O en la otra copia. Hay tres componentes clave en esta configuración:
 
-* Clúster de ONTAP principal que aloja el CG principal de sincronización activa de SnapMirror
-* Clúster ONTAP secundario que aloja el CG de reflejos
+* Clúster de ONTAP principal que aloja el grupo de consistencia principal de SnapMirror Active Sync
+* Clúster de ONTAP secundario que aloja el grupo de coherencia de reflejos
 * Mediador ONTAP
 
 
 El mediador de ONTAP desempeña una función fundamental en las configuraciones de sincronización activa de SnapMirror como testigo de quórum pasivo, lo que garantiza el mantenimiento del quórum y facilita el acceso a los datos durante los fallos. Actúa como un proxy de ping para que las controladoras determinen la vida útil de las controladoras iguales. Aunque Mediator no activa las operaciones de switchover, proporciona una función vital al permitir que el nodo superviviente compruebe el estado de su compañero durante los problemas de comunicación de red. En su función como testigo de quórum, el Mediador de ONTAP proporciona una ruta alternativa (que actúa efectivamente como proxy) al clúster de iguales.
 
-Además, permite a los clusters obtener esta información como parte del proceso de quórum. Utiliza el LIF de gestión de nodos y el LIF de gestión de clústeres para fines de comunicación. Establece conexiones redundantes a través de varias rutas para diferenciar entre un fallo del sitio y un fallo de InterSwitch Link (ISL). Cuando un clúster pierde la conexión con el software ONTAP Mediator y todos sus nodos debido a un evento, se considera que no se puede acceder a él. De este modo se activa una alerta y se habilita la conmutación al respaldo automática al grupo de consistencia en mirroring (CG) en el sitio secundario, garantizando así las operaciones de I/O ininterrumpidas del cliente. La ruta de los datos de replicación se basa en un mecanismo de latido y, si un fallo de red o un evento persiste más allá de un determinado periodo, puede provocar fallos en los latidos, lo que provoca que la relación se desincronice. Sin embargo, la presencia de rutas redundantes, como recuperación tras fallos de LIF a otro puerto, puede sostener el latido y evitar dichas interrupciones.
+Además, permite a los clusters obtener esta información como parte del proceso de quórum. Utiliza el LIF de gestión de nodos y el LIF de gestión de clústeres para fines de comunicación. Establece conexiones redundantes a través de varias rutas para diferenciar entre un fallo del sitio y un fallo de InterSwitch Link (ISL). Cuando un clúster pierde la conexión con el software ONTAP Mediator y todos sus nodos debido a un evento, se considera que no se puede acceder a él. Esto activa una alerta y habilita la conmutación al respaldo automática al grupo de consistencia en mirroring en el sitio secundario, con lo que garantiza una I/O ininterrumpida para el cliente. La ruta de los datos de replicación se basa en un mecanismo de latido y, si un fallo de red o un evento persiste más allá de un determinado periodo, puede provocar fallos en los latidos, lo que provoca que la relación se desincronice. Sin embargo, la presencia de rutas redundantes, como recuperación tras fallos de LIF a otro puerto, puede sostener el latido y evitar dichas interrupciones.
 
 En resumen, ONTAP Mediator se utiliza para los siguientes propósitos:
 
@@ -77,7 +77,7 @@ SnapMirror Active Sync ofrece soluciones asimétricas y simétricas.
 
 En _asimétricas CONFIGURACIONES_, la copia de almacenamiento primario expone una ruta optimizada para activos y presta un servicio activo de I/O del cliente El sitio secundario utiliza una ruta remota para I/O. Las rutas de almacenamiento para el sitio secundario se consideran activas-no optimizadas. El acceso al LUN de escritura se proxy desde el sitio secundario.
 
-En _configuraciones activo/activo simétricas_, las rutas optimizadas para activo se exponen en ambos sitios, son específicas de los hosts y se pueden configurar, lo que significa que los hosts de cualquiera de los lados pueden acceder al almacenamiento local para I/O activo
+En _configuraciones activo/activo simétricas_, las rutas optimizadas para activo se exponen en ambos sitios, son específicas de los hosts y se pueden configurar, lo que significa que los hosts de cualquiera de los lados pueden acceder al almacenamiento local para I/O activo A partir de ONTAP 9.16.1, el activo-activo simétrico es compatible con clústeres con hasta cuatro nodos.
 
 image:snapmirror-active-sync-symmetric.png["Configuración activa simétrica"]
 

@@ -31,10 +31,27 @@ La siguiente tabla captura cómo `autosize-mode` los parámetros afectan al cál
 |===
 .Antes de empezar
 * Para establecer un límite de las máquinas virtuales de almacenamiento, debe ser un administrador del clúster.
-* No pueden configurarse límites de almacenamiento para ninguna SVM que contenga volúmenes de protección de datos, volúmenes en una relación de SnapMirror o en una configuración de MetroCluster.
+* A partir de ONTAP 9.16.1, se pueden configurar límites de almacenamiento para SVM que contengan volúmenes de protección de datos, incluidos los siguientes tipos de protección de datos:
++
+** Volúmenes FlexVol en recuperación ante desastres asíncrona sin cascada
+** Volúmenes de FlexVol en recuperación ante desastres síncrona (tanto políticas síncronas como de sincronización estricta)
+** link:../data-protection/restore-volume-snapvault-backup-task.html["Restaurar"]
+
+
+* Los límites de almacenamiento para SVM son _not_ compatibles con las siguientes configuraciones:
++
+** Relaciones de almacén de SnapMirror
+** SnapMirror síncrono activo
+** FlexGroups
+** Grupos de consistencia
+** DR DE SVM
+** Cascadas
+** MetroCluster
+
+
 * Al migrar una SVM, la SVM de origen no puede tener un límite de almacenamiento habilitado. Para completar la operación de migración, desactive el límite de almacenamiento en el origen y, a continuación, complete la migración.
 * La capacidad de la SVM es distinta de xref:../volumes/quotas-concept.html[cuotas]. Las cuotas no pueden superar el tamaño máximo.
-* No es posible establecer un límite de almacenamiento cuando haya otras operaciones en curso en la SVM. Utilice la `job show vservser _svm_name_` comando para ver trabajos existentes. Intente ejecutar el comando de nuevo cuando haya terminado algún trabajo.
+* No es posible establecer un límite de almacenamiento cuando haya otras operaciones en curso en la SVM. Utilice `job show vservser <svm_name>` el comando para ver los trabajos existentes. Intente ejecutar el comando de nuevo cuando haya terminado algún trabajo.
 
 
 
@@ -76,18 +93,18 @@ Proporcione un tamaño de capacidad máximo para la SVM.
 .Pasos
 . Cree la SVM. Para establecer un límite de almacenamiento, proporcione un `storage-limit` valor. Para configurar una alerta de umbral para el límite de almacenamiento, proporcione un valor de porcentaje para `-storage-limit-threshold-alert`.
 +
-`vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ -rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_ [-ipspace IPspace_name] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]`
+`vserver create -vserver <vserver_name> -aggregate <aggregate_name> -rootvolume <root_volume_name> -rootvolume-security-style {unix|ntfs|mixed} -storage-limit <value> [GiB|TIB] -storage-limit-threshold-alert <percentage> [-ipspace IPspace_name] [-language <language>] [-snapshot-policy <snapshot_policy_name>] [-quota-policy <quota_policy_name>] [-comment <comment>]`
 
 +
 Si no proporciona valor de umbral, de forma predeterminada, se activará una alerta cuando la SVM se encuentre en un 90 % de su capacidad. Para deshabilitar la alerta de umbral, proporcione un valor de cero.
 
 . Confirme que la SVM se ha creado correctamente:
 +
-`vserver show -vserver _vserver_name_`
+`vserver show -vserver <vserver_name>`
 
 . Si desea deshabilitar el límite de almacenamiento, modifique la SVM con `-storage-limit` parámetro definido en cero:
 +
-`vserver modify -vserver _vserver_name_ -storage-limit 0`
+`vserver modify -vserver <vserver_name> -storage-limit 0`
 
 
 
@@ -121,14 +138,14 @@ Si desea desactivar el límite de capacidad, desmarque la casilla situada junto 
 .Pasos
 . En el clúster que aloja la SVM, emita el `vserver modify` comando. Proporcione un valor numérico para `-storage-limit` y un valor porcentual para `-storage-limit-threshold-alert`.
 +
-`vserver modify -vserver _vserver_name_ -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_`
+`vserver modify -vserver <vserver_name> -storage-limit <value> [GiB|TIB] -storage-limit-threshold-alert <percentage>`
 
 +
-Si no se proporciona el valor de umbral, tendrá una alerta predeterminada al 90 % de capacidad. Para deshabilitar la alerta de umbral, proporcione un valor de cero.
+Si no proporciona un valor de umbral, tendrá una alerta predeterminada al 90 % de capacidad. Para deshabilitar la alerta de umbral, proporcione un valor de cero.
 
 . Si desea deshabilitar el límite de almacenamiento, modifique la SVM con `-storage-limit` establecer en cero:
 +
-`vserver modify -vserver _vserver_name_ -storage-limit 0`
+`vserver modify -vserver <vserver_name> -storage-limit 0`
 
 
 

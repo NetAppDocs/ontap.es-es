@@ -102,6 +102,16 @@ Puede establecer una protección simétrica mediante System Manager o la interfa
 .Antes de empezar
 * Ambos clústeres deben ejecutar ONTAP 9.15.1 o una versión posterior.
 * Las configuraciones activo-activo simétricas requieren el `AutomatedFailoverDuplex` política de protección. Alternativamente, puede hacerlo xref:../data-protection/create-custom-replication-policy-concept.html[Crear una política de SnapMirror personalizada] proporcionado el `-type` es `automated-failover-duplex`.
+* En ONTAP 9.15.1, el activo-activo simétrico solo se admite en clústeres de 2 nodos.
+* A partir de ONTAP 9.16.1 GA, la sincronización activa de SnapMirror admite configuraciones activo-activo simétricas en clústeres de cuatro nodos.
++
+** Para utilizar la sincronización activa de SnapMirror en un clúster de cuatro nodos, debe ejecutar ONTAP 9.16.1 GA o una versión posterior.
+** Antes de implementar una configuración de cuatro nodos, xref:../peering/create-cluster-relationship-93-later-task.adoc[cree una relación de paridad entre clústeres]debe .
+** xref:limits-reference.adoc[límites]Revise la para ver clústeres de cuatro nodos.
+** Si revierte a un clúster de dos nodos, debe eliminar las relaciones de sincronización activa de SnapMirror del clúster antes de revertir.
+** La configuración de cuatro nodos se puede usar para actualizar el almacenamiento y las controladoras. Este proceso no produce interrupciones y amplía el clúster mientras traslada los volúmenes a los nuevos nodos. Para obtener más información, consulte link:upgrade-revert-task.html#refresh-a-cluster["actualice un clúster"].
+
+
 
 
 .Pasos
@@ -114,7 +124,7 @@ Puede establecer una protección simétrica mediante System Manager o la interfa
 +
 .. Al crear el grupo de consistencia, especifique iniciadores de host para crear iGroups.
 .. Seleccione la casilla de verificación **Activar SnapMirror** y, a continuación, seleccione la `AutomatedFailoverDuplex` política.
-.. En el cuadro de diálogo que aparece, seleccione la casilla **Replicar iGroups** para replicar iGroups. En **Editar ajustes proximales**, establezca SVM proximales para sus hosts.
+.. En el cuadro de diálogo que aparece, seleccione la casilla **Replicar iGroups** para replicar iGroups. En **Editar ajustes de proximidad**, establezca SVM proximales para sus hosts.
 .. Selecciona **Guardar**.
 
 
@@ -133,7 +143,7 @@ Puede establecer una protección simétrica mediante System Manager o la interfa
 .. Vaya a **HOSTS** > **SAN Initiator Groups**.
 .. Seleccione **+Add** para crear un igroup nuevo.
 .. Proporcione un **Nombre**, seleccione el **Sistema Operativo del Host** y, a continuación, elija **Miembros del Grupo Iniciador**.
-.. Selecciona **Guardar**.
+.. Seleccione **Guardar** para inicializar la relación.
 
 
 . Asigne el nuevo igroup a las LUN de destino.
@@ -160,12 +170,20 @@ Puede establecer una protección simétrica mediante System Manager o la interfa
 `snapmirror show -destination-path <destination_path>`
 
 . En el host, configure la conectividad de host con acceso a cada clúster de acuerdo con sus necesidades.
-. Establezca la configuración del igroup. Establezca las rutas preferidas para los iniciadores en el clúster local. Especifique la opción para replicar la configuración en la afinidad inversa del cluster del mismo nivel.
+. Establezca la configuración del igroup. Establezca las rutas preferidas para los iniciadores en el clúster local. Especifique la opción para replicar la configuración en el cluster peer para afinidad inversa.
 +
-`SiteA::> igroup create -vserver <svm_name> -os-type <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
+`SiteA::> igroup create -vserver <svm_name> -ostype <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
 
 +
-`SiteA::> igroup add -vserver <svm_name> -igroup <igroup_name> -os-type <os_type> -initiator <host>`
+
+NOTE: A partir de ONTAP 9.16.1, utilice `-proximal-vserver local` el parámetro en este comando.
+
++
+`SiteA::> igroup add -vserver <svm_name> -igroup <igroup_name> -ostype <os_type> -initiator <host>`
+
++
+
+NOTE: A partir de ONTAP 9.16.1, utilice `-proximal-vserver peer` el parámetro en este comando.
 
 . Desde el host, detecte las rutas y verifique que los hosts tengan una ruta activa/optimizada hacia el LUN de almacenamiento desde el clúster preferido.
 . Ponga en marcha la aplicación y distribuya las cargas de trabajo de los equipos virtuales entre los clusters para lograr el equilibrio de carga necesario.
