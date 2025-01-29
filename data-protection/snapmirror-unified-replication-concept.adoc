@@ -19,16 +19,16 @@ SnapMirror _Unified replication_ permite configurar la recuperación ante desast
 
 Al igual que sucede con SnapMirror, la protección de datos unificada realiza una transferencia de referencia la primera vez que se invoca. La política de SnapMirror para la relación define el contenido de la línea de base y cualquier actualización.
 
-Una transferencia completa con la política de protección de datos unificada predeterminada `MirrorAndVault` Realiza una copia Snapshot del volumen de origen, luego transfiere esa copia y los bloques de datos que hace referencia al volumen de destino. Al igual que el archivado de almacenes, la protección de datos unificada no incluye copias Snapshot anteriores en la referencia.
+Una transferencia completa con la política de protección de datos unificada predeterminada `MirrorAndVault` realiza una copia Snapshot del volumen de origen y, a continuación, transfiere dicha copia y los bloques de datos a los que hace referencia al volumen de destino. Al igual que el archivado de almacenes, la protección de datos unificada no incluye copias Snapshot más antiguas como referencia.
 
 
 
 == Cómo se actualizan las relaciones de protección de datos unificadas
 
-En cada actualización bajo `MirrorAndVault` Política, SnapMirror crea una copia Snapshot del volumen de origen y transfiere esa copia Snapshot y todas las copias Snapshot que se hayan realizado desde la última actualización, siempre que tengan las etiquetas que coincidan con los definidos en las reglas de la política de Snapshot. En el siguiente resultado de la `snapmirror policy show` comando para `MirrorAndVault` política, tenga en cuenta lo siguiente:
+En cada actualización de la `MirrorAndVault` política, SnapMirror crea una instantánea del volumen de origen y transfiere esa instantánea y cualquier instantánea que se haya realizado desde la última actualización, siempre y cuando tengan etiquetas que coincidan con las definidas en las reglas de política de instantáneas. En el siguiente resultado del `snapmirror policy show` comando para la `MirrorAndVault` política, tenga en cuenta lo siguiente:
 
-* `Create Snapshot` es «'verdadero'», lo que lo indica `MirrorAndVault` Crea una copia Snapshot cuando SnapMirror actualiza la relación.
-* `MirrorAndVault` Dispone de las reglas «m_creado», «diario» y «semanal», que indican que tanto la copia snapshot creada por SnapMirror como las copias Snapshot con etiquetas coincidentes en el origen se transfieren cuando SnapMirror actualiza la relación.
+* `Create Snapshot` Es '`verdadero'', lo que indica que `MirrorAndVault` crea una instantánea cuando SnapMirror actualiza la relación.
+* `MirrorAndVault` Tiene reglas “sm_created”, “daaily” y “weekly”, que indican que tanto la instantánea creada por SnapMirror como las instantáneas con etiquetas coincidentes en el origen se transfieren cuando SnapMirror actualiza la relación.
 
 
 [listing]
@@ -59,7 +59,7 @@ cluster_dst::> snapmirror policy show -policy MirrorAndVault -instance
 
 == Política Unified7year
 
-Preconfigurados `Unified7year` la política funciona exactamente de la misma manera que `MirrorAndVault`, Excepto que una cuarta regla transfiere copias snapshot mensuales y las conserva durante siete años.
+La política preconfigurada `Unified7year` funciona exactamente de la misma manera que `MirrorAndVault`, excepto que una cuarta regla transfiere instantáneas mensuales y las conserva durante siete años.
 
 [listing]
 ----
@@ -75,9 +75,9 @@ Preconfigurados `Unified7year` la política funciona exactamente de la misma man
 
 == Proporcionar protección frente a una posible corrupción de datos
 
-La replicación unificada limita el contenido de la transferencia básica a la copia de Snapshot creada por SnapMirror en el momento de la inicialización. En cada actualización, SnapMirror crea otra copia Snapshot del origen y transfiere esa copia Snapshot y todas las copias Snapshot nuevas que tengan las etiquetas que coincidan con los definidos en las reglas de la política de Snapshot.
+La replicación unificada limita el contenido de la transferencia completa a la snapshot creada por SnapMirror durante la inicialización. En cada actualización, SnapMirror crea otra instantánea del origen y transfiere esa instantánea y cualquier instantánea nueva que tenga etiquetas que coincidan con las etiquetas definidas en las reglas de política de instantáneas.
 
-Puede protegerse contra la posibilidad de que una copia Snapshot actualizada esté dañada al crear una copia de la última copia Snapshot transferida en el destino. Esta «copia local» se conserva independientemente de las reglas de retención del origen, de modo que, aunque la copia Snapshot transferida mediante SnapMirror ya no esté disponible en el origen, dicha copia estará disponible en el destino.
+Puede protegerse contra la posibilidad de que una snapshot actualizada esté dañada creando una copia de la última snapshot transferida en el destino. Esta «copia local» se conserva con independencia de las reglas de retención en el origen, de modo que incluso si la instantánea originalmente transferida por SnapMirror ya no está disponible en el origen, una copia de ella estará disponible en el destino.
 
 
 
@@ -85,4 +85,4 @@ Puede protegerse contra la posibilidad de que una copia Snapshot actualizada est
 
 Debe sopesar las ventajas que supone mantener una copia completa frente a las ventajas que ofrece la replicación unificada para reducir la cantidad de almacenamiento secundario, limitar el número de transferencias básicas y reducir el tráfico de red.
 
-El factor clave para determinar la idoneidad de la replicación unificada es la tasa de cambio del sistema de archivos activo. Un reflejo tradicional puede ser más adecuado para un volumen que contiene copias Snapshot cada hora de los registros de transacciones de las bases de datos, por ejemplo.
+El factor clave para determinar la idoneidad de la replicación unificada es la tasa de cambio del sistema de archivos activo. Un reflejo tradicional es posible que resulte más adecuado para un volumen que contiene instantáneas cada hora de registros de transacciones de base de datos, por ejemplo.

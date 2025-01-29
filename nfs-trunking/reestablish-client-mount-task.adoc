@@ -13,8 +13,6 @@ summary: Para convertir conexiones de cliente no troncalizadas en conexiones tro
 [role="lead"]
 Para convertir conexiones de cliente no troncalizadas en conexiones troncales, los montajes existentes en clientes Linux y VMware deben desmontarse y volver a montarse utilizando la información acerca de las LIF.
 
-Al introducir los comandos de montaje en los clientes, debe introducir las direcciones IP para cada LIF del grupo de enlaces.
-
 Descubra link:index.html#supported-clients["clientes admitidos"].
 
 
@@ -24,17 +22,25 @@ NOTE: El desmontaje de los clientes de VMware provoca interrupciones en las máq
 ====
 .Requisitos del cliente Linux
 --
-Se necesita un punto de montaje independiente para cada conexión del grupo de troncalización.
+Si utiliza ONTAP 9.16.1 o posterior y Red Hat Enterprise Linux versión 8,7 o posterior (para RHEL 8) o 9,2 o posterior (para RHEL 9) como cliente Linux, solo se necesita un punto de montaje para el grupo de enlaces. Monte los volúmenes exportados con este comando con `trunkdiscovery` la opción:
 
-Monte los volúmenes exportados con comandos similares a los siguientes:
+[source, cli]
+----
+mount <lif_ip>:<volume_name> </mount_path> -o trunkdiscovery,vers=4.1
+----
+De lo contrario, se necesita un punto de montaje independiente para cada conexión del grupo de troncalización. Monte los volúmenes exportados con comandos similares a los siguientes, con la `max_connect` opción:
 
-`mount lif1_ip:/vol-test /mnt/test1 -o vers=4.1,max_connect=2`
+[source, cli]
+----
+mount <lif1_ip>:<volume_name> </mount_path1> -o vers=4.1,max_connect=16
+----
+[source, cli]
+----
+mount <lif2_ip>:<volume_name> </mount_path2> -o vers=4.1,max_connect=16
+----
+La versión (`vers`) el valor debe ser `4.1` o posterior.
 
-`mount lif2_ip:/vol-test /mnt/test2 -o vers=4.1,max_connect=2`
-
-La `vers` el valor debe ser `4.1` o posterior.
-
-La `max_connect` el valor debe corresponder al número de conexiones del grupo de troncalización.
+La `max_connect` el valor corresponde al número de conexiones del grupo de troncalización.
 
 --
 .Requisitos del cliente de VMware

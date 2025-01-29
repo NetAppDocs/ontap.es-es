@@ -20,7 +20,7 @@ El reequilibrio de FlexGroup ayuda a redistribuir la capacidad cuando los desequ
 Debe tener en cuenta que el reequilibrio de FlexGroup degrada el rendimiento del sistema cuando se mueve una gran cantidad de archivos como parte de un solo evento de reequilibrio o de varios eventos de reequilibrio debido a la creación de inodos de varias partes. Cada archivo movido como parte de un evento de reequilibrio tiene 2 inodos de varias partes asociados a ese archivo. Cuanto mayor sea el número de archivos con inodos de varias partes como porcentaje del número total de archivos en un FlexGroup, mayor será el impacto en el rendimiento. Ciertos casos de uso, como una conversión de FlexVol a FlexGroup, pueden dar lugar a una cantidad significativa de creación de inodo de varias partes.
 
 ====
-El reequilibrio solo está disponible cuando todos los nodos del clúster ejecutan ONTAP 9.12.1 o versiones posteriores. Debe habilitar la funcionalidad de datos granular en cualquier volumen de FlexGroup que ejecute la operación de reequilibrio.  Una vez habilitada esa funcionalidad, no podrá revertir a ONTAP 9.11.1 y versiones anteriores a menos que elimine este volumen o restaure desde una copia Snapshot que se creó antes de habilitar la configuración.
+El reequilibrio solo está disponible cuando todos los nodos del clúster ejecutan ONTAP 9.12.1 o versiones posteriores. Debe habilitar la funcionalidad de datos granular en cualquier volumen de FlexGroup que ejecute la operación de reequilibrio. Una vez habilitada esa funcionalidad, no podrá revertir a ONTAP 9.11.1 y versiones anteriores a menos que elimine este volumen o restaure desde una copia Snapshot que se creó antes de habilitar la configuración.
 
 A partir de ONTAP 9.14.1, ONTAP introduce un algoritmo para mover archivos de forma proactiva y sin interrupciones en volúmenes que tienen habilitados datos granulares sin interacción del usuario. El algoritmo funciona en escenarios muy específicos y específicos para aliviar los cuellos de botella de rendimiento.  Los escenarios en los que este algoritmo puede actuar incluyen una carga de escritura muy pesada en un conjunto concreto de archivos en un nodo del cluster o un archivo en crecimiento continuo en un directorio principal muy activo.
 
@@ -43,15 +43,15 @@ El reequilibrio con la función de reequilibrio automático de FlexGroup puede d
 +
 La selección de archivos para el reequilibrado automático se basa en bloques guardados.  El tamaño mínimo de archivo considerado para el reequilibrio es de 100 MB por defecto (se puede configurar tan bajo como 20 MB utilizando el parámetro min-file-size que se muestra a continuación) y el tamaño máximo de archivo es de 100 GB.
 
-* De las copias snapshot
+* Archivos en instantáneas
 +
-Puede configurar el reequilibrado de FlexGroup para que solo tenga en cuenta los archivos que se van a mover, que no están presentes actualmente en ninguna copia snapshot.  Cuando se inicia el reequilibrio, se muestra una notificación si se programa una operación de copia Snapshot en cualquier momento durante una operación de reequilibrio.
+Puede configurar el reequilibrio de FlexGroup para que sólo tenga en cuenta los archivos que se van a mover que no estén presentes actualmente en ninguna instantánea. Cuando se inicia el reequilibrio, una notificación muestra si se programa una operación de instantánea en cualquier momento durante una operación de reequilibrio.
 
 +
-Las copias Snapshot están restringidas si un archivo se mueve y se está encuadrando en el destino.  No se permite una operación de restauración de copias snapshot mientras se está reequilibrando archivos.
+Las instantáneas están restringidas si se mueve un archivo y se está enmarcando en el destino. No se permite una operación de restauración de snapshots mientras el reequilibrio de archivos está en curso.
 
 +
-Las copias de Snapshot creadas después de `granular-data` habilitar la opción no se pueden replicar en un sistema que ejecuta ONTAP 9.11.1 y versiones anteriores, ya que ONTAP 9.11.1 y las versiones anteriores no admiten inodos de varias partes.
+Ninguna copia de Snapshot creada después de `granular-data` habilitar la opción no se puede replicar en un sistema que ejecuta ONTAP 9.11.1 y versiones anteriores, ya que ONTAP 9.11.1 y las versiones anteriores no admiten inodos de varias partes.
 
 * Operaciones de SnapMirror
 +
@@ -59,11 +59,11 @@ El reequilibrio de FlexGroup se debe realizar entre las operaciones programadas 
 
 * Eficiencia del almacenamiento de compresión basada en archivos
 +
-Gracias a la eficiencia del almacenamiento de compresión basada en archivos, el archivo se descomprime antes de trasladarse al destino, por lo que se pierde el ahorro en la compresión. El ahorro de la compresión se recupera después de que se ejecuta un escáner en segundo plano iniciado manualmente en el volumen FlexGroup después del reequilibrio.  Sin embargo, si algún archivo está asociado con una copia snapshot en cualquier volumen, el archivo se ignorará para la compresión.
+Gracias a la eficiencia del almacenamiento de compresión basada en archivos, el archivo se descomprime antes de trasladarse al destino, por lo que se pierde el ahorro en la compresión. El ahorro de la compresión se recupera después de que se ejecuta un escáner en segundo plano iniciado manualmente en el volumen FlexGroup después del reequilibrio. Sin embargo, si algún archivo está asociado a una instantánea en cualquier volumen, el archivo se ignorará para la compresión.
 
 * Deduplicación
 +
-La transferencia de archivos deduplicados puede provocar un aumento en el uso general del volumen FlexGroup. Durante el reequilibrio de archivos, solo se mueven bloques únicos al destino, liberando esa capacidad en el origen.  Los bloques compartidos permanecen en el origen y se copian en el destino.  Aunque logra el objetivo de reducir la capacidad utilizada en un componente de origen casi completo, también puede incrementar el uso general del volumen FlexGroup debido a las copias de bloques compartidos en los nuevos destinos.  Esto también es posible cuando se mueven archivos que forman parte de una copia snapshot. No se reconoce completamente el ahorro de espacio hasta que se recicla la programación de la copia snapshot y ya no hay copias de los archivos en las copias snapshot.
+La transferencia de archivos deduplicados puede provocar un aumento en el uso general del volumen FlexGroup. Durante el reequilibrio de archivos, solo se mueven bloques únicos al destino, liberando esa capacidad en el origen. Los bloques compartidos permanecen en el origen y se copian en el destino. Aunque logra el objetivo de reducir la capacidad utilizada en un componente de origen casi completo, también puede incrementar el uso general del volumen FlexGroup debido a las copias de bloques compartidos en los nuevos destinos. Esto también es posible cuando se mueven archivos que forman parte de una instantánea. El ahorro de espacio no se reconoce por completo hasta que se vuelve a reciclar la programación de Snapshot y ya no se dejan de realizar copias de los archivos en las instantáneas.
 
 * Volúmenes FlexClone
 +
@@ -152,7 +152,7 @@ Opcionalmente, puede especificar las siguientes opciones:
 [-START-Time <mm/dd/yyyy-00:00:00>] Fecha y hora de inicio de reequilibrio de horario
 
 +
-[-exclude-snapshots {true|false}] Excluir archivos atascados en copias snapshot
+[-exclude-snapshots {true|false}] Excluir archivos atascados en instantáneas
 
 +
 Ejemplo:
@@ -170,7 +170,7 @@ volume rebalance start -vserver vs0 -volume fg1
 
 == Modificar las configuraciones de reequilibrio de FlexGroup
 
-Puede cambiar la configuración de reequilibrio de FlexGroup para actualizar el umbral de desequilibrio, el número de archivos simultáneos mueve el tamaño mínimo de archivo, el tiempo de ejecución máximo y para incluir o excluir copias de Snapshot. Las opciones para modificar el programa de reequilibrio de FlexGroup están disponibles a partir de ONTAP 9.13.1.
+Puede cambiar una configuración de reequilibrio de FlexGroup para actualizar el umbral de desequilibrio, el número de archivos simultáneos que mueven el tamaño mínimo del archivo, el tiempo de ejecución máximo y para incluir o excluir instantáneas. Las opciones para modificar el programa de reequilibrio de FlexGroup están disponibles a partir de ONTAP 9.13.1.
 
 [role="tabbed-block"]
 ====
@@ -217,7 +217,7 @@ Puede especificar una o varias de las siguientes opciones:
 [-START-Time <mm/dd/yyyy-00:00:00>] Fecha y hora de inicio de reequilibrio de horario
 
 +
-[-exclude-snapshots {true|false}] Excluir archivos atascados en copias snapshot
+[-exclude-snapshots {true|false}] Excluir archivos atascados en instantáneas
 
 
 
@@ -341,7 +341,7 @@ Ejemplo de detalles de la instancia de reequilibrio:
     Minimum Imbalance Threshold per Constituent: 5%
     Maximum Concurrent File Moves per Constituent: 25
     Minimum File Size: 4KB
-    Exclude Files Stuck in Snapshot Copies: true
+    Exclude Files Stuck in snapshots: true
 ----
 
 

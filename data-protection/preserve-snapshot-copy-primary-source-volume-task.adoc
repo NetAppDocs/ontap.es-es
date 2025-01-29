@@ -2,31 +2,31 @@
 permalink: data-protection/preserve-snapshot-copy-primary-source-volume-task.html 
 sidebar: sidebar 
 keywords: ensure, snapshot, copy, mirror-vault, deployment 
-summary: Puede utilizar el comando snapmirror snapshot-owner create para conservar una copia snapshot etiquetada en el secundario en una puesta en marcha de mirroring-almacén. Al hacerlo se garantiza que exista una copia snapshot común para la actualización de la relación de almacén. 
+summary: Se puede usar el comando SnapMirror snapshot-owner create para conservar una Snapshot con etiqueta en el secundario en una implementación de reflejo-almacén. Al hacerlo, se garantiza que exista una instantánea común para la actualización de la relación de almacén. 
 ---
-= Garantice una copia snapshot común en una puesta en marcha de mirror-vault con ONTAP
+= Asegúrese de realizar una instantánea común en una implementación de mirror-vault con ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Puede utilizar el `snapmirror snapshot-owner create` Comando para conservar una copia Snapshot etiquetada en el secundario en una implementación de reflejo-almacén. Al hacerlo se garantiza que exista una copia snapshot común para la actualización de la relación de almacén.
+Puede usar el `snapmirror snapshot-owner create` comando para conservar una snapshot etiquetada en el secundario en una implementación de mirror-vault. Al hacerlo, se garantiza que exista una instantánea común para la actualización de la relación de almacén.
 
 .Acerca de esta tarea
-Si utiliza una combinación de ventilador-almacén de reflejos o puesta en marcha en cascada, debe tener en cuenta que fallarán las actualizaciones si no existe una copia snapshot común en los volúmenes de origen y destino.
+Si utiliza una combinación de replicación ramificada entre reflejo y almacén o implementación en cascada, debe tener en cuenta que las actualizaciones generarán errores si no existe una snapshot común en los volúmenes de origen y de destino.
 
-Esto no supone ningún problema en la relación de mirroring en una puesta en marcha en cascada o en distribución ramificada-vault, ya que SnapMirror siempre crea una copia snapshot del volumen de origen antes de realizar la actualización.
+Esto nunca es un problema de la relación de reflejo en una implementación ramificada reflejo-almacén o en cascada, ya que SnapMirror siempre crea una copia Snapshot del volumen de origen antes de llevar a cabo la actualización.
 
-Puede ser un problema en la relación de almacén, sin embargo, ya que SnapMirror no crea una copia Snapshot del volumen de origen al actualizar una relación de almacén. Debe utilizar el `snapmirror snapshot-owner create` Para garantizar que hay al menos una copia Snapshot común en el origen y el destino de la relación del almacén.
+Sin embargo, puede ser un problema para la relación de almacén, ya que SnapMirror no crea una copia Snapshot del volumen de origen cuando actualiza una relación de almacén. Debe utilizar `snapmirror snapshot-owner create` para asegurarse de que hay al menos una instantánea común tanto en el origen como en el destino de la relación de almacén.
 
 .Pasos
-. En el volumen de origen, asigne un propietario a la copia Snapshot etiquetada que desea conservar:
+. En el volumen de origen, asigne un propietario a la snapshot etiquetada que desea conservar:
 +
 `snapmirror snapshot-owner create -vserver <SVM> -volume <volume> -snapshot <snapshot> -owner <owner>`
 
 +
-El ejemplo siguiente asigna `ApplicationA` como propietario del `snap1` Copia Snapshot:
+En el siguiente ejemplo se asigna `ApplicationA` como propietario de `snap1` la copia de Snapshot:
 
 +
 [listing]
@@ -38,7 +38,7 @@ clust1::> snapmirror snapshot-owner create -vserver vs1 -volume vol1
 +
 También puede esperar a la actualización programada de la relación de reflejo.
 
-. Transfiera la copia Snapshot etiquetada como al destino de almacén:
+. Transfiera la instantánea etiquetada al destino del almacén:
 +
 `snapmirror update -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ... -source-snapshot snapshot`
 
@@ -46,7 +46,7 @@ También puede esperar a la actualización programada de la relación de reflejo
 Obtenga más información sobre `snapmirror update` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-update.html["Referencia de comandos de la ONTAP"^].
 
 +
-En el siguiente ejemplo se transfiere el `snap1` Copia Snapshot::
+En el siguiente ejemplo se transfiere la `snap1` copia de Snapshot::
 +
 --
 [listing]
@@ -54,17 +54,17 @@ En el siguiente ejemplo se transfiere el `snap1` Copia Snapshot::
 clust1::> snapmirror update -vserver vs1 -volume vol1
 -source-snapshot snap1
 ----
-La copia snapshot etiquetada se conservará cuando se actualice la relación de almacén.
+La instantánea etiquetada se conservará cuando se actualice la relación de almacén.
 
 --
 
 
-. En el volumen de origen, quite el propietario de la copia Snapshot etiquetada:
+. En el volumen de origen, quite el propietario de la snapshot etiquetada:
 +
 `snapmirror snapshot-owner delete -vserver _SVM_ -volume _volume_ -snapshot _snapshot_ -owner _owner_`
 
 +
-Los ejemplos siguientes eliminan `ApplicationA` como propietario del `snap1` Copia Snapshot:
+Los siguientes ejemplos eliminan `ApplicationA` como propietario de `snap1` la instantánea:
 
 +
 [listing]

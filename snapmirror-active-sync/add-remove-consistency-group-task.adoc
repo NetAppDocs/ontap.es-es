@@ -4,7 +4,7 @@ permalink: snapmirror-active-sync/add-remove-consistency-group-task.html
 keywords: SM-BC, SMBC, volume, consistency group, remove volume, add volume, snapmirror active sync 
 summary: Si desea cambiar la composición del grupo de coherencia. Para ello, añada o quite un volumen, primero debe eliminar la relación original y, a continuación, volver a crear el grupo de coherencia con la nueva composición. 
 ---
-= Añada o quite volúmenes a un grupo de coherencia
+= Añada o quite volúmenes a un grupo de coherencia de ONTAP
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 
@@ -37,20 +37,20 @@ Eliminar volúmenes es una operación disruptiva. Debe eliminar la relación de 
 .Antes de empezar
 * No puede comenzar a modificar el grupo de consistencia mientras está en la `InSync` estado.
 * El volumen de destino debe ser del tipo DP.
-* El nuevo volumen que añada para expandir el grupo de coherencia debe tener un par de copias de Snapshot comunes entre los volúmenes de origen y de destino.
+* El volumen nuevo que añade para expandir el grupo de coherencia debe tener una pareja de copias de Snapshot comunes entre los volúmenes de origen y de destino.
 
 
 .Pasos
 Los ejemplos que se muestran en dos asignaciones de volúmenes: `vol_src1` <--> `vol_dst1` y.. `vol_src2` <--> `vol_dst2`, en una relación de grupo de coherencia entre los puntos finales `vs1_src:/cg/cg_src` y.. `vs1_dst:/cg/cg_dst`.
 
-. En los clústeres de origen y destino, compruebe que hay una Snapshot común entre los clústeres de origen y destino con el comando `snapshot show -vserver _svm_name_ -volume _volume_name_ -snapshot _snapmirror_`
+. En los clústeres de origen y destino, compruebe que hay una snapshot común entre los clústeres de origen y destino con el comando `snapshot show -vserver _svm_name_ -volume _volume_name_ -snapshot _snapmirror_`
 +
 `source::>snapshot show -vserver vs1_src -volume vol_src3 -snapshot snapmirror*`
 
 +
 `destination::>snapshot show -vserver vs1_dst -volume vol_dst3 -snapshot snapmirror*`
 
-. Si no existe ninguna copia Snapshot común, cree e inicialice una relación de SnapMirror de FlexVol:
+. Si no existe ninguna instantánea común, cree e inicialice una relación de FlexVol SnapMirror:
 +
 `destination::>snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst3`
 
@@ -58,7 +58,7 @@ Los ejemplos que se muestran en dos asignaciones de volúmenes: `vol_src1` <--> 
 +
 `destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
 
-. Libere la relación de SnapMirror de origen y conserve las copias Snapshot comunes:
+. Liberar la relación de SnapMirror de origen y conservar las snapshots comunes:
 +
 `source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol_dst3`
 
@@ -98,7 +98,7 @@ NOTE: Se anula la asignación de las LUN de destino, mientras que las LUN de la 
 --
 .ONTAP 9.13.1 y versiones posteriores
 --
-A partir de ONTAP 9.13.1, es posible añadir volúmenes de forma no disruptiva a un grupo de coherencia con una relación de sincronización activa de SnapMirror activa. La sincronización activa de SnapMirror admite la adición de volúmenes de origen o destino.
+A partir de ONTAP 9.13.1, es posible añadir volúmenes a un grupo de coherencia con una relación de sincronización activa de SnapMirror activa sin interrupciones. La sincronización activa de SnapMirror admite la adición de volúmenes de origen o destino.
 
 
 IMPORTANT: A partir de ONTAP 9,8 a 9.14.1, la sincronización activa de SnapMirror se conoce como continuidad del negocio de SnapMirror (SM-BC).
