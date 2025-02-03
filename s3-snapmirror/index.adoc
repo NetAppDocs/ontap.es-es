@@ -138,3 +138,20 @@ Cuando se crean bloques nuevos, se puede controlar el acceso mediante la creaci�
 * link:../s3-config/create-s3-user-task.html["Crear un usuario de S3 (CLI)"]
 * link:../s3-config/create-modify-groups-task.html["Crear o modificar grupos S3 (CLI)"]
 
+
+
+
+== Utilice el bloqueo de objetos y el control de versiones de S3 con SnapMirror S3
+
+Puede utilizar SnapMirror S3 en bloques de ONTAP habilitados para bloqueo de objetos y control de versiones, con algunas consideraciones:
+
+* Para replicar un depósito de origen con el bloqueo de objetos activado, el bloque de destino también debe tener el bloqueo de objetos activado. Además, tanto el origen como el destino deben tener el control de versiones activado. De este modo, se evitan los problemas de eliminación de mirroring en el depósito de destino cuando ambos bloques tienen políticas de retención predeterminadas diferentes.
+* S3 SnapMirror no replica versiones históricas de los objetos. Sólo se replica la versión actual de un objeto.
+
+
+Cuando los objetos Object Locked se duplican en un bucket de destino, mantienen su tiempo de retención original. Si se replican los objetos desbloqueados, adoptarán el período de retención predeterminado del depósito de destino. Por ejemplo:
+
+* El período A tiene un período de retención predeterminado de 30 días y el período B tiene un período de retención predeterminado de 60 días. Los objetos replicados del cucharón A al cucharón B mantendrán su período de retención de 30 días, aunque sea inferior al período de retención predeterminado del cucharón B.
+* El período A no tiene un período de retención predeterminado y el período B tiene un período de retención predeterminado de 60 días. Cuando los objetos desbloqueados se replican del cucharón A al cucharón B, adoptarán el período de retención de 60 días. Si un objeto se bloquea manualmente en el cucharón A, mantendrá su período de retención original cuando se replique en el cucharón B.
+* El período A tiene un período de retención predeterminado de 30 días y el período B no tiene un período de retención predeterminado. Los objetos replicados del bloque A al bloque B mantendrán su período de retención de 30 días.
+
