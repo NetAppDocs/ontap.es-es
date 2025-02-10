@@ -1,0 +1,105 @@
+---
+permalink: san-config/fc-fcoe-recommended-zoning-configuration.html 
+sidebar: sidebar 
+keywords: individual zones 
+summary: En la configuración recomendada de la división en zonas entre FC y FCoE, hay un iniciador de host por zona. La zona consta de un puerto de iniciador de host y uno o varios LIF de destino en los nodos de almacenamiento que proporcionan acceso a las LUN hasta el número deseado de rutas por destino. Esta configuración permite que cada iniciador de host acceda a cualquier nodo, mientras que los hosts que acceden al mismo nodo no pueden ver ver los puertos del otro 
+---
+= Configuraciones de división en zonas FC y FCoE recomendadas
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Debe crear una configuración de división en zonas si el host no tiene una solución multivía instalada, si hay cuatro o más hosts conectados a SAN o si la asignación de LUN selectiva no está implementada en los nodos del clúster.
+
+En la configuración recomendada de división en zonas FC y FCoE, cada zona incluye un iniciador de host, un puerto de iniciador de host y uno o más LIF de destino. Esta configuración permite que cada iniciador de host acceda a cualquier nodo, mientras que los hosts que acceden al mismo nodo no pueden ver ver los puertos del otro
+
+Añada todas las LIF de la máquina virtual de almacenamiento (SVM) a la zona con el iniciador del host. Esto le permite mover volúmenes o LUN sin editar sus zonas existentes ni crear zonas nuevas.
+
+
+
+== Configuraciones de división en zonas de estructura doble
+
+Se recomiendan las configuraciones de división en zonas de estructura doble porque proporcionan protección contra la pérdida de datos debido a un fallo de un componente único. En una configuración de estructura doble, cada iniciador de host se conecta a cada nodo del clúster mediante diferentes switches. Si un conmutador deja de estar disponible, el acceso a los datos se mantiene a través del conmutador restante. Se requiere un software multivía en el host para administrar varias rutas.
+
+En la figura siguiente, el host tiene dos iniciadores y está ejecutando un software multivía. Hay dos zonas. link:../san-admin/selective-lun-map-concept.html["Asignación de LUN selectiva (SLM)"] se configura de modo que todos los nodos se consideran como nodos de informes.
+
+[NOTE]
+====
+La convención de nomenclatura utilizada en esta figura es solo una recomendación de una posible convención de nomenclatura que puede usar para su solución de ONTAP.
+
+====
+* Zona 1: HBA 0, LIF_1, LIF_3, LIF_5 y LIF_7
+* Zona 2: HBA 1, LIF_2, LIF_4, LIF_6 y LIF_8
+
+
+Cada iniciador de host se zonas mediante un switch diferente. Se accede a la zona 1 a través del conmutador 1. Se accede a la zona 2 a través del conmutador 2.
+
+Cada host puede acceder a un LIF en cada nodo. Esto permite que el host siga teniendo acceso a sus LUN si un nodo da error. Los SVM tienen acceso a todos los LIF iSCSI y FC en cada nodo del clúster según la configuración de nodos de informes SLM. Puede utilizar la división en zonas de SLM, conjuntos de puertos o switch de FC para reducir el número de rutas de una SVM al host y el número de rutas de una SVM a un LUN.
+
+Si la configuración incluye más nodos, las LIF para los nodos adicionales se incluyen en estas zonas.
+
+image:scm-en-drw-dual-fabric-zoning.png["Partición de estructura dual"]
+
+[NOTE]
+====
+El sistema operativo host y el software multivía tienen que admitir el número de rutas que se están utilizando para acceder a las LUN en los nodos.
+
+====
+
+
+== División en zonas de estructura única
+
+En una configuración de estructura única, se puede conectar cada iniciador de host a cada nodo de almacenamiento a través de un único switch. No se recomiendan las configuraciones de división en zonas de estructura única porque no ofrecen protección contra la pérdida de datos debido a un fallo de un componente único. Si decide configurar la división en zonas de estructura única, cada host debería tener dos iniciadores para que la multivía ofrezca resiliencia en la solución. Se requiere un software multivía en el host para administrar varias rutas.
+
+Cada iniciador de host debe tener como mínimo un LIF desde cada nodo al que pueda acceder el iniciador. La división en zonas debe permitir al menos una ruta desde el iniciador de host al par de nodos del clúster para proporcionar una ruta para la conectividad de LUN. Esto significa que cada iniciador del host podría tener solo un LIF de destino por nodo en su configuración de zonas. Si hay algún requisito para la multivía en el mismo nodo o en varios nodos del clúster, cada nodo tendrá varias LIF por nodo en su configuración de zona. Esto permite que el host siga teniendo acceso a sus LUN si un nodo falla o se mueve un volumen que contiene la LUN a un nodo diferente. Esto también requiere que los nodos de generación de informes se establezcan correctamente.
+
+Cuando se usan switches Fibre Channel y FCoE de Cisco, una única zona estructural no debe contener más de un LIF de destino para el mismo puerto físico. Si hay varias LIF en el mismo puerto en la misma zona, es posible que los puertos LIF no puedan recuperarse de una pérdida de conexión.
+
+En la figura siguiente, el host tiene dos iniciadores y está ejecutando un software multivía. Hay dos zonas:
+
+[NOTE]
+====
+La convención de nomenclatura utilizada en esta figura es solo una recomendación de una posible convención de nomenclatura que puede usar para su solución de ONTAP.
+
+====
+* Zona 1: HBA 0, LIF_1 y LIF_3
+* Zona 2: HBA 1, LIF_2 y LIF_4
+
+
+Si la configuración incluye más nodos, las LIF para los nodos adicionales se incluyen en estas zonas.s.
+
+image:scm-en-drw-single-fabric-zoning.png["Partición de tejido único"]
+
+En este ejemplo también puede tener las cuatro LIF en cada zona. En ese caso, las zonas serían las siguientes:
+
+* Zona 1: HBA 0, LIF_1, LIF_2, LIF_3 y LIF_4
+* Zona 2: HBA 1, LIF_1, LIF_2, LIF_3 y LIF_4
+
+
+[NOTE]
+====
+El sistema operativo host y el software multivía deben ser compatibles con el número de rutas compatibles que se están utilizando para acceder a las LUN de los nodos. Para determinar el número de rutas utilizadas para acceder a las LUN de los nodos, consulte la sección límites de configuración DE SAN.
+
+====
+
+
+== Restricciones de división en zonas para switches Cisco FC y FCoE
+
+Al utilizar switches FC y FCoE de Cisco, se aplican ciertas restricciones al uso de puertos físicos e interfaces lógicas (LIF) en las zonas.
+
+.Puertos físicos
+* FC-NVMe y FC pueden compartir el mismo puerto físico de 32 GB
+* FC-NVMe y FCoE no pueden compartir el mismo puerto físico
+* FC y FCoE pueden compartir el mismo puerto físico pero sus LIF de protocolo deben estar en zonas independientes.
+
+
+.Interfaces lógicas (LIF)
+* Una zona puede contener una LIF desde cada puerto de destino del clúster.
++
+Verifique la configuración de SLM para que no se supere la cantidad máxima de rutas permitidas al host.
+
+* Cada LIF de un puerto dado debe estar en una zona separada de los otros LIF de ese puerto
+* Los LIF de diferentes puertos físicos pueden estar en la misma zona.
+

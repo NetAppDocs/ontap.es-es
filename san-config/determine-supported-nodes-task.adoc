@@ -4,30 +4,87 @@ sidebar: sidebar
 keywords: determine, number, supported, nodes, san configurations 
 summary: El número de nodos por clúster que admite ONTAP varía en función de la versión de ONTAP, los modelos de controladora de almacenamiento del clúster y el protocolo de los nodos del clúster. 
 ---
-= Determinar el número de nodos compatibles para las configuraciones SAN
+= Determine el número máximo de nodos compatibles y hosts SAN por clúster de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-El número de nodos por clúster que admite ONTAP varía en función de la versión de ONTAP, los modelos de controladora de almacenamiento del clúster y el protocolo de los nodos del clúster.
+El número de nodos admitidos por clúster varía en función de la versión de ONTAP, los modelos de controladora y el protocolo de los nodos del clúster. El número máximo de hosts SAN que se pueden conectar a un clúster también varía en función de su configuración específica.
 
-.Acerca de esta tarea
+
+
+== Determine el número máximo de nodos compatibles por clúster
+
 Si alguno de los nodos del clúster está configurado para FC, FC-NVMe, FCoE o iSCSI, ese clúster se limita a los límites de nodos SAN. Los límites de nodos basados en las controladoras de su clúster se enumeran en _Hardware Universe_.
 
 .Pasos
 . Vaya a. https://hwu.netapp.com["Hardware Universe de NetApp"^].
-. Haga clic en *plataformas* en la parte superior izquierda (junto al botón *Inicio*) y seleccione el tipo de plataforma.
-. Seleccione la casilla de verificación junto a su versión de ONTAP.
+. En la parte superior izquierda, junto a *Inicio*, selecciona *Plataformas*; luego selecciona el tipo de plataforma.
+. Seleccione su versión de ONTAP.
 +
 Se mostrará una nueva columna para que pueda elegir sus plataformas.
 
-. Active las casillas junto a las plataformas utilizadas en su solución.
-. Anule la selección de la casilla de verificación *Seleccionar todo* en la columna *Seleccionar las especificaciones*.
-. Active la casilla de verificación *nodos máximos por clúster (NAS/SAN)*.
+. Seleccione las plataformas utilizadas en su solución.
+. En *Elige tus especificaciones*, deselecciona *Selecciona todo*.
+. Seleccione *Máx. Nodos por clúster (NAS/SAN)*.
 . Haga clic en *Mostrar resultados*.
 
 
-.Información relacionada
-https://hwu.netapp.com["Hardware Universe de NetApp"^]
+.Resultados
+Se mostrará el número máximo de nodos por clúster para las plataformas seleccionadas.
+
+
+
+== Determine si su clúster admite más hosts FC
+
+Para las configuraciones de FC y FC-NVMe, debe usar el número de anexos de destino del iniciador (ITN) en el sistema para determinar si puede añadir más hosts al clúster.
+
+Un ITN representa una ruta desde el iniciador del host hasta el destino del sistema de almacenamiento. El número máximo de ITN por nodo en las configuraciones de FC y FC-NVMe es 2,048. Si está por debajo del número máximo de ITN, puede seguir agregando hosts al clúster.
+
+Para determinar el número de ITN utilizados en su clúster, realice los siguientes pasos para cada nodo del clúster.
+
+.Pasos
+. Identificar todas las LIF de un nodo determinado.
+. Ejecute el siguiente comando para cada LIF en el nodo:
++
+[source, cli]
+----
+fcp initiator show -fields wwpn, lif
+----
++
+El número de entradas que se muestran en la parte inferior del resultado del comando representa el número de ITN para esa LIF.
+
+. Registre el número de ITN que se muestran para cada LIF.
+. Añada el número de ITN para cada LIF de todos los nodos del clúster.
++
+Este total representa el número de ITN de su clúster.
+
+
+
+
+
+== Determine si el clúster admite más hosts iSCSI
+
+El número de hosts que se pueden conectar directamente a un nodo o que se pueden conectar mediante uno o más switches depende del número de puertos Ethernet disponibles. El número de puertos Ethernet disponibles está determinado por el modelo de la controladora y el número y tipo de adaptadores instalados en la controladora. El número de puertos Ethernet admitidos para controladoras y adaptadores está disponible en _Hardware Universe_.
+
+Para todas las configuraciones de clústeres multinodo, debe determinar el número de sesiones iSCSI por nodo para saber si puede añadir más hosts al clúster. Siempre que el clúster se encuentre por debajo del número máximo de sesiones iSCSI por nodo, puede continuar añadiendo hosts al clúster. El número máximo de sesiones iSCSI por nodo varía en función de los tipos de controladoras del clúster.
+
+.Pasos
+. Identificar todos los grupos de portal de destino en el nodo.
+. Compruebe el número de sesiones iSCSI para cada grupo de portales de destino del nodo:
++
+[source, cli]
+----
+iscsi session show -tpgroup _tpgroup_
+----
++
+El número de entradas que se muestra en la parte inferior del resultado del comando representa el número de sesiones iSCSI para ese grupo de portales de destino.
+
+. Registre el número de sesiones iSCSI que se muestran para cada grupo de portales de destino.
+. Agregue el número de sesiones iSCSI para cada grupo de portales de destino en el nodo.
++
+El total representa la cantidad de sesiones iSCSI en el nodo.
+
+

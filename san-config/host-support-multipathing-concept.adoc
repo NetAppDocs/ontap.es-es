@@ -4,15 +4,45 @@ sidebar: sidebar
 keywords: host, support, multipathing 
 summary: 'ONTAP siempre utiliza ALUA (Asymmetric Logical Unit Access) para las rutas FC e iSCSI. Asegúrese de utilizar configuraciones host que sean compatibles con ALUA para los protocolos FC e iSCSI.' 
 ---
-= Compatibilidad con host para información general sobre multivía
+= Compatibilidad de ONTAP con el acceso multivía del host SAN
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-ONTAP siempre utiliza ALUA (Asymmetric Logical Unit Access) para las rutas FC e iSCSI. Asegúrese de utilizar configuraciones host que sean compatibles con ALUA para los protocolos FC e iSCSI.
+ONTAP utiliza software ALUA (Acceso Asimétrico de Unidad Lógica) para multivía con hosts FC e iSCSI.
 
-A partir de la conmutación por error/retorno de una pareja de ha multivía de ONTAP 9.5, se admite la configuración de NVMe mediante Asynchronous Namespace Access (ANA). En ONTAP 9.4, NVMe solo admite una ruta desde el host al destino. El host de aplicación debe gestionar la conmutación por error en la ruta a su partner de alta disponibilidad (ha).
+A partir de ONTAP 9,5, la conmutación/devolución de la pareja de alta disponibilidad multivía es compatible con los hosts NVMe que usan Asynchronous Namespace Access (ANA). En ONTAP 9,4, NVMe solo admite una ruta desde el host al destino, por lo que el host de aplicaciones debe gestionar la ruta al respaldo de su partner de alta disponibilidad.
+
+El software multivía es necesario en el host SAN si puede acceder a un espacio de nombres LUN o NVMe a través de más de una ruta. Presenta un disco único al sistema operativo para todas las rutas que se dirigen a un espacio de nombres LUN o NVMe. Sin él, el sistema operativo trataría cada una de las partes como un disco independiente, lo que provocaría daños en los datos.
+
+Se considera que su solución tiene varias rutas si dispone de alguna de las siguientes opciones:
+
+* Un único puerto iniciador del host conectando varios LIF SAN en la SVM
+* Varios puertos de iniciador conectando a un único LIF SAN en la SVM
+* Varios puertos de iniciador conectando varios LIF SAN en la SVM
+
+
+El software multivía, también conocido como software MPIO (I/O multivía), se recomienda en configuraciones de alta disponibilidad. Además de la asignación selectiva de LUN, también se recomienda usar la división en zonas de switches de FC o conjuntos de puertos para limitar las rutas utilizadas para acceder a las LUN.
 
 Para obtener información sobre qué configuraciones de host específicas admiten ALUA o ANA, consulte https://mysupport.netapp.com/matrix["Herramienta de matriz de interoperabilidad de NetApp"^] y.. https://docs.netapp.com/us-en/ontap-sanhost/index.html["Configuración de host SAN ONTAP"] para el sistema operativo del host.
+
+
+
+== Número recomendado de rutas desde el host a los nodos en el clúster
+
+No debe superar más de ocho rutas desde el host a cada nodo del clúster. Tampoco debe superar la cantidad total de rutas que se pueden admitir para el sistema operativo del host y la multivía utilizada en el host.
+
+Debe tener un mínimo de dos rutas por LUN que se conecte a cada nodo de informes mediante link:../san-admin/selective-lun-map-concept.html["Asignación de LUN selectiva (SLM)"]la máquina virtual de almacenamiento (SVM) del clúster. De este modo, se eliminan los puntos únicos de error y el sistema puede sobrevivir a fallos de componentes.
+
+Si tiene cuatro o más nodos en el clúster o más de cuatro puertos de destino que utilizan las SVM en cualquiera de los nodos, Puede usar los siguientes métodos para limitar el número de rutas que se pueden utilizar para acceder a las LUN de los nodos de modo que no supere el máximo recomendado de ocho rutas.
+
+* SLM
++
+SLM reduce el número de rutas entre el host y la LUN solo a rutas del nodo que posee el LUN y el partner de alta disponibilidad del nodo propietario. SLM está habilitado de forma predeterminada.
+
+* link:../san-admin/limit-lun-access-portsets-igroups-concept.html["Conjuntos de puertos para iSCSI"]
+* Asignaciones de igroup de FC desde el host
+* División en zonas de switches FC
+

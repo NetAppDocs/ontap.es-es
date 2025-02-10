@@ -1,0 +1,167 @@
+---
+permalink: san-config/configure-fc-adapters-initiator-target.html 
+sidebar: sidebar 
+keywords: configure, fc adapters, initiator mode, target mode, FC-NVMe, FC adapter speed 
+summary: Los adaptadores FC integrados y algunas tarjetas adaptadoras de expansión FC pueden configurarse como iniciadores o como puertos de destino. Otros adaptadores de expansión de FC se configuran como iniciadores o destinos en la fábrica y no se pueden cambiar. 
+---
+= Configure los adaptadores de FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Los adaptadores FC integrados y algunas tarjetas adaptadoras de expansión FC pueden configurarse de forma individual como iniciadores o puertos de destino. Otros adaptadores de expansión de FC se configuran como iniciadores o destinos en la fábrica y no se pueden cambiar. También hay disponibles puertos FC adicionales mediante tarjetas UTA2 compatibles configuradas con adaptadores FC SFP+.
+
+Los puertos de iniciador se pueden utilizar para conectar directamente con bandejas de discos back-end y, si es posible, con cabinas de almacenamiento externas. Los puertos de destino se pueden utilizar para conectarse solo a switches FC.
+
+El número de puertos CNA/UTA2 internos configurados para FC varía según el modelo de la controladora. Los adaptadores de expansión de objetivo admitidos también varían según el modelo de controladora. link:https://hwu.netapp.com["Hardware Universe de NetApp"^]Consulte si desea obtener una lista completa de los puertos FC internos y los adaptadores de expansión de destino compatibles para su modelo de controladora.
+
+
+
+== Configure los adaptadores de FC para el modo iniciador
+
+El modo iniciador se usa para conectar los puertos a unidades de cinta, bibliotecas de cintas o almacenamiento de terceros con la virtualización de FlexArray o con importación de LUN externa (FLI).
+
+.Antes de empezar
+* Las LIF del adaptador deben eliminarse de cualquier conjunto de puertos de los que pertenezcan.
+* Todas las LIF de todas las máquinas virtuales de almacenamiento (SVM) que utilizan el puerto físico que se va a modificar deben migrarse o destruirse antes de cambiar la personalidad del puerto físico de destino a iniciador.
+
+
+[NOTE]
+====
+NVMe/FC no admite el modo iniciador.
+
+====
+.Pasos
+. Quite todas las LIF del adaptador:
++
+[source, cli]
+----
+network interface delete -vserver _SVM_name_ -lif _lif_name_,_lif_name_
+----
+. Desconectar el adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -status-admin down
+----
++
+Si el adaptador no se desconecta, también puede quitar el cable del puerto de adaptador correspondiente del sistema.
+
+. Cambie el adaptador del destino al iniciador:
++
+[source, cli]
+----
+system hardware unified-connect modify -t initiator _adapter_port_
+----
+. Reinicie el nodo que aloja el adaptador que cambió.
+. Compruebe que los puertos FC estén configurados en estado correcto para la configuración:
++
+[source, cli]
+----
+system hardware unified-connect show
+----
+. Vuelva a conectar el adaptador:
++
+[source, cli]
+----
+node run -node _node_name_ storage enable adapter _adapter_port_
+----
+
+
+
+
+== Configure los adaptadores de FC para el modo de destino
+
+El modo de destino se utiliza para conectar los puertos a iniciadores FC.
+
+Los mismos pasos se utilizan para configurar los adaptadores de FC para el protocolo FC y el protocolo FC-NVMe. Sin embargo, solo ciertos adaptadores de FC admiten FC-NVMe. Consulte la link:https://hwu.netapp.com["Hardware Universe de NetApp"^] para obtener una lista de adaptadores compatibles con el protocolo FC-NVMe.
+
+.Pasos
+. Desconectar el adaptador:
++
+[source, cli]
+----
+node run -node _node_name_ storage disable adapter _adapter_name_
+----
++
+Si el adaptador no se desconecta, también puede quitar el cable del puerto de adaptador correspondiente del sistema.
+
+. Cambie el adaptador del iniciador al destino:
++
+[source, cli]
+----
+system node hardware unified-connect modify -t target -node _node_name_ adapter _adapter_name_
+----
+. Reinicie el nodo que aloja el adaptador que cambió.
+. Compruebe que el puerto de destino tiene la configuración correcta:
++
+[source, cli]
+----
+network fcp adapter show -node _node_name_
+----
+. Conectar su adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -state up
+----
+
+
+
+
+== Configurar la velocidad del adaptador de FC
+
+Debe configurar la velocidad de puerto de destino del adaptador para que coincida con la velocidad del dispositivo al que se conecta, en lugar de utilizar la autonegociación. Un puerto configurado para la autonegociación puede tardar más tiempo en reconectar después de una toma de control/devolución u otra interrupción.
+
+.Acerca de esta tarea
+Dado que esta tarea abarca todas las máquinas virtuales de almacenamiento (SVM) y todos los LIF de un clúster, debe utilizar el `-home-port` y.. `-home-lif` parámetros para limitar el alcance de esta operación. Si no utiliza estos parámetros, la operación se aplica a todas las LIF del clúster, lo que podría no ser deseable.
+
+.Antes de empezar
+Todos los LIF que utilizan este adaptador como puerto de inicio deben estar desconectados.
+
+.Pasos
+. Desconecte todas las LIF de este adaptador:
++
+[source, cli]
+----
+network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin down
+----
+. Desconectar el adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -state down
+----
++
+Si el adaptador no se desconecta, también puede quitar el cable del puerto de adaptador correspondiente del sistema.
+
+. Determine la velocidad máxima del adaptador de puerto:
++
+[source, cli]
+----
+fcp adapter show -instance
+----
++
+No puede modificar la velocidad del adaptador más allá de la velocidad máxima.
+
+. Cambie la velocidad del adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -speed 16
+----
+. Conectar el adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -state up
+----
+. Conectar todas las LIF del adaptador:
++
+[source, cli]
+----
+network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin up
+----
+
