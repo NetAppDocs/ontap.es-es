@@ -11,12 +11,12 @@ summary: Para aprovechar el enlace de enlaces NFS, debe tener varios LIF que res
 
 
 [role="lead"]
-La conexión de enlaces NFSv4,1 requiere que las LIF de un grupo de enlaces residan en el mismo nodo y tengan puertos iniciales en el mismo nodo. Todas las LIF deben configurarse en un grupo de conmutación al nodo de respaldo del mismo nodo.
+Para aprovechar la conexión de enlaces NFSv4,1, los LIF de un grupo de enlaces deben residir en el mismo nodo y tener puertos de inicio en el mismo nodo. Las LIF deben estar configuradas en un grupo de conmutación por error del mismo nodo.
 
 .Acerca de esta tarea
-Una asignación uno a uno de LIF y NIC proporciona la mayor ganancia de rendimiento, pero no es necesaria para permitir la conexión de enlaces.
+Una asignación uno a uno de LIF y NIC proporciona la mayor ganancia de rendimiento, pero no es necesaria para permitir la conexión de enlaces. Tener al menos dos NIC instaladas puede ofrecer un beneficio de rendimiento, pero no es necesario.
 
-Puede tener varios grupos de conmutación por error, pero el grupo de conmutación por error para la conexión troncal debe incluir sólo esos LIFS en el grupo de troncalización.
+Todas las LIF del grupo de enlaces deben pertenecer al mismo grupo de conmutación al nodo de respaldo. Tenga en cuenta que cuando las LIF están configuradas en un grupo de conmutación por error en el mismo nodo, una recuperación tras fallos de controladora de ese nodo puede provocar que las LIF se desconecten. Si las LIF no están configuradas en un grupo de recuperación tras fallos en el mismo nodo y la recuperación tras fallos a otro nodo, la conexión de enlaces ya no funcionará.
 
 Debe ajustar el grupo de conmutación por error de troncalización cada vez que agregue o elimine conexiones (y NIC subyacentes) de un grupo de conmutación por error.
 
@@ -32,20 +32,20 @@ Debe ajustar el grupo de conmutación por error de troncalización cada vez que 
 
 . Cree un grupo de failover de trunking o modifique uno existente para trunking:
 +
-`network interface failover-groups create -vserver _svm_name_ -failover-group _failover_group_name_ -targets _ports_list_`
+`network interface failover-groups create -vserver <svm_name> -failover-group <failover_group_name> -targets <ports_list>`
 
 +
-`network interface failover-groups modify -vserver _svm_name_ -failover-group _failover_group_name_ -targets _ports_list_`
+`network interface failover-groups modify -vserver <svm_name> -failover-group <failover_group_name> -targets <ports_list>`
 
 +
 
 NOTE: No es un requisito tener un grupo de recuperación tras fallos, pero es muy recomendable.
 
 +
-** `_svm_name_` Es el nombre de la SVM que contiene el servidor NFS.
-** `_ports_list_` es la lista de puertos que se agregarán al grupo de conmutación por error.
+** `<svm_name>` Es el nombre de la SVM que contiene el servidor NFS.
+** `<ports_list>` es la lista de puertos que se agregarán al grupo de failover.
 +
-Los puertos se añaden en el formato `_node_name:port_number_`, por ejemplo, `node1:e0c`.
+Los puertos se agregan en el formato `<node_name>:<port_number>`, por ejemplo, `node1:e0c`.
 
 +
 El siguiente comando crea un grupo de recuperación tras fallos `fg3` Para SVM VS1 y añade tres puertos:
@@ -60,7 +60,7 @@ Más información acerca de link:../networking/configure_failover_groups_and_pol
 
 . Cree LIF adicionales para los miembros del grupo de enlaces según sea necesario:
 +
-`network interface create -vserver _svm_name_ -lif _lif_name_ -home-node _node_name_ -home-port _port_name_ -address _IP_address_ -netmask _IP_address_ [-service-policy _policy_] [-auto-revert {true|false}]`
+`network interface create -vserver <svm_name> -lif <lif_name> -home-node <node_name> -home-port <port_name> -address <IP_address> -netmask <IP_address> [-service-policy <policy>] [-auto-revert <true|false>]`
 
 +
 ** `-home-node` - El nodo al que regresa la LIF cuando se ejecuta el comando network interface revert en la LIF.
@@ -76,7 +76,7 @@ Puede especificar si la LIF debe volver automáticamente al nodo de inicio y al 
 Repita este paso con cada LIF adicional necesario en el grupo de enlaces.
 
 +
-El siguiente comando crea lif-A para la SVM VS1, en el puerto e0c del nodo cluster1_01:
+Se crea el siguiente comando `lif-A` Para la SVM `vs1`, en el puerto `e0c` del nodo `cluster1_01`:
 
 +
 `network interface create -vserver vs1 -lif lif-A -service-policy default-intercluster -home-node cluster1_01 -home-port e0c -address 192.0.2.0`
@@ -88,8 +88,10 @@ Más información acerca de link:../networking/create_lifs.html["Creación de LI
 
 . Compruebe que las LIF se han creado:
 +
-`network interface show`
-
+[source, cli]
+----
+network interface show
+----
 . Compruebe que se pueda acceder a la dirección IP configurada:
 +
 [cols="25,75"]
