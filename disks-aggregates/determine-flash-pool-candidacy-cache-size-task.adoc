@@ -2,16 +2,19 @@
 permalink: disks-aggregates/determine-flash-pool-candidacy-cache-size-task.html 
 sidebar: sidebar 
 keywords: flash pool, candidacy, optimal cache size, local tier, aggregate 
-summary: 'Antes de convertir un nivel local (agregado) existente en un nivel local de Flash Pool, se puede determinar si el nivel local está ligado a I/o y el mejor tamaño de la caché Flash Pool para su carga de trabajo y presupuesto. También puede comprobar si la caché de un nivel local de Flash Pool existente tiene el tamaño correcto.' 
+summary: Antes de convertir un nivel local existente a un nivel local de Flash Pool, se puede determinar si el nivel local está condicionado por las operaciones de I/O y cuál es el mejor tamaño de caché de Flash Pool para la carga de trabajo y el presupuesto. También puede comprobar si la caché de un nivel local de Flash Pool existente tiene el tamaño correcto. 
 ---
-= Determine la candidatura de Flash Pool y el tamaño óptimo de la caché
+= Determine la candidatura de Flash Pool y el tamaño de caché óptimo en ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Antes de convertir un nivel local (agregado) existente en un nivel local de Flash Pool, se puede determinar si el nivel local está ligado a I/o y el mejor tamaño de la caché Flash Pool para su carga de trabajo y presupuesto. También puede comprobar si la caché de un nivel local de Flash Pool existente tiene el tamaño correcto.
+Antes de convertir un nivel local existente a un nivel local de Flash Pool, se puede determinar si el nivel local está condicionado por las operaciones de I/O y cuál es el mejor tamaño de caché de Flash Pool para la carga de trabajo y el presupuesto. También puede comprobar si la caché de un nivel local de Flash Pool existente tiene el tamaño correcto.
+
+
+NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para describir un _nivel local_. Independientemente de la versión de ONTAP, la interfaz de línea de comandos de ONTAP utiliza el término _aggregate_. Para obtener más información sobre los niveles locales, consulte link:../disks-aggregates/index.html["Discos y niveles locales"].
 
 .Antes de empezar
 Debe saber aproximadamente cuándo el nivel local que está analizando experimenta su carga máxima.
@@ -21,15 +24,15 @@ Debe saber aproximadamente cuándo el nivel local que está analizando experimen
 +
 `set advanced`
 
-. Si necesita determinar si un nivel local (agregado) existente sería un buen candidato para la conversión a un agregado de Flash Pool, determine el nivel de actividad de los discos del agregado durante un periodo de carga pico y cómo esto afecta a la latencia:
+. Si necesita determinar si un nivel local existente podría ser un buen candidato para la conversión a un nivel local de Flash Pool, determine cuánto ocupados están los discos en el nivel local durante un período de carga pico y cómo afecta esto a la latencia:
 +
 `statistics show-periodic -object disk:raid_group -instance _raid_group_name_ -counter disk_busy|user_read_latency -interval 1 -iterations 60`
 
 +
-Puede decidir si tiene sentido reducir la latencia añadiendo la caché de Flash Pool para este agregado.
+Puede decidir si reducir la latencia añadiendo la caché Flash Pool tiene sentido para este nivel local.
 
 +
-El siguiente comando muestra las estadísticas del primer grupo RAID del agregado «'aggr1'»:
+El siguiente comando muestra las estadísticas para el primer grupo RAID del nivel local '`aggr1`':
 
 +
 `statistics show-periodic -object disk:raid_group -instance /aggr1/plex0/rg0 -counter disk_busy|user_read_latency -interval 1 -iterations 60`
@@ -39,14 +42,14 @@ El siguiente comando muestra las estadísticas del primer grupo RAID del agregad
 `storage automated-working-set-analyzer start -node _node_name_ -aggregate _aggr_name_`
 
 +
-AWA comienza a recoger datos de cargas de trabajo de los volúmenes asociados con el agregado especificado.
+AWA comienza a recoger datos de carga de trabajo para los volúmenes asociados con el nivel local especificado.
 
 . Salir del modo avanzado:
 +
 `set admin`
 
 +
-Permitir que AWA funcione hasta que se hayan producido uno o más intervalos de carga máxima. AWA recopila estadísticas de carga de trabajo de los volúmenes asociados con el agregado especificado y analiza los datos de hasta una semana de duración. La ejecución de AWA durante más de una semana sólo informará sobre los datos recopilados de la semana más reciente. Las estimaciones de tamaño de caché se basan en las cargas más altas observadas durante el período de recopilación de datos; la carga no necesita ser alta durante todo el período de recopilación de datos.
+Permitir que AWA funcione hasta que se hayan producido uno o más intervalos de carga máxima. AWA recoge estadísticas de carga de trabajo para los volúmenes asociados con el nivel local especificado y analiza los datos para una semana sucesiva de duración. La ejecución de AWA durante más de una semana sólo informará sobre los datos recopilados de la semana más reciente. Las estimaciones de tamaño de caché se basan en las cargas más altas observadas durante el período de recopilación de datos; la carga no necesita ser alta durante todo el período de recopilación de datos.
 
 . Entrar al modo avanzado:
 +

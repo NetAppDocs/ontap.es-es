@@ -2,9 +2,9 @@
 permalink: disks-aggregates/add-disks-local-tier-aggr-task.html 
 sidebar: sidebar 
 keywords: add, expand, aggregate, add drives, add disks, add capacity, local tier, add disks to local tier, add disks to aggregate, increase storage, increase aggregate size, local tier, capacity, disk, expand storage, add drives, add disks, add capacity 
-summary: 'Puede añadir discos a un nivel local (agregado) para que pueda proporcionar más almacenamiento a sus volúmenes asociados.' 
+summary: Es posible añadir discos a un nivel local para que pueda proporcionar más almacenamiento a sus volúmenes asociados. 
 ---
-= Añada capacidad a un nivel local (añada discos a un agregado)
+= Añada capacidad a un nivel local en ONTAP
 :hardbreaks:
 :toclevels: 1
 :allow-uri-read: 
@@ -16,7 +16,10 @@ summary: 'Puede añadir discos a un nivel local (agregado) para que pueda propor
 
 
 [role="lead"]
-Puede añadir discos a un nivel local (agregado) para que pueda proporcionar más almacenamiento a sus volúmenes asociados.
+Es posible añadir discos a un nivel local para que pueda proporcionar más almacenamiento a sus volúmenes asociados.
+
+
+NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para describir un _nivel local_. Independientemente de la versión de ONTAP, la interfaz de línea de comandos de ONTAP utiliza el término _aggregate_. Para obtener más información sobre los niveles locales, consulte link:../disks-aggregates/index.html["Discos y niveles locales"].
 
 [role="tabbed-block"]
 ====
@@ -70,30 +73,30 @@ A partir de ONTAP 9.11.1
 .Pasos
 . (Solo para ONTAP 9,7) Seleccione *(Volver a la versión clásica)*.
 . Selecciona *Hardware and Diagnostics > Aggregates*.
-. Seleccione el agregado al que desea añadir discos de capacidad y haga clic en *Acciones > Añadir capacidad*.
+. Seleccione el nivel local al que desea añadir discos de capacidad y, a continuación, seleccione *Acciones > Añadir capacidad*.
 +
 
-NOTE: Debe añadir discos con el mismo tamaño que los demás discos del agregado.
+NOTE: Debe añadir discos con el mismo tamaño que los demás discos del nivel local.
 
 . (Solo para ONTAP 9,7) Seleccione *Cambie a la nueva experiencia*.
-. Selecciona *Almacenamiento > Niveles* para verificar el tamaño del nuevo agregado.
+. Selecciona *Almacenamiento > Niveles* para verificar el tamaño del nuevo nivel local.
 
 
 --
 .CLI
 --
 .Antes de empezar
-Debe saber a qué tamaño del grupo RAID corresponde el agregado al que va a añadir el almacenamiento.
+Debe conocer cuál es el tamaño del grupo de RAID para el nivel local al que va a añadir el almacenamiento.
 
 .Acerca de esta tarea
-Este procedimiento para agregar discos particionados a un agregado es similar al procedimiento para agregar discos sin particiones.
+Este procedimiento para agregar discos particionados a un nivel local es similar al procedimiento para agregar discos sin particionar.
 
-Al expandir un agregado, debe saber si va a agregar partición o discos sin particiones al agregado. Cuando se añaden unidades sin particiones a un agregado existente, el tamaño de los grupos RAID existentes se hereda por el nuevo grupo RAID, que puede afectar al número de discos de paridad requeridos. Si se agrega un disco sin particiones a un grupo RAID compuesto por discos con particiones, se crea una partición del nuevo disco, dejando una partición de repuesto sin utilizar.
+Al expandir un nivel local, debe tener en cuenta si va a agregar discos de partición o sin particiones al nivel local. Cuando se añaden unidades sin particiones a un nivel local existente, el tamaño de los grupos RAID existentes se hereda por el nuevo grupo RAID, lo que puede afectar a la cantidad de discos de paridad requeridos. Si se agrega un disco sin particiones a un grupo RAID compuesto por discos con particiones, se crea una partición del nuevo disco, dejando una partición de repuesto sin utilizar.
 
 Cuando aprovisiona particiones, debe asegurarse de no dejar el nodo sin una unidad con ambas particiones como repuesto. Si lo hace y el nodo experimenta una interrupción en la controladora, es posible que no haya disponible información valiosa sobre el problema (el archivo de núcleo) para proporcionarla al soporte técnico.
 
 .Pasos
-. Muestre el almacenamiento de reserva disponible en el sistema que posee el agregado:
+. Muestre el almacenamiento de reserva disponible en el sistema propietario del nivel local:
 +
 `storage aggregate show-spare-disks -original-owner _node_name_`
 
@@ -121,7 +124,7 @@ Original Owner: cl1-s2
  1.0.10                      BSAS    7200 block                0B  73.89GB  828.0GB zeroed
 2 entries were displayed.
 ----
-. Muestra los grupos RAID actuales del agregado:
+. Muestra los grupos RAID actuales del nivel local:
 +
 [source, cli]
 ----
@@ -184,13 +187,13 @@ Aggregate capacity available for volume use would be increased by 1.83TB.
 storage aggregate add-disks -aggregate <aggr_name> -raidgroup new -diskcount <number_of_disks_or_partitions>
 ----
 +
-Cuando se crea un agregado de Flash Pool, debe utilizar la si se añaden discos con una suma de comprobación diferente a la del agregado, o si se añaden discos a un agregado de suma de comprobación mixto `-checksumstyle` parámetro.
+Cuando se crea un nivel local de Flash Pool, si se añaden discos con una suma de comprobación diferente a la del nivel local o si se añaden discos a un nivel local de suma de comprobación mixta, se debe usar `-checksumstyle` el parámetro.
 
 +
-Si va a añadir discos a un agregado de Flash Pool, debe usar el `-disktype` parámetro para especificar el tipo de disco.
+Si va a añadir discos a un nivel local de Flash Pool, debe usar `-disktype` el parámetro para especificar el tipo de disco.
 
 +
-Puede utilizar el `-disksize` parámetro para especificar el tamaño de los discos que se van a añadir. Solo se seleccionan discos con el tamaño aproximadamente especificado para agregarlos.
+Puede usar el `-disksize` parámetro para especificar un tamaño de los discos que se van a agregar. Solo se seleccionan los discos con un tamaño aproximado del tamaño especificado para que se sumen al nivel local.
 
 +
 [listing]

@@ -2,50 +2,53 @@
 permalink: concepts/mirrored-unmirrored-aggregates-concept.html 
 sidebar: sidebar 
 keywords: mirrored, unmirrored, aggregate, local tier, plex, syncmirror, dparity, raid group 
-summary: 'ONTAP tiene una función opcional denominada _SyncMirror_ que puede utilizar para reflejar de forma síncrona datos del nivel local (agregado) en copias o _plexes_, almacenados en diferentes grupos RAID. Los complejos se aseguran de la pérdida de datos si fallan más discos de los que protege el tipo RAID, o si hay una pérdida de conectividad con los discos de grupo RAID.' 
+summary: ONTAP tiene una función opcional denominada _SyncMirror_, que puede utilizar para reflejar de forma síncrona datos del nivel local en copias, o _plexes_, almacenados en diferentes grupos RAID. Los complejos se aseguran de la pérdida de datos si fallan más discos de los que protege el tipo RAID, o si hay una pérdida de conectividad con los discos de grupo RAID. 
 ---
-= Niveles locales (agregados) reflejados y sin mirroring
+= Niveles locales con mirroring y no reflejados
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-ONTAP tiene una función opcional denominada _SyncMirror_ que puede utilizar para reflejar de forma síncrona datos del nivel local (agregado) en copias o _plexes_, almacenados en diferentes grupos RAID. Los complejos se aseguran de la pérdida de datos si fallan más discos de los que protege el tipo RAID, o si hay una pérdida de conectividad con los discos de grupo RAID.
+Puede utilizar ONTAP _SyncMirror_ para reflejar de manera síncrona los datos del nivel local en copias, o _plexes_, almacenados en diferentes grupos RAID. Los complejos se aseguran de la pérdida de datos si fallan más discos de los que protege el tipo RAID, o si hay una pérdida de conectividad con los discos de grupo RAID.
 
-Cuando se crea un nivel local con System Manager o mediante la CLI, es posible especificar que el nivel local se encuentre reflejado o no reflejado.
+Al crear un nivel local con System Manager, se puede especificar si el nivel local se refleja o no se ha reflejado.
+
+
+NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para describir un _nivel local_. Independientemente de la versión de ONTAP, la interfaz de línea de comandos de ONTAP utiliza el término _aggregate_. Para obtener más información sobre los niveles locales, consulte link:../disks-aggregates/index.html["Discos y niveles locales"].
 
 
 
-== Cómo funcionan los niveles locales (agregados) sin reflejar
+== Cómo funcionan los niveles locales no reflejados
 
-Si no se especifica que los niveles locales se reflejan, estos se crean como niveles locales no reflejados (agregados). Los niveles locales no reflejados tienen solo un _plex_ (una copia de sus datos), que contiene todos los grupos RAID que pertenecen a ese nivel local.
+Si no especifica que los niveles locales se dupliquen, se crearán como no reflejados. Los niveles locales no reflejados tienen solo un _plex_ (una copia de sus datos), que contiene todos los grupos RAID que pertenecen a ese nivel local.
 
-El siguiente diagrama muestra un nivel local sin duplicación compuesto por discos, con su único complejo. El nivel local tiene cuatro grupos RAID: Rg0, rg1, rg2 y rg3. Cada grupo RAID tiene seis discos de datos, un disco de paridad y un disco dparity (doble paridad). Todos los discos utilizados por el nivel local provienen del mismo pool, "'pool0'".
+El siguiente diagrama muestra un nivel local no reflejado compuesto por discos, agrupados en un plex. El nivel local tiene cuatro grupos RAID: Rg0, rg1, rg2 y rg3. Cada grupo RAID tiene seis discos de datos, un disco de paridad y un disco dparity (doble paridad). Todos los discos utilizados por el nivel local provienen del mismo pool, "'pool0'".
 
 image:drw-plexum-scrn-en-noscale.gif["Nivel local no reflejado compuesto por discos con su complejo"]
 
-El siguiente diagrama muestra un nivel local sin reflejar con los LUN de cabina, con su único complejo. Tiene dos grupos RAID, rg0 y rg1. Todos los LUN de cabina utilizados por el nivel local proceden del mismo pool "'pool0'".
+El siguiente diagrama muestra un nivel local no reflejado con LUN de cabina, agrupados en un plex. Tiene dos grupos RAID, rg0 y rg1. Todos los LUN de cabina utilizados por el nivel local proceden del mismo pool "'pool0'".
 
 image:unmirrored-aggregate-with-array-luns.gif["Nivel local sin reflejar compuesto por LUN de cabina con su único plex"]
 
 
 
-== Cómo funcionan los niveles locales (agregados) reflejados
+== Cómo funcionan los niveles locales reflejados
 
-Los agregados reflejados tienen dos _plexes_ (copias de sus datos), que utilizan la funcionalidad SyncMirror para duplicar los datos y proporcionar redundancia.
+Las capas locales reflejadas tienen dos _plexes_ (copias de sus datos), que utilizan la funcionalidad SyncMirror para duplicar los datos para ofrecer redundancia.
 
-Al crear un nivel local, puede especificar que sea un nivel local reflejado.  Además, puede agregar un segundo complejo a un nivel local no reflejado existente para hacerlo un nivel reflejado. Mediante la funcionalidad SyncMirror, ONTAP copia los datos del plex original (plex0) en el complejo nuevo (plex1). Los complejos están separados físicamente (cada complejo tiene sus propios grupos RAID y su propio pool), y los complejos se actualizan simultáneamente.
+Al crear un nivel local, puede especificar que se refleje. Además, puede agregar un segundo complejo a un nivel local no reflejado existente para hacerlo un nivel reflejado. Con SyncMirror, ONTAP copia los datos del plex original (plex0) al nuevo plex (plex1). Los complejos están separados físicamente (cada complejo tiene sus propios grupos RAID y su propio pool), y los complejos se actualizan simultáneamente.
 
-Esta configuración proporciona una protección añadida contra la pérdida de datos si fallan más discos, la cual protege el nivel de RAID del agregado o si se produce una pérdida de conectividad, ya que el plex no afectado sigue sirviendo datos mientras se soluciona la causa del fallo. Una vez solucionado el complejo que tenía un problema, los dos complejos se resincronizaron y restablecen la relación de reflejo.
+Esta configuración proporciona protección añadida contra la pérdida de datos si más discos fallan que el nivel de RAID del nivel local protege o si se produce una pérdida de conectividad, ya que el plex no afectado sigue sirviendo datos mientras se corrige la causa del error. Una vez solucionado el complejo que tenía un problema, los dos complejos se resincronizaron y restablecen la relación de reflejo.
 
-Los discos y las LUN de matriz del sistema se dividen en dos grupos: "'pool0'" y "'pool1'". Plex0 obtiene su almacenamiento de pool0 y plex1 obtiene su almacenamiento de pool1.
+Los discos y las LUN de cabina del sistema se dividen en dos pools `pool0`: Y `pool1`. Plex0 obtiene su almacenamiento de pool0 y plex1 obtiene su almacenamiento de pool1.
 
-En el siguiente diagrama, se muestra un nivel local compuesto por discos con la funcionalidad de SyncMirror habilitada e implementada. Se ha creado un segundo complejo para el nivel local "'plex1'". Los datos en plex1 son una copia de los datos en plex0 y los grupos RAID son también idénticos. Los 32 discos de repuesto se asignan a la piscina 0 o a la pool1 usando 16 discos para cada pool.
+El siguiente diagrama muestra un nivel local compuesto por discos con SyncMirror habilitado e implementado. Se ha creado un segundo plex para el nivel local, `plex1`. Los datos en plex1 son una copia de los datos en plex0 y los grupos RAID son también idénticos. Los 32 discos de repuesto se asignan a la piscina 0 o a la pool1 usando 16 discos para cada pool.
 
 image:drw-plexm-scrn-en-noscale.gif["Nivel local compuesto por discos con la funcionalidad SyncMirror"]
 
-En el siguiente diagrama, se muestra un nivel local compuesto por LUN de cabina con la funcionalidad SyncMirror habilitada e implementada. Se ha creado un segundo complejo para el nivel local "'plex1'". Plex1 es una copia de plex0 y los grupos RAID son también idénticos.
+En el siguiente diagrama, se muestra un nivel local compuesto por LUN de cabina con la funcionalidad SyncMirror habilitada e implementada. Se ha creado un segundo plex para el nivel local, `plex1`. Plex1 es una copia de plex0 y los grupos RAID son también idénticos.
 
 image:mirrored-aggregate-with-array-luns.gif["Nivel local compuesto por LUN de cabina con funcionalidad SyncMirror"]
 

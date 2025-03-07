@@ -2,20 +2,23 @@
 permalink: disks-aggregates/relocate-aggregate-ownership-task.html 
 sidebar: sidebar 
 keywords: relocate, aggregate, ownership, local tier 
-summary: 'Solo puede cambiar la propiedad de un nivel local (agregado) entre los nodos de un par de alta disponibilidad.' 
+summary: Solo puede cambiar la propiedad de un nivel local entre los nodos dentro de una pareja de alta disponibilidad. 
 ---
-= La propiedad de reubicación de un nivel local (agregado) dentro de un par de alta disponibilidad
+= Reubicar la propiedad de un nivel local de ONTAP dentro de un par de alta disponibilidad
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Puede cambiar la propiedad de los niveles locales (agregados) entre los nodos de un par de alta disponibilidad sin interrumpir el servicio desde los niveles locales.
+Puede cambiar la propiedad de los niveles locales entre los nodos de un par de alta disponibilidad sin interrumpir el servicio desde los niveles locales.
+
+
+NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para describir un _nivel local_. Independientemente de la versión de ONTAP, la interfaz de línea de comandos de ONTAP utiliza el término _aggregate_. Para obtener más información sobre los niveles locales, consulte link:../disks-aggregates/index.html["Discos y niveles locales"].
 
 Ambos nodos de una pareja de alta disponibilidad están conectados físicamente entre sí a los discos o LUN de cabina. Cada LUN de disco o cabina es propiedad de uno de los nodos.
 
-La propiedad de todos los discos o LUN de cabina dentro de un nivel local (agregado) cambia temporalmente de un nodo a otro cuando se produce una toma de control. Sin embargo, las operaciones de reubicación de niveles locales también pueden cambiar permanentemente la propiedad (por ejemplo, si se realiza para el equilibrio de carga). La propiedad cambia sin ningún proceso de copia de datos ni movimiento físico de los discos o los LUN de cabina.
+La propiedad de todos los discos o LUN de cabina dentro de un nivel local cambia temporalmente de un nodo al otro cuando se produce una toma de control. Sin embargo, las operaciones de reubicación de niveles locales también pueden cambiar permanentemente la propiedad (por ejemplo, si se realiza para el equilibrio de carga). La propiedad cambia sin ningún proceso de copia de datos ni movimiento físico de los discos o los LUN de cabina.
 
 .Acerca de esta tarea
 * Dado que los límites de recuento de volúmenes se validan mediante programación durante las operaciones de reubicación de nivel local, no es necesario comprobar este valor manualmente.
@@ -40,17 +43,17 @@ Estas operaciones pueden incluir las siguientes:
 
 * Si dispone de una configuración MetroCluster, no debe iniciar la reubicación de niveles local mientras las operaciones de recuperación ante desastres (_switchover_, _curing_ o _Switched_) están en curso.
 * Si tiene una configuración de MetroCluster e inicia la reubicación de nivel local en un nivel local de conmutación, es posible que se produzca un error en la operación porque supera el número de límite de volúmenes del partner de DR.
-* No se debe iniciar la reubicación de nivel local en agregados dañados o sometidos a mantenimiento.
+* No se debe iniciar la reubicación de nivel local en niveles locales dañados o sometidos a tareas de mantenimiento.
 * Antes de iniciar la reubicación de nivel local, debe guardar cualquier volcado principal en los nodos de origen y destino.
 
 
 .Pasos
-. Visualice los agregados en el nodo para confirmar qué agregados se moverán y asegúrese de que estén en línea y en buenas condiciones:
+. Vea los niveles locales en el nodo para confirmar qué niveles locales desea mover y asegurarse de que están en línea y en buenas condiciones:
 +
 `storage aggregate show -node _source-node_`
 
 +
-El siguiente comando muestra seis agregados en los cuatro nodos del clúster. Todos los agregados están en línea. Los nodos 1 y Node3 forman un par de alta disponibilidad y Node2 y Node4 forman un par de alta disponibilidad.
+El siguiente comando muestra seis niveles locales en los cuatro nodos en el clúster. Todos los niveles locales están en línea. Los nodos 1 y Node3 forman un par de alta disponibilidad y Node2 y Node4 forman un par de alta disponibilidad.
 
 +
 [listing]
@@ -72,12 +75,12 @@ aggr_5     239.0GB   239.0GB    0% online       4 node4  raid_dp,
                                                          normal
 6 entries were displayed.
 ----
-. Ejecute el comando para iniciar la reubicación de agregados:
+. Ejecute el comando para iniciar la reubicación de nivel local:
 +
 `storage aggregate relocation start -aggregate-list _aggregate-1_, _aggregate-2_... -node _source-node_ -destination _destination-node_`
 
 +
-El siguiente comando mueve los agregados aggr_1 y aggr_2 de Node1 a Node3. El nodo 3 es el partner de alta disponibilidad de Node1. Los agregados solo se pueden mover dentro del par de alta disponibilidad.
+El siguiente comando mueve el nivel local aggr_1 y aggr_2 de Node1 a Node3. El nodo 3 es el partner de alta disponibilidad de Node1. Los niveles locales solo se pueden mover dentro del par de alta disponibilidad.
 
 +
 [listing]
@@ -86,12 +89,12 @@ cluster::> storage aggregate relocation start -aggregate-list aggr_1, aggr_2 -no
 Run the storage aggregate relocation show command to check relocation status.
 node1::storage aggregate>
 ----
-. Supervise el progreso de la reubicación de agregados con la `storage aggregate relocation show` comando:
+. Supervise el progreso de la reubicación del nivel local con `storage aggregate relocation show` el comando:
 +
 `storage aggregate relocation show -node _source-node_`
 
 +
-El siguiente comando muestra el progreso de los agregados que se están moviendo a Node3:
+El siguiente comando muestra el progreso de las capas locales que se están moviendo a Node3:
 
 +
 [listing]
@@ -106,6 +109,6 @@ node1
 node1::storage aggregate>
 ----
 +
-Una vez finalizada la reubicación, el resultado de este comando muestra cada agregado con el estado de reubicación de "D one".
+Cuando se completa la reubicación, la salida de este comando muestra cada nivel local con un estado de reubicación de ''Listo''.
 
 
