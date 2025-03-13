@@ -1,0 +1,73 @@
+---
+permalink: flexcache-hot-spot/flexcache-hotspot-remediation-architecture.html 
+sidebar: sidebar 
+keywords: hotspot, FlexCache, hdfa, problem, solution, ONTAP 
+summary: Descubra cómo la arquitectura con FlexCache de alta densidad ayuda a la resolución de puntos calientes. 
+---
+= Diseño de una solución de corrección de puntos de acceso ONTAP FlexCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Para remediar las detecciones en caliente, explore las causas subyacentes de los cuellos de botella, por qué el aprovisionamiento automático de FlexCache no es suficiente y los detalles técnicos necesarios para diseñar de forma eficiente una solución FlexCache. Al comprender e implementar cabinas FlexCache de alta densidad (HDFA), puede optimizar el rendimiento y eliminar los cuellos de botella de las cargas de trabajo que requieren alta demanda.
+
+
+
+== Comprender el cuello de botella
+
+A continuación<<Figure-1,imagen>>, se muestra un escenario típico de hotspotting de archivo único. El volumen es un FlexGroup con un único componente por nodo y el archivo reside en el nodo 1.
+
+Si distribuye todas las conexiones de red de los clientes NAS a través de los diferentes nodos del cluster, seguirá creando cuellos de botella en la CPU que da servicio a la afinidad del volumen en la que reside el archivo activo. También puede introducir el tráfico de red del clúster (tráfico de este a oeste) a las llamadas procedentes de clientes conectados a nodos que no sean donde reside el archivo. La sobrecarga del tráfico este-oeste suele ser pequeña, pero para las cargas de trabajo de computación de alto rendimiento cada poco cuenta.
+
+.Figura 1: Escenario de punto de acceso de archivo único de FlexGroup
+image:flexcache-hotspot-hdfa-flexgroup.png["Figura 1: Escenario de punto de acceso de archivo único de FlexGroup"]
+
+
+
+== Por qué un FlexCache aprovisionado automáticamente no es la respuesta
+
+Para remediar la detección en caliente, elimine el cuello de botella de la CPU y preferiblemente el tráfico de este a oeste también. FlexCache puede ayudarle si se configura correctamente.
+
+En el siguiente ejemplo, FlexCache se aprovisiona automáticamente con System Manager, BlueXP  o argumentos de la CLI predeterminados. <<Figure-1,Figura 1>><<Figure-2,figura 2>> Al principio aparecen lo mismo: Ambos son contenedores NAS de cuatro nodos y un único componente. La única diferencia es que el contenedor NAS de la figura 1 es un FlexGroup, y el contenedor NAS de la figura 2 es un FlexCache. Cada figura perfila el mismo cuello de botella: La CPU del nodo 1 para el mantenimiento de afinidad por volumen de acceso al archivo activo y el tráfico de este a oeste que contribuye a la latencia. Una FlexCache con aprovisionamiento automático no ha eliminado el cuello de botella.
+
+.Figura 2: Escenario de FlexCache con aprovisionamiento automático
+image:flexcache-hotspot-hdfa-1x4x1.png["Figura 2: Escenario de FlexCache con aprovisionamiento automático"]
+
+
+
+== Anatomía de un FlexCache
+
+Para diseñar de forma eficaz un FlexCache para la corrección de puntos de acceso, debe comprender algunos detalles técnicos sobre FlexCache.
+
+FlexCache es siempre un FlexGroup disperso. Un FlexGroup está formado por varios FlexVols. Estos FlexVols se denominan componentes FlexGroup. En una distribución de FlexGroup predeterminada, hay uno o varios componentes por nodo en el clúster. Los componentes se «cosen» bajo una capa de abstracción y se presentan al cliente como un único contenedor NAS de gran tamaño. Cuando se escribe un archivo en un FlexGroup, la heurística de ingesta determina en qué componente se almacenará el archivo. Puede ser un componente que contenga la conexión NAS del cliente o puede ser un nodo diferente. La ubicación es irrelevante porque todo funciona bajo la capa de abstracción y es invisible para el cliente.
+
+Apliquemos este entendimiento de FlexGroup a FlexCache. Puesto que FlexCache está integrado en un FlexGroup, de forma predeterminada tiene una única FlexCache que tiene constituyentes en todos los nodos del clúster, como se muestra en <<Figure-1,figura 1>>. En la mayoría de los casos, esto es una gran cosa. Utiliza todos los recursos del clúster.
+
+Sin embargo, para corregir archivos activos, esto no es ideal debido a los dos cuellos de botella: CPU para un único archivo y tráfico de este a oeste. Si crea un FlexCache con componentes en cada nodo para un archivo activo, ese archivo seguirá residiendo en uno de los componentes. Esto significa que hay una CPU para dar servicio a todo el acceso al archivo activo. También desea limitar la cantidad de tráfico este-oeste necesario para llegar al archivo activo.
+
+La solución es un conjunto de FlexCaches de alta densidad.
+
+
+
+== Anatomía de un FlexCache de alta densidad
+
+Un FlexCache de alta densidad (HDF) tendrá componentes en solo pocos nodos, a medida que lo permitan los requisitos de capacidad para los datos almacenados en caché. El objetivo es hacer que su caché utilice un solo nodo. Si los requisitos de capacidad hacen que esto sea imposible, solo puede tener componentes en unos pocos nodos.
+
+Por ejemplo, un clúster de 24 nodos podría tener tres FlexCaches de alta densidad:
+
+* Uno que abarca los nodos de 1 a 8
+* Un segundo que abarca los nodos de 9 a 16
+* Un tercero que abarca los nodos de 17 a 24
+
+
+Estos tres HDFS conformarían una cabina FlexCache de alta densidad (HDFA). Si los archivos se distribuyen uniformemente dentro de cada HDF, tendrá una posibilidad uno de ocho de que el archivo solicitado por el cliente resida en la conexión NAS front-end. Si tuvieras 12 HDFS que abarcan solo dos nodos cada uno, tienes una probabilidad del 50 % de que el archivo sea local. Si puede contraer el HDF en un solo nodo y crear 24 de ellos, se garantiza que el archivo sea local.
+
+Esta configuración eliminará todo el tráfico de este a oeste y, lo que es más importante, proporcionará 24 CPU/afinidades de volumen para acceder al archivo activo.
+
+.El futuro
+link:flexcache-hotspot-remediation-hdfa-examples.html["Decidir la densidad de la cabina FlexCache"]
+
+.Información relacionada
+link:../volume-admin/index.html["Documentación sobre FlexGroup y TRS"]
