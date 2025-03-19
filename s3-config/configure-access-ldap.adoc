@@ -30,7 +30,7 @@ Asegúrese de lo siguiente antes de configurar los grupos LDAP y habilitar el mo
 
 
 
-== Configure el acceso S3 para los servicios de directorio externos
+== Configure el acceso S3 para LDAP
 
 . Especifique LDAP como la base de datos del servicio _name_ de la SVM para el grupo y la contraseña a LDAP:
 +
@@ -91,23 +91,49 @@ NOTE: Es posible que el cliente S3 solicite una clave secreta. En ausencia de un
 
 
 
-=== Autenticación de recursos para Active Directory para usuarios sin UID ni GID
+=== El método de autenticación es nsswitch y LDAP está habilitado, por ejemplo:
+
+[listing]
+----
+$curl -siku <user>:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user>,"<key_time_to_live>":"PT6H3M"}'
+----
+
+NOTE: Dirija la API al LIF de gestión del clúster, no al LIF de datos de la SVM. Si desea permitir que los usuarios generen sus propias claves, debe agregar permisos HTTP a su rol para usar curl. Este permiso se suma a los permisos de la API S3.
+
+
+
+== Configure el acceso S3 para los servidores Active Directory o CIFS
 
 Si el grupo nasgroup especificado en la sentencia de política bucket o los usuarios que forman parte del grupo nasgroup no tienen UID ni GID definidos, las búsquedas fallan cuando no se encuentran estos atributos. Active Directory utiliza SID, no UID. Si las entradas de SID no pueden asignarse a UID, se deben llevar los datos necesarios a ONTAP.
 
 Para ello, utilice link:../authentication/enable-ad-users-groups-access-cluster-svm-task.html["creación de directorio activo de vserver"]para que la SVM pueda autenticarse con Active Directory y obtenga la información de usuario y grupo necesaria.
 
+De forma alternativa, utilice link:..authentication/enable-ad-users-groups-access-cluster-svm-task.html["vserver cifs create"] para crear un servidor SMB en un dominio de Active Directory.
+
 Para evitar fallos de consulta, NetApp recomienda utilizar dominios de confianza para la autorización de recursos en formato UPN: `nasgroup/group@trusted_domain.com`
 
 
 
-=== Para generar las claves de acceso de usuario para usuarios de dominio de confianza cuando no se utiliza el enlace rápido LDAP
+=== Genere claves cuando el método de autenticación sea dominio y los dominios de confianza estén configurados en Active Directory
 
 Utilice el `s3/services/<svm_uuid>/users` punto final con los usuarios especificados en formato UPN. Ejemplo:
 
 [listing]
 ----
-$curl -siku FQDN\\user:<user_name> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user[@fqdn](https://github.com/fqdn)>,"<key_time_to_live>":"PT6H3M"}'
+$curl -siku FQDN\\user:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user@fqdn>,"<key_time_to_live>":"PT6H3M"}'
 ----
 
-NOTE: Dirija la API al LIF de gestión del clúster, no al LIF de datos de la SVM.
+NOTE: Dirija la API al LIF de gestión del clúster, no al LIF de datos de la SVM. Si desea permitir que los usuarios generen sus propias claves, debe agregar permisos HTTP a su rol para usar curl. Este permiso se suma a los permisos de la API S3.
+
+
+
+=== Genere claves cuando el método de autenticación sea dominio y no haya dominios de confianza:
+
+(Es posible cuando LDAP está deshabilitado o no es usuario POSIX donde UID y GID no están configurados).
+
+[listing]
+----
+$curl -siku FQDN\\user:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user[@fqdn]>,"<key_time_to_live>":"PT6H3M"}'
+----
+
+NOTE: Dirija la API al LIF de gestión del clúster, no al LIF de datos de la SVM. Si desea permitir que los usuarios generen sus propias claves, debe agregar permisos HTTP a su rol para usar curl. Este permiso se suma a los permisos de la API S3. Solo es necesario agregar el valor de dominio opcional (@fqdn) a un nombre de usuario si no hay dominios de confianza.
