@@ -14,13 +14,16 @@ summary: Si la SVM de origen tiene una configuración de SMB y decide establecer
 Si la SVM de origen tiene una configuración de SMB y se optó por establecer `identity-preserve` para `false`, Debe crear un servidor SMB para la SVM de destino. En algunas configuraciones SMB, como los recursos compartidos durante la inicialización de la relación de SnapMirror, es necesario el servidor SMB.
 
 .Pasos
-. Inicie la SVM de destino con `vserver start` el comando. Obtenga más información sobre `vserver start` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-start.html["Referencia de comandos de la ONTAP"^].
+. Inicie la SVM de destino con `vserver start` el comando.
 +
 [listing]
 ----
 destination_cluster::> vserver start -vserver dvs1
 [Job 30] Job succeeded: DONE
 ----
++
+Obtenga más información sobre `vserver start` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-start.html["Referencia de comandos de la ONTAP"^].
+
 . Compruebe que la SVM de destino está en la `running` el estado y el subtipo es `dp-destination` mediante el uso de `vserver show` comando.
 +
 [listing]
@@ -31,12 +34,18 @@ Vserver  Type    Subtype           State      State       Volume     Aggregate
 -------- ------- ----------       ---------- ----------- ---------- ----------
 dvs1     data    dp-destination    running    running       -         -
 ----
++
+Obtenga más información sobre `vserver show` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-show.html["Referencia de comandos de la ONTAP"^].
+
 . Cree una LIF mediante el `network interface create` comando.
 +
 [listing]
 ----
 destination_cluster::>network interface create -vserver dvs1 -lif NAS1 -role data -data-protocol cifs -home-node destination_cluster-01 -home-port a0a-101  -address 192.0.2.128 -netmask 255.255.255.128
 ----
++
+Obtenga más información sobre `network interface create` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-create.html["Referencia de comandos de la ONTAP"^].
+
 . Cree una ruta mediante `network route create` comando.
 +
 [listing]
@@ -47,6 +56,9 @@ destination_cluster::>network route create -vserver dvs1 -destination 0.0.0.0/0
 +
 link:../networking/networking_reference.html["Gestión de redes"]
 
++
+Obtenga más información sobre `network route create` en el link:https://docs.netapp.com/us-en/ontap-cli/network-route-create.html["Referencia de comandos de la ONTAP"^].
+
 . Configure DNS mediante la `vserver services dns create` comando.
 +
 [listing]
@@ -54,6 +66,9 @@ link:../networking/networking_reference.html["Gestión de redes"]
 destination_cluster::>vserver services dns create -domains mydomain.example.com -vserver
 dvs1 -name-servers 192.0.2.128 -state enabled
 ----
++
+Obtenga más información sobre `vserver services dns create` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=vserver+services+dns+create["Referencia de comandos de la ONTAP"^].
+
 . Agregue el controlador de dominio preferido mediante `vserver cifs domain preferred-dc add` comando.
 +
 [listing]
@@ -61,6 +76,9 @@ dvs1 -name-servers 192.0.2.128 -state enabled
 destination_cluster::>vserver cifs domain preferred-dc add -vserver dvs1 -preferred-dc
 192.0.2.128 -domain mydomain.example.com
 ----
++
+Obtenga más información sobre `vserver cifs domain preferred-dc add` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-cifs-domain-preferred-dc-add.html["Referencia de comandos de la ONTAP"^].
+
 . Cree el servidor SMB mediante el `vserver cifs create` comando.
 +
 [listing]
@@ -68,6 +86,9 @@ destination_cluster::>vserver cifs domain preferred-dc add -vserver dvs1 -prefer
 destination_cluster::>vserver cifs create -vserver dvs1 -domain mydomain.example.com
 -cifs-server CIFS1
 ----
++
+Obtenga más información sobre `vserver cifs create` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-cifs-create.html["Referencia de comandos de la ONTAP"^].
+
 . Detenga la SVM de destino con el `vserver stop` comando.
 +
 [listing]
@@ -75,4 +96,7 @@ destination_cluster::>vserver cifs create -vserver dvs1 -domain mydomain.example
 destination_cluster::> vserver stop -vserver dvs1
 [Job 46] Job succeeded: DONE
 ----
++
+Obtenga más información sobre `vserver stop` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-stop.html["Referencia de comandos de la ONTAP"^].
+
 
