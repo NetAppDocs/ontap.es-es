@@ -2,7 +2,7 @@
 permalink: fabricpool/move-volume-task.html 
 sidebar: sidebar 
 keywords: aggregate, local tier, moving, volume, fabricpool, fabric pool, tiering, policy, policies, block, capacity, cold data, 
-summary: Cuando mueve un volumen a FabricPool, tiene la opción de especificar o cambiar la política de organización en niveles del volumen con el movimiento. A partir de ONTAP 9.8, cuando se mueve un volumen que no es de FabricPool con la función de generación de informes de datos inactivos habilitada, FabricPool utiliza una asignación de calor para leer bloques que pueden organizar los niveles de datos fríos en el nivel de capacidad del destino de FabricPool. 
+summary: 'Es importante comprender cómo funciona el movimiento de volúmenes con FabricPool porque los cambios que tienen lugar tanto en el nivel local, el nivel de cloud asociado y el volumen (políticas de organización en niveles de los volúmenes) pueden afectar enormemente la funcionalidad.' 
 ---
 = Mover un volumen a un nivel local de ONTAP habilitado para FabricPool
 :allow-uri-read: 
@@ -11,45 +11,60 @@ summary: Cuando mueve un volumen a FabricPool, tiene la opción de especificar o
 
 
 [role="lead"]
-Cuando mueve un volumen a FabricPool, tiene la opción de especificar o cambiar la política de organización en niveles del volumen con el movimiento. A partir de ONTAP 9.8, cuando se mueve un volumen que no es de FabricPool con la función de generación de informes de datos inactivos habilitada, FabricPool utiliza una asignación de calor para leer bloques que pueden organizar los niveles de datos fríos en el nivel de capacidad del destino de FabricPool.
+A link:../volumes/move-volume-task.html["movimiento de volúmenes"] es la forma en la que ONTAP mueve un volumen sin interrupciones de un nivel local (origen) a otro (destino). Los movimientos de volúmenes se pueden realizar por varios motivos, aunque los motivos más comunes son la gestión del ciclo de vida del hardware, la ampliación del clúster y el equilibrio de carga.
+
+Es importante comprender cómo funciona el movimiento de volúmenes con FabricPool porque los cambios que tienen lugar tanto en el nivel local, el nivel de cloud asociado y el volumen (políticas de organización en niveles de los volúmenes) pueden afectar enormemente la funcionalidad.
 
 
 NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para describir un _nivel local_. Independientemente de la versión de ONTAP, la interfaz de línea de comandos de ONTAP utiliza el término _aggregate_. Para obtener más información sobre los niveles locales, consulte link:../disks-aggregates/index.html["Discos y niveles locales"].
 
-.WBefore que usted comienza
-Debe comprender cómo el cambio de la política de organización en niveles puede afectar el tiempo que tardan los datos en dejar de estar activos y moverse al nivel de cloud.
 
-link:tiering-policies-concept.html#what-happens-to-the-tiering-policy-when-you-move-a-volume["Qué sucede con la política de organización en niveles al mover un volumen"]
 
-.Acerca de esta tarea
-Si un volumen no compatible con FabricPool tiene habilitada la generación de informes de datos inactivos, cuando mueve un volumen con una política de organización en niveles `auto` o `snapshot-only` a un FabricPool, FabricPool lee los bloques que se pueden ajustar a temperaturas en un archivo de mapa térmico y, cuando la política de organización en niveles se establece en el volumen no compatible con FabricPool, FabricPool usa dicha temperatura para mover los datos inactivos directamente al nivel de capacidad en `auto` el destino de FabricPool.
+== Nivel local de destino
 
-No debe utilizar el `-tiering-policy` La opción para mover el volumen si se usa ONTAP 9.8 y desea que FabricPool use la información de generación de informes de datos inactivos para mover datos directamente al nivel de capacidad. Al usar esta opción, los FabricPool ignoran los datos de temperatura y siguen el comportamiento de movimiento de las versiones antes de ONTAP 9.8.
+Si el nivel local de destino de un movimiento de volumen no tiene un nivel de cloud conectado, los datos del volumen de origen que se almacenan en el nivel de cloud se escriben en el nivel local en el nivel local de destino.
 
-.Paso
-. Utilice la `volume move start` Comando para mover un volumen a FabricPool.
-+
-La `-tiering-policy` el parámetro opcional permite especificar la política de organización en niveles del volumen.
+A partir de ONTAP 9,8, cuando se haya  habilitado un volumenlink:determine-data-inactive-reporting-task.html["generación de informes de datos inactivos"], FabricPool utilizará el mapa térmico del volumen para poner en cola de forma inmediata los datos inactivos y comenzar a organizar en niveles tan pronto como se haya escrito en el agregado de destino.
 
-+
-Se puede especificar una de las siguientes políticas de organización en niveles:
-
-+
-** `snapshot-only` (predeterminado)
-** `auto`
-** `all`
-** `none`
- +
-link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies["Tipos de políticas de organización en niveles de FabricPool"]
+Antes de ONTAP 9,8, el movimiento de un volumen a otro nivel local restablece el período de inactividad de los bloques del nivel local. Por ejemplo, un volumen que utiliza la política de organización en niveles automática de volúmenes con datos en el nivel local que estuvieron inactivos durante 20 días, pero que aún no tuvo organización en niveles, hará que la temperatura de los datos se restablezca a 0 días después de un movimiento de volumen.
 
 
 
+== Movimientos de volúmenes optimizados
 
-.Ejemplo de traslado de un volumen a FabricPool
-En el siguiente ejemplo, se mueve un volumen llamado «yvol2» de la SVM «VS1» al nivel local habilitado para FabricPool de dest_FabricPool. El volumen se establece de forma explícita para usar `none` la política de organización en niveles:
+A partir de ONTAP 9,6, si el nivel local de destino de un volumen mueve usa el mismo bloque que el nivel local de origen, los datos del volumen de origen que se almacenan en el bloque no se volverán al nivel local. Este movimiento de volúmenes optimizado proporciona eficiencias de red significativas.
+
+[NOTE]
+====
+Algunas configuraciones son incompatibles con los movimientos de volúmenes optimizados:
+
+* Cambio de la política de organización en niveles durante el movimiento de volúmenes
+* Agregados de origen y destino con diferentes claves de cifrado
+* Volúmenes FlexClone
+* Volúmenes principales de FlexClone
+* MetroCluster (admite movimientos de volúmenes optimizados en ONTAP 9,8 y versiones posteriores)
+* Bloques de reflejos de FabricPool no sincronizados
+
+
+====
+Si el nivel local de destino de un movimiento de volúmenes tiene un nivel de cloud conectado, los datos del volumen de origen que se almacenan en el nivel de cloud se escriben primero en el nivel local en el nivel local de destino. A continuación se escribe en el nivel de cloud del nivel local de destino si este enfoque es adecuado para la política de organización en niveles del volumen.
+
+La escritura de datos en el nivel local primero mejora el rendimiento del traslado del volumen y reduce el tiempo de transición. Si no se especifica una política de organización en niveles de volúmenes al mover un volumen, el volumen de destino utiliza la política de organización en niveles del volumen de origen.
+
+Si se especifica otra política de organización en niveles cuando se realiza el movimiento de volúmenes, el volumen de destino se creará con la política de organización en niveles especificada y el movimiento del volumen no se optimizará.
+
+
+NOTE: Cuando están en una relación de recuperación ante desastres de SVM, los volúmenes de origen y destino deben utilizar la misma política de organización en niveles.
+
+.Pasos
+. Use el `volume move start` comando para mover un volumen de un nivel local de origen a un nivel local de destino.
+
+
+.Ejemplo de movimiento de un volumen
+En el ejemplo siguiente se mueve un volumen llamado `myvol2` de `vs1` SVM a `dest_FabricPool`, un nivel local habilitado para FabricPool.
 
 [listing]
 ----
 cluster1::> volume move start -vserver vs1 -volume myvol2
--destination-aggregate dest_FabricPool -tiering-policy none
+-destination-aggregate dest_FabricPool
 ----
