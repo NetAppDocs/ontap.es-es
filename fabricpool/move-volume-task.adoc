@@ -24,7 +24,7 @@ NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para de
 
 Si el nivel local de destino de un movimiento de volumen no tiene un nivel de cloud conectado, los datos del volumen de origen que se almacenan en el nivel de cloud se escriben en el nivel local en el nivel local de destino.
 
-A partir de ONTAP 9,8, cuando se haya  habilitado un volumenlink:determine-data-inactive-reporting-task.html["generación de informes de datos inactivos"], FabricPool utilizará el mapa térmico del volumen para poner en cola de forma inmediata los datos inactivos y comenzar a organizar en niveles tan pronto como se haya escrito en el agregado de destino.
+A partir de ONTAP 9,8, cuando se haya  habilitado un volumenlink:determine-data-inactive-reporting-task.html["generación de informes de datos inactivos"], FabricPool utilizará el mapa térmico del volumen para poner en cola de forma inmediata los datos inactivos y comenzar a organizar en niveles tan pronto como se escriban en el nivel local de destino.
 
 Antes de ONTAP 9,8, el movimiento de un volumen a otro nivel local restablece el período de inactividad de los bloques del nivel local. Por ejemplo, un volumen que utiliza la política de organización en niveles automática de volúmenes con datos en el nivel local que estuvieron inactivos durante 20 días, pero que aún no tuvo organización en niveles, hará que la temperatura de los datos se restablezca a 0 días después de un movimiento de volumen.
 
@@ -32,14 +32,16 @@ Antes de ONTAP 9,8, el movimiento de un volumen a otro nivel local restablece el
 
 == Movimientos de volúmenes optimizados
 
-A partir de ONTAP 9,6, si el nivel local de destino de un volumen mueve usa el mismo bloque que el nivel local de origen, los datos del volumen de origen que se almacenan en el bloque no se volverán al nivel local. Este movimiento de volúmenes optimizado proporciona eficiencias de red significativas.
+A partir de ONTAP 9,6, si el nivel local de destino de un volumen mueve usa el mismo bloque que el nivel local de origen, los datos del volumen de origen que se almacenan en el bloque no se volverán al nivel local. Los datos organizados en niveles permanecen en reposo y solo es necesario mover los datos activos de un nivel local a otro. Este movimiento de volúmenes optimizado proporciona eficiencias de red significativas.
+
+Los movimientos de volúmenes no optimizados generan tráfico informático y de red adicional (lecturas/captas y escrituras/puestas), lo que aumenta la demanda sobre el clúster y el almacén de objetos de ONTAP, lo que aumenta los costes cuando se organizan en niveles en almacenes de objetos públicos.
 
 [NOTE]
 ====
 Algunas configuraciones son incompatibles con los movimientos de volúmenes optimizados:
 
 * Cambio de la política de organización en niveles durante el movimiento de volúmenes
-* Agregados de origen y destino con diferentes claves de cifrado
+* Niveles locales de origen y destino con diferentes claves de cifrado
 * Volúmenes FlexClone
 * Volúmenes principales de FlexClone
 * MetroCluster (admite movimientos de volúmenes optimizados en ONTAP 9,8 y versiones posteriores)
@@ -52,6 +54,16 @@ Si el nivel local de destino de un movimiento de volúmenes tiene un nivel de cl
 La escritura de datos en el nivel local primero mejora el rendimiento del traslado del volumen y reduce el tiempo de transición. Si no se especifica una política de organización en niveles de volúmenes al mover un volumen, el volumen de destino utiliza la política de organización en niveles del volumen de origen.
 
 Si se especifica otra política de organización en niveles cuando se realiza el movimiento de volúmenes, el volumen de destino se creará con la política de organización en niveles especificada y el movimiento del volumen no se optimizará.
+
+
+
+=== Metadatos del volumen
+
+Independientemente de si un movimiento de volúmenes está optimizado, ONTAP almacena información sobre la ubicación de todos los datos, incluidos los datos locales y organizados en niveles. Cuando se mueve un volumen de un nivel local a otro, esta información también debe moverse al nivel local de destino. Estos metadatos siempre permanecen en el nivel local, pero, según la cantidad de datos organizados en niveles, puede provocar que el proceso de movimiento de volúmenes tarde más que lo esperado termine.
+
+Por ejemplo, un movimiento de volumen optimizado de 300TB TB significa que no es necesario moverse de 300TB TB de datos inactivos de un nivel local a otro (ni desencadenar 300TB TB de lecturas y 300TB TB de escrituras en el almacén de objetos). Pero sí significa que los metadatos asociados con 300TB GB de datos (alrededor de 15TB GB de datos en este ejemplo) deberán escribirse en el nivel local de destino.
+
+Es importante entender que el «rendimiento» informado por el `volume move show` comando no representa el rendimiento en términos de datos que se mueven desde el nivel de cloud, sino que los metadatos se actualizan de forma local.
 
 
 NOTE: Cuando están en una relación de recuperación ante desastres de SVM, los volúmenes de origen y destino deben utilizar la misma política de organización en niveles.
