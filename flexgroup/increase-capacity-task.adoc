@@ -22,7 +22,7 @@ Si desea añadir más espacio, puede aumentar el tamaño colectivo del volumen F
 Si desea mejorar el rendimiento, puede ampliar el volumen de FlexGroup. Es posible que desee expandir un volumen FlexGroup y añadir volúmenes miembro nuevos en las siguientes situaciones:
 
 * Se han agregado nuevos nodos al clúster.
-* Se han creado nuevos agregados en los nodos existentes.
+* Se han creado nuevos niveles locales (agregados) en los nodos existentes.
 * Los volúmenes miembro existentes del volumen FlexGroup alcanzaron el tamaño máximo de FlexVol del hardware (100TB o 300TB si link:../volumes/enable-large-vol-file-support-task.html["soporte de gran volumen"] se habilitó), por lo que no se puede cambiar el tamaño del volumen FlexGroup sin añadir volúmenes miembro adicionales.
 
 
@@ -55,12 +55,18 @@ Expanda el volumen de FlexGroup añadiendo volúmenes miembro nuevos (componente
 
 El valor predeterminado de `-aggr-list-multiplier` el parámetro es 1.
 
-Para ampliar un volumen de FlexGroup para FabricPool en ONTAP 9.5, todos los agregados nuevos que se usan deben ser FabricPool.
+Al expandir un volumen FlexGroup mediante link:../fabricpool/index.html["FabricPool"], todos los niveles locales (agregados) deben adjuntarse al mismo nivel de cloud.
 
 |===
 
 
-Siempre que sea posible, debe aumentar la capacidad de un volumen FlexGroup. Si debe expandir un volumen de FlexGroup, debe añadir volúmenes miembro en los mismos múltiplos que los volúmenes miembro del volumen de FlexGroup existente para garantizar un rendimiento consistente. Por ejemplo, si el volumen FlexGroup existente tiene 16 volúmenes miembro con ocho volúmenes miembro por nodo, puede expandir el volumen FlexGroup existente en 8 o 16 volúmenes miembro.
+Si asumimos que los agregados existentes (niveles locales) o los volúmenes miembro no hayan alcanzado su capacidad máxima (100 PB/300TB 000 millones de archivos cada uno), se recomienda aumentar el tamaño general del volumen FlexGroup en lugar de añadir volúmenes miembro adicionales.
+
+Usar expansión de volúmenes solo si aumentar el tamaño existente del volumen o el recuento de archivos no es una opción o si el FlexGroup se está expandiendo a nuevo hardware. Se debe agregar el mismo número de volúmenes miembro a todos los nodos para garantizar un rendimiento consistente. Por ejemplo, si un volumen FlexGroup existente tiene 8 volúmenes miembro con cuatro volúmenes miembro por nodo, si se añaden dos miembros por nodo, se producirán 12 volúmenes miembro, seis volúmenes miembro por nodo.
+
+Cuando agregue nuevos miembros a nodos nuevos, intente mantener una cantidad consistente de volúmenes miembro por nodo, como en los nodos existentes. Por ejemplo, si un volumen FlexGroup existente tiene 8 volúmenes miembro con cuatro volúmenes miembro por nodo, si los volúmenes FlexGroup se expanden al nodo nuevo, se deben añadir cuatro volúmenes miembro, lo que da como resultado un volumen FlexGroup miembro de 12.
+
+Al añadir nuevos miembros a un volumen FlexGroup, se modifica la heurística de procesamiento a fin de favorecer los volúmenes miembro nuevos y vacíos, y puede afectar al rendimiento general del sistema para la ingesta de datos nuevos hasta que los volúmenes miembro nuevos se equilibren con los volúmenes miembro preexistentes.
 
 .Ejemplos
 *Ejemplo de aumento de la capacidad de los volúmenes miembros existentes*
@@ -75,10 +81,10 @@ Si el volumen FlexGroup tiene 16 volúmenes miembro, el espacio de cada volumen 
 
 *Ejemplo de mejora del rendimiento mediante la adición de nuevos volúmenes de miembros*
 
-En el ejemplo siguiente se muestra cómo añadir dos volúmenes miembro más al volumen FlexGroup Volx:
+En el ejemplo siguiente se muestra cómo añadir cuatro volúmenes miembro adicionales, dos a cada uno de los niveles locales subyacentes (agregados) en el volumen FG1 de FlexGroup:
 
 [listing]
 ----
-cluster1::> volume expand -vserver vs1 -volume volX -aggr-list aggr1,aggr2
+cluster1::> volume expand -vserver svm1 -volume fg1 -aggr-list aggr1,aggr2 -aggr-list-multiplier 2
 ----
 El tamaño de los volúmenes miembro nuevos es igual al de los volúmenes miembro existentes.
