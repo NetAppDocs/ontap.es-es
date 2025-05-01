@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: back up, lun, through, host, backup, system 
 summary: Es posible usar un LUN clonado a partir de una snapshot como datos de origen para el sistema de backup del host. 
 ---
-= Realice un backup de una LUN a través de un sistema de backup del host
+= Use un sistema de backup host para proteger una LUN en el sistema de almacenamiento ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -21,52 +21,54 @@ Debe haber una LUN de producción y asignarse a un igroup que incluya el nombre 
 +
 Se puede utilizar el comando provisto por el sistema operativo del host, o bien se puede utilizar SnapDrive para Windows y SnapDrive para UNIX. También puede optar por hacer que este paso forme parte de su script de procesamiento previo de la copia DE seguridad DE SAN.
 
-. Utilice `volume snapshot create` el comando para crear una snapshot de la LUN de producción.
+. Crear una copia Snapshot de la LUN de producción.
 +
-`volume snapshot create -vserver vs0 -volume vol3 -snapshot vol3_snapshot -comment "Single snapshot" -foreground false`
-
-. Utilice la `volume file clone create` Comando para crear un clon de la LUN de producción.
+[source, cli]
+----
+volume snapshot create -vserver <SVM_name> -volume <volume_name> -snapshot <snapshot> -comment <comment> -foreground false
+----
+. Crear un clon de la LUN de producción.
 +
-`volume file clone create -vserver vs3 -volume vol3 -source-path lun1 -snapshot-name snap_vol3 -destination-path lun1_backup`
-
-. Utilice la `lun igroup create` Comando para crear un igroup que incluye el WWPN del servidor de backup.
+[source, cli]
+----
+volume file clone create -vserver <SMV_name> -volume <volume> -source-path <path> -snapshot-name <snapshot> -destination-path <destination_path>
+----
+. Cree un igroup que incluya el nombre de puerto WWPN del servidor de respaldo.
 +
-`lun igroup create -vserver vs3 -igroup igroup3 -protocol fc -ostype windows -initiator 10:00:00:00:c9:73:5b:91`
-
+[source, cli]
+----
+lun igroup create -vserver <SVM_name> -igroup <igroup> -protocol <protocol> -ostype <os_type> -initiator <initiator>
+----
+. Asigne el clon de LUN que creó en el paso 3 al host de backup.
 +
-Obtenga más información sobre `lun igroup create` en el link:https://docs.netapp.com/us-en/ontap-cli/lun-igroup-create.html["Referencia de comandos de la ONTAP"^].
-
-. Utilice la `lun mapping create` Comando para asignar el clon de LUN que creó en el paso 3 al host de backup.
-+
-`lun mapping create -vserver vs3 -volume vol3 -lun lun1_backup -igroup igroup3`
-
+[source, cli]
+----
+lun mapping create -vserver <SVM_name> -volume <volume_name> -lun <lun_name> -igroup <igroup>
+----
 +
 Puede optar por hacer que este paso forme parte de la secuencia de comandos de posprocesamiento de su aplicación DE backup SAN.
-
-+
-Obtenga más información sobre `lun mapping create` en el link:https://docs.netapp.com/us-en/ontap-cli/lun-mapping-create.html["Referencia de comandos de la ONTAP"^].
 
 . Desde el host, detectar el nuevo LUN y hacer que el sistema de archivos esté disponible para el host.
 +
 Puede optar por hacer que este paso forme parte de la secuencia de comandos de posprocesamiento de su aplicación DE backup SAN.
 
 . Realice un backup de los datos del clon LUN desde el host de backup a cinta con la aplicación de backup SAN.
-. Utilice la `lun modify` Comando para desconectar el clon de la LUN.
+. Desconectar el clon de la LUN.
 +
-`lun modify -vserver vs3 -path /vol/vol3/lun1_backup -state offline`
-
+[source, cli]
+----
+lun modify -vserver <SVM_name> -path <path> -state offline
+----
+. Quite el clon de la LUN.
 +
-Obtenga más información sobre `lun modify` en el link:https://docs.netapp.com/us-en/ontap-cli/lun-modify.html["Referencia de comandos de la ONTAP"^].
-
-. Utilice la `lun delete` Para quitar el clon LUN.
+[source, cli]
+----
+lun delete -vserver <SVM_name> -volume <volume> -lun <lun_name>
+----
+. Elimine la instantánea.
 +
-`lun delete -vserver vs3 -volume vol3 -lun lun1_backup`
-
-+
-Obtenga más información sobre `lun delete` en el link:https://docs.netapp.com/us-en/ontap-cli/lun-delete.html["Referencia de comandos de la ONTAP"^].
-
-. Utilice `volume snapshot delete` el comando para eliminar la snapshot.
-+
-`volume snapshot delete -vserver vs3 -volume vol3 -snapshot vol3_snapshot`
-
+[source, cli]
+----
+volume snapshot delete -vserver <SVM_name> -volume <volume> -snapshot <snapshot>
+----
 

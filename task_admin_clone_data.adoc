@@ -18,8 +18,8 @@ summary: Puede clonar volúmenes y LUN para crear copias para prueba o para otor
 [role="lead"]
 Puede clonar volúmenes y LUN para crear copias temporales y editables para las pruebas.  Los clones reflejan el estado actual de los datos, un momento específico.  También puede utilizar clones para proporcionar a los usuarios adicionales acceso a los datos sin tener que darles acceso a los datos de producción.
 
-
-NOTE: La licencia de FlexClone debe ser https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html["instalado"] en el sistema de almacenamiento.
+.Lo que necesitará
+La licencia de FlexClone debe ser https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html["instalado"] en el sistema de almacenamiento.
 
 
 
@@ -41,9 +41,18 @@ Como alternativa, puede clonar un volumen desde *Descripción general* que apare
 
 == Clonar una LUN
 
-Cree un clon de una LUN de la siguiente manera:
+Para crear copias de sus LUN, debe clonar las LUN en el volumen activo. Estas LUN FlexClone son copias legibles y editables de las LUN originales en el volumen activo.
+
+Un LUN FlexClone con reserva de espacio requiere tanto espacio como la LUN principal con reserva de espacio. Si la LUN FlexClone no está reservada para el espacio, debe asegurarse de que el volumen tenga suficiente espacio para acomodar los cambios en la LUN FlexClone.
+
+
+NOTE: Este procedimiento se aplica a los sistemas FAS, AFF y ASA actuales. Si tiene un sistema ASA R2 (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30 o ASA A20), siga link:https://docs.netapp.com/us-en/asa-r2/manage-data/data-cloning.html["estos pasos"^]estos pasos para clonar datos. Los sistemas R2 de ASA ofrecen una experiencia de ONTAP simplificada específica para clientes de SAN.
 
 .Pasos
+[role="tabbed-block"]
+====
+.System Manager
+--
 . Haga clic en *almacenamiento > LUN*.
 . Haga clic en image:icon_kabob.gif["Icono de opciones de menú"] junto al nombre de la LUN que desea clonar.
 . Seleccione *Clonar* de la lista.
@@ -54,3 +63,43 @@ Cree un clon de una LUN de la siguiente manera:
 Como alternativa, puede clonar una LUN desde *Descripción general* que aparece cuando ve los detalles de la LUN.
 
 Cuando crea un clon de LUN, System Manager habilita automáticamente la eliminación del clon cuando se necesita espacio.
+
+--
+.CLI
+--
+. Debe haber verificado que las LUN no están asignadas a un igroup o que se escriben en antes de crear el clon.
+. Utilice la `lun show` Comando para comprobar que la LUN existe.
++
+`lun show -vserver vs1`
+
++
+[listing]
+----
+Vserver  Path              State     Mapped    Type     Size
+-------- ----------------- --------- --------- -------- -------
+vs1      /vol/vol1/lun1    online   unmapped  windows  47.07MB
+----
+. Utilice la `volume file clone create` Comando para crear la LUN FlexClone.
++
+`volume file clone create -vserver vs1 -volume vol1 -source-path lun1 -destination-path/lun1_clone`
+
++
+Si necesita que la LUN de FlexClone esté disponible para su eliminación automática, tendrá que incluir `-autodelete true`. Si crea este LUN FlexClone en un volumen mediante el aprovisionamiento semi-grueso, debe habilitar la eliminación automática para todas las LUN de FlexClone.
+
+. Utilice la `lun show` Comando para verificar que ha creado una LUN.
++
+`lun show -vserver vs1`
+
++
+[listing]
+----
+
+Vserver  Path                    State    Mapped   Type     Size
+-------- ----------------------- -------- -------- -------- ------
+vs1      /vol/volX/lun1          online   unmapped windows  47.07MB
+vs1      /vol/volX/lun1_clone    online   unmapped windows  47.07MB
+----
+
+
+--
+====
