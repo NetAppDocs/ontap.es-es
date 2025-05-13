@@ -1,10 +1,10 @@
 ---
 permalink: data-protection/manage-snapshot-copy-reserve-concept.html 
 sidebar: sidebar 
-keywords: manage, snapshot, copy, reserve 
+keywords: manage, snapshot, copy, reserve, increase, protected files 
 summary: La reserva de instantáneas reserva un porcentaje del espacio en disco para las instantáneas, cinco por ciento de forma predeterminada. Dado que las instantáneas utilizan espacio en el sistema de archivos activo cuando se agota la reserva de instantáneas, es posible que desee aumentar la reserva de instantáneas según sea necesario. También puede eliminar automáticamente las instantáneas cuando la reserva esté llena. 
 ---
-= Gestione la información general de la reserva de instantáneas
+= Infórmese sobre la gestión de la reserva de snapshot de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -12,3 +12,50 @@ summary: La reserva de instantáneas reserva un porcentaje del espacio en disco 
 
 [role="lead"]
 _Snapshot reserve_ reserva un porcentaje de espacio en disco para las instantáneas, cinco por ciento por defecto. Dado que las instantáneas utilizan espacio en el sistema de archivos activo cuando se agota la reserva de instantáneas, es posible que desee aumentar la reserva de instantáneas según sea necesario. También puede eliminar automáticamente las instantáneas cuando la reserva esté llena.
+
+
+
+== Cuándo aumentar la reserva de instantáneas
+
+Al decidir si desea aumentar la reserva de instantáneas, es importante recordar que una instantánea sólo registra los cambios en los archivos desde que se realizó la última instantánea. Consume espacio en disco solo si se modifican o eliminan bloques del sistema de archivos activo.
+
+Esto significa que la tasa de cambio del sistema de archivos es el factor clave para determinar la cantidad de espacio en disco utilizado por las instantáneas. No importa cuántas instantáneas cree, no consumirán espacio en disco si el sistema de archivos activo no ha cambiado.
+
+Un FlexVol volume que contenga registros de transacciones de base de datos, por ejemplo, puede tener una reserva de snapshots de hasta un 20 % para justificar su mayor tasa de cambios. No solo querrá crear más instantáneas para capturar las actualizaciones más frecuentes de la base de datos, sino que también querrá tener una reserva de instantáneas más grande para manejar el espacio en disco adicional que consumen las instantáneas.
+
+[TIP]
+====
+Una snapshot consta de punteros a bloques en lugar de copias de bloques. Puede pensar que un puntero es una «reclamación» en un bloque: ONTAP «retiene» el bloque hasta que se elimina la copia snapshot.
+
+====
+image:how-snapshots-consume-disk-space.gif["Espacio en disco consumido por las instantáneas"]
+
+
+
+== La eliminación de archivos protegidos puede reducir el espacio de archivos de lo esperado
+
+Una instantánea apunta a un bloque incluso después de eliminar el archivo que utilizó el bloque. Esto explica por qué una reserva de instantáneas agotada podría conducir a un resultado contraintuitivo en el que la eliminación de un sistema de archivos completo da como resultado menos espacio disponible que el sistema de archivos ocupado.
+
+Observe el siguiente ejemplo. Antes de eliminar cualquier archivo, el `df` el resultado del comando es el siguiente:
+
+[listing]
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 3000000 0       100%
+/vol/vol0/.snapshot 1000000 500000  500000   50%
+----
+Después de eliminar todo el sistema de archivos y hacer una instantánea del volumen, `df` el comando genera la siguiente salida:
+
+[listing]
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 2500000 500000   83%
+/vol/vol0/.snapshot 1000000 3500000 0       350%
+----
+Como se muestra en la salida, los 3 GB completos utilizados anteriormente por el sistema de archivos activo ahora están siendo utilizados por las instantáneas, además de los 0,5 GB utilizados antes de la eliminación.
+
+Debido a que el espacio en disco utilizado por las instantáneas ahora excede la reserva de instantáneas, el desbordamiento de 2,5 GB “pastillas” en el espacio reservado para los archivos activos, dejándole con 0,5 GB de espacio libre para los archivos donde razonablemente podría haber esperado 3 GB.
+
+Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos de la ONTAP"^].
