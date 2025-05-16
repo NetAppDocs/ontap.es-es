@@ -4,65 +4,197 @@ sidebar: sidebar
 keywords: ontap, upgrade, mixed, version, clusters, mixed-version nodes, requirements 
 summary: Un clúster de ONTAP de versión mixta consta de nodos que ejecutan dos versiones principales de ONTAP diferentes, como ONTAP 9,8 y 9.12.1. Los clústeres de versión mixta de ONTAP solo se admiten en situaciones específicas. 
 ---
-= Compruebe si hay clústeres de ONTAP de versión mixta antes de una actualización
+= Comprobar la compatibilidad de las versiones de ONTAP en los clústeres de versiones mixtas
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Un clúster de ONTAP de versión mixta consta de nodos que ejecutan dos versiones principales de ONTAP diferentes durante un tiempo limitado.  Por ejemplo, si un clúster actualmente consta de nodos que ejecutan ONTAP 9,8 y 9.12.1, el clúster es un clúster de una versión mixta.  De igual forma, un clúster en el que nodos ejecuten ONTAP 9.9.1 y 9.13.1 sería un clúster de versiones mixtas.  NetApp admite clústeres ONTAP de versión mixta durante períodos limitados y en situaciones específicas.
+En un clúster ONTAP de versión mixta, los nodos ejecutan dos versiones principales de ONTAP diferentes durante un breve período de tiempo. Por ejemplo, un clúster con nodos que ejecutan ONTAP 9,8 y 9.12.1 o ONTAP 9.9.1 y 9.13.1 es un clúster de versión mixta. Los clusters con nodos que ejecutan diferentes niveles de parches dentro de la misma versión, como ONTAP 9,9.1P1 y 9,9.1P5, no son clusters de versiones mixtas.
+
+
+NOTE: Los clústeres de versión mixta no son compatibles con Cloud Volumes ONTAP.
+
+NetApp admite clústeres ONTAP de versión mixta durante períodos limitados y en situaciones específicas.
 
 A continuación se muestran los casos más comunes en los que un clúster de ONTAP tendrá una versión mixta:
 
 * Actualizaciones del software ONTAP en grandes clústeres
++
+Puede tardar varios días o semanas en actualizar todos los nodos de un clúster grande. El clúster entra y permanece en un estado de versión mixta hasta que se actualizan todos los nodos.
+
 * Es necesario actualizar el software ONTAP cuando piensa añadir nodos nuevos a un clúster
-
-
-La información se aplica a las versiones de ONTAP que admiten sistemas de plataformas NetApp, como los sistemas A-Series y C-Series de AFF, ASA, FAS y C-Series. La información no se aplica a las versiones de cloud de ONTAP (9.x.0) como 9.12.0.
-
-
-
-== Requisitos para clústeres de ONTAP de versión mixta
-
-Si su clúster tiene que introducir una versión mixta de ONTAP, debe conocer los requisitos y las restricciones importantes.
-
-* No puede haber más de dos versiones principales de ONTAP diferentes en un clúster en un momento dado. Por ejemplo, se admite ONTAP 9.9.1 y 9.13.1, pero ONTAP 9,9.1, 9.12.1 y 9.13.1 no lo es. Los clústeres que tienen nodos en ejecución con niveles de revisión P o D diferentes de la misma versión de ONTAP, como ONTAP 9,9.1P1 y 9,9.1P5, no se consideran clústeres de ONTAP de versiones mixtas.
-* Mientras el clúster tiene una versión mixta, no debe introducir ningún comando que modifique la operación o la configuración del clúster, excepto los necesarios para la actualización o el proceso de migración de datos.  Por ejemplo, no deben realizarse actividades como la migración LIF, las operaciones planificadas de conmutación por error de almacenamiento o la creación o eliminación de objetos a gran escala hasta que hayan finalizado la actualización y la migración de datos.
-* Para un funcionamiento óptimo del clúster, la cantidad de tiempo que el clúster tenga el estado de versión mixta debe ser lo más breve posible.  La cantidad máxima de tiempo que puede permanecer un clúster en una versión mixta depende de la versión de ONTAP más baja del clúster.
 +
-[cols="2*"]
+Es posible añadir nodos nuevos al clúster para expandir su capacidad, o es posible añadir nodos nuevos como parte del proceso de reemplazar por completo las controladoras. En cualquier caso, es posible que necesite introducir un estado de versión mixta para permitir la migración de sus datos de controladoras existentes a los nodos nuevos en el nuevo sistema.
+
+
+
+Para un funcionamiento óptimo del clúster, la cantidad de tiempo que el clúster tenga el estado de versión mixta debe ser lo más breve posible. La cantidad máxima de tiempo que se puede admitir un clúster en un estado de versión mixta depende de la versión de ONTAP más baja del clúster.
+
+[cols="2"]
 |===
-| Si la versión más baja de ONTAP que se ejecuta en el clúster de versiones mixtas es: | A continuación, puede permanecer en un estado de versión mixta durante un máximo de 
+| Si la versión más baja de ONTAP que se ejecuta en el clúster de versiones mixtas es... | A continuación, puede permanecer en un estado de versión mixta durante un máximo de... 
 
 
-| ONTAP 9,8 o superior | 90 días 
+| ONTAP 9,8 o posterior | 90 días 
 
 
-| ONTAP 9,7 o inferior | 7 días 
+| ONTAP 9.7 o anterior | 7 días 
 |===
-* A partir de ONTAP 9,8, la diferencia de versión entre los nodos originales y los nuevos no puede ser superior a cuatro. Por ejemplo, un clúster ONTAP de versión mixta podría tener nodos que ejecuten ONTAP 9,8 y 9.12.1, o bien podría tener nodos que ejecuten ONTAP 9.9.1 y 9.13.1. Sin embargo, no se admitiría una versión mixta de un clúster de ONTAP con nodos que ejecuten ONTAP 9,8 y 9.13.1.
-+
-Si desea ver una lista completa de los clústeres de versiones mixtas compatibles, consulte link:concept_upgrade_paths.html["rutas de actualización admitidas"]. Todas las rutas de actualización _DIRECT_ se admiten para clústeres de versiones mixtas.
+Mientras el clúster tiene una versión mixta, no debe introducir ningún comando que modifique la operación o la configuración del clúster, excepto los necesarios para la actualización o el proceso de migración de datos. Por ejemplo, no deben realizarse actividades como la migración LIF, las operaciones planificadas de conmutación por error de almacenamiento o la creación o eliminación de objetos a gran escala hasta que hayan finalizado la actualización y la migración de datos.
 
 
 
+== Clústeres de versión mixta admitidos para actualizaciones del software ONTAP
+
+Puede introducir un estado de versión mixta con cualquier versión de ONTAP compatible para una actualización directa desde su versión actual más baja. Por ejemplo, si ejecuta ONTAP 9.11.1, puede introducir el estado una versión mixta entre nodos que ejecuten ONTAP 9.15.1. No se puede introducir un estado de versión mixta donde haya nodos que ejecuten ONTAP 9.11.1 y ONTAP 9.16.1. ONTAP 9.16.1 no es compatible para la actualización directa desde ONTAP 9.11.1.
+
+Para actualizar a una versión de ONTAP que no sea compatible con una actualización directa de su versión actual, debe realizar una actualización de varias etapas. En una actualización de varias etapas, primero ingresa un estado de versión mixta con la versión más alta admitida para una actualización directa desde su versión actual. Complete la actualización; a continuación, realice una actualización por separado a la versión de destino. Por ejemplo, si su versión actual más baja es ONTAP 9.10.1 y desea actualizar a ONTAP 9.16.1, primero debe introducir un estado de versión mixta para actualizar todos los nodos a ONTAP 9.14.1; después realiza una actualización por separado de ONTAP 9.14.1 a ONTAP 9.16.1. Obtenga más información sobre link:concept_upgrade_paths.html#types-of-upgrade-paths["actualizaciones en varias etapas"] y.link:concept_upgrade_paths.html#supported-upgrade-paths["rutas de actualización admitidas"]
+
+Un clúster de versión mixta solo puede contener dos versiones principales de ONTAP. Por ejemplo, puede tener un clúster de versión mixta con nodos que ejecutan ONTAP 9.13.1 y 9.15.1, o bien con nodos que ejecuten ONTAP 9.13.1 y 9.16.1. No puede tener un clúster de versión mixta con nodos que ejecutan ONTAP 9.13.1, 9.15.1 y 9.16.1.
+
+[cols="25,25,50"]
+|===
+| Si su versión actual de ONTAP es… | Y su versión ONTAP de destino es… | El estado de la versión mixta para la actualización es… 
 
 
-== Actualización de la versión de ONTAP de un clúster de gran tamaño
+| 9.15.1 | 9.16.1 | Compatible 
 
-Una situación en la que se puede introducir un estado en un clúster de versiones mixtas implica actualizar la versión ONTAP de un clúster con varios nodos para aprovechar las funciones disponibles en versiones posteriores de ONTAP 9. Cuando necesite actualizar la versión de ONTAP de un clúster más grande, deberá introducir un estado de clúster de versiones mixtas durante un período de tiempo a medida que actualice cada nodo del clúster.
 
+.2+| 9.14.1 | 9.16.1 | Compatible 
+
+
+| 9.15.1 | Compatible 
+
+
+.3+| 9.13.1 | 9.16.1 | Compatible 
+
+
+| 9.15.1 | Compatible 
+
+
+| 9.14.1 | Compatible 
+
+
+.4+| 9.12.1 | 9.16.1 | Compatible 
+
+
+| 9.15.1 | Compatible 
+
+
+| 9.14.1 | Compatible 
+
+
+| 9.13.1 | Compatible 
+
+
+.5+| 9.11.1 | 9.16.1  a| 
+No admitido
+
+
+
+| 9.15.1 | Compatible 
+
+
+| 9.14.1 | Compatible 
+
+
+| 9.13.1 | Compatible 
+
+
+| 9.12.1 | Compatible 
+
+
+.6+| 9.10.1 | 9.16.1  a| 
+No admitido
+
+
+
+| 9.15.1  a| 
+No admitido
+
+
+
+| 9.14.1 | Compatible 
+
+
+| 9.13.1 | Compatible 
+
+
+| 9.12.1 | Compatible 
+
+
+| 9.11.1 | Compatible 
+
+
+.7+| 9.9.1 | 9.16.1  a| 
+No admitido
+
+
+
+| 9.15.1  a| 
+No admitido
+
+
+
+| 9.14.1  a| 
+No admitido
+
+
+
+| 9.13.1 | Compatible 
+
+
+| 9.12.1 | Compatible 
+
+
+| 9.11.1 | Compatible 
+
+
+| 9.10.1 | Compatible 
+
+
+.8+| 9,8 | 9.16.1  a| 
+No admitido
+
+
+
+| 9.15.1  a| 
+No admitido
+
+
+
+| 9.14.1  a| 
+No admitido
+
+
+
+| 9.13.1  a| 
+No admitido
+
+
+
+| 9.12.1 | Compatible 
+
+
+| 9.11.1 | Compatible 
+
+
+| 9.10.1  a| 
+Compatible
+
+
+
+| 9.9.1 | Compatible 
+|===
 
 
 == Añadir nuevos nodos a un clúster de ONTAP
 
-Otra situación para introducir un estado de cluster de versiones mixtas implica la adición de nuevos nodos al clúster. Es posible añadir nodos nuevos al clúster para expandir su capacidad, o es posible añadir nodos nuevos como parte del proceso de reemplazar por completo las controladoras. En cualquier caso, debe habilitar la migración de sus datos desde controladoras existentes a los nodos nuevos en el sistema nuevo.
+Si piensa agregar nodos nuevos al clúster y esos nodos requieren una versión mínima de ONTAP que sea posterior a la versión que se está ejecutando actualmente en el clúster, debe realizar las actualizaciones de software compatibles de los nodos existentes del clúster antes de agregar los nodos nuevos. Lo ideal sería que actualizara todos los nodos existentes a la versión mínima de ONTAP que requieran los nodos que planea agregar al clúster. Sin embargo, si esto no es posible porque algunos de sus nodos existentes no admiten la versión posterior de ONTAP, deberá introducir un estado de versión mixta durante una cantidad limitada de tiempo como parte del proceso de actualización.
 
-Si piensa agregar nodos nuevos al clúster y esos nodos requieren una versión mínima de ONTAP que sea posterior a la versión que se está ejecutando actualmente en el clúster, debe realizar las actualizaciones de software compatibles de los nodos existentes del clúster antes de agregar los nodos nuevos.
-
-Lo ideal sería que actualizara todos los nodos existentes a la versión mínima de ONTAP que requieran los nodos que planea agregar al clúster. Sin embargo, si esto no es posible porque algunos de sus nodos existentes no admiten la versión posterior de ONTAP, deberá introducir un estado de versión mixta durante una cantidad limitada de tiempo como parte del proceso de actualización. Si tiene nodos que no admiten la versión mínima de ONTAP requerida por las controladoras nuevas, debe hacer lo siguiente:
-
+.Pasos
 . link:concept_upgrade_methods.html["Renovar"] Los nodos que no admiten la versión mínima de ONTAP requerida por las nuevas controladoras hasta la versión máxima de ONTAP que admiten.
 +
 Por ejemplo, si tiene un sistema FAS8080 con ONTAP 9,5 y va a añadir una nueva plataforma C-Series con ONTAP 9.12.1, debería actualizar su sistema FAS8080 a ONTAP 9,8 (que es la versión máxima de ONTAP que admite).
