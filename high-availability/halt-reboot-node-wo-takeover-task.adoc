@@ -17,12 +17,12 @@ summary: Detuvo o reiniciar un nodo en un clúster de dos nodos sin iniciar la t
 Detuvo o reiniciar un nodo en un clúster de dos nodos sin iniciar la toma de control cuando realiza determinado mantenimiento de hardware en un nodo o una bandeja y desea limitar el tiempo de inactividad manteniendo el nodo del partner en funcionamiento. o cuando hay problemas que impiden la toma de control manual y desea mantener los agregados del nodo asociado en funcionamiento y sirviendo datos. Además, si el soporte técnico le ayuda a solucionar problemas, es posible que tenga que realizar este procedimiento como parte de dichos esfuerzos.
 
 .Acerca de esta tarea
-* Antes de inhibir la toma de control (mediante el `-inhibit-takeover true` Parámetro), deshabilita el clúster ha.
+* Antes de inhibir la toma de control (con `-inhibit-takeover true` el parámetro), se deshabilita la alta disponibilidad del clúster.
 
 
 [CAUTION]
 ====
-* En un clúster de dos nodos, el clúster de alta disponibilidad garantiza que se produzca un error en un nodo que no deshabilite el clúster. Sin embargo, si no deshabilita la alta disponibilidad del clúster antes de usar el  `-inhibit-takeover true` parámetro, ambos nodos dejan de servir datos.
+* En un clúster de dos nodos, el clúster de alta disponibilidad garantiza que se produzca un error en un nodo que no deshabilite el clúster. Sin embargo, si no deshabilita la HA del clúster antes de usar el  `-inhibit-takeover true` parámetro, ambos nodos dejan de servir datos.
 * Si intenta detener o reiniciar un nodo antes de deshabilitar la alta disponibilidad del clúster, ONTAP emite una advertencia y le indica que debe deshabilitar la alta disponibilidad del clúster.
 
 
@@ -35,7 +35,7 @@ Detuvo o reiniciar un nodo en un clúster de dos nodos sin iniciar la toma de co
 . Compruebe que ambos nodos estén en buen estado:
 `cluster show`
 +
-Para ambos nodos, `true` aparece en la `Health` columna.
+En ambos nodos, `true` aparece en la `Health` columna.
 
 +
 [listing]
@@ -47,16 +47,16 @@ node1        true     true
 node2        true     true
 ----
 +
-Obtenga más información sobre `cluster show` en el link:https://docs.netapp.com/us-en/ontap-cli/cluster-show.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `cluster show` en el link:https://docs.netapp.com/us-en/ontap-cli/cluster-show.html["Referencia de comandos del ONTAP"^].
 
-. Migre todos los LIF del nodo que detendrá o reiniciará al nodo compañero:
+. Migre todas las LIF del nodo que detendrá o reiniciará al nodo del partner:
 `network interface migrate-all -node _node_name_`
 +
-Obtenga más información sobre `network interface migrate-all` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-migrate-all.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `network interface migrate-all` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-migrate-all.html["Referencia de comandos del ONTAP"^].
 
 . Si en el nodo que va a detener o reiniciar hay agregados que desea mantener en línea cuando el nodo está inactivo, reubicarlos al nodo del compañero; de lo contrario, vaya al siguiente paso.
 +
-.. Muestre los agregados del nodo que detendrá o reiniciará:
+.. Muestre los agregados del nodo que va a detener o reiniciar:
 `storage aggregates show -node _node_name_`
 +
 Por ejemplo, el nodo 1 es el nodo que se detuvo o reiniciando:
@@ -79,7 +79,7 @@ test2_aggr  2.18TB    2.18TB    0% online       7 node1    raid_dp,
                                                                 normal
 4 entries were displayed.
 ----
-.. Mueva los agregados al nodo partner:
+.. Mueva los agregados al nodo del partner:
 `storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
 +
 Por ejemplo, los agregados aggr1, aggr2 y test2_aggr se están moviendo del nodo 1 al nodo 2:
@@ -89,10 +89,10 @@ Por ejemplo, los agregados aggr1, aggr2 y test2_aggr se están moviendo del nodo
 
 
 
-. Deshabilitar clúster de alta disponibilidad:
+. Deshabilitar HA del clúster:
 `cluster ha modify -configured false`
 +
-La salida de retorno confirma que ha está desactivada: `Notice: HA is disabled`
+La salida de retorno confirma que HA está desactivada: `Notice: HA is disabled`
 
 +
 
@@ -104,37 +104,37 @@ NOTE: Esta operación no deshabilita la conmutación al nodo de respaldo del alm
 ** `system node reboot -node _node_name_ -inhibit-takeover true`
 +
 
-NOTE: En el resultado del comando, verá una advertencia preguntándole si desea continuar, introduzca `y`.
+NOTE: En la salida del comando, verá una advertencia que le preguntará si desea continuar, introduzca `y`.
 
 
 
-. Compruebe que el nodo que sigue estando conectado esté en buen estado (mientras el partner está inactivo):
+. Compruebe que el nodo que sigue en línea está en buen estado (mientras el partner está inactivo):
 `cluster show`
 +
-Para el nodo en línea: `true` aparece en la `Health` columna.
+Para el nodo en línea, `true` aparece en la `Health` columna.
 
 +
 
 NOTE: En el resultado del comando, verá una advertencia de que alta disponibilidad del clúster no está configurado. Puede ignorar la advertencia en este momento.
 
 . Realice las acciones que le requerían para detener o reiniciar el nodo.
-. Arrancar el nodo desconectar desde el símbolo del sistema DEL CARGADOR:
+. Arranque el nodo desconectado desde el símbolo del sistema de Loader:
 `boot_ontap`
 . Compruebe que ambos nodos estén en buen estado:
 `cluster show`
 +
-Para ambos nodos, `true` aparece en la `Health` columna.
+En ambos nodos, `true` aparece en la `Health` columna.
 
 +
 
 NOTE: En el resultado del comando, verá una advertencia de que alta disponibilidad del clúster no está configurado. Puede ignorar la advertencia en este momento.
 
-. Volver a habilitar el clúster de alta disponibilidad:
+. Volver a habilitar clúster de alta disponibilidad:
 `cluster ha modify -configured true`
-. Si anteriormente de este procedimiento reubica los agregados al nodo del partner, moverlos de nuevo a su nodo de origen; de lo contrario, vaya al siguiente paso:
+. Si anteriormente, en este procedimiento, reubicó agregados al nodo partner, muévalos de nuevo a su nodo principal; de lo contrario, vaya al paso siguiente:
 `storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
 +
-Por ejemplo, los agregados aggr1, aggr2 y test2_aggr se están moviendo del nodo 2 al nodo 1:
+Por ejemplo, los agregados aggr1, aggr2 y test2_aggr se están moviendo del nodo node2 al nodo node1:
 `storage aggregate relocation start -node _node2_ -destination _node1_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
 
 . Revertir los LIF a sus puertos raíz:
@@ -142,10 +142,10 @@ Por ejemplo, los agregados aggr1, aggr2 y test2_aggr se están moviendo del nodo
 .. Vea los LIF que no están en casa:
 `network interface show -is-home false`
 +
-Obtenga más información sobre `network interface show` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `network interface show` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html["Referencia de comandos del ONTAP"^].
 
 .. Si hay LIF sin hogar que no se migraron desde el nodo inactivo, compruebe que es seguro moverlas antes de revertir.
-.. Si puede hacerlo con seguridad, revierte el inicio de todos los LIF.  `network interface revert *` + Aprenda más sobre `network interface revert` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-revert.html["Referencia de comandos de la ONTAP"^].
+.. Si puede hacerlo con seguridad, revierte el inicio de todos los LIF.  `network interface revert *` + Aprenda más sobre `network interface revert` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-revert.html["Referencia de comandos del ONTAP"^].
 
 
 

@@ -16,7 +16,7 @@ summary: Las políticas de firewall mejoran la seguridad del clúster
 [role="lead"]
 La configuración de un firewall mejora la seguridad del clúster y ayuda a evitar el acceso no autorizado al sistema de almacenamiento. De forma predeterminada, el firewall incorporado está configurado para permitir el acceso remoto a un conjunto específico de servicios IP para LIF de datos, gestión e interconexión de clústeres.
 
-A partir de ONTAP 9.10.1:
+A partir de ONTAP 9,10.1:
 
 * Las políticas de firewall quedan obsoletas y se reemplazan por las políticas de servicio de LIF. Anteriormente, el firewall incorporado se gestionaba mediante directivas de firewall. Esta funcionalidad ahora se logra usando una política de servicio de LIF.
 * Todas las políticas de firewall están vacías y no abren ningún puerto en el firewall subyacente. En su lugar, se deben abrir todos los puertos con una política de servicio de LIF.
@@ -48,11 +48,11 @@ Puede usar esto para realizar una política con características similares dentr
 
 Las políticas de firewall de LIF se utilizan para restringir el acceso al clúster en cada LIF. Debe entender cómo afecta la política de firewall predeterminada al acceso del sistema sobre cada tipo de LIF y cómo puede personalizar una política de firewall para aumentar o reducir la seguridad de una LIF.
 
-Cuando se configura una LIF mediante `network interface create` `network interface modify` el comando o, el valor especificado para `-firewall-policy` el parámetro determina los protocolos de servicio y las direcciones IP que permiten acceder a la LIF. Obtenga más información sobre `network interface` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface["Referencia de comandos de la ONTAP"^].
+Cuando se configura una LIF mediante `network interface create` `network interface modify` el comando o, el valor especificado para `-firewall-policy` el parámetro determina los protocolos de servicio y las direcciones IP que permiten acceder a la LIF. Obtenga más información sobre `network interface` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface["Referencia de comandos del ONTAP"^].
 
 En muchos casos puede aceptar el valor predeterminado de la política de firewall. En otros casos, es posible que deba restringir el acceso a determinadas direcciones IP y ciertos protocolos de servicio de gestión. Los protocolos de servicio de gestión disponibles incluyen SSH, HTTP, HTTPS, Telnet, NTP, NDMP, NDMPS, RSH, DNS Y SNMP.
 
-De forma predeterminada, la política de firewall para todas las LIF del clúster es `""` y no se puede modificar.
+La política de firewall para todas las LIF de clúster se establece de forma predeterminada en `""` y no se puede modificar.
 
 En la siguiente tabla se describen las políticas de firewall predeterminadas que se asignan a cada LIF, en función de su rol (ONTAP 9.5 y versiones anteriores) o política de servicio (ONTAP 9.6 y versiones posteriores), al crear la LIF:
 
@@ -96,7 +96,7 @@ Todas las LIF de interconexión de clústeres
 
 
  a| 
-sql server
+los datos
  a| 
 dns, ndmp, ndmps, portmap
  a| 
@@ -145,7 +145,7 @@ Para quitar el servicio portmap de una política de firewall de SVM o clúster (
 
 `system services firewall policy delete -vserver SVM -policy mgmt|intercluster|data|custom -service portmap`
 
-Puede usar el comando network interface modify para aplicar la política del firewall a una LIF existente. Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos de la ONTAP"^].
+Puede usar el comando network interface modify para aplicar la política del firewall a una LIF existente. Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].
 
 
 
@@ -154,7 +154,7 @@ Puede usar el comando network interface modify para aplicar la política del fir
 Las políticas de firewall predeterminadas se asignan a cada LIF al crear la LIF. En muchos casos, la configuración predeterminada del firewall funciona bien y no es necesario modificarla. Si desea cambiar los servicios de red o las direcciones IP que pueden acceder a una LIF, puede crear una política de firewall personalizada y asignarla a la LIF.
 
 .Acerca de esta tarea
-* No puede crear una directiva de firewall con `policy` nombre `data`,  `intercluster`,  `cluster`, o. `mgmt`.
+* No puede crear una política de firewall con el `policy` nombre `data`, ,  `intercluster`, ,  `cluster`o `mgmt`.
 +
 Estos valores se reservan para las políticas de firewall definidas por el sistema.
 
@@ -165,15 +165,15 @@ La política de firewall para las LIF del clúster se establece en 0.0.0.0/0 par
 * Si necesita quitar un servicio de una política, debe eliminar la política de firewall existente y crear una nueva.
 * Si IPv6 está habilitado en el clúster, puede crear políticas de firewall con direcciones IPv6.
 +
-Una vez que IPv6 está habilitado,  `data`, `intercluster`, y. `mgmt` Las políticas de firewall incluyen ::/0, el comodín IPv6, en su lista de direcciones aceptadas.
+Después de activar IPv6,  `data`, `intercluster` y `mgmt` las políticas de firewall incluyen ::/0, el comodín IPv6, en su lista de direcciones aceptadas.
 
 * Cuando se usa System Manager para configurar la funcionalidad de protección de datos en todos los clústeres, se debe asegurarse de que las direcciones IP de LIF entre clústeres estén incluidas en la lista permitida y que el servicio HTTPS esté en las LIF entre clústeres y en los firewalls de propiedad de la empresa.
 +
-De forma predeterminada, la `intercluster` La directiva de firewall permite el acceso desde todas las direcciones IP (0.0.0.0/0, o ::/0 para IPv6) y habilita los servicios HTTPS, NDMP y NDMPS. Si modifica esta política predeterminada o crea su propia política de firewall para las LIF de interconexión de clústeres, debe añadir cada dirección IP de la LIF entre clústeres a la lista permitida y habilitar el servicio HTTPS.
+De forma predeterminada, la `intercluster` política de firewall permite el acceso desde todas las direcciones IP (0,0.0,0/0, o ::/0 para IPv6) y habilita los servicios HTTPS, NDMP y NDMPS. Si modifica esta política predeterminada o crea su propia política de firewall para las LIF de interconexión de clústeres, debe añadir cada dirección IP de la LIF entre clústeres a la lista permitida y habilitar el servicio HTTPS.
 
 * A partir de ONTAP 9.6, los servicios de firewall HTTPS y SSH no son compatibles.
 +
-En ONTAP 9.6, el `management-https` y.. `management-ssh` Los servicios LIF están disponibles para el acceso de gestión HTTPS y SSH.
+En ONTAP 9.6, los `management-https` `management-ssh` servicios LIF y están disponibles para el acceso de gestión HTTPS y SSH.
 
 
 
@@ -185,14 +185,14 @@ En ONTAP 9.6, el `management-https` y.. `management-ssh` Los servicios LIF está
 +
 Puede usar este comando varias veces para agregar más de un servicio de red y una lista de direcciones IP permitidas para cada servicio de la directiva de firewall.
 
-. Compruebe que la directiva se ha agregado correctamente utilizando `system services firewall policy show` comando.
+. Compruebe que la política se ha agregado correctamente mediante `system services firewall policy show` el comando.
 . Aplique la política de firewall a una LIF:
 +
 `network interface modify -vserver _vserver_name_ -lif _lif_name_ -firewall-policy _policy_name_`
 
-. Compruebe que la política se ha añadido correctamente a la LIF mediante el `network interface show -fields firewall-policy` comando.
+. Compruebe que la política se ha agregado correctamente a la LIF mediante `network interface show -fields firewall-policy` el comando.
 +
-Obtenga más información sobre `network interface show` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `network interface show` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html["Referencia de comandos del ONTAP"^].
 
 
 

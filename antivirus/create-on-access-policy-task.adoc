@@ -15,12 +15,12 @@ Una directiva en tiempo real define el ámbito de un análisis en tiempo real. P
 
 .Acerca de esta tarea
 * Puede especificar el tamaño máximo de archivo que se va a escanear, las extensiones de archivo y las rutas que se van a incluir en el escaneo, y las extensiones de archivo y las rutas de acceso que se van a excluir del escaneo.
-* Puede ajustar la `scan-mandatory` Opción de desactivar para especificar que se permite el acceso al archivo cuando no hay servidores Vscan disponibles para el análisis de virus.
+* Puede configurar `scan-mandatory` la opción como OFF para especificar que se permita el acceso a archivos cuando no haya servidores Vscan disponibles para detección de virus.
 * De forma predeterminada, ONTAP crea una política de acceso llamada «default_cifs» y la habilita para todas las SVM de un clúster.
-* Cualquier archivo que califique para la exclusión de exploración basada en `paths-to-exclude`, `file-ext-to-exclude`, o. `max-file-size` los parámetros no se consideran para la adquisición, incluso si el `scan-mandatory` la opción está activada. (Compruebe esto link:vscan-server-connection-concept.html["resolución de problemas"] sección para los problemas de conectividad relacionados con el `scan-mandatory` opcional.)
+* Cualquier archivo que califique para la exclusión de exploración basada en los `paths-to-exclude` `file-ext-to-exclude` `max-file-size` parámetros , , o no se tiene en cuenta para la exploración, incluso si la `scan-mandatory` opción está establecida en Activado. (Consulte esta link:vscan-server-connection-concept.html["resolución de problemas"] sección para ver los problemas de conectividad relacionados con la `scan-mandatory` opción.)
 * De forma predeterminada, solo se analizan los volúmenes de lectura/escritura. Puede especificar filtros que permitan el análisis de volúmenes de sólo lectura o que restrinjan el análisis de archivos abiertos con acceso de ejecución.
 * La detección de virus no se realiza en un recurso compartido de SMB para el cual el parámetro continuamente disponible se establece en Yes.
-* Consulte link:architecture-concept.html["Arquitectura de antivirus"] Sección para obtener detalles sobre _Vscan file-operations profile_.
+* Consulte la link:architecture-concept.html["Arquitectura de antivirus"] sección para obtener más información sobre _Vscan file-operations profile_.
 * Puede crear un máximo de diez (10) políticas de acceso por SVM. Sin embargo, solo puede habilitar una política de acceso a la vez.
 +
 ** Puede excluir un máximo de cien (100) rutas y extensiones de archivos del análisis de virus en una política de acceso.
@@ -29,12 +29,12 @@ Una directiva en tiempo real define el ámbito de un análisis en tiempo real. P
 * Algunas recomendaciones de exclusión de archivos:
 +
 ** Considere la posibilidad de excluir archivos grandes (se puede especificar el tamaño de archivo) del análisis de virus porque pueden provocar una respuesta lenta o tiempos de espera de solicitudes de análisis para los usuarios de CIFS. El tamaño de archivo predeterminado para la exclusión es 2GB.
-** Considere la posibilidad de excluir extensiones de archivo como `.vhd` y.. `.tmp` debido a que los archivos con estas extensiones pueden no ser adecuados para escanear.
+** Considere la posibilidad de excluir extensiones de archivo `.vhd` como y `.tmp` porque los archivos con estas extensiones pueden no ser adecuados para escanear.
 ** Considere la posibilidad de excluir las rutas de archivos, como el directorio en cuarentena o las rutas en las que sólo se almacenan los discos duros virtuales o las bases de datos.
 ** Verifique que todas las exclusiones están especificadas en la misma política, porque sólo se puede activar una política a la vez. NetApp recomienda tener el mismo conjunto de exclusiones especificado en el motor antivirus.
 
 
-* Se necesita una política de acceso para un xref:create-on-demand-task-task.html[análisis bajo demanda]. Para evitar la búsqueda en acceso, debe establecer `-scan-files-with-no-ext` hasta false y. `-file-ext-to-exclude` a * para excluir todas las extensiones.
+* Se necesita una política de acceso para un xref:create-on-demand-task-task.html[análisis bajo demanda]. Para evitar la búsqueda en acceso, debe establecer `-scan-files-with-no-ext` en false y `-file-ext-to-exclude` en * para excluir todas las extensiones.
 
 
 .Pasos
@@ -44,9 +44,8 @@ Una directiva en tiempo real define el ámbito de un análisis en tiempo real. P
 
 +
 ** Especifique una SVM de datos para una política definida para una SVM individual, una SVM de administrador de clúster para una política definida para todas las SVM de un clúster.
-** La `-file-ext-to-exclude` el ajuste anula la `-file-ext-to-include` ajuste.
-** Configurado `-scan-files-with-no-ext` true para analizar archivos sin extensiones.
-El siguiente comando crea una política de acceso llamada `Policy1` en la `vs1` SVM:
+**  `-file-ext-to-exclude`El ajuste anula el `-file-ext-to-include` ajuste.
+** Establecer `-scan-files-with-no-ext` como verdadero para escanear archivos sin extensiones. El siguiente comando crea una política de acceso llamada en `Policy1` la `vs1` SVM:
 
 
 +
@@ -54,12 +53,12 @@ El siguiente comando crea una política de acceso llamada `Policy1` en la `vs1` 
 ----
 cluster1::> vserver vscan on-access-policy create -vserver vs1 -policy-name Policy1 -protocol CIFS -filters scan-ro-volume -max-file-size 3GB -file-ext-to-include "mp*","tx*" -file-ext-to-exclude "mp3","txt" -scan-files-with-no-ext false -paths-to-exclude "\vol\a b\","\vol\a,b\"
 ----
-. Compruebe que se ha creado la política de acceso: `vserver vscan on-access-policy show -instance _data_SVM|cluster_admin_SVM_ -policy-name _name_`
+. Compruebe que se ha creado la política de acceso continuo: `vserver vscan on-access-policy show -instance _data_SVM|cluster_admin_SVM_ -policy-name _name_`
 +
-Obtenga más información sobre `vserver vscan on-access-policy` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-vscan-on-access-policy-show.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `vserver vscan on-access-policy` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-vscan-on-access-policy-show.html["Referencia de comandos del ONTAP"^].
 
 +
-El siguiente comando muestra los detalles de `Policy1` política:
+El siguiente comando muestra los detalles de `Policy1` la política:
 
 +
 [listing]

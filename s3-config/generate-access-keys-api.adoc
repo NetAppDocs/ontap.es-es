@@ -27,8 +27,8 @@ Asegúrese de lo siguiente:
 . DNS está configurado en la máquina virtual de almacenamiento. Consulte link:../networking/configure_dns_services_auto.html["Configure los servicios DNS"].
 . Hay un certificado de entidad de certificación raíz (CA) autofirmado del servidor LDAP instalado en la máquina virtual de almacenamiento. Consulte link:../nfs-config/install-self-signed-root-ca-certificate-svm-task.html["Instale el certificado de CA raíz autofirmado en la SVM"].
 . Se configura un cliente LDAP con TLS habilitado en la máquina virtual de almacenamiento. Consulte link:../nfs-config/create-ldap-client-config-task.html["Cree una configuración de cliente LDAP"].
-. Asocie la configuración del cliente al Vserver. Consulte link:../nfs-config/enable-ldap-svms-task.html["Asocie la configuración del cliente LDAP con las SVM"]. Obtenga más información sobre `vserver services name-service ldap create` en el link:https://docs.netapp.com/us-en/ontap-cli//vserver-services-name-service-ldap-create.html["Referencia de comandos de la ONTAP"^].
-. Si utiliza una máquina virtual de almacenamiento de datos, cree una interfaz de red de gestión (LIF) y en la máquina virtual, así como una política de servicio para la LIF. Obtenga más información sobre `network interface create` y `network interface service-policy create` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface["Referencia de comandos de la ONTAP"^].
+. Asocie la configuración del cliente al Vserver. Consulte link:../nfs-config/enable-ldap-svms-task.html["Asocie la configuración del cliente LDAP con las SVM"]. Obtenga más información sobre `vserver services name-service ldap create` en el link:https://docs.netapp.com/us-en/ontap-cli//vserver-services-name-service-ldap-create.html["Referencia de comandos del ONTAP"^].
+. Si utiliza una máquina virtual de almacenamiento de datos, cree una interfaz de red de gestión (LIF) y en la máquina virtual, así como una política de servicio para la LIF. Obtenga más información sobre `network interface create` y `network interface service-policy create` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface["Referencia de comandos del ONTAP"^].
 
 
 
@@ -43,27 +43,26 @@ ns-switch modify -vserver <vserver-name> -database group -sources files,ldap
 ns-switch modify -vserver <vserver-name> -database passwd -sources files,ldap
 ----
 +
-Obtenga más información sobre `vserver services name-service ns-switch modify` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-services-name-service-ns-switch-modify.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `vserver services name-service ns-switch modify` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-services-name-service-ns-switch-modify.html["Referencia de comandos del ONTAP"^].
 
-. Cree un rol personalizado con acceso al extremo de la API de REST DE S3 usuarios:
-`security login rest-role create -vserver <vserver-name> -role <custom-role-name> -api "/api/protocols/s3/services/*/users" -access <access-type>`
-En este ejemplo, la `s3-role` Se genera el rol para los usuarios en la máquina virtual de almacenamiento `svm-1`, a los que se otorgan todos los derechos de acceso, leer, crear y actualizar.
+. Crear un rol personalizado con acceso al punto final de la API REST DE S3 usuarios:
+`security login rest-role create -vserver <vserver-name> -role <custom-role-name> -api "/api/protocols/s3/services/*/users" -access <access-type>` En este ejemplo, el `s3-role` rol se genera para los usuarios de la VM de almacenamiento `svm-1` , a los que se otorgan todos los derechos de acceso, lectura, creación y actualización.
 +
 [listing]
 ----
 security login rest-role create -vserver svm-1 -role s3role -api "/api/protocols/s3/services/*/users" -access all
 ----
 +
-Obtenga más información sobre `security login rest-role create` en el link:https://docs.netapp.com/us-en/ontap-cli/security-login-rest-role-create.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `security login rest-role create` en el link:https://docs.netapp.com/us-en/ontap-cli/security-login-rest-role-create.html["Referencia de comandos del ONTAP"^].
 
-. Cree un grupo de usuarios LDAP con el comando security login y añada el nuevo rol personalizado para acceder al punto final de la API DE REST DE usuarios de S3. Obtenga más información sobre `security login create` en el link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html["Referencia de comandos de la ONTAP"^].
+. Cree un grupo de usuarios LDAP con el comando security login y añada el nuevo rol personalizado para acceder al punto final de la API DE REST DE usuarios de S3. Obtenga más información sobre `security login create` en el link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html["Referencia de comandos del ONTAP"^].
 +
 [listing]
 ----
 security login create -user-or-group-name <ldap-group-name> -application http -authentication-method nsswitch -role <custom-role-name> -is-ns-switch-group yes
 ----
 +
-En este ejemplo, el grupo LDAP `ldap-group-1` se crea en `svm-1`, y el rol personalizado `s3role` Se ha añadido a él para acceder al punto final de la API, junto con la habilitación del acceso LDAP en el modo de enlace rápido.
+En este ejemplo, el grupo LDAP `ldap-group-1` se crea en `svm-1`y `s3role` se agrega el rol personalizado para acceder al punto final de la API, junto con la activación del acceso LDAP en el modo de enlace rápido.
 
 +
 [listing]
@@ -75,7 +74,7 @@ Para obtener más información, consulte link:../nfs-admin/ldap-fast-bind-nsswit
 
 
 
-Al agregar el rol personalizado al dominio o grupo LDAP, los usuarios de ese grupo tendrán acceso limitado a la ONTAP `/api/protocols/s3/services/{svm.uuid}/users` extremo. Al invocar la API, los usuarios del grupo de dominio o LDAP pueden generar su propio acceso y claves secretas para acceder al cliente S3. Pueden generar las claves solo para ellos mismos y no para otros usuarios.
+Agregar el rol personalizado al dominio o grupo LDAP permite a los usuarios de ese grupo un acceso limitado al `/api/protocols/s3/services/{svm.uuid}/users` punto final de ONTAP. Al invocar la API, los usuarios del grupo de dominio o LDAP pueden generar su propio acceso y claves secretas para acceder al cliente S3. Pueden generar las claves solo para ellos mismos y no para otros usuarios.
 
 
 

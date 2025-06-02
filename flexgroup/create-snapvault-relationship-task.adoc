@@ -17,9 +17,9 @@ Puede configurar una relación de SnapVault y asignar una política de SnapVault
 Debe tener en cuenta las consideraciones que se deben tener en cuenta para crear una relación de SnapVault para los volúmenes de FlexGroup.
 
 .Pasos
-. Cree un volumen de FlexGroup de destino del tipo `DP` Esto tiene la misma cantidad de componentes que el volumen FlexGroup de origen:
+. Cree un volumen FlexGroup de destino del tipo `DP` que tenga la misma cantidad de componentes que el volumen FlexGroup de origen:
 +
-.. En el clúster de origen, determine la cantidad de componentes en el volumen de FlexGroup de origen: `volume show -volume volume_name* -is-constituent true`
+.. En el clúster de origen, determine la cantidad de componentes en el volumen FlexGroup de origen: `volume show -volume volume_name* -is-constituent true`
 +
 [listing]
 ----
@@ -36,7 +36,7 @@ vss       src__0006    aggr1        online     RW         25TB    10.64TB   57%
 vss       src__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
 ...
 ----
-.. A partir del clúster de destino, cree un volumen de FlexGroup de destino de tipo `DP` Con el mismo número de componentes que el volumen FlexGroup de origen.
+.. Desde el clúster de destino, cree un volumen FlexGroup de destino de tipo `DP` con la misma cantidad de componentes que el volumen FlexGroup de origen.
 +
 [listing]
 ----
@@ -46,7 +46,7 @@ Warning: The FlexGroup volume "dst" will be created with the following number of
 Do you want to continue? {y|n}: y
 [Job 766] Job succeeded: Successful
 ----
-.. En el clúster de destino, compruebe el número de componentes en el volumen de FlexGroup de destino: `volume show -volume volume_name* -is-constituent true`
+.. En el clúster de destino, compruebe la cantidad de componentes en el volumen de FlexGroup de destino: `volume show -volume volume_name* -is-constituent true`
 +
 [listing]
 ----
@@ -67,10 +67,10 @@ vsd       dst__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
 
 . Crear un programa de trabajo: `job schedule cron create -name job_name -month month -dayofweek day_of_week -day day_of_month -hour hour -minute minute`
 +
-Para `-month`, `-dayofweek`, y. `-hour`, puede especificar `all` para ejecutar el trabajo cada mes, día de la semana y hora, respectivamente.
+Para `-month` `-dayofweek` , y `-hour`, puede especificar `all` que se ejecute el trabajo cada mes, día de la semana y hora, respectivamente.
 
 +
-En el ejemplo siguiente se crea una programación de trabajo denominada `my_weekly` Es decir, los sábados a las 3:00 horas:
+El siguiente ejemplo crea una programación de trabajo llamada `my_weekly` que se ejecuta los sábados a las 3:00 a.m.:
 
 +
 [listing]
@@ -79,23 +79,23 @@ cluster1::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour
 ----
 . Cree una política de SnapVault y, a continuación, defina una regla para la política de SnapVault:
 +
-.. Cree una directiva personalizada de tipo `vault` Para la relación de SnapVault: `snapmirror policy create -vserver svm_name -policy policy_name -type vault`
+.. Cree una política de tipo personalizada `vault` para la relación de SnapVault: `snapmirror policy create -vserver svm_name -policy policy_name -type vault`
 .. Defina una regla para la política de SnapVault que determine qué instantáneas se transfieren durante las operaciones de inicialización y actualización: `snapmirror policy add-rule -vserver svm_name -policy policy_for_rule - snapmirror-label snapmirror-label -keep retention_count -schedule schedule`
 
 
 +
-Si no crea una política personalizada, debe especificar el `XDPDefault` Política de relaciones de SnapVault.
+Si no crea una política personalizada, debe especificar `XDPDefault` la política para las relaciones de SnapVault.
 
 . Crear una relación de SnapVault: `snapmirror create -source-path src_svm:src_flexgroup -destination-path dest_svm:dest_flexgroup -type XDP -schedule schedule_name -policy XDPDefault`
 +
-En ONTAP 9.4 y anteriores, si la política no se especifica con el `snapmirror create` comando, el `MirrorAllSnapshots` la directiva se utiliza de forma predeterminada. En ONTAP 9.5, si la política no se especifica con el `snapmirror create` comando, el `MirrorAndVault` la directiva se utiliza de forma predeterminada.
+En ONTAP 9, 4 y anteriores, si la política no se especifica con el `snapmirror create` comando, la `MirrorAllSnapshots` política se utiliza de forma predeterminada. En ONTAP 9.5, si la política no se especifica con `snapmirror create` el comando, `MirrorAndVault` se utiliza de forma predeterminada.
 
 +
 [listing]
 ----
 cluster2::> snapmirror create -source-path vss:srcFG -destination-path vsd:dstFG -type XDP -schedule Daily -policy XDPDefault
 ----
-. Desde el clúster de destino, inicialice la relación SnapVault realizando una transferencia básica: `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
+. Desde el clúster de destino, inicialice la relación de SnapVault realizando una transferencia básica: `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
 +
 [listing]
 ----

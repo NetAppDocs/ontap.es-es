@@ -25,17 +25,16 @@ El nombre del recurso compartido puede utilizar los siguientes nombres dinámico
 +
 ** `%w` (Nombre de usuario de Windows del usuario)
 ** `%d` (Nombre de dominio de Windows del usuario)
-**  `%u` (Nombre de usuario UNIX asignado del usuario)
-Para que el nombre del recurso compartido sea único en todos los directorios iniciales, el nombre del recurso compartido debe contener cualquiera de los dos/`%w` o la `%u` variable. El nombre del recurso compartido puede contener ambos `%d` y la/`%w` variable (por ejemplo, `%d`/`%w`), o el nombre del recurso compartido puede contener una parte estática y una parte variable (por ejemplo, home_/`%w`).
+**  `%u` (Nombre de usuario UNIX asignado al usuario) Para que el nombre del recurso compartido sea único en todos los directorios raíz, el nombre del recurso compartido debe contener/`%w` `%u` la variable o. El nombre del recurso compartido puede contener tanto la `%d`/`%w` variable como la variable (por ejemplo, `%d`/`%w`), o el nombre del recurso compartido puede contener una parte estática y una parte variable (por ejemplo, home_/`%w`).
 
 
 * *Compartir ruta*
 +
-Esta es la ruta relativa, que define el recurso compartido y, por lo tanto, está asociada con uno de los nombres de recurso compartido, que se anexa a cada ruta de búsqueda para generar toda la ruta de directorio inicial del usuario desde la raíz de la SVM. Puede ser estático (por ejemplo, `home`), dinámico (por ejemplo, `%w`), o una combinación de los dos (por ejemplo, `eng/%w`).
+Esta es la ruta relativa, que define el recurso compartido y, por lo tanto, está asociada con uno de los nombres de recurso compartido, que se anexa a cada ruta de búsqueda para generar toda la ruta de directorio inicial del usuario desde la raíz de la SVM. Puede ser estático (por ejemplo `home`, ), dinámico (por ejemplo, `%w`) o una combinación de ambos (por ejemplo, `eng/%w`).
 
 * *Rutas de búsqueda*
 +
-Este es el conjunto de rutas absolutas desde la raíz de la SVM que especifique que dirige la búsqueda ONTAP de directorios iniciales. Puede especificar una o más rutas de búsqueda mediante `vserver cifs home-directory search-path add` el comando. Si especifica varias rutas de búsqueda, ONTAP las intenta en el orden especificado hasta que encuentre una ruta válida. Obtenga más información sobre `vserver cifs home-directory search-path add` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-cifs-home-directory-search-path-add.html["Referencia de comandos de la ONTAP"^].
+Este es el conjunto de rutas absolutas desde la raíz de la SVM que especifique que dirige la búsqueda ONTAP de directorios iniciales. Puede especificar una o más rutas de búsqueda mediante `vserver cifs home-directory search-path add` el comando. Si especifica varias rutas de búsqueda, ONTAP las intenta en el orden especificado hasta que encuentre una ruta válida. Obtenga más información sobre `vserver cifs home-directory search-path add` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-cifs-home-directory-search-path-add.html["Referencia de comandos del ONTAP"^].
 
 * *Directorio*
 +
@@ -49,23 +48,23 @@ Por ejemplo, considere la siguiente configuración:
 * Dominio de usuario: acme
 * Nombre de usuario: Jsmith
 * Nombre de SVM: vs1
-* Directorio principal nombre compartido #1: home_ `%w` - vía compartida: `%w`
-* Nombre del recurso compartido del directorio inicial #2: `%w` - vía compartida: `%d/%w`
+* Nombre compartido del directorio inicial #1: Home_ `%w` - Ruta de acceso compartida: `%w`
+* Nombre compartido del directorio inicial #2: `%w` - Ruta de acceso compartida: `%d/%w`
 * Ruta de búsqueda #1: `/vol0home/home`
 * Ruta de búsqueda #2: `/vol1home/home`
 * Ruta de búsqueda #3: `/vol2home/home`
 * Directorio inicial: `/vol1home/home/jsmith`
 
 
-Escenario 1: El usuario se conecta a. `\\vs1\home_jsmith`. Esto coincide con el nombre del primer recurso compartido del directorio principal y genera la ruta de acceso relativa `jsmith`. ONTAP busca ahora un directorio llamado `jsmith` comprobando cada ruta de búsqueda en orden:
+Escenario 1: El usuario se conecta a `\\vs1\home_jsmith`. Esto coincide con el primer nombre compartido del directorio raíz y genera la ruta de acceso relativa `jsmith` . ONTAP ahora busca un directorio llamado `jsmith` comprobando cada ruta de búsqueda en orden:
 
-* `/vol0home/home/jsmith` no existe; pasar a la ruta de búsqueda #2.
-* `/vol1home/home/jsmith` existe; por lo tanto, la ruta de búsqueda #3 no está activada; el usuario está conectado a su directorio principal.
+* `/vol0home/home/jsmith` no existe; pasando a la ruta de búsqueda #2.
+* `/vol1home/home/jsmith` existe; por lo tanto, la ruta de búsqueda #3 no está seleccionada; el usuario está ahora conectado a su directorio principal.
 
 
-Escenario 2: El usuario se conecta a. `\\vs1\jsmith`. Esto coincide con el segundo nombre del recurso compartido del directorio principal y genera la ruta de acceso relativa `acme/jsmith`. ONTAP busca ahora un directorio llamado `acme/jsmith` comprobando cada ruta de búsqueda en orden:
+Escenario 2: El usuario se conecta a `\\vs1\jsmith`. Esto coincide con el segundo nombre compartido del directorio raíz y genera la ruta de acceso relativa `acme/jsmith` . ONTAP ahora busca un directorio llamado `acme/jsmith` comprobando cada ruta de búsqueda en orden:
 
-* `/vol0home/home/acme/jsmith` no existe; pasar a la ruta de búsqueda #2.
-* `/vol1home/home/acme/jsmith` no existe; se pasa a la ruta de búsqueda #3.
+* `/vol0home/home/acme/jsmith` no existe; pasando a la ruta de búsqueda #2.
+* `/vol1home/home/acme/jsmith` no existe; pasando a la ruta de búsqueda #3.
 * `/vol2home/home/acme/jsmith` no existe; el directorio principal no existe; por lo tanto, la conexión falla.
 

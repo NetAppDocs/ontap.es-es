@@ -23,10 +23,10 @@ Los servidores de claves externos pueden utilizarse para las claves NSE, NVE, NA
 == Antes de empezar
 
 * link:install-ssl-certificates-hardware-task.html["La gestión de claves KMIP debe estar habilitada para la SVM"].
-* Este proceso solo admite servidores de claves que utilizan KMIP. Para obtener una lista de los servidores de claves compatibles, consulte link:http://mysupport.netapp.com/matrix/["Herramienta de matriz de interoperabilidad de NetApp"^].
+* Este proceso solo admite servidores de claves que utilizan KMIP. Para obtener una lista de los servidores de claves compatibles, compruebe el link:http://mysupport.netapp.com/matrix/["Herramienta de matriz de interoperabilidad de NetApp"^].
 * Todos los nodos del clúster deben ejecutar ONTAP 9.11.1 o una versión posterior.
-* El orden de los servidores enumera los argumentos en la `-secondary-key-servers` El parámetro refleja el orden de acceso de los servidores de gestión de claves externas (KMIP).
-* Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos de la ONTAP"^].
+* El orden de los argumentos de lista de servidores en el `-secondary-key-servers` parámetro refleja el orden de acceso de los servidores de gestión de claves externas (KMIP).
+* Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].
 
 
 
@@ -40,20 +40,18 @@ El procedimiento de configuración depende de si se ha configurado o no un servi
 .Añada servidores de claves primarios y secundarios a una SVM
 --
 . Confirme que no se ha habilitado ninguna gestión de claves para el clúster:
-`security key-manager external show -vserver _svm_name_`
-Si la SVM ya tiene el máximo de cuatro servidores de claves primarias habilitados, debe eliminar uno de los servidores de claves primarios existentes antes de añadir uno nuevo.
-. Habilite el gestor de claves principal:
+`security key-manager external show -vserver _svm_name_` Si la SVM ya tiene habilitado el máximo de cuatro servidores de claves primarios, debe quitar uno de los servidores de claves primarios existentes antes de agregar uno nuevo.
+. Habilite el administrador de claves primario:
 `security key-manager external enable -vserver _svm_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
-. Modifique el servidor de claves primario para añadir servidores de claves secundarios. La `-secondary-key-servers` el parámetro acepta una lista de hasta tres servidores de claves separados por coma.
+. Modifique el servidor de claves primario para añadir servidores de claves secundarios.  `-secondary-key-servers`El parámetro acepta una lista separada por comas de hasta tres servidores de claves.
 `security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
 
 
 --
 .Añadir servidores de claves secundarios a un servidor de claves primario existente
 --
-. Modifique el servidor de claves primario para añadir servidores de claves secundarios. La `-secondary-key-servers` el parámetro acepta una lista de hasta tres servidores de claves separados por coma.
-`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
-Para obtener más información sobre los servidores de claves secundarios, consulte  <<mod-secondary>>.
+. Modifique el servidor de claves primario para añadir servidores de claves secundarios.  `-secondary-key-servers`El parámetro acepta una lista separada por comas de hasta tres servidores de claves.
+`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_` Para obtener más información sobre los servidores de claves secundarios, consulte <<mod-secondary>>.
 
 
 --
@@ -68,7 +66,7 @@ Para modificar clústeres de servidores de claves externos, cambie el estado (pr
 
 === Convertir servidores de claves primarios y secundarios
 
-Para convertir un servidor de claves primario en un servidor de claves secundario, primero debe eliminarlo de la SVM con el `security key-manager external remove-servers` comando.
+Para convertir un servidor de claves primario en un servidor de claves secundario, primero debe quitarlo de la SVM con `security key-manager external remove-servers` el comando.
 
 Para convertir un servidor de claves secundario en un servidor de claves primario, primero se debe quitar el servidor de claves secundario de su servidor de claves primario existente. Consulte <<mod-secondary>>. Si convierte un servidor de claves secundario en un servidor primario mientras elimina una clave existente, intentar agregar un servidor nuevo antes de completar la eliminación y conversión puede provocar la duplicación de claves.
 
@@ -76,8 +74,8 @@ Para convertir un servidor de claves secundario en un servidor de claves primari
 
 === Modificar servidores de claves secundarios
 
-Los servidores de claves secundarios se gestionan con el `-secondary-key-servers` parámetro de `security key-manager external modify-server` comando. La `-secondary-key-servers` el parámetro acepta una lista separada por comas. El orden especificado de los servidores de claves secundarios de la lista determina la secuencia de acceso de los servidores de claves secundarios. El orden de acceso se puede modificar ejecutando el comando `security key-manager external modify-server` con los servidores de claves secundarios introducidos en un orden diferente.
+Los servidores de claves secundarios se gestionan con `-secondary-key-servers` el parámetro `security key-manager external modify-server` del comando.  `-secondary-key-servers`El parámetro acepta una lista separada por comas. El orden especificado de los servidores de claves secundarios de la lista determina la secuencia de acceso de los servidores de claves secundarios. El orden de acceso se puede modificar ejecutando el comando `security key-manager external modify-server` con los servidores de claves secundarios introducidos en una secuencia diferente.
 
-Para eliminar un servidor de claves secundario, el `-secondary-key-servers` los argumentos deben incluir los servidores de claves que desea guardar mientras omite el que se va a quitar. Para quitar todos los servidores de claves secundarios, use el argumento `-`, significando ninguno.
+Para eliminar un servidor de claves secundario, los `-secondary-key-servers` argumentos deben incluir los servidores de claves que desea mantener mientras omite el que se va a eliminar. Para eliminar todos los servidores de claves secundarios, utilice el argumento `-`, que significa ninguno.
 
 Obtenga más información acerca del comando link:https://docs.NetApp.com/us-en/ONTAP-cli/[`security key-manager external`^] en la referencia de comandos de ONTAP.

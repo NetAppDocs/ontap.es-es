@@ -19,9 +19,9 @@ Debe tener en cuenta las consideraciones que se deben tener en cuenta para crear
 link:snapvault-backup-concept.html["Consideraciones sobre la creación de una relación de backup de SnapVault y una relación de protección de datos unificada para volúmenes de FlexGroup"]
 
 .Pasos
-. Cree un volumen de FlexGroup de destino del tipo `DP` Esto tiene la misma cantidad de componentes que el volumen FlexGroup de origen:
+. Cree un volumen FlexGroup de destino del tipo `DP` que tenga la misma cantidad de componentes que el volumen FlexGroup de origen:
 +
-.. En el clúster de origen, determine la cantidad de componentes en el volumen de FlexGroup de origen: `volume show -volume volume_name* -is-constituent true`
+.. En el clúster de origen, determine la cantidad de componentes en el volumen FlexGroup de origen: `volume show -volume volume_name* -is-constituent true`
 +
 [listing]
 ----
@@ -38,7 +38,7 @@ vss       srcFG__0006    aggr1        online     RW         25TB    10.64TB   57
 vss       srcFG__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
 ...
 ----
-.. A partir del clúster de destino, cree un volumen de FlexGroup de destino de tipo `DP` Con el mismo número de componentes que el volumen FlexGroup de origen.
+.. Desde el clúster de destino, cree un volumen FlexGroup de destino de tipo `DP` con la misma cantidad de componentes que el volumen FlexGroup de origen.
 +
 [listing]
 ----
@@ -48,7 +48,7 @@ Warning: The FlexGroup volume "dstFG" will be created with the following number 
 Do you want to continue? {y|n}: y
 [Job 766] Job succeeded: Successful
 ----
-.. En el clúster de destino, compruebe el número de componentes en el volumen de FlexGroup de destino: `volume show -volume volume_name* -is-constituent true`
+.. En el clúster de destino, compruebe la cantidad de componentes en el volumen de FlexGroup de destino: `volume show -volume volume_name* -is-constituent true`
 +
 [listing]
 ----
@@ -69,35 +69,35 @@ vsd       dstFG__0007    Aggr_cmode   online     RW         25TB    10.63TB   57
 
 . Crear un programa de trabajo: `job schedule cron create -name job_name -month month -dayofweek day_of_week -day day_of_month -hour hour -minute minute`
 +
-Para la `-month`, `-dayofweek`, y. `-hour` opciones, puede especificar `all` ejecutar el trabajo cada mes, cada día de la semana y cada hora, respectivamente.
+Para las `-month` `-dayofweek` `-hour` opciones , y, puede especificar `all` que se ejecute el trabajo todos los meses, todos los días de la semana y cada hora, respectivamente.
 
 +
-En el ejemplo siguiente se crea una programación de trabajo denominada `my_weekly` Es decir, los sábados a las 3:00 horas:
+El siguiente ejemplo crea una programación de trabajo llamada `my_weekly` que se ejecuta los sábados a las 3:00 a.m.:
 
 +
 [listing]
 ----
 cluster1::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
 ----
-. Cree una directiva personalizada de tipo `mirror-vault`y, a continuación, defina una regla para la directiva de réplica y almacén:
+. Cree una política de tipo personalizada `mirror-vault` y, a continuación, defina una regla para la política de mirroring y almacén:
 +
-.. Cree una directiva personalizada de tipo `mirror-vault` para la relación de protección de datos unificada: `snapmirror policy create -vserver svm_name -policy policy_name -type mirror-vault`
+.. Cree una política de tipo personalizada `mirror-vault` para la relación de protección de datos unificada: `snapmirror policy create -vserver svm_name -policy policy_name -type mirror-vault`
 .. Defina una regla para la política de mirroring y almacén que determine qué snapshots se transfieren durante las operaciones de inicialización y actualización: `snapmirror policy add-rule -vserver svm_name -policy policy_for_rule - snapmirror-label snapmirror-label -keep retention_count -schedule schedule`
 
 
 +
-Si no se especifica una política personalizada, el `MirrorAndVault` la política se utiliza para relaciones de protección de datos unificadas.
+Si no se especifica una política personalizada, esta `MirrorAndVault` se usa para las relaciones de protección de datos unificadas.
 
 . Cree una relación de protección de datos unificada: `snapmirror create -source-path src_svm:src_flexgroup -destination-path dest_svm:dest_flexgroup -type XDP -schedule schedule_name -policy MirrorAndVault`
 +
-En ONTAP 9.4 y anteriores, si la política no se especifica con el `snapmirror create` comando, el `MirrorAllSnapshots` la directiva se utiliza de forma predeterminada. En ONTAP 9.5, si la política no se especifica con el `snapmirror create` comando, el `MirrorAndVault` la directiva se utiliza de forma predeterminada.
+En ONTAP 9, 4 y anteriores, si la política no se especifica con el `snapmirror create` comando, la `MirrorAllSnapshots` política se utiliza de forma predeterminada. En ONTAP 9.5, si la política no se especifica con `snapmirror create` el comando, `MirrorAndVault` se utiliza de forma predeterminada.
 
 +
 [listing]
 ----
 cluster2::> snapmirror create -source-path vss:srcFG -destination-path vsd:dstFG -type XDP -schedule Daily -policy MirrorAndVault
 ----
-. Desde el clúster de destino, inicialice la relación de protección de datos unificada mediante una transferencia básica: `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
+. En el clúster de destino, inicialice la relación de protección de datos unificada mediante una transferencia básica: `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
 +
 [listing]
 ----

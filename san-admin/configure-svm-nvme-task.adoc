@@ -14,7 +14,7 @@ summary: Si desea usar el protocolo NVMe en un nodo, debe configurar la SVM espe
 Si desea usar el protocolo NVMe en un nodo, debe configurar la SVM específicamente para NVMe.
 
 .Antes de empezar
-Sus adaptadores FC o Ethernet deben ser compatibles con NVMe. Los adaptadores admitidos figuran en la https://hwu.netapp.com["Hardware Universe de NetApp"^].
+Sus adaptadores FC o Ethernet deben ser compatibles con NVMe. Los adaptadores compatibles se enumeran en la https://hwu.netapp.com["NetApp Hardware Universe"^].
 
 .Pasos
 [role="tabbed-block"]
@@ -79,6 +79,9 @@ Para TCP:
 ----
 network port show
 ----
++
+Obtenga más información sobre `network port show` en el link:https://docs.netapp.com/us-en/ontap-cli/network-port-show.html["Referencia de comandos del ONTAP"^].
+
 . Si utiliza ONTAP 9.7 o una versión anterior, quite todos los protocolos de la SVM:
 +
 [source, cli]
@@ -101,7 +104,7 @@ vserver add-protocols -vserver <SVM_name> -protocols nvme
 vserver show -vserver <SVM_name> -fields allowed-protocols
 ----
 +
-NVMe debe ser el único protocolo que se muestra en la `allowed protocols` columna.
+NVMe debe ser el único protocolo mostrado bajo `allowed protocols` la columna.
 
 . Cree el servicio NVMe:
 +
@@ -116,7 +119,7 @@ vserver nvme create -vserver <SVM_name>
 vserver nvme show -vserver <SVM_name>
 ----
 +
-La `Administrative Status` de la SVM debe aparecer como `up`. Obtenga más información sobre `up` en el link:https://docs.netapp.com/us-en/ontap-cli/up.html["Referencia de comandos de la ONTAP"^].
+La `Administrative Status` de la SVM debe aparecer como `up`. Obtenga más información sobre `up` en el link:https://docs.netapp.com/us-en/ontap-cli/up.html["Referencia de comandos del ONTAP"^].
 
 . Cree una LIF NVMe/FC:
 +
@@ -124,13 +127,19 @@ La `Administrative Status` de la SVM debe aparecer como `up`. Obtenga más infor
 +
 [source, cli]
 ----
-network interface create -vserver <SVM_name> -lif <lif_name> -address <ip address> -netmask <netmask_value> -role data -data-protocol fc-nvme -home-node <home_node> -home-port <home_port>
+network interface create -vserver <SVM_name> -lif <lif_name> -role data -data-protocol fc-nvme -home-node <home_node> -home-port <home_port>
 ----
-** Para ONTAP 9.10.1 o posterior, FC o TCP:
+** Para ONTAP 9.10.1 o posterior, FC:
 +
 [source, cli]
 ----
-network interface create -vserver <SVM_name> -lif <lif_name> -address <ip address> -netmask <netmask_value> -service-policy <default-data-nvme-tcp | default-data-nvme-fc> -data-protocol <fcp | fc-nvme | nvme-tcp> -home-node <home_node> -home-port <home_port> -status-admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
+network interface create -vserver <SVM_name> -lif <lif_name> -service-policy <default-data-nvme-tcp | default-data-nvme-fc> -data-protocol <fc-nvme> -home-node <home_node> -home-port <home_port> -status-admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
+----
+** Para ONTAP 9.10.1 o posterior, TCP:
++
+[source, cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -address <ip address> -netmask <netmask_value> -service-policy <default-data-nvme-tcp> -data-protocol <nvme-tcp> -home-node <home_node> -home-port <home_port> -status-admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
 ----
 
 
@@ -142,11 +151,17 @@ network interface create -vserver <SVM_name> -lif <lif_name> -address <ip addres
 ----
 network interface create -vserver <SVM_name> -lif <lif_name> -role data -data-protocol fc-nvme -home-node <home_node> -home-port <home_port>
 ----
-** Para ONTAP 9.10.1 o posterior, FC o TCP:
+** Para ONTAP 9.10.1 o posterior, FC:
 +
 [source, cli]
 ----
-network interface create -vserver <SVM_name> -lif <lif_name> -service-policy <default-data-nvme-tcp | default-data-nvme-fc> -data-protocol <fcp | fc-nvme | nvme-tcp> -home-node <home_node> -home-port <home_port> -status-admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
+network interface create -vserver <SVM_name> -lif <lif_name> -service-policy <default-data-nvme-fc> -data-protocol <fc-nvme> -home-node <home_node> -home-port <home_port> -status-admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
+----
+** Para ONTAP 9.10.1 o posterior, TCP:
++
+[source, cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -address <ip address> -netmask <netmask_value> -service-policy <default-data-nvme-tcp> -data-protocol <nvme-tcp> -home-node <home_node> -home-port <home_port> -status-admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
 ----
 
 

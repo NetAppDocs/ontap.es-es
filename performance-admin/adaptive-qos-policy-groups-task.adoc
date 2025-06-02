@@ -25,27 +25,27 @@ Los grupos de políticas de calidad de servicio adaptativos siempre no son compa
 
 La relación de límites de rendimiento con el tamaño de objeto de almacenamiento se determina por la interacción de los siguientes campos:
 
-* `expected-iops` Es el mínimo esperado de IOPS por TB|GB asignado.
+* `expected-iops` Es el valor mínimo esperado de IOPS por TB|GB asignado.
 +
 [NOTE]
 ====
  `expected-iops` Solo está garantizado en plataformas AFF. `expected-iops` Está garantizado para FabricPool solo si la política de organización en niveles está establecida en «ninguno» y no hay bloques en la nube. `expected-iops` Está garantizada para volúmenes que no están en una relación síncrona de SnapMirror.
 
 ====
-* `peak-iops` Es la cantidad máxima de IOPS posible por TB|GB asignado o usada.
-* `expected-iops-allocation` especifica si el espacio asignado (predeterminado) o el espacio utilizado se usa para el iops esperado.
+* `peak-iops` Es la tasa máxima de IOPS posible por TB|GB asignado o utilizado.
+* `expected-iops-allocation` especifica si se utiliza el espacio asignado (el valor predeterminado) o el espacio utilizado para expected-iops.
 +
 [NOTE]
 ====
-`expected-iops-allocation` Está disponible en ONTAP 9.5 y versiones posteriores. No es compatible con ONTAP 9.4 y versiones anteriores.
+`expected-iops-allocation` Está disponible en ONTAP 9, 5 y posterior. No es compatible con ONTAP 9.4 y versiones anteriores.
 
 ====
-* `peak-iops-allocation` especifica si se utiliza el espacio asignado o el espacio utilizado (el valor predeterminado) para `peak-iops`.
-*  `absolute-min-iops` Es el número mínimo absoluto de IOPS. Puede utilizar este campo con objetos de almacenamiento muy pequeños. Anula ambos `peak-iops` y/o. `expected-iops` cuando `absolute-min-iops` es mayor que el calculado `expected-iops`.
+* `peak-iops-allocation` especifica si se utiliza el espacio asignado o el espacio utilizado (el valor por defecto) para `peak-iops`.
+*  `absolute-min-iops` Es el número mínimo absoluto de IOPS. Puede utilizar este campo con objetos de almacenamiento muy pequeños. Sustituye tanto `peak-iops` y/o `expected-iops` cuando `absolute-min-iops` es mayor que el calculado `expected-iops`.
 +
-Por ejemplo, si ha establecido `expected-iops` Para 1,000 IOPS/TB, y el tamaño del volumen es inferior a 1 GB, calculado `expected-iops` Será un IOP fraccionario. El calculado `peak-iops` será una fracción aún menor. Puede evitar esto mediante la configuración `absolute-min-iops` a un valor realista.
+Por ejemplo, si establece `expected-iops` en 1.000 IOPS/TB y el tamaño del volumen es inferior a 1 GB, el calculado `expected-iops` será un IOP fraccionario. El calculado `peak-iops` será una fracción aún más pequeña. Puede evitarlo estableciendo `absolute-min-iops` un valor realista.
 
-* `block-size` Especifica el tamaño de bloque de I/o de la aplicación. El valor predeterminado es 32K. Los valores válidos son 8K, 16K, 32K, 64K, CUALQUIERA. CUALQUIER significa que no se aplica el tamaño de los bloques.
+* `block-size` Especifica el tamaño del bloque de I/O de la aplicación. El valor predeterminado es 32K. Los valores válidos son 8K, 16K, 32K, 64K, CUALQUIERA. CUALQUIER significa que no se aplica el tamaño de los bloques.
 
 
 Existen tres grupos de políticas de calidad de servicio adaptativas predeterminados disponibles, como se muestra en la siguiente tabla. Puede aplicar estos grupos de políticas directamente a un volumen.
@@ -127,16 +127,16 @@ El volumen o la SVM del archivo a un grupo de políticas
 `qos adaptive-policy-group create -policy group _policy_group_ -vserver _SVM_ -expected-iops _number_of_iops_/TB|GB -peak-iops _number_of_iops_/TB|GB -expected-iops-allocation-space|used-space -peak-iops-allocation allocated-space|used-space -absolute-min-iops _number_of_iops_ -block-size 8K|16K|32K|64K|ANY`
 
 +
-Obtenga más información sobre `qos adaptive-policy-group create` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-adaptive-policy-group-create.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `qos adaptive-policy-group create` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-adaptive-policy-group-create.html["Referencia de comandos del ONTAP"^].
 
 +
 [NOTE]
 ====
-`-expected-iops-allocation` y.. `-block-size` Está disponible en ONTAP 9.5 y versiones posteriores. Estas opciones no son compatibles con ONTAP 9.4 y versiones anteriores.
+`-expected-iops-allocation` Y `-block-size` está disponible en ONTAP 9, 5 y posterior. Estas opciones no son compatibles con ONTAP 9.4 y versiones anteriores.
 
 ====
 +
-El siguiente comando crea un grupo de políticas de calidad de servicio adaptativo `adpg-app1` con `-expected-iops` Establecido en 300 IOPS/TB, `-peak-iops` Establecido en 1,000 IOPS/TB, `-peak-iops-allocation` establezca en `used-space`, y. `-absolute-min-iops` Establecido en 50 IOPS:
+El siguiente comando crea un grupo de políticas de calidad de servicio adaptativa `adpg-app1` con `-expected-iops` un establecido en 300 IOPS/TB, `-peak-iops` se `-peak-iops-allocation` establece en 1.000 IOPS/TB, se establece en `used-space`y `-absolute-min-iops` se establece en 50 IOPS:
 
 +
 [listing]
@@ -148,10 +148,10 @@ cluster1::> qos adaptive-policy-group create -policy group adpg-app1 -vserver vs
 `volume create -vserver SVM -volume _volume_ -aggregate _aggregate_ -size _number_of_ TB|GB -qos-adaptive-policy-group _policy_group_`
 
 +
-Obtenga más información sobre `volume create` en el link:https://docs.netapp.com/us-en/ontap-cli/volume-create.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `volume create` en el link:https://docs.netapp.com/us-en/ontap-cli/volume-create.html["Referencia de comandos del ONTAP"^].
 
 +
-El siguiente comando aplica el grupo de políticas de calidad de servicio adaptativa `adpg-app1` al volumen `app1`:
+El siguiente comando aplica un grupo de políticas de calidad de servicio adaptativas `adpg-app1` al `app1` volumen :
 
 +
 [listing]
@@ -159,7 +159,7 @@ El siguiente comando aplica el grupo de políticas de calidad de servicio adapta
 cluster1::> volume create -vserver vs1 -volume app1 -aggregate aggr1 -size 2TB -qos-adaptive-policy-group adpg-app1
 ----
 +
-Los siguientes comandos aplican el grupo de políticas de calidad de servicio adaptativo predeterminado `extreme` al nuevo volumen `app4` y al volumen existente `app5`. El techo de rendimiento definido para el grupo de políticas se aplica a los volúmenes `app4` y.. `app5` individualmente:
+Los siguientes comandos aplican el grupo de políticas de calidad de servicio adaptativa predeterminado `extreme` al volumen nuevo `app4` y al volumen existente `app5`. El techo de rendimiento definido para el grupo de políticas se aplica a los volúmenes `app4` y `app5` de forma individual:
 
 +
 [listing]

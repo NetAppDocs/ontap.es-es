@@ -23,7 +23,7 @@ Debe utilizar este proceso solo si tiene la seguridad de que las claves de auten
 Si los discos se particionan, primero deben desparticionarse para poder iniciar este proceso.
 
 
-NOTE: El comando para anular la partición de un disco solo está disponible a nivel de diagnóstico y solo se debe realizar bajo la supervisión del soporte de NetApp. **Es muy recomendable que se ponga en contacto con el servicio de asistencia de NetApp antes de continuar.** También puede consultar el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Cómo desparticionar una unidad de reserva en ONTAP"^].
+NOTE: El comando para anular la partición de un disco solo está disponible a nivel de diagnóstico y solo se debe realizar bajo la supervisión del soporte de NetApp. **Es muy recomendable que se ponga en contacto con el Soporte de NetApp antes de continuar.** También puede consultar el artículo de la base de conocimientos link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Cómo desparticionar una unidad de reserva en ONTAP"^].
 
 .Pasos
 . Devolver una unidad FIPS o SED a servicio:
@@ -38,22 +38,18 @@ NOTE: El comando para anular la partición de un disco solo está disponible a n
  a| 
 No en el modo de cumplimiento de FIPS ni en el modo de cumplimiento de FIPS y la clave FIPS está disponible
  a| 
-.. Configure el nivel de privilegio en Advanced:
+.. Establezca el nivel de privilegio en avanzado:
 `set -privilege advanced`
 .. Restablezca la clave FIPS al ID seguro de fabricación predeterminado 0x0:
 `storage encryption disk modify -fips-key-id 0x0 -disk _disk_id_`
 .. Compruebe que la operación se ha realizado correctamente:
-`storage encryption disk show-status`
-Si la operación falló, use el proceso de PSID en este tema.
-.. Desinfecte el disco roto:
-`storage encryption disk sanitize -disk _disk_id_`
-Compruebe que la operación se ha realizado correctamente con el comando `storage encryption disk show-status` antes de continuar con el siguiente paso.
-.. Elimine el error del disco sanitizado:
+`storage encryption disk show-status` Si la operación ha fallado, utilice el proceso PSID en este tema.
+.. Sanitize the broken disk:
+`storage encryption disk sanitize -disk _disk_id_` Verifique que la operación se haya realizado correctamente con el comando `storage encryption disk show-status` antes de continuar con el siguiente paso.
+.. Elimine el error del disco saneado:
 `storage disk unfail -spare true -disk _disk_id_`
-.. Compruebe si el disco tiene un propietario:
-`storage disk show -disk _disk_id_`
- +
- Si el disco no tiene un propietario, asigne uno.
+.. Compruebe si el disco tiene un propietario
+`storage disk show -disk _disk_id_`: + Si el disco no tiene un propietario, asigne uno.
 `storage disk assign -owner node -disk _disk_id_`
 +
 ... Introduzca el nodo que posee los discos que desea desinfectar:
@@ -61,13 +57,13 @@ Compruebe que la operación se ha realizado correctamente con el comando `storag
 `system node run -node _node_name_`
 
 +
-Ejecute el `disk sanitize release` comando.
+Ejecute `disk sanitize release` el comando.
 
 
 
 .. Salga del infierno. Elimine el error del disco de nuevo:
 `storage disk unfail -spare true -disk _disk_id_`
-.. Compruebe que el disco se ha convertido en un repuesto y que está listo para su uso en un agregado:
+.. Compruebe que el disco ahora es un disco de reserva y listo para volver a utilizarse en un agregado:
 `storage disk show -disk _disk_id_`
 
 
@@ -77,17 +73,14 @@ Ejecute el `disk sanitize release` comando.
 En el modo de cumplimiento de normativas FIPS, la clave FIPS no está disponible y el SED tiene un PSID impreso en la etiqueta
  a| 
 .. Obtenga el PSID del disco de la etiqueta del disco.
-.. Configure el nivel de privilegio en Advanced:
+.. Establezca el nivel de privilegio en avanzado:
 `set -privilege advanced`
-.. Restablezca el disco a sus ajustes configurados de fábrica:
-`storage encryption disk revert-to-original-state -disk _disk_id_ -psid _disk_physical_secure_id_`
-Compruebe que la operación se ha realizado correctamente con el comando `storage encryption disk show-status` antes de continuar con el siguiente paso.
-.. Si está ejecutando ONTAP 9.8P5 o anterior, vaya al siguiente paso. Si su sistema ejecuta ONTAP 9.8P6 o una versión posterior, anule el error del disco saneado.
+.. Restablece el disco a la configuración configurada en fábrica:
+`storage encryption disk revert-to-original-state -disk _disk_id_ -psid _disk_physical_secure_id_` Compruebe que la operación se ha realizado correctamente con el comando `storage encryption disk show-status` antes de continuar con el siguiente paso.
+.. Si está ejecutando ONTAP 9.8P5 o anterior, vaya al siguiente paso. Si ejecuta ONTAP 9.8P6 o una versión posterior, anule el error del disco saneado.
 `storage disk unfail -disk _disk_id_`
-.. Compruebe si el disco tiene un propietario:
-`storage disk show -disk _disk_id_`
- +
- Si el disco no tiene un propietario, asigne uno.
+.. Compruebe si el disco tiene un propietario
+`storage disk show -disk _disk_id_`: + Si el disco no tiene un propietario, asigne uno.
 `storage disk assign -owner node -disk _disk_id_`
 +
 ... Introduzca el nodo que posee los discos que desea desinfectar:
@@ -95,17 +88,17 @@ Compruebe que la operación se ha realizado correctamente con el comando `storag
 `system node run -node _node_name_`
 
 +
-Ejecute el `disk sanitize release` comando.
+Ejecute `disk sanitize release` el comando.
 
 
 
 .. Salir del infierno.. Elimine el error del disco de nuevo:
 `storage disk unfail -spare true -disk _disk_id_`
-.. Compruebe que el disco se ha convertido en un repuesto y que está listo para su uso en un agregado:
+.. Compruebe que el disco ahora es un disco de reserva y listo para volver a utilizarse en un agregado:
 `storage disk show -disk _disk_id_`
 
 
 |===
 
 
-Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].

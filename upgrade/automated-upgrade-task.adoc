@@ -16,25 +16,25 @@ summary: La versión de ONTAP se puede actualizar de forma no disruptiva en el c
 
 
 [role="lead"]
-Cuando realiza una actualización automatizada, ONTAP instala automáticamente la imagen de ONTAP de destino en cada nodo, valida que el clúster pueda actualizarse correctamente y, a continuación, ejecuta cualquiera de ellos xref:concept_upgrade_methods.html[actualización por lotes o sucesivas] en el segundo plano según el número de nodos del clúster.
+Cuando realiza una actualización automatizada, ONTAP instala automáticamente la imagen de ONTAP de destino en cada nodo, valida que el clúster se pueda actualizar correctamente y, a continuación, ejecuta una xref:concept_upgrade_methods.html[actualización por lotes o sucesivas]en segundo plano en función del número de nodos del clúster.
 
-Si es compatible con su configuración, debe usar System Manager para realizar una actualización automatizada.  Si la configuración no admite la actualización automatizada mediante System Manager, puede utilizar la interfaz de línea de comandos (CLI) de ONTAP para realizar una actualización automatizada.
-
-
-NOTE: Si va a actualizar a ONTAP 9.15.1 o posterior a través de BlueXP , siga link:https://docs.netapp.com/us-en/bluexp-software-updates/get-started/software-updates.html["Procedimiento de actualización en la documentación de BlueXP "^]el .
+Si es compatible con su configuración, debe usar System Manager para realizar una actualización automatizada. Si la configuración no admite la actualización automatizada mediante System Manager, puede utilizar la interfaz de línea de comandos (CLI) de ONTAP para realizar una actualización automatizada.
 
 
-IMPORTANT: La modificación de la configuración de la `storage failover modify-auto-giveback` opción de comando antes del inicio de una actualización no disruptiva automática (ANDU) no afecta al proceso de actualización. EL proceso ANDU ignora cualquier valor predefinido para esta opción durante la toma de control/devolución necesaria para la actualización. Por ejemplo, si se configura `-autogiveback` en false antes de comenzar ANDU, no se interrumpe la actualización automática antes de devolver el nodo primario. Obtenga más información sobre `storage failover modify-auto-giveback` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=storage+failover+modify-auto-giveback["Referencia de comandos de la ONTAP"^].
+NOTE: Si va a actualizar a ONTAP 9.15.1 o posterior a través de BlueXP , siga link:https://docs.netapp.com/us-en/bluexp-software-updates/get-started/software-updates.html["Procedimiento de actualización en la documentación de BlueXP"^]el .
+
+
+IMPORTANT: La modificación de la configuración de la `storage failover modify-auto-giveback` opción de comando antes del inicio de una actualización no disruptiva automática (ANDU) no afecta al proceso de actualización. EL proceso ANDU ignora cualquier valor predefinido para esta opción durante la toma de control/devolución necesaria para la actualización. Por ejemplo, si se configura `-autogiveback` en false antes de comenzar ANDU, no se interrumpe la actualización automática antes de devolver el nodo primario. Obtenga más información sobre `storage failover modify-auto-giveback` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=storage+failover+modify-auto-giveback["Referencia de comandos del ONTAP"^].
 
 .Antes de empezar
-* Usted debe link:prepare.html["prepare la actualización"].
-* Usted debe link:download-software-image.html["Descargue la imagen del software ONTAP"] Para la versión de ONTAP objetivo.
+* Debería link:prepare.html["prepare la actualización"].
+* Debe link:download-software-image.html["Descargue la imagen del software ONTAP"] utilizar la versión de ONTAP de destino.
 +
 Si está realizando un link:../upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["actualización directa de varios saltos"], deberá descargar las dos imágenes ONTAP necesarias para su link:../upgrade/concept_upgrade_paths.html#supported-upgrade-paths["ruta de actualización"].
 
 * Para cada pareja de alta disponibilidad, cada nodo debe tener uno o varios puertos en el mismo dominio de retransmisión.
 +
-Si su clúster de ONTAP tiene 8 nodos o más, se utiliza el método de actualización por lotes en la actualización automática no disruptiva para forzar de forma proactiva la migración de LIF de datos antes de tomar la toma del control de SFO.  La forma en que se migran las LIF durante una actualización en lote varía en función de su versión de ONTAP.
+Si su clúster de ONTAP tiene 8 nodos o más, se utiliza el método de actualización por lotes en la actualización automática no disruptiva para forzar de forma proactiva la migración de LIF de datos antes de tomar la toma del control de SFO. La forma en que se migran las LIF durante una actualización en lote varía en función de su versión de ONTAP.
 
 +
 [cols="2"]
@@ -50,23 +50,17 @@ Si su clúster de ONTAP tiene 8 nodos o más, se utiliza el método de actualiza
 ** 9.11.1P16, P17
 ** 9.10.1P19
 
-| A un nodo del otro grupo de lotes.
-
-Si falla la migración al otro grupo de lotes, las LIF se migran al partner de alta disponibilidad del nodo en el mismo grupo de lotes. 
+| A un nodo del otro grupo de lotes. Si falla la migración al otro grupo de lotes, las LIF se migran al partner de alta disponibilidad del nodo en el mismo grupo de lotes. 
 
 
-| 9,8 hasta 9.14.1 | A un nodo del otro grupo de lotes.
-
-Si el dominio de retransmisión de red no permite la migración de LIF al otro grupo de lotes, la migración de LIF falla y se pausa. 
+| 9,8 hasta 9.14.1 | A un nodo del otro grupo de lotes. Si el dominio de retransmisión de red no permite la migración de LIF al otro grupo de lotes, la migración de LIF falla y se pausa. 
 
 
-| 9,7 o anterior | Al partner de alta disponibilidad del nodo que se está actualizando.
-
-Si el partner no tiene ningún puerto en el mismo dominio de retransmisión, la migración de LIF falla y ANDU se detiene. 
+| 9,7 o anterior | Al partner de alta disponibilidad del nodo que se está actualizando. Si el partner no tiene ningún puerto en el mismo dominio de retransmisión, la migración de LIF falla y ANDU se detiene. 
 |===
 * Si actualiza ONTAP en una configuración de MetroCluster FC, el clúster debe habilitarse para una conmutación de sitios no planificada automática.
-* Si no tiene previsto supervisar el progreso del proceso de actualización, debería hacerlo link:../error-messages/configure-ems-notifications-sm-task.html["Solicite notificaciones EMS de errores que puedan requerir intervención manual"].
-* Si tiene un clúster de un solo nodo, siga el link:../system-admin/single-node-clusters.html["actualización automatizada y disruptiva"] proceso.
+* Si no tiene previsto supervisar el progreso del proceso de actualización, debería link:../error-messages/configure-ems-notifications-sm-task.html["Solicite notificaciones EMS de errores que puedan requerir intervención manual"].
+* Si tiene un clúster de un solo nodo, siga link:../system-admin/single-node-clusters.html["actualización automatizada y disruptiva"]el proceso.
 +
 Las actualizaciones de los clústeres de un solo nodo causan interrupciones.
 
@@ -118,7 +112,7 @@ Haga clic en *Configuración* > *actualización de clúster*.
  a| 
 Agregue una nueva imagen de software desde una carpeta local
 
-Ya deberías tener link:download-software-image.html["se ha descargado la imagen"] al cliente local.
+Debe tener ya link:download-software-image.html["se ha descargado la imagen"] en el cliente local.
  a| 
 ... En *Imágenes de software disponibles*, haga clic en *Agregar desde local*.
 ... Busque la ubicación en la que guardó la imagen de software, seleccione la imagen y, a continuación, haga clic en *Abrir*.
@@ -132,7 +126,7 @@ Añada una nueva imagen de software desde un servidor HTTP o FTP
 ... Haga clic en *Agregar desde el servidor*.
 ... En el cuadro de diálogo *Agregar una nueva imagen de software*, introduzca la URL del servidor HTTP o FTP en el que descargó la imagen del software ONTAP del sitio de soporte de NetApp.
 +
-Para el FTP anónimo, debe especificar la dirección URL en el ftp://anonymous@ftpserver[] formato.
+Para FTP anónimo, debe especificar la URL en el ftp://anonymous@ftpserver[] formato.
 
 ... Haga clic en *Agregar*.
 
@@ -147,23 +141,23 @@ Elija una de las imágenes mostradas.
 |===
 .. Haga clic en *Validar* para ejecutar las comprobaciones de validación previas a la actualización.
 +
-Si se encuentran errores o advertencias durante la validación, se muestran junto con una lista de acciones correctivas. Debe resolver todos los errores antes de continuar con la actualización.  Se recomienda también resolver las advertencias.
+Si se encuentran errores o advertencias durante la validación, se muestran junto con una lista de acciones correctivas. Debe resolver todos los errores antes de continuar con la actualización. Se recomienda también resolver las advertencias.
 
 
 
 . Haga clic en *Siguiente*.
 . Haga clic en *Actualizar*.
 +
-La validación se realizará de nuevo. Los errores o advertencias restantes se muestran junto con una lista de acciones correctivas.  Es necesario corregir los errores antes de continuar con la actualización.  Si la validación se completa con advertencias, corrija las advertencias o seleccione *Actualizar con advertencias*.
+La validación se realizará de nuevo. Los errores o advertencias restantes se muestran junto con una lista de acciones correctivas. Es necesario corregir los errores antes de continuar con la actualización. Si la validación se completa con advertencias, corrija las advertencias o seleccione *Actualizar con advertencias*.
 
 +
 
 NOTE: De manera predeterminada, ONTAP usa el link:concept_upgrade_methods.html["proceso de actualización por lotes"] para actualizar clústeres con ocho o más nodos. A partir de ONTAP 9.10.1, si lo prefiere, puede seleccionar *Actualizar un par de alta disponibilidad a la vez* para anular el valor predeterminado y hacer que su clúster actualice un par de alta disponibilidad a la vez mediante el proceso de actualización gradual.
 
 +
-En el caso de las configuraciones de MetroCluster con más de 2 nodos, el proceso de actualización de ONTAP se inicia simultáneamente en los pares de alta disponibilidad en ambos sitios.  Para una configuración de MetroCluster de 2 nodos, la actualización se inicia primero en el sitio donde no se inicia la actualización. La actualización en el sitio restante comienza después de que la primera actualización se haya completado por completo.
+En el caso de las configuraciones de MetroCluster con más de 2 nodos, el proceso de actualización de ONTAP se inicia simultáneamente en los pares de alta disponibilidad en ambos sitios. Para una configuración de MetroCluster de 2 nodos, la actualización se inicia primero en el sitio donde no se inicia la actualización. La actualización en el sitio restante comienza después de que la primera actualización se haya completado por completo.
 
-. Si la actualización se detiene debido a un error, haga clic en el mensaje de error para ver los detalles y, a continuación, corrija el error y. link:resume-upgrade-after-andu-error.html["reanude la actualización"].
+. Si la actualización se detiene debido a un error, haga clic en el mensaje de error para ver los detalles y, a continuación, corrija el error y link:resume-upgrade-after-andu-error.html["reanude la actualización"].
 
 
 .Después de terminar
@@ -249,7 +243,7 @@ cluster image update -version <package_version_number> -estimate-only
 ----
 +
 
-NOTE: Si va a actualizar una configuración de MetroCluster, puede ejecutar este comando en el clúster A o en el clúster B.  No es necesario ejecutarlo en ambos clústeres.
+NOTE: Si va a actualizar una configuración de MetroCluster, puede ejecutar este comando en el clúster A o en el clúster B. No necesita ejecutarlo en ambos clústeres.
 
 +
 La estimación de actualización de software muestra detalles sobre cada componente que se va a actualizar, así como la duración estimada de la actualización.
@@ -262,9 +256,9 @@ cluster image update -version <package_version_number>
 ----
 +
 ** Si está realizando un link:../upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["actualización directa de varios saltos"], utilice la versión de ONTAP de destino para el paquete_VERSION_NUMBER. Por ejemplo, si va a actualizar de ONTAP 9,8 a 9.13.1, utilice 9.13.1 como package_version_number.
-** De manera predeterminada, ONTAP utiliza el link:concept_upgrade_methods.html["proceso de actualización por lotes"] para actualizar clústeres con ocho o más nodos.  Si lo prefiere, puede usar el `-force-rolling` parámetro para anular el proceso predeterminado y que el clúster actualice un nodo a la vez mediante el proceso de actualización gradual.
-** Tras completar cada toma de control y devolución, la actualización espera durante 8 minutos para permitir que las aplicaciones cliente se recuperen desde la pausa en las operaciones de I/o que se producen durante la toma de control y el retorno al nodo primario. Si el entorno requiere más o menos tiempo para la estabilización de clientes, puede usar el `-stabilize-minutes` parámetro para especificar otra cantidad de tiempo de estabilización.
-** Para las configuraciones MetroCluster con más de 4 nodos, la actualización automatizada comienza simultáneamente en los pares de alta disponibilidad en ambos sitios.  Para una configuración MetroCluster de 2 nodos, la actualización se inicia en el sitio donde no se inicia la actualización. La actualización en el sitio restante comienza después de que la primera actualización se haya completado por completo.
+** De manera predeterminada, ONTAP usa el link:concept_upgrade_methods.html["proceso de actualización por lotes"] para actualizar clústeres con ocho o más nodos. Si lo prefiere, puede usar el `-force-rolling` parámetro para anular el proceso predeterminado y hacer que el clúster actualice un nodo cada vez mediante el proceso de actualización gradual.
+** Tras completar cada toma de control y devolución, la actualización espera durante 8 minutos para permitir que las aplicaciones cliente se recuperen desde la pausa en las operaciones de I/o que se producen durante la toma de control y el retorno al nodo primario. Si el entorno requiere más o menos tiempo para la estabilización del cliente, es posible usar `-stabilize-minutes` el parámetro para especificar una cantidad diferente de tiempo de estabilización.
+** Para las configuraciones MetroCluster con más de 4 nodos, la actualización automatizada comienza simultáneamente en los pares de alta disponibilidad en ambos sitios. Para una configuración MetroCluster de 2 nodos, la actualización se inicia en el sitio donde no se inicia la actualización. La actualización en el sitio restante comienza después de que la primera actualización se haya completado por completo.
 
 
 +
@@ -295,7 +289,7 @@ cluster-1::>
 cluster image show-update-progress
 ----
 +
-Si va a actualizar una configuración de MetroCluster de 4 o 8 nodos, el `cluster image show-update-progress` el comando solo muestra el progreso del nodo en el que ejecuta el comando. Debe ejecutar el comando en cada nodo para ver el progreso de cada nodo.
+Si va a actualizar una configuración de MetroCluster de 4 o de 8 nodos, `cluster image show-update-progress` el comando solo muestra el progreso del nodo en el que ejecuta el comando. Debe ejecutar el comando en cada nodo para ver el progreso de cada nodo.
 
 . Compruebe que la actualización se ha completado correctamente en cada nodo.
 +
@@ -368,7 +362,7 @@ metrocluster show
 
 == Reanude la actualización del software ONTAP tras un error en el proceso de actualización automatizada
 
-Si una actualización automática del software ONTAP se detiene debido a un error, debe resolver el error y, a continuación, continuar con la actualización.  Una vez resuelto el error, puede optar por continuar con el proceso de actualización automatizada o completar manualmente el proceso de actualización. Si decide continuar con la actualización automatizada, no realice ninguno de los pasos de actualización de forma manual.
+Si una actualización automática del software ONTAP se detiene debido a un error, debe resolver el error y, a continuación, continuar con la actualización. Una vez resuelto el error, puede optar por continuar con el proceso de actualización automatizada o completar manualmente el proceso de actualización. Si decide continuar con la actualización automatizada, no realice ninguno de los pasos de actualización de forma manual.
 
 .Pasos
 [role="tabbed-block"]

@@ -2,7 +2,7 @@
 permalink: san-config/set-queue-depth-task.html 
 sidebar: sidebar 
 keywords: calculate, queue depth 
-summary: Es posible que deba ajustar la profundidad de la cola FC en el host para obtener los valores máximos de ITN por nodo y de «fan-in» de puertos FC. El número máximo de LUN y el número de HBA que pueden conectarse a un puerto de FC están limitados por la profundidad de cola disponible en los puertos de destino FC. 
+summary: Es posible que deba ajustar la profundidad de la cola de FC en el host para obtener los valores máximos para ITN por nodo y puerto de entrada de ventilador de FC. El número máximo de LUN y el número de HBA que pueden conectarse a un puerto FC están limitados por la profundidad de la cola disponible en los puertos de destino FC. 
 ---
 = Modifique las profundidades de cola para los hosts SAN de ONTAP
 :allow-uri-read: 
@@ -17,7 +17,7 @@ Es posible que deba cambiar las profundidades de la cola del host para alcanzar 
 
 == Hosts AIX
 
-Puede cambiar la profundidad de cola en los hosts AIX mediante el `chdev` comando. Cambios realizados mediante `chdev` el comando persiste durante todos los reinicios.
+Puede cambiar la profundidad de la cola en los hosts AIX con el `chdev` comando. Los cambios realizados con el `chdev` comando se mantienen en todos los reinicios.
 
 Ejemplos:
 
@@ -35,7 +35,7 @@ El valor predeterminado para `num_cmd_elems` es 200. El valor máximo es 2.048.
 +
 [NOTE]
 ====
-Es posible que sea necesario desconectar el HBA para cambiar `num_cmd_elems` a continuación, vuelva a conectarlo en línea mediante el `rmdev -l fcs0 -R` y.. `makdev -l fcs0 -P` comandos.
+Es posible que deba desconectar el HBA para cambiarlo `num_cmd_elems` y volver a conectarlo con `rmdev -l fcs0 -R` `makdev -l fcs0 -P` los comandos y.
 
 ====
 
@@ -44,17 +44,17 @@ Es posible que sea necesario desconectar el HBA para cambiar `num_cmd_elems` a c
 
 == Hosts HP-UX
 
-Puede cambiar la profundidad de la cola de dispositivos o LUN en hosts HP-UX mediante el parámetro kernel `scsi_max_qdepth`. Puede cambiar la profundidad de la cola del HBA mediante el parámetro kernel `max_fcp_reqs`.
+Puede cambiar la profundidad de la cola de LUN o del dispositivo en los hosts HP-UX mediante el parámetro kernel `scsi_max_qdepth` . Puede cambiar la profundidad de la cola del HBA utilizando el parámetro del núcleo `max_fcp_reqs` .
 
 * El valor predeterminado para `scsi_max_qdepth` es 8. El valor máximo es 255.
 +
-`scsi_max_qdepth` puede cambiarse dinámicamente en un sistema en ejecución mediante el `-u` en la `kmtune` comando. El cambio será efectivo para todos los dispositivos del sistema. Por ejemplo, utilice el siguiente comando para aumentar la profundidad de la cola de LUN a 64:
+`scsi_max_qdepth` se puede cambiar dinámicamente en un sistema en ejecución mediante `-u` la opción del `kmtune` comando. El cambio será efectivo para todos los dispositivos del sistema. Por ejemplo, utilice el siguiente comando para aumentar la profundidad de la cola de LUN a 64:
 
 +
 `kmtune -u -s scsi_max_qdepth=64`
 
 +
-Es posible cambiar la profundidad de la cola para archivos de dispositivo individuales mediante `scsictl` comando. Cambios mediante `scsictl` el comando no persiste entre reinicios del sistema. Para ver y cambiar la profundidad de cola de un archivo de dispositivo concreto, ejecute el siguiente comando:
+Es posible cambiar la profundidad de cola de archivos de dispositivos individuales mediante el `scsictl` comando. Los cambios que usan `scsictl` el comando no son persistentes entre los reinicios del sistema. Para ver y cambiar la profundidad de cola de un archivo de dispositivo concreto, ejecute el siguiente comando:
 
 +
 `scsictl -a /dev/rdsk/c2t2d0`
@@ -64,7 +64,7 @@ Es posible cambiar la profundidad de la cola para archivos de dispositivo indivi
 
 * El valor predeterminado para `max_fcp_reqs` es 512. El valor máximo es 1024.
 +
-El kernel debe ser reconstruido y el sistema debe ser reiniciado para los cambios a. `max_fcp_reqs` para que surta efecto. Para cambiar la profundidad de cola del HBA a 256, por ejemplo, utilice el siguiente comando:
+El núcleo debe ser reconstruido y el sistema debe ser reiniciado para `max_fcp_reqs` que los cambios surtan efecto. Para cambiar la profundidad de cola del HBA a 256, por ejemplo, utilice el siguiente comando:
 
 +
 `kmtune -u -s max_fcp_reqs=256`
@@ -78,13 +78,13 @@ El kernel debe ser reconstruido y el sistema debe ser reiniciado para los cambio
 Puede establecer la profundidad de cola LUN y HBA para los hosts Solaris.
 
 * Para profundidad de cola de LUN: El número de LUN en uso en un host multiplicado por el acelerador de por LUN (profundidad de cola de lun) debe ser menor o igual que el valor de profundidad de cola del GT en el host.
-* Para profundidad de cola en una pila Sun: Los controladores nativos no permiten por LUN o por destino `max_throttle` Ajustes en el nivel del HBA. El método recomendado para establecer el `max_throttle` El valor de los controladores nativos se encuentra en el nivel VID_PID (por tipo de dispositivo) de la `/kernel/drv/sd.conf` y.. `/kernel/drv/ssd.conf` archivos. La utilidad de host establece este valor en 64 para configuraciones de MPxIO y 8 para configuraciones de Veritas DMP.
+* Para la profundidad de cola en una pila Sun: Los controladores nativos no permiten `max_throttle` la configuración por LUN ni por destino a nivel de HBA. El método recomendado para establecer `max_throttle` el valor para los controladores nativos es en un nivel de tipo por dispositivo (VID_PID) en los `/kernel/drv/sd.conf` `/kernel/drv/ssd.conf` archivos y. La utilidad de host establece este valor en 64 para configuraciones de MPxIO y 8 para configuraciones de Veritas DMP.
 
 
 .Pasos
 . `# cd/kernel/drv`
 . `# vi lpfc.conf`
-. Busque `/tft-queue (/tgt-queue)`
+. Buscar `/tft-queue (/tgt-queue)`
 +
 `tgt-queue-depth=32`
 
@@ -96,18 +96,18 @@ El valor predeterminado se establece en 32 durante la instalación.
 ====
 . Establezca el valor deseado en función de la configuración de su entorno.
 . Guarde el archivo.
-. Reinicie el host con el `+sync; sync; sync; reboot -- -r+` comando.
+. Reinicie el host con `+sync; sync; sync; reboot -- -r+` el comando.
 
 
 
 
 == Hosts VMware para un HBA QLogic
 
-Utilice la `esxcfg-module` Comando para cambiar la configuración de tiempo de espera de HBA. Actualizar manualmente la `esx.conf` no se recomienda el archivo.
+Utilice `esxcfg-module` el comando para cambiar la configuración de tiempo de espera de HBA.  `esx.conf`No se recomienda actualizar manualmente el archivo.
 
 .Pasos
 . Inicie sesión en la consola de servicio como usuario raíz.
-. Utilice la `#vmkload_mod -l` Comando para verificar qué módulo Qlogic HBA está cargado actualmente.
+. Utilice `#vmkload_mod -l` el comando para verificar qué módulo HBA de Qlogic está cargado actualmente.
 . Para una instancia única de un HBA Qlogic, ejecute el siguiente comando:
 +
 `#esxcfg-module -s ql2xmaxqdepth=64 qla2300_707`
@@ -115,7 +115,7 @@ Utilice la `esxcfg-module` Comando para cambiar la configuración de tiempo de e
 +
 [NOTE]
 ====
-En este ejemplo se utiliza el módulo qla2300_707. Utilice el módulo adecuado basado en la salida de `vmkload_mod -l`.
+En este ejemplo se utiliza el módulo qla2300_707. Utilice el módulo apropiado basado en la salida de `vmkload_mod -l` .
 
 ====
 . Guarde los cambios con el siguiente comando:
@@ -138,11 +138,11 @@ En este ejemplo se utiliza el módulo qla2300_707. Utilice el módulo adecuado b
 
 == VMware host para un HBA Emulex
 
-Utilice la `esxcfg-module` Comando para cambiar la configuración de tiempo de espera de HBA. Actualizar manualmente la `esx.conf` no se recomienda el archivo.
+Utilice `esxcfg-module` el comando para cambiar la configuración de tiempo de espera de HBA.  `esx.conf`No se recomienda actualizar manualmente el archivo.
 
 .Pasos
 . Inicie sesión en la consola de servicio como usuario raíz.
-. Utilice la `#vmkload_mod -l grep lpfc` Comando para verificar qué HBA de Emulex está cargado actualmente.
+. Utilice `#vmkload_mod -l grep lpfc` el comando para comprobar qué HBA de Emulex está cargado actualmente.
 . Para una única instancia de un HBA de Emulex, introduzca el siguiente comando:
 +
 `#esxcfg-module -s lpfc0_lun_queue_depth=16 lpfcdd_7xx`
@@ -150,7 +150,7 @@ Utilice la `esxcfg-module` Comando para cambiar la configuración de tiempo de e
 +
 [NOTE]
 ====
-Dependiendo del modelo de HBA, el módulo puede ser lpfcdd_7xx o lpfcdd_732. El comando anterior utiliza el módulo lpfcdd_7xx. Debe utilizar el módulo adecuado en función del resultado de `vmkload_mod -l`.
+Dependiendo del modelo de HBA, el módulo puede ser lpfcdd_7xx o lpfcdd_732. El comando anterior utiliza el módulo lpfcdd_7xx. Usted debe utilizar el módulo apropiado basado en el resultado de `vmkload_mod -l` .
 
 ====
 +
@@ -167,17 +167,17 @@ La profundidad de cola de LUN para lpfc0 y la profundidad de cola de LUN para lp
 +
 `#esxcfg-boot -b`
 
-. Reinicie mediante `#reboot`.
+. Reiniciar utilizando `#reboot`.
 
 
 
 
 == Host Windows para un HBA Emulex
 
-En hosts Windows, puede utilizar el `LPUTILNT` Utilidad para actualizar la profundidad de cola para los HBA de Emulex.
+En hosts de Windows, puede utilizar `LPUTILNT` la utilidad para actualizar la profundidad de la cola de los HBA de Emulex.
 
 .Pasos
-. Ejecute el `LPUTILNT` utilidad ubicada en `C:\WINNT\system32` directorio.
+. Ejecute la `LPUTILNT` utilidad ubicada en el `C:\WINNT\system32` directorio.
 . Seleccione *parámetros de accionamiento* en el menú de la derecha.
 . Desplácese hacia abajo y haga doble clic en *QueueDepth*.
 +
@@ -194,10 +194,10 @@ Si está configurando *QueueDepth* superior a 150, también es necesario aumenta
 
 == Hosts Windows para un HBA Qlogic
 
-En hosts Windows, puede utilizar el `SANsurfer` Utilidad HBA Manager para actualizar las profundidades de cola para HBA Qlogic.
+En los hosts Windows, puede utilizar ely `SANsurfer` la utilidad del administrador del HBA para actualizar las profundidades de cola de los HBA de Qlogic.
 
 .Pasos
-. Ejecute el `SANsurfer` Utilidad del gestor de HBA.
+. Ejecute `SANsurfer` la utilidad HBA Manager.
 . Haga clic en *Puerto HBA* > *Ajustes*.
 . Haga clic en *Configuración avanzada del puerto HBA* en el cuadro de lista.
 . Actualice el `Execution Throttle` parámetro.
@@ -218,15 +218,15 @@ Puede actualizar las profundidades de cola de un HBA Emulex en un host Linux. Pa
 Se muestra la lista de parámetros de profundidad de cola con su descripción. Dependiendo de la versión del sistema operativo, puede modificar uno o más de los siguientes parámetros de profundidad de cola:
 
 +
-** `lpfc_lun_queue_depth`: Número máximo de comandos FC que se pueden poner en cola para una LUN específica (uint)
-** `lpfc_hba_queue_depth`: Número máximo de comandos FC que se pueden poner en cola en un HBA lpfc (uint)
-** `lpfc_tgt_queue_depth`: Número máximo de comandos FC que se pueden poner en cola en un puerto de destino específico (uint)
+** `lpfc_lun_queue_depth`: Número máximo de comandos FC que se pueden poner en cola a un LUN específico (uint)
+** `lpfc_hba_queue_depth`: Número máximo de comandos de FC que pueden ponerse en cola en un HBA lpfc (uint)
+** `lpfc_tgt_queue_depth`: Número máximo de comandos de FC que se pueden poner en cola en un puerto de destino específico (uint)
 +
-La `lpfc_tgt_queue_depth` El parámetro sólo se aplica a sistemas Red Hat Enterprise Linux 7.x, sistemas SUSE Linux Enterprise Server 11 SP4 y sistemas 12.x.
+ `lpfc_tgt_queue_depth`El parámetro sólo se aplica a sistemas Red Hat Enterprise Linux 7.x, sistemas SUSE Linux Enterprise Server 11 SP4 y sistemas 12.x.
 
 
 
-. Actualice las profundidades de cola agregando los parámetros de profundidad de cola al `/etc/modprobe.conf` Archivo para un sistema Red Hat Enterprise Linux 5.x y para `/etc/modprobe.d/scsi.conf` Archivo para un sistema Red Hat Enterprise Linux 6.x o 7.x, o SUSE Linux Enterprise Server 11.x o 12.x.
+. Actualice las profundidades de cola agregando los parámetros de profundidad de cola al `/etc/modprobe.conf` archivo para un sistema Red Hat Enterprise Linux 5.x y al `/etc/modprobe.d/scsi.conf` archivo para un sistema Red Hat Enterprise Linux 6.x o 7.x, o un sistema SUSE Linux Enterprise Server 11.x o 12.x.
 +
 Según la versión del sistema operativo, puede agregar uno o varios de los siguientes comandos:
 
@@ -238,7 +238,7 @@ Según la versión del sistema operativo, puede agregar uno o varios de los sigu
 
 . Cree una nueva imagen de disco RAM y, a continuación, reinicie el host para que las actualizaciones persistan entre reinicios.
 +
-Para obtener más información, consulte link:../system-admin/index.html["Administración del sistema"] Para su versión del sistema operativo Linux.
+Para obtener más información, consulte la link:../system-admin/index.html["Administración del sistema"] para su versión del sistema operativo Linux.
 
 . Compruebe que los valores de profundidad de cola se han actualizado para cada parámetro de profundidad de cola que haya modificado:
 +
@@ -269,7 +269,7 @@ Esta tarea muestra cómo utilizar la interfaz de línea de comandos del HBA QLog
 `modinfo qla2xxx | grep ql2xmaxqdepth`
 
 +
-Solo puede modificar la `ql2xmaxqdepth` Parámetro de profundidad de cola, que indica la profundidad máxima de cola que se puede establecer para cada LUN. El valor predeterminado es 64 para RHEL 7.5 y versiones posteriores. El valor predeterminado es 32 para RHEL 7.4 y anteriores.
+Solo puede modificar `ql2xmaxqdepth` el parámetro de profundidad de cola, que indica la profundidad de cola máxima que se puede definir para cada LUN. El valor predeterminado es 64 para RHEL 7.5 y versiones posteriores. El valor predeterminado es 32 para RHEL 7.4 y anteriores.
 
 +
 [listing]
@@ -281,10 +281,10 @@ parm:       ql2xmaxqdepth:Maximum queue depth to set for each LUN. Default is 64
 +
 ** Si desea que las modificaciones sean persistentes, realice los siguientes pasos:
 +
-... Actualice las profundidades de cola agregando el parámetro de profundidad de cola al `/etc/modprobe.conf` Archivo para un sistema Red Hat Enterprise Linux 5.x y para `/etc/modprobe.d/scsi.conf` Archivo para un sistema Red Hat Enterprise Linux 6.x o 7.x, o SUSE Linux Enterprise Server 11.x o 12.x: `options qla2xxx ql2xmaxqdepth=new_queue_depth`
+... Actualice las profundidades de cola agregando el parámetro de profundidad de cola al `/etc/modprobe.conf` archivo para un sistema Red Hat Enterprise Linux 5.x y al `/etc/modprobe.d/scsi.conf` archivo para un sistema Red Hat Enterprise Linux 6.x o 7.x, o un sistema SUSE Linux Enterprise Server 11.x o 12.x: `options qla2xxx ql2xmaxqdepth=new_queue_depth`
 ... Cree una nueva imagen de disco RAM y, a continuación, reinicie el host para que las actualizaciones persistan entre reinicios.
 +
-Para obtener más información, consulte link:../system-admin/index.html["Administración del sistema"] Para su versión del sistema operativo Linux.
+Para obtener más información, consulte la link:../system-admin/index.html["Administración del sistema"] para su versión del sistema operativo Linux.
 
 
 
@@ -309,13 +309,13 @@ echo 128 > /sys/module/qla2xxx/parameters/ql2xmaxqdepth
 +
 Se muestra el valor actual de la profundidad de cola.
 
-. Modifique la profundidad de la cola del HBA QLogic actualizando el parámetro firmware `Execution Throttle` Desde el BIOS del HBA QLogic.
+. Modifique la profundidad de la cola del HBA de QLogic actualizando el parámetro de firmware `Execution Throttle` desde el BIOS del HBA de QLogic.
 +
 .. Inicie sesión en la CLI de gestión de los HBA de QLogic:
 +
 `/opt/QLogic_Corporation/QConvergeConsoleCLI/qaucli`
 
-.. En el menú principal, seleccione `Adapter Configuration` opción.
+.. En el menú principal, seleccione la `Adapter Configuration` opción.
 +
 [listing]
 ----
@@ -343,7 +343,7 @@ QConvergeConsole
 
         Please Enter Selection: 2
 ----
-.. En la lista de parámetros de configuración del adaptador, seleccione `HBA Parameters` opción.
+.. En la lista de parámetros de configuración del adaptador, seleccione la `HBA Parameters` opción.
 +
 [listing]
 ----
@@ -381,7 +381,7 @@ Fibre Channel Adapter Configuration
 +
 Se muestran los detalles del puerto del HBA.
 
-.. En el menú HBA Parameters, seleccione la `Display HBA Parameters` para ver el valor actual de `Execution Throttle` opción.
+.. En el menú Parámetros de HBA, seleccione la `Display HBA Parameters` opción para ver el valor actual de `Execution Throttle` la opción.
 +
 El valor predeterminado de `Execution Throttle` la opción es 65535.
 
@@ -436,8 +436,8 @@ Enable Fabric Assigned WWN     : N/A
 Press <Enter> to continue:
 ----
 .. Pulse *Intro* para continuar.
-.. En el menú HBA Parameters, seleccione la `Configure HBA Parameters` Opción para modificar los parámetros del HBA.
-.. En el menú Configurar parámetros, seleccione `Execute Throttle` y actualice el valor de este parámetro.
+.. En el menú HBA Parameters, seleccione la `Configure HBA Parameters` opción para modificar los parámetros del HBA.
+.. En el menú Configurar parámetros, seleccione la `Execute Throttle` opción y actualice el valor de este parámetro.
 +
 [listing]
 ----
@@ -482,7 +482,7 @@ Link          : Online
 Enter Execution Throttle [1-65535] [65535]: 65500
 ----
 .. Pulse *Intro* para continuar.
-.. En el menú Configurar parámetros, seleccione `Commit Changes` opción para guardar los cambios.
+.. En el menú Configurar parámetros, seleccione la `Commit Changes` opción para guardar los cambios.
 .. Salga del menú.
 
 

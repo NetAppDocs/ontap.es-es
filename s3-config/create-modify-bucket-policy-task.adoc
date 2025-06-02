@@ -19,11 +19,11 @@ Debe existir una máquina virtual de almacenamiento habilitada para S3 que conte
 Debe haber creado usuarios o grupos antes de conceder permisos.
 
 .Acerca de esta tarea
-Puede agregar nuevas sentencias para usuarios y grupos nuevos o modificar los atributos de las sentencias existentes. Obtenga más información sobre `vserver object-store-server bucket policy` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=vserver+object-store-server+bucket+policy["Referencia de comandos de la ONTAP"^].
+Puede agregar nuevas sentencias para usuarios y grupos nuevos o modificar los atributos de las sentencias existentes. Obtenga más información sobre `vserver object-store-server bucket policy` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=vserver+object-store-server+bucket+policy["Referencia de comandos del ONTAP"^].
 
 Los permisos de usuario y grupo se pueden otorgar cuando se crea el bloque o cuando se necesite más adelante. También puede modificar la asignación de capacidad de los bloques y del grupo de políticas de calidad de servicio.
 
-A partir de ONTAP 9,9.1, si tiene previsto admitir la funcionalidad de etiquetado de objetos de cliente de AWS con el servidor ONTAP S3, las acciones se realizarán `GetObjectTagging`, `PutObjectTagging`, y. `DeleteObjectTagging` debe permitirse el uso de las políticas de bloque o grupo.
+A partir de ONTAP 9.9,1, si tiene previsto admitir la funcionalidad de etiquetado de objetos de cliente de AWS con el servidor ONTAP S3, las acciones `GetObjectTagging`, `PutObjectTagging` y `DeleteObjectTagging` deben permitirse mediante las directivas de grupo o bloque.
 
 El procedimiento que siga depende de la interfaz que utilice: System Manager o CLI:
 
@@ -32,8 +32,7 @@ El procedimiento que siga depende de la interfaz que utilice: System Manager o C
 .System Manager
 --
 .Pasos
-. Edite la cuchara: Haga clic en *almacenamiento > Cuchos*, haga clic en la cuchara deseada y, a continuación, haga clic en *Editar*.
-Al agregar o modificar permisos, puede especificar los siguientes parámetros:
+. Edite la cuchara: Haga clic en *almacenamiento > Cuchos*, haga clic en la cuchara deseada y, a continuación, haga clic en *Editar*. Al agregar o modificar permisos, puede especificar los siguientes parámetros:
 +
 ** *Principal*: El usuario o grupo al que se concede acceso.
 ** *Efecto*: Permite o deniega el acceso a un usuario o grupo.
@@ -48,7 +47,7 @@ Los valores predeterminados *_bucketname_* y *_bucketname/*_* conceden acceso a 
 
 
 
-NOTE: A partir de ONTAP 9.14.1, puede especificar variables para la política de depósitos en el campo *Recursos*. Estas variables son marcadores de posición que se reemplazan por valores contextuales cuando se evalúa la política. Por ejemplo, If `${aws:username}` se especifica como una variable para una política, a continuación, esta variable se sustituye por el nombre de usuario del contexto de solicitud y la acción de política se puede realizar como se ha configurado para ese usuario.
+NOTE: A partir de ONTAP 9.14.1, puede especificar variables para la política de depósitos en el campo *Recursos*. Estas variables son marcadores de posición que se reemplazan por valores contextuales cuando se evalúa la política. Por ejemplo, si `${aws:username}` se especifica como una variable para una política, esta variable se reemplaza por el nombre de usuario del contexto de solicitud y la acción de política se puede realizar según la configuración para ese usuario.
 
 --
 .CLI
@@ -76,7 +75,7 @@ La declaración puede permitir o denegar el acceso
  a| 
 `-action`
  a| 
-Puede especificar `*` para indicar todas las acciones, o una lista de una o varias de las siguientes: `GetObject, PutObject, DeleteObject, ListBucket, GetBucketAcl,GetObjectAcl, ListBucketMultipartUploads,` y.. `ListMultipartUploadParts`.
+Puede especificar `*` que se refiera a todas las acciones o a una lista de una o más de las siguientes `GetObject, PutObject, DeleteObject, ListBucket, GetBucketAcl,GetObjectAcl, ListBucketMultipartUploads,`: Y `ListMultipartUploadParts`.
 
 
 
@@ -86,8 +85,8 @@ Puede especificar `*` para indicar todas las acciones, o una lista de una o vari
 Una lista de uno o más grupos o usuarios de S3.
 
 ** Se puede especificar un máximo de 10 usuarios o grupos.
-** Si se especifica un grupo de S3, debe estar en el formulario `group/group_name.`
-** `*` se puede especificar que significa acceso público; es decir, acceso sin clave de acceso y clave secreta.
+** Si se especifica un grupo S3, debe estar en el formato `group/group_name.`
+** `*` se puede especificar para que signifique acceso público; es decir, acceso sin clave de acceso y clave secreta.
 ** Si no se especifica ningún principal, se concede acceso a todos los usuarios S3 de la máquina virtual de almacenamiento.
 
 
@@ -96,11 +95,11 @@ Una lista de uno o más grupos o usuarios de S3.
  a| 
 `-resource`
  a| 
-El bloque y cualquier objeto que contenga. Los caracteres comodín `*` y.. `?` se puede utilizar para formar una expresión regular para especificar un recurso. En el caso de un recurso, puede especificar variables en una política. Estas son variables de política que son marcadores de posición que se reemplazan por los valores contextuales cuando se evalúa la política.
+El bloque y cualquier objeto que contenga. Los caracteres comodín `*` y `?` se pueden utilizar para formar una expresión regular para especificar un recurso. En el caso de un recurso, puede especificar variables en una política. Estas son variables de política que son marcadores de posición que se reemplazan por los valores contextuales cuando se evalúa la política.
 
 |===
 +
-Opcionalmente, puede especificar una cadena de texto como comentario con el `-sid` opción.
+Opcionalmente, puede especificar una cadena de texto como comentario con la `-sid` opción.
 
 
 
@@ -117,7 +116,7 @@ En el siguiente ejemplo se crea una sentencia de política de depósito de servi
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
 ----
-A partir de ONTAP 9.14.1, puede especificar variables para una política de bloque. En el siguiente ejemplo se crea una sentencia de política de bloque de servidor para la máquina virtual de almacenamiento `svm1` y.. `bucket1`, y especifica `${aws:username}` como variable para un recurso de política. Cuando se evalúa la política, la variable de política se sustituye por el nombre de usuario de contexto de solicitud y la acción de política se puede realizar según se haya configurado para ese usuario. Por ejemplo, cuando se evalúa la siguiente sentencia de política, `${aws:username}` Se sustituye por el usuario que realiza la operación S3. Si es un usuario `user1` realiza la operación a la que el usuario tiene acceso `bucket1` como `bucket1/user1/*`.
+A partir de ONTAP 9.14.1, puede especificar variables para una política de bloque. En el siguiente ejemplo se crea una sentencia de política de bloque de servidor para la máquina virtual de almacenamiento `svm1` y `bucket1`, y se especifica `${aws:username}` como variable para un recurso de política. Cuando se evalúa la política, la variable de política se sustituye por el nombre de usuario de contexto de solicitud y la acción de política se puede realizar según se haya configurado para ese usuario. Por ejemplo, cuando se evalúa la siguiente sentencia de política, `${aws:username}` se reemplaza por el usuario que realiza la operación S3. Si un usuario `user1` realiza la operación, se le concede acceso a `bucket1` AS `bucket1/user1/*`.
 
 [listing]
 ----

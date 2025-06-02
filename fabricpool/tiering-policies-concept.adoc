@@ -19,48 +19,48 @@ Las políticas de organización en niveles de FabricPool le permiten mover los d
 
 Las políticas de organización en niveles de FabricPool determinan cuándo y si los bloques de datos de usuario de un volumen en FabricPool se mueven al nivel cloud en función del volumen «'temperatura» de los activos (activos) o inactivos (inactivos). El volumen «temperatura» aumenta cuando se accede frecuentemente y disminuye cuando no lo es. Algunas políticas de organización en niveles tienen un período de refrigeración mínimo asociado, que establece el tiempo en el que los datos de un volumen de FabricPool deben permanecer inactivos para que los datos se consideren «inactivos» y se trasladen al nivel de cloud.
 
-Una vez identificado un bloque como frío, se marca como apto para la organización en niveles.  Un análisis diario de organización en niveles en segundo plano busca los bloques inactivos. Cuando se han recogido suficientes bloques de 4KB KB del mismo volumen, se concatenan en un objeto de 4MB KB y se mueven al nivel de cloud en función de la política de organización en niveles del volumen.
+Una vez identificado un bloque como frío, se marca como apto para la organización en niveles. Un análisis diario de organización en niveles en segundo plano busca los bloques inactivos. Cuando se han recogido suficientes bloques de 4KB KB del mismo volumen, se concatenan en un objeto de 4MB KB y se mueven al nivel de cloud en función de la política de organización en niveles del volumen.
 
 [NOTE]
 ====
-Datos de volúmenes que usan el `all` la política de organización en niveles se marca de inmediato como inactiva y comienza la organización en niveles en el nivel de cloud lo antes posible. No tiene que esperar a que se ejecute el análisis de organización en niveles diario.
+Los datos en volúmenes que utilizan la `all` política de organización en niveles se marcan inmediatamente como inactivos y comienzan a organizar en niveles el nivel de cloud lo antes posible. No tiene que esperar a que se ejecute el análisis de organización en niveles diario.
 
 ====
-Puede usar el `volume object-store tiering show` comando para ver el estado de organización en niveles de un volumen de FabricPool. Obtenga más información sobre `volume object-store tiering show` en el link:https://docs.netapp.com/us-en/ontap-cli//volume-object-store-tiering-show.html["Referencia de comandos de la ONTAP"^].
+Puede usar el `volume object-store tiering show` comando para ver el estado de organización en niveles de un volumen de FabricPool. Obtenga más información sobre `volume object-store tiering show` en el link:https://docs.netapp.com/us-en/ontap-cli//volume-object-store-tiering-show.html["Referencia de comandos del ONTAP"^].
 
 La política de organización en niveles de FabricPool se especifica a nivel de volumen. Hay cuatro opciones disponibles:
 
 *  `snapshot-only`La política de organización en niveles (predeterminada) traslada los bloques de datos de usuario de las snapshots de volumen que no están asociados con el sistema de archivos activo al nivel de cloud.
 +
-El período de refrigeración mínimo de organización en niveles es de 2 días. Puede modificar la configuración predeterminada para el período de refrigeración mínima de organización en niveles con el `-tiering-minimum-cooling-days` parámetro en el nivel de privilegio avanzado del `volume create` y.. `volume modify` comandos. Los valores válidos abarcan de 2 a 183 días usando ONTAP 9.8 y posterior. Si utiliza una versión de ONTAP anterior a 9.8, los valores válidos abarcan de 2 a 63 días.
+El período de refrigeración mínimo de organización en niveles es de 2 días. Puede modificar la configuración predeterminada del período mínimo de enfriamiento de la organización en niveles con `-tiering-minimum-cooling-days` el parámetro en el nivel de privilegio avanzado de los `volume create` `volume modify` comandos y. Los valores válidos abarcan de 2 a 183 días usando ONTAP 9.8 y posterior. Si utiliza una versión de ONTAP anterior a 9.8, los valores válidos abarcan de 2 a 63 días.
 
 *  `auto`La política de organización en niveles, compatible solo en ONTAP 9,4 y versiones posteriores, mueve los bloques de datos de usuario fríos de las copias Snapshot y del sistema de archivos activo al nivel de cloud.
 +
 El período mínimo de enfriamiento de la organización en niveles es de 31 días y se aplica al volumen completo, tanto para el sistema de archivos activos como para las copias snapshot.
 
 +
-Puede modificar la configuración predeterminada para el período de refrigeración mínima de organización en niveles con el `-tiering-minimum-cooling-days` parámetro en el nivel de privilegio avanzado del `volume create` y.. `volume modify` comandos. Los valores válidos abarcan de 2 a 183 días.
+Puede modificar la configuración predeterminada del período mínimo de enfriamiento de la organización en niveles con `-tiering-minimum-cooling-days` el parámetro en el nivel de privilegio avanzado de los `volume create` `volume modify` comandos y. Los valores válidos abarcan de 2 a 183 días.
 
 *  `all`La política de organización en niveles, compatible solo con ONTAP 9,6 y versiones posteriores, mueve todos los bloques de datos de usuario del sistema de archivos activos y las copias Snapshot al nivel de cloud. Sustituye `backup` la política de organización en niveles.
 +
-La `all` no se debe utilizar la política de organización en niveles de volúmenes de lectura/escritura que tengan tráfico de clientes normal.
+ `all`No se debe utilizar la política de organización en niveles de volúmenes de lectura/escritura que tengan tráfico de clientes normal.
 
 +
 El período mínimo de enfriamiento de la organización en niveles no se aplica porque los datos se mueven al nivel de cloud en cuanto se ejecuta el análisis de la organización en niveles y no se puede modificar la configuración.
 
-* La `none` la política de organización en niveles mantiene los datos de un volumen en el nivel de rendimiento y no se mueven fríos al nivel de cloud.
+*  `none`La política de organización en niveles mantiene los datos de un volumen en el nivel de rendimiento y no se mueven fríos al nivel de cloud.
 +
-Configuración de la política de organización en niveles en `none` evita una nueva organización en niveles. Los datos del volumen que anteriormente se han movido al nivel de cloud permanecen en el nivel de cloud hasta que se activan y se trasladan de forma automática al nivel local.
+Establecer la política de organización en niveles `none` para evitar una nueva organización en niveles. Los datos del volumen que anteriormente se han movido al nivel de cloud permanecen en el nivel de cloud hasta que se activan y se trasladan de forma automática al nivel local.
 
 +
 El período de refrigeración mínimo de organización en niveles no se aplica porque los datos nunca se mueven al nivel de cloud y no se puede modificar el ajuste.
 
 +
-Cuando se bloquean bloques de datos inactivos en un volumen con una política de organización en niveles establecida en `none` se leen, se activan y se escriben en el nivel local.
+Cuando se `none` leen bloques inactivos de un volumen con una política de organización en niveles establecida en, se activan y se escriben en el nivel local.
 
 
 
-La `volume show` el resultado del comando muestra la política de organización en niveles de un volumen. Un volumen que nunca se utilizó con FabricPool muestra el `none` política de organización en niveles del resultado.
+ `volume show`El resultado del comando muestra la política de organización en niveles de un volumen. Un volumen que no se ha usado con FabricPool, muestra `none` la política de organización en niveles en el resultado.
 
 
 NOTE: Cuando están en una relación de recuperación ante desastres de la SVM, los volúmenes de origen y de destino no necesitan usar agregados de FabricPool, pero deben usar la misma política de organización en niveles.
@@ -69,14 +69,14 @@ NOTE: Cuando están en una relación de recuperación ante desastres de la SVM, 
 
 == Qué sucede cuando se modifica la política de organización en niveles de un volumen en FabricPool
 
-Puede modificar la política de organización en niveles de un volumen ejecutando un `volume modify` funcionamiento. Debe comprender cómo el cambio de la política de organización en niveles puede afectar el tiempo que tardan los datos en dejar de estar activos y moverse al nivel de cloud.
+Puede modificar la política de organización en niveles de un volumen mediante una `volume modify` operación. Debe comprender cómo el cambio de la política de organización en niveles puede afectar el tiempo que tardan los datos en dejar de estar activos y moverse al nivel de cloud.
 
-* Cambiando la política de organización en niveles desde `snapshot-only` o. `none` para `auto` Hace que ONTAP envíe bloques de datos de usuario en el sistema de archivos activo que ya están fríos en el nivel cloud, aunque esos bloques de datos de usuario no se hayan elegido anteriormente para el nivel de cloud.
+* Al cambiar la política de organización en niveles `snapshot-only` `none` `auto` de o a, ONTAP envía bloques de datos de usuario en el sistema de archivos activo que ya están inactivos en el nivel de cloud, incluso si esos bloques de datos de usuario no eran aptos anteriormente para el nivel de cloud.
 * Al cambiar la política de organización en niveles a `all` desde otra política, ONTAP mueve todos los bloques de usuario del sistema de archivos activo y de los snapshots al cloud lo antes posible. Antes de ONTAP 9,8, los bloques tenían que esperar hasta que se ejecutara el siguiente análisis de organización en niveles.
 +
 No se permite volver a mover los bloques al nivel de rendimiento.
 
-* Cambiando la política de organización en niveles desde `auto` para `snapshot-only` o. `none` no hace que los bloques del sistema de archivos activos que ya se hayan movido al nivel de cloud se vuelvan a mover al nivel de rendimiento.
+* Cambiar la política de organización en niveles `auto` `snapshot-only` de a o `none` no provocará que los bloques activos del sistema de archivos que ya se han movido al nivel de cloud se vuelvan a trasladar al nivel de rendimiento.
 +
 Las lecturas de volumen son necesarias para que los datos se muevan de nuevo al nivel de rendimiento.
 
@@ -91,14 +91,14 @@ Las lecturas de volumen son necesarias para que los datos se muevan de nuevo al 
 +
 Sin embargo, la política de organización en niveles solo se aplica cuando el volumen se encuentra en un agregado habilitado para FabricPool.
 
-* El valor existente de `-tiering-minimum-cooling-days` el parámetro de un volumen se mueve con el volumen a menos que se especifique otra política de organización en niveles para el destino.
+* El valor existente `-tiering-minimum-cooling-days` del parámetro para un volumen se mueve con el volumen a menos que se especifique una política de organización en niveles diferente para el destino.
 +
 Si especifica una política de organización en niveles diferente, el volumen utiliza el período de refrigeración mínimo de organización en niveles predeterminado para esa política. Este es el caso si el destino es FabricPool o no.
 
 * Puede mover un volumen entre agregados y, al mismo tiempo, modificar la política de organización en niveles.
-* Debe prestar especial atención cuando un `volume move` la operación implica el `auto` política de organización en niveles.
+* Debe prestar atención especial cuando una `volume move` operación incluye `auto` la política de organización en niveles.
 +
-Suponiendo que el origen y el destino sean agregados habilitados para FabricPool, la siguiente tabla resume el resultado de un `volume move` operación que implica cambios de directiva relacionados con `auto`:
+Suponiendo que tanto el origen como el destino son agregados habilitados para FabricPool, la siguiente tabla resume el resultado de una `volume move` operación que implica cambios de política relacionados con `auto` :
 
 +
 |===
@@ -117,7 +117,7 @@ Todos los datos se mueven al nivel de rendimiento.
 
 
  a| 
-`snapshot-only`, `none`, o. `auto`
+`snapshot-only`, , `none` o. `auto`
  a| 
 `auto`
  a| 
@@ -159,15 +159,15 @@ Todos los datos se conservan en el nivel de rendimiento.
 
 * A partir de ONTAP 9.8, un volumen clonado siempre hereda la política de organización en niveles y la política de recuperación de cloud del volumen principal.
 +
-En las versiones anteriores a ONTAP 9.8, un clon hereda la política de organización en niveles del elemento principal, excepto cuando el elemento principal tiene el `all` política de organización en niveles.
+En versiones anteriores a ONTAP 9.8, un clon hereda la política de organización en niveles del elemento principal excepto cuando el elemento principal tiene la `all` política de organización en niveles.
 
-* Si el volumen principal tiene el `never` política de recuperación de cloud, su volumen clonado debe tener el `never` política de recuperación en cloud o el `all` política de organización en niveles y una política de recuperación en el cloud correspondiente `default`.
-* La política de recuperación de cloud del volumen principal no se puede cambiar a. `never` a menos que todos los volúmenes clonados tengan una política de recuperación en el cloud `never`.
+* Si el volumen primario tiene la `never` política de recuperación de cloud, su volumen clonado debe tener `never` la política de recuperación de cloud o la `all` política de organización en niveles, y una política de recuperación de cloud correspondiente `default` .
+* No se puede cambiar la política de recuperación de cloud del volumen primario `never` a menos que todos sus volúmenes clonados tengan una política de recuperación de cloud `never` .
 
 
 Al clonar volúmenes, tenga en cuenta las siguientes prácticas recomendadas:
 
-* La `-tiering-policy` opción y. `tiering-minimum-cooling-days` la opción del clon solo controla el comportamiento de organización en niveles de los bloques únicos para el clon. Por lo tanto, se recomienda utilizar la configuración de organización en niveles en la FlexVol principal que mueva la misma cantidad de datos o mueva menos datos que ninguno de los clones
+*  `-tiering-policy`La opción y `tiering-minimum-cooling-days` la opción del clon solo controlan el comportamiento de la organización en niveles de los bloques únicos del clon. Por lo tanto, se recomienda utilizar la configuración de organización en niveles en la FlexVol principal que mueva la misma cantidad de datos o mueva menos datos que ninguno de los clones
 * La política de recuperación de cloud del FlexVol principal debería mover la misma cantidad de datos o debería mover más datos que la política de recuperación de cualquiera de los clones
 
 
@@ -212,7 +212,7 @@ todo
 Sin recuperación de datos
 
 |===
-A partir de ONTAP 9.8, el control de la migración al cloud `cloud-retrieval-policy` esta opción anula el comportamiento de migración o recuperación de cloud predeterminado controlado por la política de organización en niveles.
+A partir de ONTAP 9.8, la `cloud-retrieval-policy` opción de control de migración en la nube anula el comportamiento predeterminado de migración o recuperación a la nube controlado por la política de organización en niveles.
 
 En la siguiente tabla se enumeran las políticas de recuperación de cloud admitidas y su comportamiento de recuperación.
 
@@ -225,7 +225,7 @@ En la siguiente tabla se enumeran las políticas de recuperación de cloud admit
  a| 
 predeterminado
  a| 
-La política de organización en niveles decide qué datos deben extraerse, de modo que no hay ningún cambio en la recuperación de datos en el cloud con "valor predeterminado,`" `cloud-retrieval-policy`. Esta política es el valor predeterminado para cualquier volumen independientemente del tipo de agregado alojado.
+La política de organización en niveles decide qué datos se deben recuperar, de modo que no hay cambios en la recuperación de datos en la nube con «almacén,`" `cloud-retrieval-policy`». Esta política es el valor predeterminado para cualquier volumen independientemente del tipo de agregado alojado.
 
 
 
@@ -251,4 +251,4 @@ promocionar
 
 
 |===
-Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].

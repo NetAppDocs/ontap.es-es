@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: level, storage, access, security, provide, guard, applies, access, apply, object, protocol, volume, qtree 
 summary: Hay una serie de pasos que se deben seguir para configurar la protección del acceso al nivel de almacenamiento en un volumen o un qtree. El protector de acceso al nivel de almacenamiento ofrece un nivel de seguridad de acceso que se establece en el nivel de almacenamiento. Proporciona seguridad que se aplica a todos los accesos desde todos los protocolos NAS al objeto de almacenamiento al que se ha aplicado. 
 ---
-= Configure Storage-Level Access Guard
+= Configurar Storage-Level Access Guard en servidores SMB de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -14,7 +14,7 @@ summary: Hay una serie de pasos que se deben seguir para configurar la protecci�
 Hay una serie de pasos que se deben seguir para configurar la protección del acceso al nivel de almacenamiento en un volumen o un qtree. El protector de acceso al nivel de almacenamiento ofrece un nivel de seguridad de acceso que se establece en el nivel de almacenamiento. Proporciona seguridad que se aplica a todos los accesos desde todos los protocolos NAS al objeto de almacenamiento al que se ha aplicado.
 
 .Pasos
-. Cree un descriptor de seguridad mediante `vserver security file-directory ntfs create` comando.
+. Cree un descriptor de seguridad con `vserver security file-directory ntfs create` el comando.
 +
 `vserver security file-directory ntfs create -vserver vs1 -ntfs-sd sd1` `vserver security file-directory ntfs show -vserver vs1`
 
@@ -54,14 +54,14 @@ Si no desea utilizar las entradas predeterminadas al configurar Storage-Level Ac
 
 . Quite cualquiera de los ACE de DACL predeterminados del descriptor de seguridad que no desea configurar con la seguridad Storage-Level Access Guard:
 +
-.. Elimine los ACE de DACL no deseados mediante `vserver security file-directory ntfs dacl remove` comando.
+.. Elimine todas las ACE DACL no deseadas con el `vserver security file-directory ntfs dacl remove` comando.
 +
 En este ejemplo, se quitan tres ACE de DACL predeterminados del descriptor de seguridad: BUILTIN\Administrators, BUILTIN\Users y CREATOR OWNER.
 
 +
 `vserver security file-directory ntfs dacl remove -vserver vs1 -ntfs-sd sd1 -access-type allow -account builtin\users` `vserver security file-directory ntfs dacl remove -vserver vs1 -ntfs-sd sd1 -access-type allow -account builtin\administrators` `vserver security file-directory ntfs dacl remove -vserver vs1 -ntfs-sd sd1 -access-type allow -account "creator owner"`
 
-.. Compruebe que los ACE DACL que no desea utilizar para la seguridad de Access Guard de nivel de almacenamiento se quitan del descriptor de seguridad mediante el `vserver security file-directory ntfs dacl show` comando.
+.. Compruebe que las ACL DACL que no desea utilizar para la seguridad de Access Guard de nivel de almacenamiento se hayan eliminado del descriptor de seguridad mediante `vserver security file-directory ntfs dacl show` el comando.
 +
 En este ejemplo, la salida del comando verifica que se han eliminado tres ACE de DACL predeterminados del descriptor de seguridad, dejando sólo la entrada de ACE de DACL predeterminada de NT AUTHORITY\SYSTEM:
 
@@ -83,23 +83,23 @@ Vserver: vs1
 ----
 
 
-. Agregue una o varias entradas DACL a un descriptor de seguridad mediante `vserver security file-directory ntfs dacl add` comando.
+. Añada una o varias entradas DACL a un descriptor de seguridad mediante `vserver security file-directory ntfs dacl add` el comando.
 +
-En este ejemplo, se agregan dos ACE DACL al descriptor de seguridad:
+En este ejemplo, se agregan dos ACE de DACL al descriptor de seguridad:
 
 +
 `vserver security file-directory ntfs dacl add -vserver vs1 -ntfs-sd sd1 -access-type allow -account example\engineering -rights full-control -apply-to this-folder,sub-folders,files` `vserver security file-directory ntfs dacl add -vserver vs1 -ntfs-sd sd1 -access-type allow -account "example\Domain Users" -rights read -apply-to this-folder,sub-folders,files`
 
-. Agregue una o más entradas de SACL a un descriptor de seguridad mediante `vserver security file-directory ntfs sacl add` comando.
+. Añada una o varias entradas de SACL a un descriptor de seguridad mediante `vserver security file-directory ntfs sacl add` el comando.
 +
 En este ejemplo, se agregan dos ACE de SACL al descriptor de seguridad:
 
 +
 `vserver security file-directory ntfs sacl add -vserver vs1 -ntfs-sd sd1 -access-type failure -account "example\Domain Users" -rights read -apply-to this-folder,sub-folders,files` `vserver security file-directory ntfs sacl add -vserver vs1 -ntfs-sd sd1 -access-type success -account example\engineering -rights full-control -apply-to this-folder,sub-folders,files`
 
-. Compruebe que los ACE DACL y SACL están configurados correctamente mediante el `vserver security file-directory ntfs dacl show` y.. `vserver security file-directory ntfs sacl show` comandos, respectivamente.
+. Verifique que las ACE DACL y SACL estén configuradas correctamente mediante los `vserver security file-directory ntfs dacl show` `vserver security file-directory ntfs sacl show` comandos y, respectivamente.
 +
-En este ejemplo, el siguiente comando muestra información acerca de las entradas DACL del descriptor de seguridad "sD1":
+En este ejemplo, el siguiente comando muestra información sobre las entradas de DACL para el descriptor de seguridad “D1”:
 
 +
 `vserver security file-directory ntfs dacl show -vserver vs1 -ntfs-sd sd1`
@@ -142,14 +142,14 @@ Vserver: vs1
     EXAMPLE\engineering
                      success  full-control   this-folder, sub-folders, files
 ----
-. Cree una política de seguridad mediante `vserver security file-directory policy create` comando.
+. Cree una política de seguridad mediante `vserver security file-directory policy create` el comando.
 +
 En el siguiente ejemplo se crea una directiva denominada «'póliza 1'»:
 
 +
 `vserver security file-directory policy create -vserver vs1 -policy-name policy1`
 
-. Compruebe que la directiva está correctamente configurada mediante el `vserver security file-directory policy show` comando.
+. Compruebe que la política se ha configurado correctamente mediante `vserver security file-directory policy show` el comando.
 +
 `vserver security file-directory policy show`
 
@@ -161,17 +161,17 @@ En el siguiente ejemplo se crea una directiva denominada «'póliza 1'»:
    ------------     --------------
    vs1              policy1
 ----
-. Agregue una tarea con un descriptor de seguridad asociado a la directiva de seguridad mediante `vserver security file-directory policy task add` con el `-access-control` parámetro establecido en `slag`.
+. Agregue una tarea con un descriptor de seguridad asociado a la política de seguridad mediante el `vserver security file-directory policy task add` comando con el `-access-control` parámetro definido en `slag`.
 +
 Aunque una directiva puede contener más de una tarea de Storage-Level Access Guard, no puede configurar una directiva para que contenga tareas de directorio de archivos y de Storage-Level Access Guard. Una política debe contener todas las tareas de Storage-Level Access Guard o todas las tareas de directorio de archivos.
 
 +
-En este ejemplo, se agrega una tarea a la política denominada "'poly1'", que se asigna al descriptor de seguridad "sD1". Está asignado a `/datavol1` ruta con el tipo de control de acceso establecido en "retardo".
+En este ejemplo, se agrega una tarea a la política denominada "'poly1'", que se asigna al descriptor de seguridad "sD1". Se asigna a la `/datavol1` ruta con el tipo de control de acceso establecido en “Slag”.
 
 +
 `vserver security file-directory policy task add -vserver vs1 -policy-name policy1 -path /datavol1 -access-control slag -security-type ntfs -ntfs-mode propagate -ntfs-sd sd1`
 
-. Compruebe que la tarea está configurada correctamente mediante el `vserver security file-directory policy task show` comando.
+. Compruebe que la tarea está configurada correctamente mediante `vserver security file-directory policy task show` el comando.
 +
 `vserver security file-directory policy task show -vserver vs1 -policy-name policy1`
 
@@ -187,16 +187,16 @@ En este ejemplo, se agrega una tarea a la política denominada "'poly1'", que se
    -----  -----------  ---------------  --------  ---------- ---------------
    1      /datavol1    slag             ntfs      propagate  sd1
 ----
-. Aplique la directiva de seguridad de protección de acceso al nivel de almacenamiento mediante `vserver security file-directory apply` comando.
+. Aplique la política de seguridad Access Guard de nivel de almacenamiento mediante `vserver security file-directory apply` el comando.
 +
 `vserver security file-directory apply -vserver vs1 -policy-name policy1`
 
 +
 El trabajo que se va a aplicar la directiva de seguridad está programado.
 
-. Compruebe que la configuración de seguridad aplicada de la protección del acceso al nivel de almacenamiento sea correcta mediante `vserver security file-directory show` comando.
+. Verifique que la configuración de seguridad de Access Guard de nivel de almacenamiento aplicada sea correcta mediante el `vserver security file-directory show` comando.
 +
-En este ejemplo, el resultado del comando muestra que la seguridad Storage-Level Access Guard se ha aplicado al volumen NTFS `/datavol1`. Aunque el DACL predeterminado que permite el control total para todos permanece, la seguridad de Storage-Level Access Guard restringe (y audita) el acceso a los grupos definidos en la configuración de Storage-Level Access Guard.
+En este ejemplo, la salida del comando muestra que la seguridad de Storage-Level Access Guard se ha aplicado al volumen NTFS `/datavol1` . Aunque el DACL predeterminado que permite el control total para todos permanece, la seguridad de Storage-Level Access Guard restringe (y audita) el acceso a los grupos definidos en la configuración de Storage-Level Access Guard.
 
 +
 `vserver security file-directory show -vserver vs1 -path /datavol1`

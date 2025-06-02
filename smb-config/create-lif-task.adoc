@@ -14,19 +14,22 @@ summary: Una LIF es una dirección IP asociada con un puerto físico o lógico. 
 Una LIF es una dirección IP asociada con un puerto físico o lógico. Si hay un fallo de un componente, un LIF puede conmutar al respaldo o migrarse a un puerto físico diferente, lo que continúa comunicándose con la red.
 
 .Antes de empezar
-* El puerto de red físico o lógico subyacente debe haberse configurado en el `up` estado administrativo. Obtenga más información sobre `up` en el link:https://docs.netapp.com/us-en/ontap-cli/up.html["Referencia de comandos de la ONTAP"^].
+* El puerto de red físico o lógico subyacente debe haberse configurado en el `up` estado administrativo. Obtenga más información sobre `up` en el link:https://docs.netapp.com/us-en/ontap-cli/up.html["Referencia de comandos del ONTAP"^].
 * Si tiene pensado utilizar un nombre de subred para asignar la dirección IP y el valor de máscara de red para una LIF, la subred ya debe existir.
 +
-Las subredes contienen un grupo de direcciones IP que pertenecen a la misma subred de capa 3. Se crean mediante la `network subnet create` comando.
+Las subredes contienen un grupo de direcciones IP que pertenecen a la misma subred de capa 3. Se crean mediante el `network subnet create` comando.
+
++
+Obtenga más información sobre `network subnet create` en el link:https://docs.netapp.com/us-en/ontap-cli/network-subnet-create.html["Referencia de comandos del ONTAP"^].
 
 * El mecanismo para especificar el tipo de tráfico que maneja una LIF ha cambiado. Para ONTAP 9.5 y versiones anteriores, LIF usaba funciones para especificar el tipo de tráfico que gestionaría. A partir de ONTAP 9.6, los LIF utilizan políticas de servicio para especificar el tipo de tráfico que manejaría.
 
 
 .Acerca de esta tarea
 * Puede crear tanto LIF IPv4 como IPv6 en el mismo puerto de red.
-* Si tiene un gran número de LIF en su clúster, puede verificar la capacidad de LIF admitida en el clúster mediante el `network interface capacity show` Comando y la capacidad de LIF admitida en cada nodo mediante el `network interface capacity details show` (en el nivel de privilegio avanzado).
+* Si tiene un gran número de LIF en su clúster, puede comprobar la capacidad de LIF compatible en el clúster mediante `network interface capacity show` el comando y la capacidad de LIF admitida en cada nodo mediante el comando `network interface capacity details show` (en el nivel de privilegio avanzado).
 +
-Obtenga más información sobre `network interface` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `network interface` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface["Referencia de comandos del ONTAP"^].
 
 * A partir de ONTAP 9.7, si ya existen otras LIF para la SVM en la misma subred, no es necesario especificar el puerto de inicio de la LIF. ONTAP elige automáticamente un puerto aleatorio en el nodo raíz especificado en el mismo dominio de retransmisión que las otras LIF ya configuradas en la misma subred.
 
@@ -59,17 +62,17 @@ Obtenga más información sobre `network interface` en el link:https://docs.neta
 
 |===
 +
-** La `-role` No se requiere el parámetro al crear una LIF con una política de servicio (a partir de ONTAP 9.6).
-** La `-data-protocol` No se requiere el parámetro al crear una LIF con una política de servicio (a partir de ONTAP 9.6). Cuando se utiliza ONTAP 9,5 y versiones anteriores, el `-data-protocol` Debe especificarse el parámetro cuando se crea el LIF y no se puede modificar más adelante sin destruir ni volver a crear la LIF de datos.
-** `-home-node` Es el nodo al que devuelve el LIF cuando el `network interface revert` El comando se ejecuta en la LIF.
+**  `-role`No es necesario utilizar el parámetro cuando se crea una LIF mediante una política de servicio (empezando por ONTAP 9.6).
+**  `-data-protocol`No es necesario utilizar el parámetro cuando se crea una LIF mediante una política de servicio (empezando por ONTAP 9.6). Cuando se utiliza ONTAP 9 E.5 y versiones anteriores, el `-data-protocol` parámetro se debe especificar al crear la LIF, y no se puede modificar más adelante sin destruir ni volver a crear la LIF de datos.
+** `-home-node` Es el nodo al que devuelve la LIF cuando `network interface revert` se ejecuta el comando en la LIF.
 +
-También puede especificar si el LIF debería volver automáticamente al nodo raíz y al puerto raíz con el `-auto-revert` opción.
+También puede especificar si el LIF debe volver automáticamente al nodo de inicio y al puerto de inicio con `-auto-revert` la opción.
 
-** `-home-port` Es el puerto físico o lógico al que devuelve la LIF cuando el `network interface revert` El comando se ejecuta en la LIF.
-** Puede especificar una dirección IP con el `-address` y.. `-netmask` o puede habilitar la asignación desde una subred con `-subnet_name` opción.
+** `-home-port` Es el puerto físico o lógico al que devuelve la LIF cuando `network interface revert` el comando se ejecuta en la LIF.
+** Puede especificar una dirección IP con las `-address` `-netmask` opciones y, o bien habilitar la asignación desde una subred con `-subnet_name` la opción.
 ** Al usar una subred para suministrar la dirección IP y la máscara de red, si la subred se definió con una puerta de enlace, se añadirá automáticamente a la SVM una ruta predeterminada a esa puerta de enlace cuando se cree una LIF con dicha subred.
-** Si asigna direcciones IP manualmente (sin una subred), es posible que deba configurar una ruta predeterminada para una puerta de enlace si hay clientes o controladores de dominio en una subred IP diferente. Obtenga más información sobre `network route create` y cómo crear una ruta estática dentro de una SVM en el link:https://docs.netapp.com/us-en/ontap-cli/network-route-create.html["Referencia de comandos de la ONTAP"^].
-** Para la `-firewall-policy` opción, utilice el mismo valor predeterminado `data` Como el rol de LIF.
+** Si asigna direcciones IP manualmente (sin una subred), es posible que deba configurar una ruta predeterminada para una puerta de enlace si hay clientes o controladores de dominio en una subred IP diferente. Obtenga más información sobre `network route create` y cómo crear una ruta estática dentro de una SVM en el link:https://docs.netapp.com/us-en/ontap-cli/network-route-create.html["Referencia de comandos del ONTAP"^].
+** Para `-firewall-policy` la opción, utilice el mismo valor predeterminado `data` que el rol LIF.
 +
 Si lo desea, puede crear y agregar una política de firewall personalizada más adelante.
 
@@ -77,7 +80,7 @@ Si lo desea, puede crear y agregar una política de firewall personalizada más 
 
 NOTE: A partir de ONTAP 9.10.1, las políticas de firewall están obsoletas y sustituidas por completo por políticas de servicios LIF. Para obtener más información, consulte link:../networking/configure_firewall_policies_for_lifs.html["Configurar políticas de firewall para LIF"].
 
-** `-auto-revert` Permite especificar si un LIF de datos se revierte automáticamente a su nodo principal en circunstancias como el inicio, los cambios en el estado de la base de datos de gestión o el momento en que se realiza la conexión de red. El valor predeterminado es `false`, pero puede establecerlo en `false` según las políticas de administración de red del entorno.
+** `-auto-revert` Permite especificar si una LIF de datos se revierte automáticamente a su nodo de inicio en circunstancias como el inicio, los cambios en el estado de la base de datos de gestión o el momento en que se establece la conexión de red. El valor por defecto es `false`, pero puede definirlo en `false` función de las políticas de gestión de red del entorno.
 
 
 . Compruebe que la LIF se ha creado correctamente:
@@ -108,7 +111,7 @@ Dirección IPv6
 
 
 .Ejemplos
-El siguiente comando crea una LIF y especifica la dirección IP y los valores de máscara de red mediante el `-address` y.. `-netmask` parámetros:
+El siguiente comando crea una LIF y especifica la dirección IP y los valores de la máscara de red mediante `-address` `-netmask` los parámetros y:
 
 [listing]
 ----
@@ -146,7 +149,7 @@ vs3.example.com
             datalif4     up/up    2001::2/64       node-2       e0c     true
 5 entries were displayed.
 ----
-El siguiente comando muestra cómo crear una LIF de datos NAS asignada con `default-data-files` política de servicio:
+El siguiente comando muestra cómo crear una LIF de datos NAS que está asignada a la `default-data-files` política de servicio:
 
 [listing]
 ----

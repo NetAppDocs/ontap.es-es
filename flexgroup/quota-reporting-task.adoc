@@ -33,7 +33,7 @@ No se emite ningún mensaje administrativo completamente claro cuando el uso cae
 * En ONTAP 9.5, no se pueden crear ni activar reglas de cuota en el volumen FlexGroup de destino de una relación de SnapMirror.
 * Durante la inicialización de las cuotas, las cuotas no se aplican y no hay notificaciones de cuotas violadas tras la inicialización de las cuotas.
 +
-Para comprobar si se han violado las cuotas durante la inicialización de cuotas, puede utilizar la `volume quota report` comando.
+Para comprobar si se han infringido las cuotas durante la inicialización de cuotas, puede utilizar el `volume quota report` comando.
 
 
 
@@ -128,7 +128,7 @@ Para proporcionar el mejor rendimiento, ONTAP puede permitir que el consumo de e
 Puede utilizar los ejemplos para comprender cómo configurar cuotas con límites en ONTAP 9.5 y versiones posteriores.
 
 .Ejemplo 1: Aplicación de una regla de cuota con límites de disco
-. Debe crear una regla de política de cuota de tipo `user` con un límite alcanzable de discos duros y uno de discos duros.
+. Debe crear una regla de política de cuotas de tipo `user` con un límite de disco flexible y un límite de disco duro alcanzables.
 +
 [listing]
 ----
@@ -174,7 +174,7 @@ FG                 user    *         800GB    1TB      0       -   *
 Una vez alcanzado el límite del disco duro, el destino de la regla de política de cuota (usuario, en este caso) se bloquea para que no se escriban más datos en los archivos.
 
 .Ejemplo 2: Aplicación de una regla de cuota para varios usuarios
-. Debe crear una regla de política de cuota de tipo `user`, Donde se especifican varios usuarios en el destino de cuota (usuarios UNIX, usuarios SMB o una combinación de ambos) y donde la regla tiene tanto un límite de disco duro como un límite de disco duro alcanzable.
+. Debe crear una regla de política de cuotas de tipo `user`, donde se especifiquen varios usuarios en el destino de cuota (usuarios UNIX, usuarios SMB o una combinación de ambos) y donde la regla tenga un límite de disco flexible y un límite de disco duro alcanzables.
 +
 [listing]
 ----
@@ -236,7 +236,7 @@ El límite de cuota se comparte entre todos los usuarios enumerados en el destin
 Una vez alcanzado el límite del disco duro, los usuarios incluidos en el destino de cuota se bloquean de escribir más datos en los archivos.
 
 .Ejemplo 3: Imposición de la cuota con asignación de usuarios activada
-. Debe crear una regla de política de cuota de tipo `user`, Especifique un usuario de UNIX o un usuario de Windows como destino de cuota con `user-mapping` establezca en `on`y cree la regla con un límite de disco duro y un límite de disco duro alcanzable.
+. Debe crear una regla de política de cuota de tipo `user`, especificar un usuario UNIX o un usuario de Windows como destino de cuota con `user-mapping` Definido en `on`y crear la regla con un límite de disco flexible y un límite de disco duro alcanzables.
 +
 La asignación entre los usuarios de UNIX y Windows debe configurarse anteriormente mediante el `vserver name-mapping create` comando.
 
@@ -301,7 +301,7 @@ El límite de cuota se comparte entre el usuario que aparece en el destino de cu
 Una vez alcanzado el límite del disco duro, tanto el usuario que figura en el destino de cuota como su usuario de Windows o UNIX correspondiente se bloquean de escribir más datos en los archivos.
 
 .Ejemplo 4: Verificación del tamaño de qtree cuando se habilita la cuota
-. Debe crear una regla de política de cuota de tipo `tree` y donde la regla tiene un límite que puede alcanzarse del disco duro y del disco duro.
+. Debe crear una regla de política de cuotas de tipo `tree` y en la que la regla tenga un límite de disco flexible y un límite de disco duro alcanzables.
 +
 [listing]
 ----
@@ -344,7 +344,7 @@ El límite de cuota se comparte entre el usuario que aparece en el destino de cu
 
 
 
-. Desde un cliente NFS, utilice `df` comando para ver el uso total del espacio, el espacio disponible y el espacio utilizado.
+. Desde un cliente NFS, utilice `df` el comando para ver el uso total del espacio, el espacio disponible y el espacio utilizado.
 +
 [listing]
 ----
@@ -357,8 +357,7 @@ Con el límite duro, el uso del espacio se calcula a partir de un cliente NFS de
 
 +
 ** Uso total del espacio = límite duro para el árbol
-** Espacio libre = límite estricto menos el uso de espacio para qtrees
-Sin limitación estricta, el uso del espacio se calcula a partir de un cliente NFS de la siguiente forma:
+** Espacio libre = límite duro menos uso de espacio en qtree sin límite rígido, el uso del espacio se calcula a partir de un cliente NFS de la siguiente manera:
 ** Uso del espacio = uso de cuota
 ** Espacio total = suma de uso de cuota y espacio libre físico en el volumen
 
@@ -404,17 +403,17 @@ En el siguiente ejemplo, se muestra una regla de cuota de árbol que se crea par
 ----
 cluster1::> volume quota policy rule create -policy-name default -vserver vs0 -volume fg1 -type tree -target "qtree1"
 ----
-. Active las cuotas para el volumen de FlexGroup especificado: `volume quota on -vserver svm_name -volume flexgroup_vol -foreground true`
+. Active las cuotas para el volumen FlexGroup especificado: `volume quota on -vserver svm_name -volume flexgroup_vol -foreground true`
 
 
 [listing]
 ----
 cluster1::> volume quota on -vserver vs0 -volume fg1 -foreground true
 ----
-. Supervisar el estado de inicialización de la cuota: `volume quota show -vserver svm_name`
+. Supervisar el estado de inicialización de cuota: `volume quota show -vserver svm_name`
 
 
-Los volúmenes FlexGroup pueden mostrar el `mixed` estado, que indica que todos los volúmenes constituyentes aún no están en el mismo estado.
+Puede que los volúmenes de FlexGroup muestren `mixed` el estado, lo que indica que todos los volúmenes constituyentes aún no están en el mismo estado.
 
 [listing]
 ----
@@ -426,9 +425,9 @@ vs0        fg1           initializing         95%
 vs0        vol1          off                   -
 2 entries were displayed.
 ----
-. Vea el informe de cuotas del volumen FlexGroup con cuotas activas: `volume quota report -vserver svm_name -volume flexgroup_vol`
+. Consulte el informe de cuota del volumen FlexGroup con cuotas activas: `volume quota report -vserver svm_name -volume flexgroup_vol`
 +
-No puede especificar una ruta con el `volume quota report` Comando para volúmenes de FlexGroup.
+No se puede especificar una ruta con `volume quota report` el comando para los volúmenes de FlexGroup.
 
 +
 En el siguiente ejemplo, se muestra la cuota de usuario para el volumen fg1 de FlexGroup:
@@ -468,5 +467,5 @@ Las reglas y los límites de cuotas se aplican al volumen FlexGroup.
 El uso puede alcanzar hasta un 5 % mayor que un límite rígido configurado antes de que ONTAP aplique la cuota rechazando más tráfico.
 
 .Información relacionada
-* https://docs.netapp.com/us-en/ontap-cli["Referencia de comandos de la ONTAP"^]
+* https://docs.netapp.com/us-en/ontap-cli["Referencia de comandos del ONTAP"^]
 

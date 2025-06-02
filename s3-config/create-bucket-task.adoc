@@ -29,7 +29,7 @@ Debe existir una máquina virtual de almacenamiento que contenga un servidor S3.
 
 * Si va a configurar la organización en niveles de capacidad local, debe crear bloques y usuarios en una máquina virtual de almacenamiento de datos, no en la máquina virtual de almacenamiento del sistema donde está ubicado el servidor S3.
 * Para el acceso de cliente remoto, debe configurar buckets en una máquina virtual de almacenamiento habilitada para S3. Si crea un bloque en una máquina virtual de almacenamiento que no tiene la función S3, solo estará disponible para la organización en niveles local.
-* A partir de ONTAP 9.14.1, puede hacerlo link:create-bucket-mcc-task.html["Cree un bucket en un agregado reflejado o no reflejado en una configuración de MetroCluster"].
+* Comenzando con ONTAP 9.14,1, usted puede link:create-bucket-mcc-task.html["Cree un bucket en un agregado reflejado o no reflejado en una configuración de MetroCluster"].
 * Para la CLI, cuando crea un bloque, tiene dos opciones de aprovisionamiento:
 +
 ** Dejar a ONTAP Select los agregados subyacentes y los componentes de FlexGroup (predeterminado)
@@ -41,13 +41,12 @@ Debe existir una máquina virtual de almacenamiento que contenga un servidor S3.
 ** Seleccione los agregados subyacentes y los componentes de FlexGroup (requiere opciones de comandos de privilegios avanzados): Tiene la opción de seleccionar manualmente los agregados donde se debe crear el bloque y el volumen de FlexGroup, y luego especificar la cantidad de componentes en cada agregado. Al añadir cubos adicionales:
 +
 *** Si especifica agregados y componentes para un bloque nuevo, se creará una FlexGroup nueva para el bloque nuevo.
-*** Si no se especifican agregados y componentes para un bloque nuevo, el nuevo bloque se añadirá a una FlexGroup existente.
-Consulte xref:../flexgroup/index.html[Gestión de volúmenes de FlexGroup] si quiere más información.
+*** Si no se especifican agregados y componentes para un bloque nuevo, el nuevo bloque se añadirá a una FlexGroup existente. Consulte xref:../flexgroup/index.html[Gestión de volúmenes de FlexGroup] para obtener más información.
 +
-Cuando se especifican agregados y componentes al crear un bloque, no se aplican grupos de políticas de calidad de servicio, predeterminados ni personalizados. Puede hacerlo más tarde con el `vserver object-store-server bucket modify` comando.
+Cuando se especifican agregados y componentes al crear un bloque, no se aplican grupos de políticas de calidad de servicio, predeterminados ni personalizados. Puede hacerlo más tarde con `vserver object-store-server bucket modify` el comando.
 
 +
-Obtenga más información sobre `vserver object-store-server bucket modify` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-object-store-server-show.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `vserver object-store-server bucket modify` en el link:https://docs.netapp.com/us-en/ontap-cli/vserver-object-store-server-show.html["Referencia de comandos del ONTAP"^].
 
 +
 *Nota:* Si está sirviendo cubos de Cloud Volumes ONTAP, debe utilizar el procedimiento CLI. Se recomienda seleccionar manualmente los agregados subyacentes para garantizar que solo utilicen un nodo. El uso de agregados de ambos nodos puede afectar al rendimiento, ya que los nodos se encuentran en zonas de disponibilidad separadas geográficamente y, por lo tanto, pueden estar expuestos a problemas de latencia.
@@ -62,13 +61,13 @@ Obtenga más información sobre `vserver object-store-server bucket modify` en e
 
 == Crear bloques S3 con la interfaz de línea de comandos de ONTAP
 
-. Si piensa seleccionar agregados y componentes de FlexGroup por su cuenta, establezca el nivel de privilegio en Advanced (de lo contrario, el nivel de privilegio de administrador es suficiente): `set -privilege advanced`
+. Si piensa seleccionar agregados y componentes de FlexGroup usted mismo, establezca el nivel de privilegio en avanzado (de lo contrario, el nivel de privilegio de administración es suficiente): `set -privilege advanced`
 . Crear un bloque:
 +
 `vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]`
 
 +
-El nombre de la máquina virtual de almacenamiento puede ser una máquina virtual de almacenamiento de datos o `Cluster` (El nombre de VM de almacenamiento del sistema) si se va a configurar la organización en niveles local.
+El nombre de la máquina virtual de almacenamiento puede ser una máquina virtual de almacenamiento de datos o `Cluster` (el nombre de la máquina virtual de almacenamiento del sistema) si va a configurar la organización en niveles local.
 
 +
 Si no especifica ninguna opción, ONTAP crea un bucket de 800GB con el nivel de servicio definido en el nivel más alto disponible para su sistema.
@@ -79,11 +78,11 @@ Si desea que ONTAP cree un bloque según el rendimiento o el uso, utilice una de
 +
 ** nivel de servicio
 +
-Incluya el `-storage-service-level` opción con uno de los siguientes valores: `value`, `performance`, o. `extreme`.
+Incluya `-storage-service-level` la opción con uno de los siguientes valores `value`: , , `performance` O `extreme`.
 
 ** Organización en niveles
 +
-Incluya el `-used-as-capacity-tier true` opción.
+Incluya `-used-as-capacity-tier true` la opción.
 
 
 
@@ -91,16 +90,16 @@ Incluya el `-used-as-capacity-tier true` opción.
 Si desea especificar los agregados en los que se creará el volumen de FlexGroup subyacente, utilice las siguientes opciones:
 
 +
-** La `-aggr-list` El parámetro especifica la lista de agregados que se usarán para los componentes de volumen de FlexGroup.
+**  `-aggr-list`El parámetro especifica la lista de agregados que se usarán para los componentes del volumen FlexGroup.
 +
 Cada entrada de la lista crea un componente en el agregado especificado. Puede especificar un agregado varias veces para que se creen varios componentes en el agregado.
 
 +
 Para obtener un rendimiento coherente en todo el volumen FlexGroup, todos los agregados deben usar las mismas configuraciones de tipo de disco y grupo RAID.
 
-** La `-aggr-list-multiplier` parámetro especifica la cantidad de veces que se debe iterar sobre los agregados que se enumeran con el `-aggr-list` Parámetro cuando se crea un volumen de FlexGroup.
+**  `-aggr-list-multiplier`El parámetro especifica la cantidad de veces que se repetirán sobre los agregados que se enumeran con `-aggr-list` el parámetro al crear un volumen de FlexGroup.
 +
-El valor predeterminado de `-aggr-list-multiplier` el parámetro es 4.
+El valor predeterminado `-aggr-list-multiplier` del parámetro es 4.
 
 
 
@@ -115,9 +114,9 @@ El valor predeterminado de `-aggr-list-multiplier` el parámetro es 4.
 
 
 .Ejemplo
-El siguiente ejemplo crea un bloque para la máquina virtual de almacenamiento `vs1` de tamaño `1TB` y especificando el agregado:
+En el siguiente ejemplo se crea un bloque para la máquina virtual de almacenamiento de `vs1` tamaño `1TB` y se especifica el agregado:
 
-Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].
 
 [listing]
 ----

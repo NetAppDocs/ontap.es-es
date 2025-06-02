@@ -21,7 +21,7 @@ Cuando crea nuevos buckets S3, puede respaldarlos inmediatamente en un bloque de
 .Antes de empezar
 * Tiene credenciales de cuenta válidas e información de configuración para el proveedor de almacenes de objetos.
 * Las interfaces de red entre clústeres y un espacio IP se han configurado en el sistema de origen.
-* • La configuración de DNS para la máquina virtual de almacenamiento de origen debe ser capaz de resolver el FQDN del destino.
+* • La configuración de DNS para el equipo virtual de almacenamiento de origen debe poder resolver el FQDN del destino.
 
 
 [role="tabbed-block"]
@@ -32,7 +32,7 @@ Cuando crea nuevos buckets S3, puede respaldarlos inmediatamente en un bloque de
 +
 .. Haga clic en *Almacenamiento > VM de almacenamiento*, haga clic en la VM de almacenamiento, haga clic en *Configuración* y, a continuación, haga clic en image:icon_pencil.gif["Icono Editar"] *S3*.
 +
-Consulte link:../task_object_provision_add_s3_users_groups.html["Añada usuarios y grupos de S3"] si quiere más información.
+Consulte link:../task_object_provision_add_s3_users_groups.html["Añada usuarios y grupos de S3"] para obtener más información.
 
 
 
@@ -99,9 +99,9 @@ Al hacer clic en *Guardar*, se crea un nuevo bloque en el equipo virtual de alma
 . Si esta es la primera relación de SnapMirror S3 para esta SVM, verifique que existan las claves de usuario raíz tanto para las SVM de origen como de destino y vuelva a generarlas si no lo hacen:
 `vserver object-store-server user show` + Confirme que existe una clave de acceso para el usuario raíz. Si no lo hay, introduzca:
 `vserver object-store-server user regenerate-keys -vserver svm_name -user _root_` + No vuelva a generar la clave si ya existe una.
-. Crear un bloque en la SVM de origen:
+. Cree un bloque en la SVM de origen:
 `vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size _integer_[KB|MB|GB|TB|PB]] [-comment _text_] [_additional_options_]`
-. Agregar reglas de acceso a la directiva de bloque predeterminada:
+. Añada reglas de acceso a la política de bloques predeterminada:
 `vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid _text_] [-index _integer_]`
 +
 .Ejemplo
@@ -120,15 +120,15 @@ Parámetros: * `type continuous`: El único tipo de política para las relacione
 ----
 clusterA::> snapmirror policy create -vserver vs0 -type continuous -rpo 0 -policy test-policy
 ----
-. Si el destino es un sistema StorageGRID, instale el certificado de servidor de CA StorageGRID en la SVM de administrador del clúster de origen:
+. Si el destino es un sistema StorageGRID, instale el certificado de servidor de CA de StorageGRID en la SVM de administrador del clúster de origen:
 `security certificate install -type server-ca -vserver _src_admin_svm_ -cert-name _storage_grid_server_certificate_`
 +
-Obtenga más información sobre `security certificate install` en el link:https://docs.netapp.com/us-en/ontap-cli/security-certificate-install.html["Referencia de comandos de la ONTAP"^].
+Obtenga más información sobre `security certificate install` en el link:https://docs.netapp.com/us-en/ontap-cli/security-certificate-install.html["Referencia de comandos del ONTAP"^].
 
 . Defina el almacén de objetos de destino de SnapMirror S3:
 `snapmirror object-store config create -vserver _svm_name_ -object-store-name _target_store_name_ -usage data -provider-type {AWS_S3|SGWS} -server _target_FQDN_ -container-name _remote_bucket_name_ -is-ssl-enabled true -port _port_number_ -access-key target_access_key -secret-password _target_secret_key_`
 +
-Parámetros: * `-object-store-name`: El nombre del destino del almacén de objetos en el sistema ONTAP local. * `-usage` – usar `data` para este flujo de trabajo. * `-provider-type` – `AWS_S3` Y `SGWS` los destinos (StorageGRID) son compatibles. * `-server` – El FQDN o la dirección IP del servidor de destino. * `-is-ssl-enabled` –Habilitar SSL es opcional pero recomendado. + Aprenda más sobre `snapmirror object-store config create` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-object-store-config-create.html["Referencia de comandos de la ONTAP"^].
+Parámetros: * `-object-store-name`: El nombre del destino del almacén de objetos en el sistema ONTAP local. * `-usage` – usar `data` para este flujo de trabajo. * `-provider-type` – `AWS_S3` Y `SGWS` los destinos (StorageGRID) son compatibles. * `-server` – El FQDN o la dirección IP del servidor de destino. * `-is-ssl-enabled` –Habilitar SSL es opcional pero recomendado. + Aprenda más sobre `snapmirror object-store config create` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-object-store-config-create.html["Referencia de comandos del ONTAP"^].
 
 +
 .Ejemplo
@@ -139,10 +139,7 @@ src_cluster::> snapmirror object-store config create -vserver vs0 -object-store-
 . Crear una relación de SnapMirror S3:
 `snapmirror create -source-path _svm_name_:/bucket/_bucket_name_ -destination-path _object_store_name_:/objstore -policy _policy_name_`
 +
-Parámetros:
-* `-destination-path` - el nombre del almacén de objetos que creó en el paso anterior y el valor fijo `objstore`.
-  +
-Puede usar una política que haya creado o aceptar la predeterminada.
+Parámetros: * `-destination-path` - El nombre del almacén de objetos que creó en el paso anterior y el valor fijo `objstore`. + puede usar una directiva que ha creado o aceptar el valor predeterminado.
 
 +
 .Ejemplo
