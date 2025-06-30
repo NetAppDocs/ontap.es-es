@@ -2,7 +2,7 @@
 permalink: smb-hyper-v-sql/verify-domain-accounts-map-default-unix-user-task.html 
 sidebar: sidebar 
 keywords: verfiy, domain, account, default, unix, server, smb, share, user 
-summary: Hyper-V y SQL Server utilizan cuentas de dominio para crear conexiones SMB a recursos compartidos constantemente disponibles. Para crear correctamente la conexión, la cuenta de equipo debe asignar correctamente a un usuario de UNIX. La forma más cómoda de lograrlo es asignar la cuenta de equipo al usuario UNIX predeterminado. 
+summary: Hyper-V y SQL Server requieren que las cuentas de dominio se asignen a un usuario de UNIX para el acceso SMB. Es más fácil asignarlas al usuario de UNIX predeterminado. 
 ---
 = Compruebe que las cuentas de dominio se asignan al usuario UNIX predeterminado en ONTAP
 :allow-uri-read: 
@@ -16,41 +16,65 @@ Hyper-V y SQL Server utilizan cuentas de dominio para crear conexiones SMB a rec
 .Acerca de esta tarea
 Hyper-V y SQL Server utilizan las cuentas de equipo de dominio para crear conexiones SMB. Además, SQL Server utiliza una cuenta de usuario de dominio como cuenta de servicio que también realiza conexiones SMB.
 
-Al crear una máquina virtual de almacenamiento (SVM), ONTAP crea automáticamente el usuario predeterminado llamado «`pcuser`» (con un UID de `65534`) y el grupo denominado «`pcuser`» (con un GID de `65534`), y agrega el usuario predeterminado al grupo «`pcuser`». Si configura una solución de Hyper-V mediante SMB en una SVM que existía antes de actualizar el clúster a Data ONTAP 8.2, es posible que el usuario y el grupo predeterminados no existan. Si no lo hacen, debe crearlos antes de configurar el usuario UNIX predeterminado del servidor CIFS.
+Cuando crea una máquina virtual de almacenamiento (SVM), ONTAP crea automáticamente el usuario predeterminado llamado  `pcuser` (con un UID de  `65534` ) y el grupo llamado  `pcuser` (con un GID de  `65534` ) y agrega el usuario predeterminado a la  `pcuser` grupo. Si configura una solución de Hyper-V mediante SMB en una SVM que existía antes de actualizar el clúster a Data ONTAP 8.2, es posible que el usuario y el grupo predeterminados no existan. Si no lo hacen, debe crearlos antes de configurar el usuario UNIX predeterminado del servidor CIFS.
 
 .Pasos
 . Determine si hay un usuario UNIX predeterminado:
 +
-`*vserver cifs options show -vserver _vserver_name_*`
-
+[source, cli]
+----
+vserver cifs options show -vserver <vserver_name>
+----
 . Si la opción de usuario predeterminada no está establecida, determine si hay un usuario UNIX que se puede designar como usuario UNIX predeterminado:
 +
-`*vserver services unix-user show -vserver _vserver_name_*`
-
-. Si la opción de usuario predeterminada no está establecida y no hay ningún usuario UNIX que pueda designarse como usuario UNIX predeterminado, cree el usuario UNIX predeterminado y el grupo predeterminado y agregue el usuario predeterminado al grupo.
+[source, cli]
+----
+vserver services unix-user show -vserver <vserver_name>
+----
+. Si la opción de usuario predeterminado no está configurada y no hay un usuario UNIX que pueda designarse como usuario UNIX predeterminado, cree el grupo predeterminado y el usuario UNIX predeterminado, y agregue el usuario predeterminado al grupo.
 +
-Generalmente, el usuario por defecto se le da el nombre de usuario “pcuser” y debe ser asignado el UID de `65534`. Por lo general, al grupo por defecto se le da el nombre de grupo «'pcuser'». El GID asignado al grupo debe ser `65534`.
+. El grupo predeterminado generalmente se llama "pcuser" El GID asignado al grupo debe ser `65534`.
 
 +
-.. Cree el grupo predeterminado: +
-`*vserver services unix-group create -vserver _vserver_name_ -name pcuser -id 65534*`
-.. Cree el usuario predeterminado y agregue el usuario predeterminado al grupo predeterminado: +
-`*vserver services unix-user create -vserver _vserver_name_ -user pcuser -id 65534 -primary-gid 65534*`
-.. Compruebe que el usuario predeterminado y el grupo predeterminado están configurados correctamente: +
-`*vserver services unix-user show -vserver _vserver_name_*` +
-`*vserver services unix-group show -vserver _vserver_name_ -members*`
+.. Cree el grupo predeterminado:
++
+[source, cli]
+----
+vserver services unix-group create -vserver <vserver_name> -name pcuser -id 65534
+----
+.. Cree el usuario predeterminado y agregue el usuario predeterminado al grupo predeterminado:
++
+[source, cli]
+----
+vserver services unix-user create -vserver <vserver_name> -user pcuser -id 65534 -primary-gid 65534
+----
+.. Compruebe que el usuario predeterminado y el grupo predeterminado están configurados correctamente:
++
+[source, cli]
+----
+vserver services unix-user show -vserver <vserver_name>
+----
++
+[source, cli]
+----
+vserver services unix-group show -vserver <vserver_name> -members
+----
 
 
 . Si el usuario predeterminado del servidor CIFS no está configurado, realice lo siguiente:
 +
 .. Configure el usuario predeterminado:
 +
-`*vserver cifs options modify -vserver *vserver_name* -default-unix-user pcuser*`
-
+[source, cli]
+----
+vserver cifs options modify -vserver <vserver_name> -default-unix-user pcuser
+----
 .. Compruebe que el usuario UNIX predeterminado está configurado correctamente:
 +
-`*vserver cifs options show -vserver _vserver_name_*`
-
+[source, cli]
+----
+vserver cifs options show -vserver <vserver_name>
+----
 
 
 . Para verificar que la cuenta de equipo del servidor de aplicaciones se asigna correctamente al usuario predeterminado, asigne una unidad a un recurso compartido que reside en la SVM y confirme la asignación del usuario Windows en la asignación de usuario UNIX con el `vserver cifs session show` comando.
@@ -60,7 +84,7 @@ Obtenga más información sobre `vserver cifs options` en el link:https://docs.n
 
 
 .Ejemplo
-Los siguientes comandos determinan que el usuario predeterminado del servidor CIFS no está establecido, pero determinan que existen el usuario «'pcaduser'» y el grupo «'pcaduser'». Al usuario «'pcuser'» se le asigna como usuario predeterminado del servidor CIFS en la SVM vs1.
+Los siguientes comandos determinan que el usuario predeterminado del servidor CIFS no está configurado, pero determinan que el  `pcuser` usuario y  `pcuser` El grupo existe. El  `pcuser` El usuario se asigna como usuario predeterminado del servidor CIFS en SVM vs1.
 
 [listing]
 ----
