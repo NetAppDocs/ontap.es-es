@@ -1,0 +1,128 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/respond-san-entropy-eval-period.html 
+keywords: ransomware, arp, san, mode, switch, active, learning, entropy, autonomous ransomware protection 
+summary: A partir de ONTAP 9.17.1, ARP requiere un período de evaluación para determinar si los niveles de entropía del volumen SAN son adecuados para la protección contra ransomware. 
+---
+= Obtenga más información sobre el período de evaluación de ONTAP ARP para volúmenes SAN
+:allow-uri-read: 
+
+
+[role="lead"]
+A partir de ONTAP 9.17.1, ARP requiere un período de evaluación para determinar si los niveles de entropía de las cargas de trabajo de volúmenes SAN son adecuados para la protección contra ransomware. Tras habilitar ARP en un volumen SAN, este supervisa los datos continuamente durante un período de evaluación para determinar el umbral de cifrado óptimo. ARP distingue entre cargas de trabajo adecuadas e inadecuadas en el volumen SAN evaluado y, si se determina que son adecuadas para la protección, establece automáticamente un umbral de cifrado basado en las estadísticas del período de evaluación.
+
+
+
+== Comprender la evaluación de la entropía
+
+El sistema recopila estadísticas de cifrado continuas en intervalos de 10 minutos. Durante la evaluación, también se crean instantáneas ARP cada cuatro horas. Si el porcentaje de cifrado en un intervalo supera el umbral de cifrado óptimo identificado para este volumen, se activa una alerta y se aumenta el tiempo de retención de las instantáneas.
+
+.Confirmar que el periodo de evaluación está activo
+Puede confirmar que la evaluación está activa ejecutando el siguiente comando y confirmando un estado de `evaluation_period`. El período de evaluación se aplica a volúmenes que contienen LUN o VMDK. Si un volumen no contiene un LUN o VMDK, no se mostrará el estado de evaluación
+
+[source, cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <volume_name>
+----
+Ejemplo de respuesta:
+
+[listing, subs="+quotes"]
+----
+Vserver Name                                : vs1
+Volume Name                                 : v1
+State                                       : enabled
+Attack Probability                          : none
+Attack Timeline                             : -
+Number of Attacks                           : -
+Attack Detected By                          : -
+*Block device detection status               : evaluation_period*
+----
+.Recopilación de datos del período de evaluación del monitor
+Puede supervisar la detección de cifrado en tiempo real ejecutando el siguiente comando. Este comando devuelve un histograma que muestra la cantidad de datos en cada rango de porcentaje de cifrado. El histograma se actualiza cada 10 minutos.
+
+[source, cli]
+----
+security anti-ransomware volume entropy-stat show-encryption-percentage-histogram -vserver <svm_name> -name <lun_name> -duration real_time
+----
+Ejemplo de respuesta:
+
+[listing]
+----
+Vserver     Name              Entropy Range   Seen N Time     Data Written
+----------  ----------------  --------------- --------------  -------------
+vs0         lun1              0-5%            4               100MB
+vs0         lun1              6-10%           10              900MB
+vs0         lun1              11-15%          20              40MB
+vs0         lun1              16-20%          10              70MB
+vs0         lun1              21-25%          60              450MB
+vs0         lun1              26-30%          4               100MB
+vs0         lun1              31-35%          10              900MB
+vs0         lun1              36-40%          20              40MB
+vs0         lun1              41-45%          0               0
+vs0         lun1              46-50%          0               0
+vs0         lun1              51-55%          0               0
+vs0         lun1              56-60%          0               0
+vs0         lun1              61-65%          0               0
+vs0         lun1              66-70%          0               0
+vs0         lun1              71-75%          0               0
+vs0         lun1              76-80%          0               0
+vs0         lun1              81-85%          0               0
+vs0         lun1              86-90%          0               0
+vs0         lun1              91-95%          0               0
+vs0         lun1              96-100%         0               0
+
+20 entries were displayed.
+----
+
+
+== Cargas de trabajo adecuadas y umbrales adaptativos
+
+La evaluación finaliza con uno de los siguientes resultados:
+
+* *La carga de trabajo es adecuada para ARP*. ARP establece automáticamente el umbral adaptativo por encima del 10 % del porcentaje máximo de cifrado observado durante el período de evaluación. ARP también continúa recopilando estadísticas y crea instantáneas periódicas de ARP.
+* *La carga de trabajo no es adecuada para ARP*. ARP establece automáticamente el umbral adaptativo al porcentaje máximo de cifrado observado durante el período de evaluación. ARP también continúa recopilando estadísticas y crea instantáneas periódicas de ARP, pero el sistema finalmente recomienda deshabilitar ARP en el volumen.
+
+
+.Determinar los resultados de la evaluación
+Una vez finalizado el período de evaluación, ARP establece automáticamente el umbral adaptativo en función de los resultados de la evaluación.
+
+Puede determinar los resultados de la evaluación ejecutando el siguiente comando. La idoneidad del volumen se indica en el  `Block device detection status` campo:
+
+[source, cli]
+----
+security anti-ransomware volume show  -vserver <svm_name> -volume <volume_name>
+----
+Ejemplo de respuesta:
+
+[listing, subs="+quotes"]
+----
+Vserver Name                               : vs1
+Volume Name                                : v1
+State                                      : enabled
+Attack Probability                         : none
+Attack Timeline                            : -
+Number of Attacks                          : -
+Attack Detected By                         : -
+*Block device detection status              : Active_suitable_workload*
+
+Block device evaluation start time :  5/16/2025 01:49:01
+----
+También puedes mostrar el valor umbral adoptado como resultado de la evaluación:
+
+[source, cli]
+----
+security anti-ransomware volume attack-detection-parameters show -vserver <svm_name> -volume <volume_name>
+----
+Ejemplo de respuesta:
+
+[listing, subs="+quotes"]
+----
+
+                                  Vserver Name : vs_1
+
+                                   Volume Name : vm_2
+
+*Block Device Auto Learned Encryption Threshold : 10*
+...
+
+----

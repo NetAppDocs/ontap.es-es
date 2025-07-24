@@ -1,0 +1,63 @@
+---
+permalink: system-admin/audit-manage-cross-cluster-requests.html 
+sidebar: sidebar 
+keywords: audit, peered, cross cluster, log, cluster, get request 
+summary: Habilite la auditoría entre clústeres para registrar operaciones iniciadas desde un clúster emparejado y mejorar el seguimiento de las operaciones entre clústeres. 
+---
+= Habilitar auditorías entre clústeres de ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.17.1, ONTAP 9.16.1 P4 y las versiones de parche 9.16.1 posteriores, puede habilitar la auditoría entre clústeres en ONTAP para registrar las operaciones iniciadas desde un clúster emparejado. Esta auditoría remota es especialmente útil en entornos donde interactúan varios clústeres de ONTAP , ya que proporciona trazabilidad y control de las acciones remotas.
+
+La auditoría entre clústeres puede distinguir entre operaciones GET (lectura) o SET (creación/modificación/eliminación) iniciadas por el usuario. De forma predeterminada, solo las operaciones SET iniciadas por el usuario se auditan en los clústeres de destino. Cualquier solicitud que lea datos, como una GET o  `show` El comando en la CLI no se audita de manera predeterminada, independientemente de si la solicitud es entre clústeres.
+
+.Antes de empezar
+* Debes tener  `advanced` permisos de nivel
+* El clúster debe estar emparejado con otro clúster, y ambos clústeres deben ejecutar ONTAP 9.16.1 P4 o posterior.
++
+
+NOTE: En entornos donde algunos nodos, pero no todos, se actualizan a ONTAP 9.16.1 P4 o posterior, el registro de auditoría solo se realiza en los nodos que ejecutan la versión actualizada. Se recomienda actualizar todos los nodos a una versión compatible para garantizar un comportamiento de auditoría consistente.
+
+
+
+
+
+== Habilitar o deshabilitar la auditoría entre clústeres
+
+.Pasos
+. Habilite (o deshabilite) la auditoría entre clústeres en el clúster configurando  `cluster-peer` parámetro a  `on` o  `off` :
++
+[source, cli]
+----
+security audit modify -cluster-peer {on|off}
+----
+. Confirme que la configuración de pares del clúster esté habilitada o deshabilitada verificando el estado de auditoría actual:
++
+[listing]
+----
+security audit show
+----
++
+Respuesta:
+
++
+[listing]
+----
+    Audit Setting State
+    ------------- -----
+         CLI GET: off
+        HTTP GET: off
+      ONTAPI GET: off
+    Cluster Peer: on
+----
+
+
+
+
+== Efectos de habilitar la auditoría GET
+
+A partir de ONTAP 9.17.1, si  https://docs.netapp.com/us-en/ontap-cli/security-audit-modify.html["Habilitar auditoría CLI, HTTP y ONTAPI GET"^] En un clúster emparejado, también se habilita la auditoría de solicitudes GET iniciadas por el usuario entre clústeres. En versiones anteriores de ONTAP , la auditoría GET solo se aplicaba a solicitudes en un clúster local. Con ONTAP 9.17.1, si se habilita la auditoría GET con  `cluster-peer` opción establecida en  `on` Se auditarán tanto las solicitudes del clúster local como las solicitudes entre clústeres.

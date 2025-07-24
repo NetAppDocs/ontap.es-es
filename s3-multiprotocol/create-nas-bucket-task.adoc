@@ -4,14 +4,14 @@ sidebar: sidebar
 keywords: s3, svm, bucket, object, server, versioning, protocol, filesystems, nas, directories 
 summary: Un bloque NAS de S3 es una asignación entre un nombre de bloque de S3 y una ruta NAS. 
 ---
-= Crear bloque NAS de S3
+= Crear un depósito NAS de ONTAP S3
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Un bloque NAS de S3 es una asignación entre un nombre de bloque de S3 y una ruta NAS. Los bloques NAS de S3 le permiten proporcionar acceso S3 a cualquier parte de un espacio de nombres de SVM que tenga volúmenes y estructura de directorio existentes.
+Un bucket NAS de S3 es una asignación entre el nombre de un bucket de S3 y una ruta NAS. Los buckets NAS de S3 permiten proporcionar acceso S3 a cualquier parte de un espacio de nombres SVM que tenga volúmenes y una estructura de directorios existentes.
 
 .Antes de empezar
 * Un servidor de objetos S3 está configurado en una SVM que contiene datos NAS.
@@ -30,14 +30,19 @@ También puede establecer políticas de bloques que permitan o inpermitan el acc
 
 Por ejemplo, es posible que desee aplicar políticas de bloque independientes que concedan acceso de solo lectura a un gran grupo de usuarios y otro que permita que un grupo limitado realice operaciones en un subconjunto de dichos datos.
 
-Como los “bloques” NAS de S3 son asignaciones y no bloques de S3, las siguientes propiedades de los bloques estándar de S3 no se aplican a los bloques NAS de S3.
+A partir de ONTAP 9.17.1, puede vincular directamente un bucket NAS de S3 a un volumen en lugar de a la ruta de unión. De forma predeterminada, un bucket S3 en un volumen NAS se asocia a una ruta de unión, que un administrador de ONTAP puede modificar en cualquier momento. Estos cambios pueden interrumpir las operaciones del bucket S3. A partir de ONTAP 9.17.1, puede usar  `-is-nas-path-mutable false` opción con el  `vserver object-store-server bucket create` Comando en la CLI de ONTAP para habilitar la vinculación del depósito NAS de S3 a un volumen. De forma predeterminada,  `-is-nas-path-mutable` está configurado para  `true` .
+
+Dado que los "buckets" de S3 NAS son asignaciones y no buckets de S3, las siguientes propiedades de los buckets de S3 estándar no se aplican a los buckets de S3 NAS.
 
 * *Aggr-list \ aggr-list-multiplicador \ Storage-service-level \ volume \ size \ exclude-aggr-list \ qos-policy-group* + no se crean volúmenes ni qtree al configurar cubos NAS S3.
-* *Role \ is -protected \ is -protected-on-ONTAP \ is -protected-on-cloud* + S3 Los depósitos NAS no están protegidos ni se duplican con SnapMirror S3, pero en su lugar utilizarán la protección SnapMirror regular disponible con granularidad de volumen.
+* *role \ is -protected \ is -protected-on-ontap \ is -protected-on-cloud* + Los buckets NAS de S3 no están protegidos ni reflejados mediante SnapMirror S3, sino que utilizan la protección SnapMirror normal disponible en granularidad de volumen.
 * *Versioning-state* + los volúmenes NAS suelen tener tecnología de instantáneas disponible para guardar diferentes versiones. Sin embargo, el control de versiones no está disponible actualmente en bloques NAS de S3.
 * *Las estadísticas lógicas usadas \ object-count* + equivalentes están disponibles para los volúmenes NAS a través de los comandos de volumen.
-* *Objetos multiparte* + A partir de ONTAP 9.16.1, los objetos multiparte se admiten en los depósitos de NAS S3 cuando link:../flexgroup/enable-adv-capacity-flexgroup-task.html["equilibrado de capacidad avanzado"] se habilita en el volumen de FlexGroup subyacente. El equilibrio avanzado de capacidad solo se puede habilitar en volúmenes de FlexGroup. No se puede activar en FlexVols.
+* *objetos multiparte* + A partir de ONTAP 9.16.1, los objetos multiparte se admiten en los depósitos NAS de S3 cuando link:../flexgroup/enable-adv-capacity-flexgroup-task.html["equilibrado de capacidad avanzado"] Está habilitado en el volumen FlexGroup subyacente. El balanceo de capacidad avanzado solo se puede habilitar en volúmenes FlexGroup . No se puede habilitar en volúmenes FlexVol .
 
+
+.Pasos
+Puede utilizar el Administrador del sistema o la CLI de ONTAP para crear un depósito NAS.
 
 [role="tabbed-block"]
 ====
@@ -56,11 +61,21 @@ De lo contrario, haga clic en *Guardar* para completar la configuración de bloq
 --
 .CLI
 --
-Cree un bloque NAS S3 en una SVM que contenga sistemas de archivos NAS. +
-`vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ -type nas -nas-path _junction_path_ [-comment _text_]`
+. Cree un depósito NAS S3 en una SVM que contenga sistemas de archivos NAS. + 
+`vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> -type nas -nas-path <junction_path> -is-nas-path-mutable true|false [-comment <text>]`
++
+Ejemplo 1: Crear un depósito NAS S3
 
-Ejemplo: +
++
 `cluster1::> vserver object-store-server bucket create -bucket testbucket -type nas -path /vol1`
+
++
+Ejemplo 2: Crear un depósito NAS S3 y vincularlo a un volumen
+
++
+`vserver object-store-server bucket create -vserver vs1 -bucket nasbucket1 -type nas -nas-path /pathA/dir1 -is-nas-path-mutable false`
+
+
 
 --
 ====

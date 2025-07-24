@@ -41,7 +41,7 @@ Si ya no necesita una protección síncrona de SnapMirror con objetivo de tiempo
 
 
 
-== Quite una configuración activo-activo simétrica
+== Eliminar la configuración activa/activa simétrica de iSCSI o FC
 
 Es posible quitar una configuración simétrica mediante System Manager o la interfaz de línea de comandos de ONTAP. En ambas interfaces, hay diferentes pasos para xref:index.html#key-concepts[configuraciones uniformes y no uniformes].
 
@@ -129,6 +129,54 @@ SiteB::> igroup delete -vserver <svm_name> -igroup <igroup_name>`
 +
 `SiteA::> snapmirror release -destination-path <destination_path>`
 
+. Vuelva a detectar las rutas para verificar que solo la ruta local esté disponible para el host.
+
+
+--
+====
+
+
+== Eliminar una configuración activa/activa simétrica NVMe
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Pasos
+. En el clúster de origen, navegue a *Protección > Replicación*.
+. Localice la relación que desea eliminar, seleccione image:icon_kabob.gif["Icono de opciones de menú"] y seleccione *Eliminar*.
+
+
+--
+.CLI
+--
+. Desde el clúster de destino, elimine la relación de sincronización activa de SnapMirror .
++
+`snapmirror delete -destination-path <destination_path> -unmap-namespace true`
+
++
+Ejemplo:
+
++
+[listing]
+----
+DST::> snapmirror delete -destination-path vs1:/cg/cg_dst_1 -force true
+----
++
+El subsistema y sus espacios de nombres se eliminan del clúster secundario.
+
+. Desde el clúster de origen, libere la relación de sincronización activa de SnapMirror desde el sitio principal.
++
+`snapmirror release -destination-path <destination_path>`
+
++
+Ejemplo:
+
++
+[listing]
+----
+SRC::> snapmirror release -destination-path vs1:/cg/cg_dst_1
+----
 . Vuelva a detectar las rutas para verificar que solo la ruta local esté disponible para el host.
 
 

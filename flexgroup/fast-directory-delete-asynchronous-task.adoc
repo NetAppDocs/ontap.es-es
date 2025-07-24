@@ -4,27 +4,36 @@ sidebar: sidebar
 keywords: perform, directory, delete, files, asynchronous, share, flexvol, flex vol, flexgroup, flex group, cancel 
 summary: A partir de ONTAP 9.8, se puede usar el comando volume file asíncrono-delete para eliminar archivos y directorios de recursos compartidos de clientes Linux y Windows en segundo plano. Es posible realizar la eliminación asíncrona tanto en volúmenes de FlexVol como de FlexGroup. 
 ---
-= Eliminar directorios de forma asincrónica en clústeres ONTAP con FlexGroups
+= Eliminar directorios de forma asincrónica desde los volúmenes ONTAP FlexGroup
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-A partir de ONTAP 9.8, puede utilizar la funcionalidad de eliminación asíncrona para eliminar directorios de recursos compartidos de clientes Linux y Windows de forma asíncrona (es decir, en segundo plano). Los administradores de clústeres y SVM pueden realizar operaciones de eliminación asíncrona tanto en volúmenes FlexVol como en volúmenes FlexGroup.
+A partir de ONTAP 9.8, puede eliminar directorios de recursos compartidos de clientes Linux y Windows de forma asíncrona (es decir, en segundo plano). Los administradores de clústeres y SVM pueden realizar operaciones de eliminación asíncronas en volúmenes FlexVol y FlexGroup .
 
-Si utiliza una versión de ONTAP anterior a ONTAP 9.11,1, debe ser un administrador de clústeres o un administrador de SVM que utilice el modo de privilegios avanzado.
+.Acerca de esta tarea
+Debe ser un administrador de clúster o un administrador de SVM que utilice el modo de privilegio avanzado.
+
+A partir de ONTAP 9.8, puede utilizar una funcionalidad de eliminación asíncrona mediante la CLI de ONTAP. A partir de ONTAP 9.9.1, se puede usar esta funcionalidad con System Manager. Para obtener más información sobre este proceso, consulte link:../task_nas_file_system_analytics_take_corrective_action.html["Tome medidas correctivas basadas en el análisis de ONTAP en FSA"].
 
 A partir de ONTAP 9.11.1, un administrador de almacenamiento puede otorgar derechos en un volumen para que los clientes NFS y SMB puedan realizar operaciones de eliminación asíncrona. Para obtener más información, consulte link:manage-client-async-dir-delete-task.html["Gestione los derechos de cliente para eliminar directorios de forma asíncrona"].
 
-A partir de ONTAP 9.8, puede utilizar una funcionalidad de eliminación asíncrona mediante la CLI de ONTAP. A partir de ONTAP 9.9.1, se puede usar esta funcionalidad con System Manager. Para obtener más información sobre este proceso, consulte link:../task_nas_file_system_analytics_take_corrective_action.html["Tome medidas correctivas basadas en el análisis de ONTAP en FSA"].
+Puedes utilizar el  `volume file async-delete show` Comando para verificar el estado de los trabajos de eliminación asincrónica en curso y, a partir de ONTAP 9.17.1, también se muestra el estado de los trabajos de eliminación asincrónica emitidos por los clientes.
+
+
+
+== Eliminar directorios de forma asincrónica
+
+Puede utilizar el Administrador del sistema o la CLI de ONTAP para eliminar directorios de forma asincrónica.
 
 [role="tabbed-block"]
 ====
 .System Manager
 --
 |===
-| En ONTAP 9.8 y 9.9.1 | A partir de ONTAP 9.10.1 
+| En ONTAP 9.9.1 | A partir de ONTAP 9.10.1 
 
 
  a| 
@@ -54,22 +63,26 @@ NOTE: Cuando se eliminan directorios y archivos, los nuevos valores de capacidad
 
 . Entre en el modo de privilegio avanzado:
 +
-`-privilege advance`
+`set -privilege advanced`
 
 . Elimine directorios en un volumen FlexVol o FlexGroup:
 +
-`volume file async-delete start -vserver vserver_name -volume volume_name -path file_path -throttle throttle`
+`volume file async-delete start -vserver <SVM_name> -volume <volume_name> -path <file_path> -throttle <throttle>`
 
 +
-El valor mínimo del acelerador es 10, el máximo es 100,000 y el valor predeterminado es 5000.
+El valor mínimo de limitación es 10, el máximo es 100 000 y el predeterminado es 5000. Los valores de limitación más bajos utilizan menos recursos, lo que puede resultar en una tasa de eliminación más lenta, mientras que los valores de limitación más altos utilizan más recursos, pero pueden resultar en una tasa de eliminación más rápida.
 
 +
 En el ejemplo siguiente se elimina el directorio denominado d2, que se encuentra en el directorio denominado d1.
 
 +
 ....
-cluster::*>volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
+cluster::*> volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
 ....
+. (Opcional) Verifique el estado de los trabajos de eliminación asíncrona en curso:
++
+`volume file async-delete show`
+
 . Compruebe que el directorio se ha eliminado:
 +
 `event log show`
@@ -79,17 +92,22 @@ En el siguiente ejemplo se muestra el resultado del registro de eventos cuando e
 
 +
 ....
-cluster-cli::*> event log show
-Time                 Node             Severity      Event
--------------------  ---------------- ------------- --------------------
-MM/DD/YYYY 00:11:11  cluster-vsim     INFORMATIONAL asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed.
+cluster::*> event log show
+
+Time                Node             Severity      Event
+------------------- ---------------- ------------- ---------------------------
+7/7/2025 09:04:04   cluster-vsim     NOTICE        asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed. Number of files deleted: 7, Number of directories deleted: 5. Total number of bytes deleted: 135168.
 ....
 +
 Obtenga más información sobre `event log show` en el link:https://docs.netapp.com/us-en/ontap-cli/event-log-show.html["Referencia de comandos del ONTAP"^].
 
 
 
-*Cancelar un trabajo de eliminación de directorio*
+--
+====
+
+
+== Cancelar un trabajo de eliminación de directorio
 
 . Entre en el modo de privilegio avanzado:
 +
@@ -104,9 +122,6 @@ Si se muestra la SVM, el volumen, el JobID y la ruta de acceso del directorio, p
 
 . Cancelar el directorio de eliminación:
 +
-`volume file async-delete cancel -vserver _SVM_name_ -volume _volume_name_ -jobid _job_id_`
+`volume file async-delete cancel -vserver <SVM_name> -volume <volume_name> -jobid <job_id>`
 
 
-
---
-====

@@ -1,0 +1,84 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/cloud-mediator-config-task.html 
+keywords: SM-BC, SMBC, cluster, peering, ONTAP Cloud Mediator, initialize, snapmirror active sync 
+summary: Cuando utiliza ONTAP Cloud Mediator con la sincronización activa de SnapMirror , primero debe confirmar que los servicios de BlueXP y la información del cliente estén configurados. 
+---
+= Configurar ONTAP Cloud Mediator para la sincronización activa de SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.17.1, puede usar ONTAP Cloud Mediator para facilitar la continuidad del negocio mediante la monitorización del estado de cada clúster. ONTAP Cloud Mediator es un servicio basado en la nube. Al usar ONTAP Cloud Mediator con la sincronización activa de SnapMirror , primero debe confirmar que los servicios de BlueXP y la información del cliente estén configurados y garantizar un emparejamiento de clústeres correcto.
+
+Al igual que ONTAP Mediator, ONTAP Cloud Mediator proporciona un almacenamiento persistente y protegido para los metadatos de alta disponibilidad (HA) que utilizan los clústeres de ONTAP en una relación de sincronización activa de SnapMirror . ONTAP Cloud Mediator proporciona una función de consulta síncrona del estado del nodo para facilitar la determinación del quórum y funciona como proxy de ping para la detección de la actividad del controlador.
+
+.Antes de empezar
+Antes de configurar ONTAP Cloud Mediator, debe confirmar la siguiente información:
+
+* El cluster está configurado.
++
+link:cluster-config-task.html["Configurar clústeres ONTAP para la sincronización activa de SnapMirror"]
+
+* Tienes una suscripción BlueXP válida.
++
+link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-subscribe-standard-mode.html["Suscríbete a los servicios de datos de BlueXP (modo estándar)"]
+
+* Ha copiado su ID de organización de BlueXP desde la consola de BlueXP y ha creado una cuenta de servicio para miembros de BlueXP para usarla al configurar ONTAP Cloud Mediator. Al crear la cuenta de servicio, la organización debe estar configurada con la suscripción donde configuró ONTAP Cloud Mediator. La categoría debe ser *Aplicación* y el tipo de rol debe ser *Rol de configuración de ONTAP Mediator*. Debe guardar el ID y el secreto del cliente al crear el rol.
++
+link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-iam-manage-members-permissions.html#add-members["Agregar miembros de BlueXP y cuentas de servicio"]
+
+
+
+.Pasos
+Puede agregar ONTAP Cloud Mediator mediante el Administrador del sistema o la CLI de ONTAP .
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Vaya a *Protección > Descripción general > Mediador* y seleccione *Agregar*.
+. En la ventana *Agregar un mediador*, seleccione *Nube* como tipo de mediador e ingrese la siguiente información:
++
+** ID de organización de BlueXP
+** ID de cliente de BlueXP
+** Secreto del cliente de BlueXP
+
+
+. Seleccione el par del clúster.
+. Si está utilizando un proxy HTTP y aún no está configurado, ingrese la información del proxy HTTP para los hosts locales y remotos.
++
+Se recomienda que utilice un servidor proxy diferente para cada par del clúster.
+
+. Opcional: si es necesario instalar un certificado CA raíz en ONTAP, especialmente cuando se utiliza un servidor proxy, pegue el certificado en el cuadro de texto provisto.
+. Seleccione *Agregar*.
+. Vaya a *Protección > Descripción general* y verifique el estado de la relación entre los clústeres de sincronización activa de SnapMirror y ONTAP Cloud Mediator.
+
+
+--
+.CLI
+--
+. Configurar ONTAP Cloud Mediator: 
+`snapmirror mediator add -peer-cluster <peerClusterName> -type cloud -bluexp-org-id <BlueXP Organization ID> -service-account-client-id <Service Account Client ID> -use-http-proxy-local <true|false> -use-http-proxy-remote <true|false>`
+. Comprobar el estado del mediador de ONTAP Cloud: 
+`snapmirror mediator show`
++
+Ejemplo:
+
++
+[listing]
+----
+C1_cluster::> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status Type
+---------------- ---------------- ----------------- ------------- -------
+0.0.0.0          C2_cluster       connected         true          cloud
+----
+
+
+--
+====
