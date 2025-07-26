@@ -17,7 +17,7 @@ A partir de ONTAP 9.14.1, como administrador de ONTAP, puede crear roles persona
 Debe realizar algunos pasos de configuración en la máquina virtual de almacenamiento para poder crear y asignar el rol personalizado al usuario que llama a la API para generar claves de acceso.
 
 
-NOTE: Si LDAP está deshabilitado, puede configurar link:configure-access-ldap.html["Active Directory y SMB con autenticación basada en dominio"] para permitir a los usuarios generar claves de acceso.
+NOTE: Si LDAP está deshabilitado, puede link:configure-access-ldap.html["Configurar servicios de directorio externos para el acceso a ONTAP S3"] para permitir a los usuarios generar claves de acceso.
 
 .Antes de empezar
 Asegúrese de lo siguiente:
@@ -35,9 +35,14 @@ Asegúrese de lo siguiente:
 
 == Configurar usuarios para la generación de claves de acceso
 
+.Pasos
+[role="tabbed-block"]
+====
+.Usuarios de LDAP
+--
 . Especifique LDAP como la base de datos del servicio _name_ de la máquina virtual de almacenamiento para el grupo y la contraseña a LDAP:
 +
-[listing]
+[source, cli]
 ----
 ns-switch modify -vserver <vserver-name> -database group -sources files,ldap
 ns-switch modify -vserver <vserver-name> -database passwd -sources files,ldap
@@ -55,9 +60,9 @@ security login rest-role create -vserver svm-1 -role s3role -api "/api/protocols
 +
 Obtenga más información sobre `security login rest-role create` en el link:https://docs.netapp.com/us-en/ontap-cli/security-login-rest-role-create.html["Referencia de comandos del ONTAP"^].
 
-. Cree un grupo de usuarios LDAP con el comando security login y añada el nuevo rol personalizado para acceder al punto final de la API DE REST DE usuarios de S3. Obtenga más información sobre `security login create` en el link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html["Referencia de comandos del ONTAP"^].
+. Cree un grupo de usuarios LDAP con el  `security login` comando y agregue el nuevo rol personalizado para acceder al punto final de la API REST del usuario S3. Obtenga más información sobre  `security login create` en el link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html["Referencia de comandos del ONTAP"^] .
 +
-[listing]
+[source, cli]
 ----
 security login create -user-or-group-name <ldap-group-name> -application http -authentication-method nsswitch -role <custom-role-name> -is-ns-switch-group yes
 ----
@@ -77,16 +82,57 @@ Obtenga más información sobre `security login create` en el link:https://docs.
 
 
 
-Agregar el rol personalizado al dominio o grupo LDAP permite a los usuarios de ese grupo un acceso limitado al `/api/protocols/s3/services/{svm.uuid}/users` punto final de ONTAP. Al invocar la API, los usuarios del grupo de dominio o LDAP pueden generar su propio acceso y claves secretas para acceder al cliente S3. Pueden generar las claves solo para ellos mismos y no para otros usuarios.
+Agregar el rol personalizado al grupo LDAP permite a los usuarios de ese grupo un acceso limitado a ONTAP  `/api/protocols/s3/services/{svm.uuid}/users` Punto final. Al invocar la API, los usuarios del grupo LDAP pueden generar sus propias claves de acceso y secretas para acceder al cliente S3. Pueden generar las claves solo para ellos mismos y no para otros usuarios.
 
+--
+.Usuarios del dominio
+--
+. Cree un rol personalizado con acceso al punto final de la API REST del usuario S3:
+
+
+[source, cli]
+----
+security login rest-role create -vserver <vserver-name> -role <custom-role-name> -api "/api/protocols/s3/services/*/users" -access <access-type>
+----
+En este ejemplo, el  `s3-role` Se genera un rol para los usuarios en la máquina virtual de almacenamiento  `svm-1` , al que se le conceden todos los derechos de acceso, lectura, creación y actualización.
+
+[listing]
+----
+security login rest-role create -vserver svm-1 -role s3role -api "/api/protocols/s3/services/*/users" -access all
+----
+Obtenga más información sobre `security login rest-role create` en el link:https://docs.netapp.com/us-en/ontap-cli/security-login-rest-role-create.html["Referencia de comandos del ONTAP"^].
+
+. Cree un grupo de usuarios de dominio con el  `security login` comando y agregue el nuevo rol personalizado para acceder al punto final de la API REST del usuario S3. Obtenga más información sobre  `security login create` en el link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html["Referencia de comandos del ONTAP"^] .
++
+[source, cli]
+----
+security login create -vserver <vserver-name> -user-or-group-name domain\<group-name> -application http -authentication-method domain -role <custom-role-name>
+----
++
+En este ejemplo, el grupo de dominio  `domain\group1` se crea en  `svm-1` , y el rol personalizado  `s3role` Se agrega para acceder al punto final de la API.
+
++
+[listing]
+----
+security login create -user-or-group-name domain\group1 -application http -authentication-method domain -role s3role -vserver svm-1
+----
++
+Obtenga más información sobre `security login create` en el link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html["Referencia de comandos del ONTAP"^].
+
+
+
+Agregar el rol personalizado al grupo de dominio permite a los usuarios de ese grupo un acceso limitado a ONTAP  `/api/protocols/s3/services/{svm.uuid}/users` Punto final. Al invocar la API, los usuarios del grupo de dominio pueden generar sus propias claves de acceso y secretas para acceder al cliente S3. Pueden generar las claves solo para ellos mismos y no para otros usuarios.
+
+--
+====
 
 
 == Como usuario S3 o LDAP, genere sus propias claves de acceso
 
 A partir de ONTAP 9.14.1, puede generar sus propias claves de acceso y secretas para acceder a clientes S3, si su administrador le ha otorgado el rol para generar sus propias claves. Puede generar claves únicamente para usted mediante el siguiente extremo de la API REST DE ONTAP.
 
-.Método HTTP y punto final
-Esta llamada a la API de REST utiliza el siguiente método y extremo. Para obtener información sobre los otros métodos de este punto final, consulte la referencia https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation["Documentación de API"].
+.Crear un usuario S3 y generar claves
+Esta llamada a la API REST utiliza el siguiente método y punto de conexión. Para obtener más información sobre este punto de conexión, consulte la referencia.  https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation["Documentación de API"] .
 
 [cols="25,75"]
 |===
@@ -95,6 +141,8 @@ Esta llamada a la API de REST utiliza el siguiente método y extremo. Para obten
 
 | PUBLICAR | /api/protocols/s3/services/{svm.uid}/usuarios 
 |===
+Para los usuarios del dominio, utilice el siguiente formato para el nombre de usuario S3:  `user@fqdn` , dónde  `fqdn` es el nombre de dominio completo del dominio.
+
 .Ejemplo de curl
 [source, curl]
 ----
@@ -104,7 +152,7 @@ curl
 --include \
 --header "Accept: */*" \
 --header "Authorization: Basic $BASIC_AUTH"
---data '{"name":"_name_"}'
+--data '{"name":"user1@example.com"}'
 ----
 .Ejemplo de resultado JSON
 [listing]
@@ -112,7 +160,7 @@ curl
 {
   "records": [
     {
-      "access_key": "Pz3SB54G2B_6dsXQPrA5HrTPcf478qoAW6_Xx6qyqZ948AgZ_7YfCf_9nO87YoZmskxx3cq41U2JAH2M3_fs321B4rkzS3a_oC5_8u7D8j_45N8OsBCBPWGD_1d_ccfq",
+      "access_key": "4KX07KF7ML8YNWY01JWG",
       "_links": {
         "next": {
           "href": "/api/resourcelink"
@@ -121,8 +169,48 @@ curl
           "href": "/api/resourcelink"
         }
       },
-      "name": "user-1",
-      "secret_key": "A20_tDhC_cux2C2BmtL45bXB_a_Q65c_96FsAcOdo14Az8V31jBKDTc0uCL62Bh559gPB8s9rrn0868QrF38_1dsV2u1_9H2tSf3qQ5xp9NT259C6z_GiZQ883Qn63X1"
+      "name": "user1@example.com",
+      "secret_key": "<secret_key_value>"
+    }
+  ],
+  "num_records": "1"
+}
+
+----
+.Regenerar claves para un usuario de S3
+Si ya existe un usuario de S3, puede regenerar sus claves de acceso y secretas. Esta llamada a la API REST utiliza el siguiente método y punto de conexión.
+
+[cols="25,75"]
+|===
+| Método HTTP | Ruta 
+
+
+| PARCHE | /api/protocolos/s3/servicios/{svm.uuid}/usuarios/{nombre} 
+|===
+.Ejemplo de curl
+[source, curl]
+----
+curl
+--request PATCH \
+--location "https://$FQDN_IP /api/protocols/s3/services/{svm.uuid}/users/{name} " \
+--include \
+--header "Authorization: Basic $BASIC_AUTH" \
+--data '{"regenerate_keys":"True"}'
+----
+.Ejemplo de resultado JSON
+[listing]
+----
+{
+  "records": [
+    {
+      "access_key": "DX12U609DMRVD8U30Z1M",
+      "_links": {
+        "self": {
+          "href": "/api/resourcelink"
+        }
+      },
+      "name": "user1@example.com",
+      "secret_key": "<secret_key_value>"
     }
   ],
   "num_records": "1"
