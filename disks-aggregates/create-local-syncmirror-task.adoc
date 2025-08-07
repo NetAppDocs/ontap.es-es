@@ -1,0 +1,63 @@
+---
+permalink: disks-aggregates/create-local-syncmirror-task.html 
+sidebar: sidebar 
+keywords: ontap 9, create, aggregates, syncmirror, sync mirror, add, local tier 
+summary: Puede habilitar SyncMirror cuando crea manualmente un nivel local para reflejar de forma sincrónica los datos del nivel local. 
+---
+= Agregar niveles locales de ONTAP con SyncMirror habilitado
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede habilitar SyncMirror cuando crea manualmente un nivel local para reflejar de forma sincrónica los datos del nivel local.
+
+Obtenga más información sobre link:../concepts/mirrored-unmirrored-aggregates-concept.html["niveles locales reflejados y no reflejados"] .
+
+.Antes de empezar
+* El clúster debe inicializarse solo con almacenamiento interno.
+* La configuración del clúster debe haberse completado en ambos nodos.
+
+
+.Acerca de esta tarea
+Este procedimiento crea niveles locales de datos reflejados del mismo tamaño en cada nodo del clúster, y cada nivel local tiene una cantidad de discos de 44.
+
+.Pasos
+. Deshabilitar la asignación automática de almacenamiento:
++
+`storage disk option modify -node * -autoassign off`
+
+. Confirme que la asignación automática esté deshabilitada:
++
+`storage disk option show`
+
+. Coloque el estante externo.
+. Asignar las unidades externas a cada nodo especificando el grupo 1:
++
+`storage disk assign -disk <disk ID> -owner <node name> -pool 1`
+
+. Reflejar el nivel local raíz en cada nodo:
++
+`storage aggregate mirror -aggregate <node1 root-aggr>`
+
++
+`storage aggregate mirror -aggregate <node2 root-aggr>`
+
++
+
+NOTE: Las unidades del grupo 1 se particionan automáticamente para que coincidan con las del plex 0.
+
+. En el nodo 1, cree un nivel local de datos reflejados utilizando un recuento de discos de 44.  Esto selecciona 22 particiones del grupo 0 y 22 particiones del grupo 1.
++
+`storage aggregate create -node <node1 name> -aggregate <node1 aggr-name> -diskcount 44 -mirror true`
+
+. En el nodo 2, cree un nivel local de datos reflejados utilizando un recuento de discos de 44.  Esto selecciona 22 particiones del grupo 0 y 22 particiones del grupo 1.
++
+`storage aggregate create -node <node2 name> -aggregate <node2 aggr-name> -diskcount 44 -mirror true`
+
+. Verifique que se hayan creado correctamente niveles locales de igual tamaño:
++
+`storage aggregate show`
+
+
