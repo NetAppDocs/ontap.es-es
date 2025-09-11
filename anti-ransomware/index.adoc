@@ -121,7 +121,7 @@ TIP: El comando `security anti-ransomware volume workload-behavior show` muestra
 | Activo  a| 
 Tras ejecutar ARP en modo de aprendizaje durante el tiempo suficiente para evaluar las características de la carga de trabajo, puede cambiar al modo activo y empezar a proteger sus datos. A partir de ONTAP 9.13.1, ARP determina automáticamente el intervalo de aprendizaje óptimo y automatiza el cambio, que podría ocurrir antes de los 30 días.
 
-Con ONTAP 9.10.1 a 9.15.1, ARP cambia al modo activo una vez finalizado el periodo óptimo de aprendizaje. Una vez que ARP cambia al modo activo, ONTAP crea instantáneas de ARP para proteger los datos si se detecta una amenaza.
+Con ONTAP 9.15.1 a 9.10.1, ARP cambia al modo activo una vez finalizado el periodo óptimo de aprendizaje. Una vez que ARP cambia al modo activo, ONTAP crea instantáneas de ARP para proteger los datos si se detecta una amenaza.
 
 En el modo activo, si una extensión de archivo se marca como anormal, debe evaluar la alerta. Puede actuar en consecuencia para proteger sus datos o marcarla como falso positivo. Al marcar una alerta como falso positivo, se actualiza el perfil de alertas. Por ejemplo, si la alerta se activa por una nueva extensión de archivo y la marca como falso positivo, no recibirá una alerta la próxima vez que se detecte la extensión de archivo.
  a| 
@@ -193,26 +193,28 @@ La siguiente tabla resume las diferencias de instantáneas ARP entre ONTAP 9.16.
 
 [cols="1,3,3"]
 |===
-| Función | ONTAP 9.16.1 y anteriores | ONTAP 9.17.1 y posteriores 
+| Función | ONTAP 9.17.1 y posteriores | ONTAP 9.16.1 y anteriores 
 
 
 | Desencadenante de creación  a| 
+Las instantáneas se crean a intervalos fijos de 4 horas, independientemente de cualquier desencadenante específico, y no son necesariamente indicativas de un ataque.
+ a| 
 * Se detecta alta entropía
 * Se detectó una nueva extensión de archivo (9.15.1 y anteriores)
 * Se detecta un aumento repentino de operaciones de archivos (9.15.1 y anteriores)
 
 
 El intervalo de creación de instantáneas se basa en el tipo de disparador.
+
+
+
  a| 
 * Las instantáneas se crean a intervalos fijos de 4 horas, independientemente de cualquier desencadenante específico.
 * Confirmación de un ataque
 
 
 Se crea una instantánea "periódica" o "de ataque" según el tipo de disparador.
-
-
-
-| Convención de nombres prefijados | Copia de seguridad anti-ransomware | Copia de seguridad periódica anti-ransomware 
+| Convención de nombres prefijados | Copia de seguridad periódica anti-ransomware 
 
 
 | Comportamiento de eliminación | La instantánea ARP está bloqueada y el administrador no puede eliminarla | La instantánea ARP está bloqueada y el administrador no puede eliminarla 
@@ -222,14 +224,17 @@ Se crea una instantánea "periódica" o "de ataque" según el tipo de disparador
 
 
 | Periodo de conservación  a| 
-* Determinado en función de las condiciones de activación (no fijo)
-* Las instantáneas creadas antes del ataque se conservan hasta que el administrador marca el ataque como verdadero o falso positivo (sospechoso claro).
-
- a| 
 Las instantáneas normalmente se conservan durante 12 horas.
 
 * Volúmenes NAS: si se confirma un ataque mediante el análisis de archivos, se conservan las instantáneas creadas antes del ataque hasta que el administrador marque el ataque como verdadero o falso positivo (sospechoso claro).
 * Almacenes de datos de volumen SAN o de máquina virtual: si se confirma un ataque mediante un análisis de entropía de bloques, las instantáneas creadas antes del ataque se conservan durante 10 días (configurable).
++
+El período de retención de una instantánea creada antes del inicio de un ataque se extiende a 10 días (configurable).
+
+
+ a| 
+* Determinado en función de las condiciones de activación (no fijo)
+* Las instantáneas creadas antes del ataque se conservan hasta que el administrador marca el ataque como verdadero o falso positivo (sospechoso claro).
 
 
 
@@ -240,8 +245,6 @@ Los administradores pueden realizar una acción de sospecha clara que establece 
 * 24 horas para retención de falsos positivos
 * 7 días para una retención verdaderamente positiva
 
-
-Este comportamiento de retención preventiva no existía antes de ONTAP 9.16.1
  a| 
 Los administradores pueden realizar una acción de sospecha clara que establece la retención en función de la confirmación:
 
@@ -249,9 +252,11 @@ Los administradores pueden realizar una acción de sospecha clara que establece 
 * 7 días para una retención verdaderamente positiva
 
 
+Este comportamiento de retención preventiva no existía antes de ONTAP 9.16.1
 
 
-| Tiempo de expiración | Ninguno | Se establece un tiempo de expiración para todas las instantáneas 
+
+| Tiempo de expiración | Se establece un tiempo de expiración para todas las instantáneas | Ninguno 
 |===
 
 
