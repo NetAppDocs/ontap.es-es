@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: dump, backup, qtree, file, system, data 
 summary: Una copia de seguridad de volcado escribe los datos del sistema de archivos del disco a la cinta mediante un proceso predefinido. Puede realizar un backup de un volumen, un qtree o un subárbol que no sea ni un volumen completo ni un qtree completo. 
 ---
-= Cómo funciona un backup de volcado
+= Cómo funciona una copia de seguridad de volcado con ONTAP NDMP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -65,3 +65,60 @@ Cuando ONTAP realiza varios backups de volcado de forma simultánea, el motor de
 Cuando se realiza una copia de seguridad desde una instantánea, el motor de volcado no crea una instantánea adicional.
 
 ====
+
+
+== Tipos de datos de los que el motor de descarga realiza una copia de seguridad
+
+El motor de volcado permite lanzar backups de los datos a cinta como protección ante desastres o interrupciones en la controladora. Además de realizar backups de objetos de datos como archivos, directorios, qtrees o volúmenes completos, el motor de volcado puede realizar backups de muchos tipos de información acerca de cada archivo. Conocer los tipos de datos que el motor de volcado puede realizar y las restricciones que se deben tener en cuenta puede ayudarle a planificar su método de recuperación ante desastres.
+
+Además de realizar una copia de seguridad de los datos de los archivos, el motor de volcado puede realizar una copia de seguridad de la siguiente información acerca de cada archivo, según corresponda:
+
+* GID de UNIX, UID del propietario y permisos de archivo
+* Acceso UNIX, creación y tiempo de modificación
+* Tipo de archivo
+* Tamaño de archivo
+* Nombre dos, atributos dos y hora de creación
+* Listas de control de acceso (ACL) con 1,024 entradas de control de acceso (ACE)
+* Información de Qtree
+* Rutas de unión
+
+
+Las rutas de unión se copian como enlaces simbólicos.
+
+* Clones LUN y LUN
++
+Puede realizar backups de un objeto de LUN completo; sin embargo, no puede realizar backups de un único archivo dentro del objeto LUN. De igual modo, puede restaurar un objeto de LUN completo, pero no un solo archivo dentro de la LUN.
+
++
+[NOTE]
+====
+El motor de volcado realiza una copia de seguridad de los clones de LUN como LUN independientes.
+
+====
+* Archivos alineados con equipos virtuales
++
+Las versiones anteriores a Data ONTAP 8.1.2 no admiten la copia de seguridad de archivos alineados con equipos virtuales.
+
+
+
+[NOTE]
+====
+Cuando se realiza la transición de un clon de LUN respaldado por snapshots de Data ONTAP operativo en 7-Mode a ONTAP, se convierte en una LUN inconsistente. El motor de volcado no realiza copias LUN incoherentes.
+
+====
+Cuando restaura datos en un volumen, las operaciones de I/o del cliente están restringidas en las LUN que se restauran. La restricción de LUN se elimina solo cuando se completa la operación de restauración de volcado. De forma similar, durante una operación de restauración de archivos o LUN únicos de SnapMirror, las I/o del cliente están restringidas a ambos archivos y LUN que se van a restaurar. Esta restricción se elimina solo cuando se completa la operación de restauración de archivos o LUN. Si se realiza un backup de volcado en un volumen en el que se está realizando una operación de restauración de volcado o restauración de archivo único de SnapMirror o LUN, los archivos o LUN que tienen restricción de I/o del cliente no se incluyen en el backup. Estos archivos o LUN se incluyen en una operación de copia de seguridad posterior si la restricción de I/o del cliente se elimina.
+
+[NOTE]
+====
+Una LUN que se ejecute en Data ONTAP 8.3 y que se realice un backup a cinta solo se podrá restaurar a las versiones 8.3 y posteriores, y no a una versión anterior. Si la LUN se restaura a una versión anterior, la LUN se restaura como un archivo.
+
+====
+Cuando se realiza un backup de un volumen secundario de SnapVault o de un destino de SnapMirror para volúmenes a cinta, solo se realiza un backup de los datos del volumen. No se realiza un backup de los metadatos asociados. Por lo tanto, cuando intenta restaurar el volumen, solo se restauran los datos de ese volumen. La información sobre las relaciones de SnapMirror para volúmenes no está disponible en el backup y, por lo tanto, no se restaura.
+
+Si vuelca un archivo que sólo tiene permisos de Windows NT y lo restaura a un qtree o volumen de estilo UNIX, el archivo obtiene los permisos UNIX predeterminados para ese qtree o volumen.
+
+Si vuelca un archivo que solo tiene permisos de UNIX y lo restaura a un qtree o volumen de estilo NTFS, el archivo obtiene los permisos de Windows predeterminados para ese qtree o volumen.
+
+Otros volcados y restauraciones conservan los permisos.
+
+Puede realizar backups de los archivos alineados con la máquina virtual y la `vm-align-sector` opción. Para obtener más información sobre los archivos alineados con VM, consulte link:../volumes/index.html["Gestión de almacenamiento lógico"].

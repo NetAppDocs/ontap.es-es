@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: environment, variable, information, backup, restore, operation, ndmp, application, storage, system 
 summary: Las variables de entorno se utilizan para comunicar información sobre una operación de backup o restauración entre una aplicación de backup habilitada para NDMP y un sistema de almacenamiento. 
 ---
-= Información general de las variables de entorno
+= Conozca las variables de entorno compatibles con ONTAP NDMP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -23,3 +23,563 @@ La configuración y examen de las variables de entorno suelen ser transparentes 
 Un administrador de backup rara vez especifica variables de entorno; no obstante, se puede cambiar el valor de una variable de entorno de la cual establece la aplicación de backup para caracterizar o trabajar en torno a un problema funcional o de rendimiento. Por ejemplo, es posible que un administrador desee deshabilitar temporalmente la generación del historial de archivos para determinar si el procesamiento de la información del historial de archivos de la aplicación de copia de seguridad está contribuyendo a problemas de rendimiento o de funcionamiento.
 
 Muchas aplicaciones de backup proporcionan un medio para anular o modificar variables de entorno o especificar variables de entorno adicionales. Para obtener información, consulte la documentación de la aplicación de copia de seguridad.
+
+
+
+== Variables de entorno compatibles con ONTAP
+
+ONTAP admite variables de entorno, que tienen un valor predeterminado asociado.  Sin embargo, puede modificar manualmente estos valores predeterminados.
+
+Si modifica manualmente los valores establecidos por la aplicación de backup, la aplicación podría comportarse de forma impredecible. Esto se debe a que las operaciones de backup o restauración podrían no estar haciendo lo que la aplicación de backup esperaba que hicieran, pero en algunos casos, una modificación sensata puede ayudar a identificar o solucionar problemas.
+
+En las tablas siguientes se enumeran las variables de entorno cuyo comportamiento es común para el volcado y SMTape y las variables que sólo se admiten para el volcado y SMTape. Estas tablas también contienen descripciones de cómo funcionan las variables de entorno compatibles con ONTAP si se utilizan:
+
+[NOTE]
+====
+En la mayoría de los casos, las variables que tienen el valor, `Y` también aceptan `T` y `N` también aceptan `F`.
+
+====
+
+
+== Variables de entorno compatibles para volcado y SMTape
+
+|===
+| Variable de entorno | Valores válidos | Predeterminado | Descripción 
+
+
+ a| 
+DEPURAR
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que se imprime la información de depuración.
+
+
+
+ a| 
+SISTEMA DE ARCHIVOS
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Especifica el nombre de la ruta de acceso de la raíz de los datos de los que se va a realizar una copia de seguridad.
+
+
+
+ a| 
+VERSIÓN_NDMP
+ a| 
+`return_only`
+ a| 
+`none`
+ a| 
+No debe modificar la variable NDMP_VERSION. Creada por la operación de backup, la variable NDMP_VERSION devuelve la versión de NDMP.
+
+ONTAP establece la variable NDMP_VERSION durante un backup para uso interno y para pasar a una aplicación de backup con fines informativos. La versión NDMP de una sesión NDMP no está configurada con esta variable.
+
+
+
+ a| 
+SEPARADOR_NOMBRE_RUTA
+ a| 
+`return_value`
+ a| 
+`none`
+ a| 
+Especifica el carácter separador del nombre de ruta de acceso.
+
+Este carácter depende del sistema de archivos del que se va a realizar el backup. En el caso de ONTAP, el carácter «»/» se asignará a esta variable. El servidor NDMP configura esta variable antes de iniciar una operación de backup a cinta.
+
+
+
+ a| 
+TIPO
+ a| 
+`dump` o. `smtape`
+ a| 
+`dump`
+ a| 
+Especifica el tipo de backup admitido para realizar operaciones de backup y restauración a cinta.
+
+
+
+ a| 
+VERBOSE
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Aumenta los mensajes de registro mientras se realiza una operación de copia de seguridad o restauración de cinta.
+
+|===
+
+
+== Variables de entorno compatibles con el volcado
+
+|===
+| Variable de entorno | Valores válidos | Predeterminado | Descripción 
+
+
+ a| 
+ACL_START
+ a| 
+`return_only`
+ a| 
+`none`
+ a| 
+Creada por la operación de backup, la variable ACL_START es un valor de desplazamiento que utilizan una operación de restauración de acceso directo o de backup NDMP reiniciable.
+
+El valor de desplazamiento es el desplazamiento de bytes en el archivo de volcado donde comienzan los datos de ACL (pase V) y se devuelven al final de una copia de seguridad. Para que una operación de restauración de acceso directo restaure correctamente los datos de los que se ha realizado un backup, el valor de ACL_START debe pasarse a la operación de restauración cuando se inicia. Una operación de backup reiniciable de NDMP utiliza el valor ACL_START para comunicarse con la aplicación de backup donde comienza la parte no reiniciable del flujo de backup.
+
+
+
+ a| 
+FECHA_BASE
+ a| 
+`0`, , `-1`, o `DUMP_DATE` valor
+ a| 
+`-1`
+ a| 
+Especifica la fecha de inicio de las copias de seguridad incrementales.
+
+Cuando se define en `-1`, el especificador incremental BASE_DATE está desactivado. Cuando se configura en `0` una copia de seguridad de nivel 0, se activan las copias de seguridad incrementales. Después de la copia de seguridad inicial, el valor de la variable DUMP_DATE de la copia de seguridad incremental anterior se asigna a la variable BASE_DATE.
+
+Estas variables son una alternativa a las copias de seguridad incrementales basadas en NIVEL/ACTUALIZACIÓN.
+
+
+
+ a| 
+DIRECTO
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que una restauración se debe reenviar directamente a la ubicación de la cinta en la que residen los datos del archivo en lugar de analizar la cinta completa.
+
+Para que la recuperación de acceso directo funcione, la aplicación de backup debe proporcionar información de posicionamiento. Si esta variable se define en `Y`, la aplicación de copia de seguridad especifica los nombres de archivo o directorio y la información de posicionamiento.
+
+
+
+ a| 
+NOMBRE_DMP
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Especifica el nombre de una copia de seguridad de varios subárboles.
+
+Esta variable es obligatoria para varias copias de seguridad de subárbol.
+
+
+
+ a| 
+FECHA_DE_VOLCADO
+ a| 
+`return_value`
+ a| 
+`none`
+ a| 
+No se cambia esta variable directamente. La copia de seguridad la crea si la variable BASE_DATE se define en un valor distinto de `-1`.
+
+LA variable DUMP_DATE se deriva prependiente el valor de nivel de 32 bits a un valor de tiempo de 32 bits calculado por el software de volcado. El nivel se incrementa desde el valor del último nivel pasado a la variable BASE_DATE. El valor resultante se utiliza como valor BASE_DATE en un backup incremental posterior.
+
+
+
+ a| 
+MEJORADO_DAR_HABILITADO
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica si la funcionalidad DAR mejorada está activada. La funcionalidad DAR mejorada es compatible con DAR de directorios y DAR de ficheros con secuencias NT. Proporciona mejoras de rendimiento.
+
+Las mejoras DE DAR durante la restauración solo son posibles si se cumplen las siguientes condiciones:
+
+* ONTAP admite DAR mejorado.
+* El historial de archivos está activado (HIST=y) durante la copia de seguridad.
+*  `ndmpd.offset_map.enable`La opción se establece en `on`.
+* La variable ENHANCED_DAR_ENABLED está definida en `Y` Durante la restauración.
+
+
+
+
+ a| 
+EXCLUIR
+ a| 
+`pattern_string`
+ a| 
+`none`
+ a| 
+Especifica los archivos o directorios que se excluyen al realizar una copia de seguridad de los datos.
+
+La lista de exclusión es una lista de nombres de archivos o directorios separados por comas. Si el nombre de un archivo o directorio coincide con uno de los nombres de la lista, se excluye de la copia de seguridad.
+
+Las siguientes reglas se aplican al especificar nombres en la lista excluir:
+
+* Debe utilizarse el nombre exacto del archivo o directorio.
+* El asterisco (*), un carácter comodín, debe ser el primer carácter o el último de la cadena.
++
+Cada cadena puede tener hasta dos asteriscos.
+
+* Una coma en un nombre de archivo o directorio debe ir precedida de una barra invertida.
+* La lista de exclusión puede contener hasta 32 nombres.
+
+
+[NOTE]
+====
+Los archivos o directorios especificados para excluirse para la copia de seguridad no se excluyen si define NON_QUOTA_TREE en `Y` simultáneamente.
+
+====
+
+
+ a| 
+EXTRAER
+ a| 
+`Y`, , `N` o. `E`
+ a| 
+`N`
+ a| 
+Especifica que se van a restaurar los subárboles de un conjunto de datos de copia de seguridad.
+
+La aplicación de copia de seguridad especifica los nombres de los subárboles que se van a extraer. Si un archivo especificado coincide con un directorio cuyo contenido se hizo una copia de seguridad, el directorio se extrae recursivamente.
+
+Para cambiar el nombre de un archivo, un directorio o un qtree durante la restauración sin utilizar DAR, se debe configurar la variable de entorno de EXTRACCIÓN en `E`.
+
+
+
+ a| 
+EXTRAER_ACL
+ a| 
+`Y` o. `N`
+ a| 
+`Y`
+ a| 
+Especifica que las ACL del archivo de copia de seguridad se restauran en una operación de restauración.
+
+El valor predeterminado es restaurar las ACL cuando se restauran los datos, excepto para DARS (DIRECT=y).
+
+
+
+ a| 
+FUERZA
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Determina si la operación de restauración debe comprobar la disponibilidad de espacio de volumen y de nodos de información en el volumen de destino.
+
+Si se configura esta variable `Y`, la operación de restauración omite las comprobaciones de espacio del volumen y la disponibilidad de nodos de información en la ruta de destino.
+
+Si no hay suficiente espacio o inodos en el volumen de destino, la operación de restauración recupera la cantidad de datos permitidos por el espacio del volumen de destino y la disponibilidad de nodos de información. La operación de restauración se detiene cuando el espacio del volumen o los inodos no están disponibles.
+
+
+
+ a| 
+HIST
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que la información del historial de archivos se envía a la aplicación de copia de seguridad.
+
+La mayoría de las aplicaciones de copia de seguridad comerciales establecen la variable HIST en `Y`. Si desea aumentar la velocidad de una operación de copia de seguridad o desea solucionar un problema con la recopilación de historial de archivos, puede establecer esta variable en `N`.
+
+[NOTE]
+====
+No debe establecer la variable HIST en `Y` si la aplicación de copia de seguridad no admite el historial de archivos.
+
+====
+
+
+ a| 
+IGNORE_CTIME
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que no se realiza una copia de seguridad incremental de un archivo si sólo ha cambiado su valor ctime desde la copia de seguridad incremental anterior.
+
+Algunas aplicaciones, como el software de análisis de virus, cambian el valor de ctime de un archivo dentro del inodo, aunque el archivo o sus atributos no hayan cambiado. Como resultado, una copia de seguridad incremental puede hacer una copia de seguridad de los archivos que no han cambiado.  `IGNORE_CTIME`La variable debe especificarse sólo si las copias de seguridad incrementales están tomando una cantidad inaceptable de tiempo o espacio porque se modificó el valor ctime.
+
+[NOTE]
+====
+ `NDMP dump`El comando se establece `IGNORE_CTIME` en `false` de forma predeterminada. Si se configura en `true`, puede producirse la siguiente pérdida de datos:
+
+. Si `IGNORE_CTIME` se establece en true con un nivel de volumen incremental `ndmpcopy`, como resultado, se eliminan los archivos que se mueven entre qtrees en origen.
+. Si `IGNORE_CTIME` se configura en true durante el volcado incremental a nivel de volumen, provoca la eliminación de archivos, que se mueven entre qtrees en origen durante la restauración incremental.
+
+
+Para evitar este problema, `IGNORE_CTIME` debe establecerse en false durante el nivel del volumen `NDMP dumps` o `ndmpcopy`en .
+
+====
+
+
+ a| 
+IGNORE_QTREES
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que la operación de restauración no restaura la información de qtree a partir de qtrees de los que se ha realizado un backup.
+
+
+
+ a| 
+NIVEL
+ a| 
+`0`-`31`
+ a| 
+`0`
+ a| 
+Especifica el nivel de backup.
+
+El nivel 0 copia todo el conjunto de datos. Niveles de copia de seguridad incrementales, especificados por valores superiores a 0, copie todos los archivos (nuevos o modificados) desde la última copia de seguridad incremental. Por ejemplo, un nivel 1 realiza una copia de seguridad de los archivos nuevos o modificados desde la copia de seguridad de nivel 0, un nivel 2 realiza una copia de seguridad de los archivos nuevos o modificados desde la copia de seguridad de nivel 1, etc.
+
+
+
+ a| 
+LISTA
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Enumera los nombres de los archivos de backup y los números de nodos de información sin restaurar los datos realmente.
+
+
+
+ a| 
+QTREES_DE_LISTAS
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Enumera los qtrees de los que se ha realizado backup sin restaurar realmente los datos.
+
+
+
+ a| 
+NOMBRES DE MULTIÁRBOL_
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Especifica que la copia de seguridad es una copia de seguridad de varios subárboles.
+
+Se especifican varios subárboles en la cadena, que es una lista de nombres de subárboles separados por nuevas líneas y terminados en nulo. Los subárboles se especifican mediante nombres de ruta relativos a su directorio raíz común, que deben especificarse como último elemento de la lista.
+
+Si se usa esta variable, también se debe usar la variable DMP_NAME.
+
+
+
+ a| 
+NDMP_UNICODE_ FH
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que se incluye un nombre Unicode además del nombre NFS del archivo en la información del historial de archivos.
+
+Esta opción no la utilizan la mayoría de las aplicaciones de copia de seguridad y no debe establecerse a menos que la aplicación de copia de seguridad esté diseñada para recibir estos nombres de archivo adicionales. También se debe establecer la variable HIST.
+
+
+
+ a| 
+NO_ACL
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que las ACL no se deben copiar al realizar copias de seguridad de datos.
+
+
+
+ a| 
+ÁRBOL_NO_CUOTA
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que los archivos y directorios en qtrees deben ignorarse al realizar una copia de seguridad de los datos.
+
+Cuando se define en `Y`, los elementos de qtrees del conjunto de datos especificado por la variable FILESYSTEM no se realizan copias de seguridad. Esta variable solo tiene un efecto si la variable FILESYSTEM especifica un volumen completo. La variable NON_QUOTA_TREE sólo funciona en una copia de seguridad de nivel 0 y no funciona si se especifica la variable MULTI_SUBTREE_NAMES.
+
+[NOTE]
+====
+Los archivos o directorios especificados para excluirse para la copia de seguridad no se excluyen si define NON_QUOTA_TREE en `Y` simultáneamente.
+
+====
+
+
+ a| 
+NOWRITE
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que la operación de restauración no debe escribir datos en el disco.
+
+Esta variable se utiliza para la depuración.
+
+
+
+ a| 
+RECURSIVA
+ a| 
+`Y` o. `N`
+ a| 
+`Y`
+ a| 
+Especifica que se amplíen las entradas de directorio durante una restauración DE DAR.
+
+Las variables de entorno DIRECT y ENFOTED_DAR_ENABLED `Y` también deben estar activadas (definidas en). Si la variable RECURSIVA está desactivada (establecida en `N`), sólo los permisos y las ACL de todos los directorios de la ruta de origen original se restauran de la cinta, no del contenido de los directorios. Si la variable RECURSIVA se define en `N` o la variable RECOVER_FULL_PATH se define en `Y`, la ruta de recuperación debe terminar con la ruta de acceso original.
+
+[NOTE]
+====
+Si la variable RECURSIVA está deshabilitada y hay más de una ruta de recuperación, todas las rutas de recuperación deben estar contenidas en el más largo de las rutas de recuperación. De lo contrario, se mostrará un mensaje de error.
+
+====
+Por ejemplo, las siguientes son rutas de recuperación válidas porque todas las rutas de recuperación se encuentran en `foo/dir1/deepdir/myfile`:
+
+* `/foo`
+* `/foo/dir`
+* `/foo/dir1/deepdir`
+* `/foo/dir1/deepdir/myfile`
+
+
+Las siguientes son rutas de recuperación no válidas:
+
+* `/foo`
+* `/foo/dir`
+* `/foo/dir1/myfile`
+* `/foo/dir2`
+* `/foo/dir2/myfile`
+
+
+
+
+ a| 
+RECUPERE_FULL_PATHS
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Especifica que la ruta de recuperación completa tendrá sus permisos y ACL restaurados después del DAR.
+
+DIRECT y ENHANCED_DAR_ENABLED `Y` también deben estar activados (definido en). Si RECOVER_FULL_PATHS está definido en `Y`, la ruta de recuperación debe terminar en la ruta original. Si ya hay directorios en el volumen de destino, sus permisos y ACL no se restaurarán a partir de la cinta.
+
+
+
+ a| 
+ACTUALIZAR
+ a| 
+`Y` o. `N`
+ a| 
+`Y`
+ a| 
+Actualiza la información de los metadatos para permitir la realización de backups incrementales basados EN NIVELES.
+
+|===
+
+
+== Variables de entorno compatibles con SMTape
+
+|===
+| Variable de entorno | Valores válidos | Predeterminado | Descripción 
+
+
+ a| 
+FECHA_BASE
+ a| 
+`DUMP_DATE`
+ a| 
+`-1`
+ a| 
+Especifica la fecha de inicio de las copias de seguridad incrementales.
+
+ `BASE_DATE` es una representación en cadena de los identificadores de instantánea de referencia. Con la `BASE_DATE` cadena, SMTape localiza la instantánea de referencia.
+
+ `BASE_DATE` no es necesaria para backups de base. Para una copia de seguridad incremental, el valor de `DUMP_DATE` la variable de la línea base anterior o la copia de seguridad incremental se asigna a la `BASE_DATE` variable.
+
+La aplicación de copia de seguridad asigna `DUMP_DATE` el valor de una copia de seguridad inicial o incremental de SMTape anterior.
+
+
+
+ a| 
+FECHA_DE_VOLCADO
+ a| 
+`return_value`
+ a| 
+`none`
+ a| 
+Al final de una copia de seguridad SMTape, DUMP_DATE contiene un identificador de cadena que identifica la instantánea utilizada para esa copia de seguridad. Esta instantánea se puede utilizar como instantánea de referencia para una copia de seguridad incremental posterior.
+
+El valor resultante de DUMP_DATE se utiliza como valor BASE_DATE para las copias de seguridad incrementales subsiguientes.
+
+
+
+ a| 
+SMTAPE_BACKUP_SET_ID
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Identifica la secuencia de backups incrementales asociados con el backup de referencia.
+
+El ID del conjunto de backup es un ID exclusivo de 128 bits que se genera durante una copia de seguridad de línea de base. La aplicación de copia de seguridad asigna este ID como entrada a `SMTAPE_BACKUP_SET_ID` la variable durante una copia de seguridad incremental.
+
+
+
+ a| 
+SMTAPE_SNAPSHOT_NAME
+ a| 
+Cualquier snapshot válida que esté disponible en el volumen
+ a| 
+`Invalid`
+ a| 
+Cuando la variable SMTAPE_SNAPSHOT_NAME se define en una instantánea, esa instantánea y sus instantáneas más antiguas se realizan copias de seguridad en cinta.
+
+Para la copia de seguridad incremental, esta variable especifica la instantánea incremental. La variable BASE_DATE proporciona la instantánea de línea base.
+
+
+
+ a| 
+SMTAPE_DELETE_SNAPSHOT
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Para una instantánea creada automáticamente por SMTape, cuando la variable SMTAPE_DELETE_SNAPSHOT se define en `Y`, después de que se complete la operación de copia de seguridad, SMTape suprime esta instantánea. Sin embargo, no se eliminará una copia de Snapshot creada por la aplicación de backup.
+
+
+
+ a| 
+SMTAPE_BREAK_MIRROR
+ a| 
+`Y` o. `N`
+ a| 
+`N`
+ a| 
+Cuando la variable SMTAPE_BREAK_MIRROR se establece en `Y`, el volumen de tipo `DP` se cambia a un `RW` volumen después de una restauración correcta.
+
+|===

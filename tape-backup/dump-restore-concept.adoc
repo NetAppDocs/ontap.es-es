@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: dump, restore, file, write, system, data, disk 
 summary: Una restauración de volcado escribe los datos del sistema de archivos de una cinta a un disco mediante un proceso predefinido. 
 ---
-= Cómo funciona una restauración de volcado
+= Cómo funciona una restauración de volcado con ONTAP NDMP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -47,3 +47,47 @@ ONTAP lee un archivo desde una cinta, lo escribe en el disco y establece los per
 ONTAP repite las fases 2 y 3 hasta que todos los archivos especificados se copien de la cinta.
 
 |===
+
+
+== Tipos de datos que restaura el motor de volcado
+
+Cuando se produce un desastre o una interrupción de la controladora, el motor de volcado ofrece diversos métodos para recuperar todos los datos de los que se hizo backup, desde archivos individuales a atributos de archivo, a directorios completos. Conocer los tipos de datos que el motor de volcado puede restaurar y cuándo utilizar qué método de recuperación puede ayudar a minimizar el tiempo de inactividad.
+
+Puede restaurar datos a una LUN asignada en línea. Sin embargo, las aplicaciones host no pueden acceder a esta LUN hasta que se complete la operación de restauración. Una vez finalizada la operación de restauración, la caché del host de los datos de LUN se debe vaciar para ofrecer coherencia con los datos restaurados.
+
+El motor de descarga puede recuperar los siguientes datos:
+
+* Contenido de los archivos y directorios
+* Permisos de archivos UNIX
+* ACL
++
+Si restaura un archivo que solo tiene permisos de archivo UNIX a un qtree o volumen NTFS, el archivo no tiene ACL de Windows NT. El sistema de almacenamiento utiliza sólo los permisos de archivo UNIX en este archivo hasta que se crea una ACL de Windows NT en él.
+
++
+[NOTE]
+====
+Si restaura ACL respaldados de sistemas de almacenamiento que ejecutan Data ONTAP 8.2 a sistemas de almacenamiento que ejecutan Data ONTAP 8.1.x y versiones anteriores que tienen un límite de ACE inferior a 1,024, se restaura una ACL predeterminada.
+
+====
+* Información de Qtree
++
+La información de qtree se utiliza solo si un qtree se restaura en la raíz de un volumen. La información de qtree no se utiliza si se restaura un qtree en un directorio inferior, `/vs1/vol1/subdir/lowerdir` como , y deja de ser un qtree.
+
+* Todos los demás atributos de archivo y directorio
+* Secuencias de Windows NT
+* LUN
++
+** Es necesario restaurar una LUN a nivel de volumen o un nivel de qtree para que permanezca como una LUN.
++
+Si se restaura a un directorio, se restaura como un archivo porque no contiene metadatos válidos.
+
+** Un LUN de 7-Mode se restaura como LUN en un volumen ONTAP.
+
+
+* Un volumen de 7-Mode se puede restaurar en un volumen de ONTAP.
+* Los archivos alineados con máquinas virtuales restaurados en un volumen de destino heredan las propiedades de alineación de máquinas virtuales del volumen de destino.
+* El volumen de destino de una operación de restauración puede tener archivos con bloqueos obligatorios o de asesoramiento.
++
+Mientras se realiza una operación de restauración en dicho volumen de destino, el motor de volcado ignora estos bloqueos.
+
+
