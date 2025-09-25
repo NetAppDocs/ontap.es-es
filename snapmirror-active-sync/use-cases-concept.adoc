@@ -14,7 +14,7 @@ summary: Utilice SnapMirror Active Sync para proteger las aplicaciones con las L
 
 
 [role="lead"]
-Las exigencias de un entorno empresarial conectado globalmente exigen una recuperación rápida de los datos de las aplicaciones esenciales para el negocio sin pérdida de datos en caso de interrupción como un ciberataque, una interrupción del suministro eléctrico o un desastre natural. Estas demandas se intensifican en ámbitos como las finanzas y las que se adhieren a mandatos normativos como el Reglamento general de protección de datos (RGPD).
+Las demandas de un entorno empresarial conectado globalmente exigen una recuperación rápida de datos de aplicaciones críticas para el negocio con cero pérdida de datos en caso de una interrupción como un ciberataque, un corte de energía o un desastre natural.  Estas demandas se acentúan en áreas como las finanzas y aquellas que se adhieren a mandatos regulatorios como el Reglamento General de Protección de Datos (GDPR).
 
 SnapMirror Active Sync proporciona los siguientes casos de uso:
 
@@ -24,21 +24,25 @@ En una implementación de sincronización activa de SnapMirror , se cuenta con u
 .Puesta en marcha de aplicaciones para un objetivo de tiempo de recuperación cero o una conmutación al respaldo transparente de aplicaciones (TAF)
 TAF se basa en la conmutación por error de ruta basada en software MPIO del host para lograr un acceso sin interrupciones al almacenamiento. Ambas copias LUN (por ejemplo, la principal [L1P] y la copia espejo [L1S]) tienen la misma identidad (número de serie) y se informan como de lectura y escritura al host. Sin embargo, en configuraciones asimétricas, las lecturas y escrituras solo las atiende el volumen principal. Las E/S emitidas a la copia espejo se redirigen a la copia principal. La ruta preferida del host a L1 es VS1:N1, según el estado de acceso de unidad lógica asimétrica (ALUA) Activo Optimizado (A/O). ONTAP Mediator es necesario como parte de la implementación, principalmente para realizar la conmutación por error (planificada o no planificada) en caso de una interrupción del almacenamiento en el principal.
 
+image:snapmirror-active-sync-alua-active-optimized.png["Rutas optimizadas activas de ALUA de sincronización activa de SnapMirror"]
+
 TAF opera en dos modos: Conmutación por error automatizada y Dúplex con conmutación por error automatizada. Con la conmutación por error automatizada, las lecturas y escrituras son atendidas únicamente por el volumen principal; por lo tanto, las E/S emitidas a la copia reflejada (que no puede atender escrituras por sí sola) se redirigen a la copia principal. Con la conmutación por error automatizada dúplex, tanto la copia principal como la secundaria pueden atender las E/S, por lo que no se requiere un proxy.
 
-Si utiliza NVMe para acceso al host con ONTAP 9.17.1, solo se admite la conmutación por error automatizada.
+image:snapmirror-active-sync-automatedfailoverduplex-scenario.png["Sincronización activa de SnapMirror , escenario de conmutación por error automatizada y dúplex"]
+
+Si utiliza NVMe para el acceso al host con ONTAP 9.17.1, solo se admite la política AutomatedFailoverDuplex.
 
 La sincronización activa de SnapMirror usa ALUA, un mecanismo que permite un software multivía de host de aplicaciones con rutas anunciadas con prioridades y disponibilidad de acceso para la comunicación del host de aplicaciones con la cabina de almacenamiento. ALUA marca las rutas activas optimizadas a las controladoras propietarias del LUN y otras como rutas activas no optimizadas, utilizadas solo si falla la ruta primaria.
 
-La sincronización activa de SnapMirror con el protocolo NVMe utiliza ANA, lo que permite a los hosts de aplicaciones descubrir rutas optimizadas y no optimizadas a los espacios de nombres NVMe protegidos. El destino NVMe de ONTAP publica los estados de ruta adecuados para que los hosts de aplicaciones utilicen la ruta óptima para un espacio de nombres NVMe protegido.
+La sincronización activa de SnapMirror con el protocolo NVMe utiliza acceso asimétrico al espacio de nombres (ANA), que permite a los hosts de aplicaciones descubrir rutas optimizadas y no optimizadas a los espacios de nombres NVMe que están siendo protegidos. El destino NVMe de ONTAP publica los estados de ruta adecuados para que los hosts de aplicaciones utilicen la ruta óptima para un espacio de nombres NVMe protegido.
 
 .Aplicaciones en clúster
-Las aplicaciones en clúster, como VMware Metro Storage Cluster, Oracle RAC y los clusters de conmutación por error de Windows con SQL, requieren acceso simultáneo para que los equipos virtuales puedan recuperarse en caso de fallo en el otro sitio sin sobrecargar el rendimiento. SnapMirror activo-activo simétrico proporciona I/O de forma local con replicación bidireccional para cumplir los requisitos de aplicaciones en clúster. A partir de ONTAP 9.16.1, el activo-activo simétrico se admite en una configuración de clústeres de cuatro nodos, expandiéndose desde el límite de clústeres de dos nodos en ONTAP 9.15.1.
+Las aplicaciones agrupadas, incluidas VMware Metro Storage Cluster, Oracle RAC y Windows Failover Clustering con SQL, requieren acceso simultáneo para que las máquinas virtuales puedan conmutarse por error a otro sitio sin ninguna sobrecarga de rendimiento. SnapMirror active sync symmetric active/active sirve IO localmente con replicación bidireccional para satisfacer los requisitos de las aplicaciones en clúster.  A partir de ONTAP 9.16.1, se admite la configuración activa/activa simétrica en clústeres de cuatro nodos, ampliando el límite de clústeres de dos nodos en ONTAP 9.15.1.
 
 .Situación de desastre
 Replique de forma síncrona varios volúmenes para una aplicación entre sitios ubicados en ubicaciones dispersas geográficamente. Puede conmutar automáticamente por respaldo a la copia secundaria en caso de interrupción del almacenamiento primario, con lo que se permite la continuidad del negocio para aplicaciones de nivel uno. Cuando el sitio que aloja el clúster principal experimenta un desastre, el software multivía del host marca todas las rutas a través del clúster como inactivas y utiliza las rutas del clúster secundario. El resultado es una conmutación al respaldo sin interrupciones habilitada por ONTAP Mediator en la copia mirror.
 
-.Recuperación tras fallos de Windows
-La sincronización activa de SnapMirror ofrece flexibilidad con granularidad a nivel de aplicaciones fácil de usar y conmutación automática al respaldo. SnapMirror Active Sync usa replicación síncrona de SnapMirror a través de red IP para replicar datos a altas velocidades a través de LAN o WAN para lograr una alta disponibilidad de datos y una rápida replicación de datos en aplicaciones vitales para el negocio, como Oracle, Microsoft SQL Server, etc., tanto en entornos virtuales como físicos.
+.Soporte de aplicaciones ampliado
+La sincronización activa de SnapMirror brinda flexibilidad con granularidad a nivel de aplicación fácil de usar y conmutación por error automática.  SnapMirror active sync utiliza la replicación sincrónica probada de SnapMirror sobre una red IP para replicar datos a altas velocidades a través de LAN o WAN, para lograr una alta disponibilidad de datos y una rápida replicación de datos para sus aplicaciones críticas para el negocio, como Oracle, Microsoft SQL Server, etc., tanto en entornos virtuales como físicos.
 
-La sincronización activa de SnapMirror permite que los servicios empresariales críticos continúen funcionando incluso si se produce un fallo completo del sitio, con TAF en la copia secundaria. Para activar esta conmutación por error, no se requiere intervención manual o secuencias de comandos adicionales.
+La sincronización activa de SnapMirror permite que los servicios empresariales de misión crítica sigan funcionando incluso ante una falla total del sitio, con TAF en la copia secundaria.  No se requiere intervención manual ni secuencias de comandos adicionales para activar esta conmutación por error.

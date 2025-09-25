@@ -14,7 +14,15 @@ summary: Utilice la sincronización activa de SnapMirror para proteger las aplic
 
 
 [role="lead"]
-La sincronización activa de SnapMirror (también conocida como SnapMirror Business Continuity _[SM-BC]_) permite que los servicios empresariales continúen funcionando incluso si se produce un fallo total del sitio. Esto permite que las aplicaciones realicen conmutaciones por error de forma transparente mediante una copia secundaria. No se requiere intervención manual ni secuencias de comandos personalizadas para activar una conmutación por error con SnapMirror Active Sync.
+La sincronización activa de SnapMirror , también conocida como SnapMirror Business Continuity (SM-BC), permite que los servicios comerciales sigan funcionando en caso de una falla total del sitio.  Esta tecnología permite que las aplicaciones conmuten sin problemas a una copia secundaria sin intervención manual ni secuencias de comandos personalizadas.
+
+NetApp SnapMirror active sync (SM-as) está diseñado para ser una protección a nivel de aplicación más granular, de menor costo y más fácil de usar con conmutación por error automática.  La sincronización activa de SnapMirror permite que los servicios empresariales de misión crítica sigan funcionando, incluso durante una falla total del sitio.  Con la sincronización activa de SnapMirror , ahora puede replicar de forma sincrónica múltiples volúmenes de una aplicación (agregándolos a un grupo de consistencia) entre sitios en ubicaciones geográficamente dispersas.  Puede conmutar automáticamente por error a la copia secundaria en caso de interrupción de la copia principal, lo que permite la continuidad del negocio para las aplicaciones de nivel uno.
+
+Las regulaciones para las instituciones financieras en algunos países requieren que las empresas brinden servicio periódicamente desde sus centros de datos secundarios.  La sincronización activa de SnapMirror , con sus clústeres de alta disponibilidad, permite estas conmutaciones de centros de datos para la continuidad del negocio.
+
+Disponible a partir de ONTAP 9.9.1, la sincronización activa de SnapMirror es compatible con clústeres AFF y All-Flash SAN Array (ASA).  Los clústeres primarios y secundarios deben ser del mismo tipo: ASA, ASA r2 o AFF.  La sincronización activa de SnapMirror protege las aplicaciones con LUN iSCSI o FCP o espacios de nombres NVMe.
+
+La sincronización activa de SnapMirror admite configuraciones simétricas y asimétricas.  El soporte para activo/activo simétrico se introdujo en ONTAP 9.15.1.  La configuración activa/activa simétrica permite que ambas copias de un LUN protegido realicen operaciones de E/S de lectura y escritura con replicación sincrónica bidireccional, lo que permite que cada copia de LUN atienda solicitudes de E/S locales.
 
 
 NOTE: A partir de julio de 2024, el contenido de informes técnicos publicados anteriormente como archivos PDF se ha integrado con la documentación de los productos de ONTAP. La documentación de sincronización activa de SnapMirror de ONTAP ahora incluye contenido de _TR-4878: SnapMirror active sync_.
@@ -41,7 +49,7 @@ La sincronización activa de SnapMirror le permite proteger sus LUN de datos o e
 
 == Conceptos clave
 
-La sincronización activa de SnapMirror utiliza grupos de consistencia y ONTAP Mediator o, a partir de ONTAP 9.17.1, ONTAP Cloud Mediator para garantizar la replicación y el suministro de sus datos incluso en caso de desastre. Al planificar la implementación de la sincronización activa de SnapMirror , es importante comprender los conceptos esenciales de la sincronización activa de SnapMirror y su arquitectura.
+La sincronización activa de SnapMirror utiliza grupos de consistencia para garantizar que sus datos se repliquen.  La sincronización activa de SnapMirror utiliza ONTAP Mediator o, a partir de ONTAP 9.17.1, Cloud Mediator para conmutación por error automatizada, lo que garantiza que los datos se entreguen en caso de un desastre. Al planificar la implementación de la sincronización activa de SnapMirror , es importante comprender los conceptos esenciales de la sincronización activa de SnapMirror y su arquitectura.
 
 .Asimetría y simetría
 En configuraciones simétricas activas/activas, ambos sitios pueden acceder al almacenamiento local para E/S activas. Esta configuración está optimizada para aplicaciones en clúster, como VMware vMSC, Windows Failover Cluster con SQL y Oracle RAC.
@@ -83,6 +91,9 @@ ONTAP Cloud Mediator está disponible a partir de ONTAP 9.17.1. ONTAP Cloud Medi
 .Conmutación al respaldo planificada
 Operación manual para cambiar los roles de las copias en una relación de sincronización activa de SnapMirror. Los sitios primarios se convierten en los secundarios y los secundarios se convierten en los primarios.
 
+.Conmutación automática al respaldo no planificada (AUFO)
+Una operación automática para ejecutar una conmutación por error a la copia de mirroring. La operación requiere ayuda del Mediador ONTAP para detectar que la copia primaria no está disponible.
+
 .Sesgo primario-primero y primario
 La sincronización activa de SnapMirror emplea un principio primario, que da preferencia a la copia primaria para servir E/S en caso de una partición de red.
 
@@ -90,13 +101,10 @@ El sesgo primario es una implementación de quórum especial que mejora la dispo
 
 El sesgo primario-primero y primario se admiten en la sincronización activa de SnapMirror a partir de ONTAP 9.15.1. Las copias primarias se designan en System Manager y la salida con la API DE REST y la CLI.
 
-.Conmutación automática al respaldo no planificada (AUFO)
-Una operación automática para ejecutar una conmutación por error a la copia de mirroring. La operación requiere ayuda del Mediador ONTAP para detectar que la copia primaria no está disponible.
-
 .Fuera de sincronización (OOS)
 Cuando las operaciones de I/O de aplicaciones no se replican en el sistema de almacenamiento secundario, se informará como **fuera de sincronización**. Un estado fuera de sincronización significa que los volúmenes secundarios no se sincronizan con el primario (origen) y que no se está produciendo la replicación de SnapMirror.
 
-Si el estado de reflejo es `Snapmirrored`, indica un error de transferencia o un error debido a una operación no compatible.
+Si el estado del espejo es `Snapmirrored` , esto indica que se ha establecido una relación SnapMirror y que la transferencia de datos está completa, lo que significa que el volumen de destino está actualizado con el volumen de origen.
 
 La sincronización activa de SnapMirror admite la resincronización automática, lo cual permite que las copias regresen a un estado InSync.
 
