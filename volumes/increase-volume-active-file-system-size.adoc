@@ -1,0 +1,89 @@
+---
+permalink: volumes/increase-volume-active-file-system-size.html 
+sidebar: sidebar 
+keywords: increase, active, file system, volume, cpu offload, compression offload, dedicated offload processor, storage efficiency, compression 
+summary: Si está moviendo un volumen desde una plataforma que _no_ admite la eficiencia de almacenamiento del procesador de descarga dedicado a una plataforma que _sí_ admite la eficiencia de almacenamiento de descarga dedicado, debe aumentar el tamaño del sistema de archivos activo del volumen antes de mover el volumen para evitar que el volumen se quede sin espacio. 
+---
+= Aumente el sistema de archivos activo de un volumen ONTAP antes de migrar desde la compresión adaptativa de 8k
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Las plataformas que admiten la compresión adaptativa de 8k ahorran espacio a nivel de volumen.  Las plataformas AFF C-Series y las plataformas que admiten compresión de 32k ahorran espacio a nivel agregado.  Al migrar un volumen de una compresión adaptativa de 8k a una plataforma AFF C-Series o a una plataforma con compresión de 32k, debe aumentar el tamaño del sistema de archivos activo del volumen con el ahorro de compresión de 8k.  Esto evita que el volumen se quede sin espacio libre durante el movimiento del volumen.
+
+Los siguientes sistemas admiten compresión de 32k:
+
+[cols="2"]
+|===
+| Plataforma | Versión de ONTAP 
+
+
+ a| 
+* AFF A1K
+* AFF A90
+* AFF A70
+* FAS90
+* FAS70
+
+| 9.15.1 o posterior 
+
+
+ a| 
+* AFF A50
+* AFF A30
+
+| 9.16.1 o posterior 
+|===
+Obtenga más información sobre link:../concepts/builtin-storage-efficiency-concept.html["Plataformas AFF y FAS que admiten compresión de 32k"] .
+
+Ver ellink:https://hwu.netapp.com/["Hardware Universe"^] para obtener una lista completa de las plataformas de la serie C de AFF .
+
+.Acerca de esta tarea
+Realice estos pasos si está migrando sus datos mediante una operación de movimiento de volumen.  Si está migrando sus datos mediante una operación SnapMirror , no necesita aumentar manualmente el tamaño del sistema de archivos activo.  Los volúmenes de destino de SnapMirror utilizan el tamaño automático del volumen de manera predeterminada y, por lo tanto, no se espera que se queden sin espacio debido a los ahorros de compresión que se realizan en la capa agregada en lugar de en la capa de volumen.
+
+.Antes de empezar
+Si los informes y la aplicación de espacio lógico no están habilitados en su volumen, puede habilitarlos opcionalmente configurando la `-is-space-reporting-logical` y `-is-space-enforcement-logical` parámetros a *verdadero*.  Habilitar estas configuraciones antes de mover el volumen puede ayudarlo a evaluar si su volumen es lo suficientemente grande como para acomodar la pérdida de ahorro de compresión en la capa de volumen cuando convierte desde una compresión de 8k.  Debes habilitar estas configuraciones en el volumen.  Si habilita estas configuraciones en el nivel SVM, se aplicarán solo a los volúmenes recién creados.
+
+.Pasos
+. Verifique el tamaño actual del volumen y la reserva de instantáneas:
++
+[source, cli]
+----
+volume show-space
+----
+. Compruebe el ahorro de espacio de compresión del volumen:
++
+[source, cli]
+----
+volume show -vserver -volume -fields compression-space-saved
+----
+. Aumente el tamaño del sistema de archivos activo del volumen en la cantidad que se muestra para `compression-space-saved` Más la reserva de instantáneas.
++
+[source, cli]
+----
+volume size -vserver <vserver_name> -volume <volume_name> -new-size +<size>
+----
++
+.Ejemplo
+SI un volumen es de 100 GB y tiene una reserva de instantáneas del 20 %, entonces el sistema de archivos activo es de 80 GB y la reserva de instantáneas es de 20 GB.  Para aumentar el sistema de archivos activo en 20 GB, debe agregar 25 GB al tamaño total del volumen; es decir, 20 GB para el sistema de archivos activo y 5 GB (20 %) para la reserva de instantáneas.
+
++
+[listing]
+----
+volume size -vserver svm1 -volume volx -size +20GB
+----
+. Verifique que el tamaño del volumen aumente:
++
+[source, cli]
+----
+volume show -vserver <vserver_name> -volume <volume_name> -fields size
+----
+
+
+.Resultado
+El tamaño del sistema de archivos activo de su volumen ha aumentado y está listo para mover el volumen.
+
+.El futuro
+Realizar unalink:move-volume-task.html["movimiento de volúmenes"] para migrar sus datos.

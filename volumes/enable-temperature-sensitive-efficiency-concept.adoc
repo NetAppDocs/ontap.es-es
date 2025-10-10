@@ -4,22 +4,49 @@ sidebar: sidebar
 keywords: enable, temperature, sensitive, storage, efficiency, sequential packing 
 summary: Presentada en ONTAP 9.8, la eficiencia de almacenamiento sensible a la temperatura se activa automáticamente en algunos volúmenes AFF o de forma manual en los volúmenes existentes. 
 ---
-= Descripción general de la eficiencia del almacenamiento en la que la temperatura es importante
+= Conozca la eficiencia del almacenamiento sensible a la temperatura de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-ONTAP proporciona ventajas en eficiencia del almacenamiento en función de la temperatura; para ello, se evalúa la frecuencia con la que se accede a los datos del volumen y se asigna esa frecuencia al grado de compresión aplicado a esos datos. En el caso de los datos inactivos a los que se accede con poca frecuencia, se comprimen los bloques de datos más grandes, y en el caso de los datos activos, a los que se accede con frecuencia y se sobrescriben con mayor frecuencia, se comprimen los bloques de datos más pequeños, lo que hace que el proceso sea más eficiente.
+ONTAP ofrece beneficios de eficiencia de almacenamiento sensible a la temperatura (TSSE) al evaluar la frecuencia con la que se accede a los datos de su volumen y asignar esa frecuencia al grado de compresión aplicado a esos datos.  Para los datos fríos a los que se accede con poca frecuencia, se comprimen bloques de datos más grandes, y para los datos calientes, a los que se accede con frecuencia y se sobrescriben con mayor frecuencia, se comprimen bloques de datos más pequeños, lo que hace que el proceso sea más eficiente.
 
-La eficiencia del almacenamiento sensible a la temperatura (TSSE) se introduce en ONTAP 9,8 y se activa automáticamente en los volúmenes AFF con Thin Provisioning recientemente creados. Se puede habilitar la eficiencia del almacenamiento sensible a la temperatura en volúmenes AFF existentes y en volúmenes de DP que no sean AFF con Thin-Provisioning.
+TSSE se introduce en ONTAP 9.8 y se habilita automáticamente en volúmenes AFF con aprovisionamiento fino recién creados.  Puede habilitar la eficiencia del almacenamiento sensible a la temperatura en volúmenes AFF existentes y en volúmenes DP no AFF con aprovisionamiento fino.
+
+La eficiencia de almacenamiento sensible a la temperatura no se aplica en las siguientes plataformas:
+
+[cols="2"]
+|===
+| Plataforma | Versión de ONTAP 
 
 
-NOTE: La eficiencia del almacenamiento sensible a la temperatura no se aplica en las plataformas AFF A70, AFF A90 y AFF A1K. La compresión no se basa en datos activos o inactivos en estas plataformas, por lo que la compresión se inicia sin esperar a que los datos dejen de estar inactivos.
+ a| 
+* AFF A1K
+* AFF A90
+* AFF A70
+* FAS90
+* FAS70
+
+| 9.15.1 o posterior 
+
+
+ a| 
+* AFF A50
+* AFF A30
+
+| 9.16.1 o posterior 
+|===
+Estas plataformas utilizanlink:../concepts/builtin-storage-efficiency-concept.html["Eficiencia del almacenamiento de CPU o procesador de descarga dedicado"] .  La compresión se realiza utilizando la CPU principal o un procesador de descarga dedicado y no se basa en datos fríos o calientes.
+
+
+NOTE: Con el tiempo, la cantidad de espacio utilizado en su volumen podría ser más pronunciada con TSSE en comparación con la compresión adaptativa de 8K.  Este comportamiento es esperado debido a las diferencias arquitectónicas entre TSSE y la compresión adaptativa 8K.
 
 .Introducción de los modos «predeterminado» y «eficiente»
 A partir de ONTAP 9.10,1, los modos de eficiencia de almacenamiento a nivel de volumen _Default_ y _Efficient_ se introducen solo para sistemas AFF. Los dos modos proporcionan una opción entre compresión de archivo (predeterminado), que es el modo predeterminado cuando se crean nuevos volúmenes AFF, o eficiencia del almacenamiento sensible a la temperatura (eficiente), que utiliza compresión adaptativa automática para proporcionar un mayor ahorro de compresión en datos fríos a los que se accede con poca frecuencia.
+
+Cuando se actualiza a ONTAP 9.10.1 y versiones posteriores, se asigna a los volúmenes existentes un modo de eficiencia del almacenamiento según el tipo de compresión actualmente habilitado en los volúmenes. Durante una actualización, se asigna el modo predeterminado a los volúmenes con compresión habilitada y se asigna el modo eficiente a los volúmenes con eficiencia de almacenamiento sensible a la temperatura habilitada. Si la compresión no está habilitada, el modo de eficiencia del almacenamiento sigue vacío.
 
 Con ONTAP 9.10,1, link:../volumes/set-efficiency-mode-task.html["debe definirse explícitamente la eficacia del almacenamiento sensible a la temperatura"]para permitir la compresión adaptativa automática. Sin embargo, otras funciones de eficiencia del almacenamiento, como la compactación de datos, la programación de deduplicación automática, la deduplicación inline, la deduplicación inline entre volúmenes y la deduplicación en segundo plano entre volúmenes, están habilitadas de forma predeterminada en las plataformas de AFF, tanto en los modos predeterminados como eficientes.
 
@@ -41,9 +68,3 @@ NOTE: Una vez que cambia el modo de eficiencia del almacenamiento a Eficiencia, 
 
 .Eficiencia del almacenamiento mejorada con paquetes secuenciales de bloques físicos contiguos
 A partir de ONTAP 9.13.1, la eficiencia del almacenamiento sensible a la temperatura añade paquetes secuenciales de bloques físicos contiguos para mejorar aún más la eficiencia del almacenamiento. Los volúmenes con eficiencia del almacenamiento sensible a la temperatura habilitada tienen habilitado automáticamente el empaquetado secuencial al actualizar los sistemas a ONTAP 9.13.1. Después de activar el empaquetado secuencial, debe link:../volumes/run-efficiency-operations-manual-task.html["volver a copiar manualmente los datos existentes"].
-
-
-
-== Consideraciones de renovación
-
-Cuando se actualiza a ONTAP 9.10.1 y versiones posteriores, se asigna a los volúmenes existentes un modo de eficiencia del almacenamiento según el tipo de compresión actualmente habilitado en los volúmenes. Durante una actualización, se asigna el modo predeterminado a los volúmenes con compresión habilitada y se asigna el modo eficiente a los volúmenes con eficiencia de almacenamiento sensible a la temperatura habilitada. Si la compresión no está habilitada, el modo de eficiencia del almacenamiento sigue vacío.
