@@ -1,0 +1,58 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha-pair-encryption.html 
+keywords: cluster network, encryption, TLS, data-in-flight 
+summary: Configurar la comunicación de cifrado entre nodos de pares HA 
+---
+= Configure el cifrado para el tráfico de alta disponibilidad de ONTAP.
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.18.1, puede configurar el cifrado para el tráfico de red entre nodos de pares de alta disponibilidad (HA).  Este cifrado protege los datos del cliente y los metadatos enviados entre nodos en un par HA.
+
+.Acerca de esta tarea
+* El cifrado para el tráfico de alta disponibilidad está desactivado por defecto.
+* Habilitar o deshabilitar el cifrado del tráfico HA afecta a todos los pares HA del clúster.  No se puede habilitar o deshabilitar el cifrado para nodos individuales.
+* Cuando se habilita el cifrado del tráfico HA, todos los datos del cliente y los metadatos transmitidos entre los nodos del par HA se cifran.  Parte del tráfico de alta disponibilidad, como los metadatos del sistema de archivos y los mensajes de latido, no está cifrado.
+* Cuando el cifrado de tráfico de alta disponibilidad (HA) está habilitado y se agregan nuevos pares HA al clúster, debe habilitar manualmente el cifrado de tráfico HA para los nuevos nodos volviendo a ejecutar el comando. `security ha-network modify -enabled true` dominio.
+
+
+.Antes de empezar
+* Debes ser administrador de ONTAP en el `admin` Nivel de privilegios para realizar el siguiente procedimiento.
+* Antes de habilitar el cifrado de tráfico de alta disponibilidad, debelink:../encryption-at-rest/configure-external-key-management-concept.html["Configure la gestión de claves externas"] .
+* Todos los nodos del clúster deben estar ejecutando ONTAP 9.18.1 o posterior para habilitar el cifrado de tráfico HA.
+
+
+.Pasos
+. Consulte el estado de cifrado actual para el tráfico de alta disponibilidad:
++
+[source, cli]
+----
+security ha-network show
+----
++
+Este comando muestra el estado actual del cifrado del tráfico de alta disponibilidad para cada nodo:
+
++
+[source]
+----
+security ha-network show
+Node                  Enabled
+--------------------- --------------------
+node1                 true
+node2                 true
+node3                 true
+node4                 true
+4 entries were displayed.
+----
+. Habilitar o deshabilitar el cifrado para el tráfico de alta disponibilidad:
+
+
+[source, cli]
+----
+security ha-network modify -enabled <true|false>
+----
+Este comando habilita o deshabilita el tráfico HA cifrado para todos los nodos del clúster.  Cuando se agreguen nuevos pares HA al clúster, deberá volver a ejecutar este comando para habilitar el cifrado del tráfico HA para los nuevos nodos.
