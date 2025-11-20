@@ -9,12 +9,12 @@ summary: Cambie periódicamente la contraseña de administración de claves inte
 
 
 [role="lead"]
-Cambie periódicamente la contraseña de administración de claves integrada.  Guarde la nueva contraseña en un lugar seguro fuera del sistema de almacenamiento.
+NetApp recomienda cambiar periódicamente la frase de contraseña de administración de claves integrada. Debe guardar la nueva contraseña en un lugar seguro fuera del sistema de almacenamiento.
 
 .Antes de empezar
 * Debe ser un administrador de clúster o de SVM para ejecutar esta tarea.
 * Se requieren privilegios avanzados para esta tarea.
-* Si está administrando un entorno ONTAP MetroCluster , debe actualizar la frase de contraseña en ambos clústeres
+* En un entorno MetroCluster , después de actualizar la contraseña en el clúster local, sincronice la actualización de la contraseña en el clúster asociado.
 
 
 .Pasos
@@ -22,41 +22,65 @@ Cambie periódicamente la contraseña de administración de claves integrada.  G
 +
 `set -privilege advanced`
 
-. Cambie la clave de acceso de gestión de claves incorporada:
+. Cambie la contraseña de gestión de la llave integrada. El comando que utilice depende de la versión de ONTAP que esté ejecutando.
 +
-[cols="25,75"]
-|===
-
-
-| Para esta versión de ONTAP... | Se usa este comando... 
-
-
- a| 
-ONTAP 9,6 y versiones posteriores
- a| 
+[role="tabbed-block"]
+====
+.ONTAP 9,6 y versiones posteriores
+--
 `security key-manager onboard update-passphrase`
 
-
-
- a| 
-ONTAP 9,5 y anteriores
- a| 
+--
+.ONTAP 9,5 y anteriores
+--
 `security key-manager update-passphrase`
 
-|===
+--
+====
 . Introduzca una frase de contraseña entre 32 y 256 caracteres, o para "`cc-mode`", una frase de contraseña entre 64 y 256 caracteres.
 +
 Si la frase de paso "'cc-mode'" especificada es menor de 64 caracteres, hay un retraso de cinco segundos antes de que la operación de configuración del gestor de claves vuelva a mostrar la indicación de contraseña.
 
 . En la solicitud de confirmación de contraseña, vuelva a introducir la frase de contraseña.
+. Si se encuentra en una configuración MetroCluster , sincronice la contraseña actualizada en el clúster asociado.
++
+.. Sincronice la contraseña en el clúster asociado seleccionando el comando correcto para su versión de ONTAP :
++
+[role="tabbed-block"]
+====
+.ONTAP 9,6 y versiones posteriores
+--
+`security key-manager onboard sync`
+
+--
+.ONTAP 9,5 y anteriores
+--
+*** En ONTAP 9.5, ejecute:
++
+`security key-manager setup -sync-metrocluster-config`
+
+*** En ONTAP 9.4 y versiones anteriores, después de actualizar la contraseña en el clúster local, espere 20 segundos y, a continuación, ejecute el siguiente comando en el clúster asociado:
++
+`security key-manager setup`
+
+
+
+--
+====
+.. Introduzca la nueva contraseña cuando se le solicite.
++
+Debe utilizarse la misma contraseña en ambos clústeres.
+
+
+
 
 
 .Después de terminar
-Debe copiar la clave de gestión integrada en una ubicación segura fuera del sistema de almacenamiento para usarla en el futuro.
+Copie la contraseña de gestión de claves integrada en una ubicación segura fuera del sistema de almacenamiento para su uso futuro.
 
-Debe realizar un backup manual de la información de gestión de claves siempre que se cambie la clave de acceso de gestión de claves incorporada.
+Realice copias de seguridad manuales de la información de gestión de claves siempre que cambie la contraseña de gestión de claves integrada.
 
 .Información relacionada
-* link:backup-key-management-information-manual-task.html["Realizar un backup manual de la información de gestión de claves incorporada"]
+* link:backup-key-management-information-manual-task.html["Realice un backup manual de la información de gestión de claves incorporada"]
 * link:https://docs.netapp.com/us-en/ontap-cli/security-key-manager-onboard-update-passphrase.html["Administrador de claves de seguridad integrado, actualización de frase de contraseña"^]
 
