@@ -1,0 +1,116 @@
+---
+permalink: pnfs/pnfs-use-cases-concept.html 
+sidebar: sidebar 
+keywords: tr-4063, pnfs, use cases, nconnect, session trunking, referrals, advanced capacity balancing, technical report 
+summary: pNFS se puede utilizar con varias funciones de ONTAP , incluidas nconnect, troncalización de sesiones y equilibrio de capacidad avanzado para mejorar el rendimiento y la flexibilidad. 
+---
+= Casos de uso de pNFS en ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+pNFS se puede utilizar con varias funciones de ONTAP para mejorar el rendimiento y proporcionar flexibilidad adicional para las cargas de trabajo NFS.
+
+
+
+== pNFS con nconnect
+
+NFS introdujo una nueva opción de montaje con algunos clientes y servidores más recientes que proporciona una manera de entregar múltiples conexiones TCP mientras se monta una sola dirección IP. Esto proporciona un mecanismo para paralelizar mejor las operaciones, solucionar las limitaciones del servidor y del cliente NFS y, potencialmente, proporcionar un mayor rendimiento general para ciertas cargas de trabajo. nconnect es compatible con ONTAP 9.8 y versiones posteriores, siempre que el cliente admita nconnect.
+
+Al usar nconnect con pNFS, las conexiones se paralelizarán usando la opción nconnect en cada dispositivo pNFS anunciado por el servidor NFS. Por ejemplo, si nconnect está configurado en cuatro y hay cuatro interfaces elegibles para pNFS, entonces la cantidad total de conexiones creadas será de hasta 16 por punto de montaje (4 nconnect x 4 direcciones IP).
+
+.pNFS con nconnect establecido en 4
+image::pNFS_fig_015.png[pNFS con nconnect=4]
+
+link:../nfs-admin/ontap-support-nfsv41-concept.html["Obtenga más información sobre la compatibilidad de ONTAP con NFSv4.1"]
+
+
+
+== pNFS con enlace troncal de sesión NFSv4.1
+
+Troncalización de sesión NFSv4.1 (https://datatracker.ietf.org/doc/html/rfc5661#section-2.10.5["RFC 5661, sección 2.10.5"^]) es el uso de múltiples conexiones TCP entre un cliente y un servidor para aumentar la velocidad de transferencia de datos. Se agregó soporte para troncalización de sesión NFSv4.1 a ONTAP 9.14.1 y debe usarse con clientes que también admitan troncalización de sesión.
+
+En ONTAP, el enlace troncal de sesiones se puede utilizar en varios nodos de un clúster para proporcionar mayor rendimiento y redundancia en las conexiones.
+
+La troncalización de sesiones se puede establecer de varias maneras:
+
+* *Descubrir automáticamente a través de las opciones de montaje:* La troncalización de sesiones en la mayoría de los clientes NFS modernos se puede establecer a través de opciones de montaje (consulte la documentación del proveedor de su sistema operativo) que indican al servidor NFS que envíe información al cliente acerca de los troncales de sesión. Esta información aparece a través de un paquete NFS como un `fs_location4` llamar.
++
+La opción de montaje en uso depende de la versión del sistema operativo del cliente. Por ejemplo, las versiones de Ubuntu Linux generalmente usan `max_connect=n` para señalar que se debe utilizar un enlace troncal de sesión. En las distribuciones de Linux RHEL, el `trunkdiscovery` Se utiliza la opción de montaje.
+
++
+.Ejemplo de Ubuntu
+[listing]
+----
+mount -o vers=4.1,max_connect=8 10.10.10.10:/pNFS /mnt/pNFS
+----
++
+.Ejemplo de RHEL
+[listing]
+----
+mount -o vers=4.1,trunkdiscovery 10.10.10.10:/pNFS /mnt/pNFS
+----
++
+
+NOTE: Si intenta utilizar `max_connect` En las distribuciones RHEL, se tratará como nconnect y el enlace troncal de sesión no funcionará como se espera.
+
+* *Establecer manualmente:* puede establecer la troncalización de sesiones manualmente montando cada dirección IP individual en la misma ruta de exportación y punto de montaje. Por ejemplo, si tiene dos direcciones IP en el mismo nodo (10.10.10.10 y 10.10.10.11) para una ruta de exportación de `/pNFS`, ejecuta el comando mount dos veces:
++
+[listing]
+----
+mount -o vers=4.1 10.10.10.10:/pNFS /mnt/pNFS
+mount -o vers=4.1 10.10.10.11:/pNFS /mnt/pNFS
+----
++
+Repita este proceso en todas las interfaces que desee que participen en el enlace troncal.
+
+
+
+
+NOTE: Cada nodo obtiene su propio tronco de sesión. Los troncos no atraviesan los nodos.
+
+
+NOTE: Al utilizar pNFS, utilice únicamente el enlace troncal de sesión _o_ nconnect. El uso de ambos generará un comportamiento no deseado, como por ejemplo que solo la conexión del servidor de metadatos obtenga los beneficios de nconnect mientras que los servidores de datos utilizan una única conexión.
+
+.Troncalización de sesiones NFSv4.1 en ONTAP
+image::pNFS_fig_016.png[Troncalización de sesiones NFSv4.1 en ONTAP]
+
+pNFS puede proporcionar una ruta local a cada nodo participante en un clúster y, cuando se utiliza con troncalización de sesión, pNFS puede aprovechar un troncal de sesión por nodo para maximizar el rendimiento de todo el clúster.
+
+image::pNFS_fig_017.png[Troncalización de sesiones NFSv4.1 con pNFS en ONTAP]
+
+Cuando `trunkdiscovery` se utiliza, se aprovecha una llamada GETATTR agregada (FS_Locations) para las interfaces troncales de sesión enumeradas en el nodo del servidor NFS donde se encuentra la interfaz de montaje. Una vez que se devuelven, se realizan montajes posteriores en las direcciones devueltas. Esto se puede ver en una captura de paquetes durante el montaje.
+
+.Detección de troncos de sesión NFS durante el montaje: captura de paquetes
+image::pNFS_fig_018.png[Detección de troncos de sesión NFS durante el montaje: captura de paquetes]
+
+link:../nfs-trunking/index.html["Obtenga más información sobre los enlaces troncales NFS"]
+
+
+
+== Referencias de pNFS versus NFSv4.1
+
+Las referencias NFSv4.1 proporcionan un modo de redirección de ruta de montaje inicial que dirige a un cliente a la ubicación de los volúmenes cuando se produce una solicitud de montaje. Las referencias de NFSv4.1 funcionan dentro de una única SVM. Esta función intenta localizar el montaje NFS en una interfaz de red que reside en el mismo nodo que el volumen de datos. Si esa interfaz o volumen se mueve a otro nodo mientras está montado en un cliente, la ruta de datos ya no estará localizada hasta que se establezca un nuevo montaje.
+
+pNFS no intenta localizar una ruta de montaje. En su lugar, establece un servidor de metadatos utilizando una ruta de montaje y luego localiza la ruta de datos dinámicamente según sea necesario.
+
+Las referencias NFSv4.1 se pueden usar con pNFS, pero la funcionalidad es innecesaria. Habilitar referencias con pNFS no mostrará resultados notables.
+
+link:../nfs-admin/enable-disable-nfsv4-referrals-task.html["Habilitar o deshabilitar referencias NFSv4"]
+
+
+
+== Interacción de pNFS con equilibrio de capacidad avanzado
+
+link:../flexgroup/enable-adv-capacity-flexgroup-task.html["Equilibrado de capacidad avanzado"] en ONTAP escribe porciones de datos de archivos en los volúmenes constituyentes de un volumen FlexGroup (no compatible con volúmenes FlexVol individuales). A medida que un archivo crece, ONTAP decide comenzar a escribir datos en un nuevo inodo multiparte en un volumen constituyente diferente, que puede estar en el mismo nodo o en uno diferente. Las operaciones de escritura, lectura y metadatos en estos archivos multi-inodo son transparentes y no interrumpen a los clientes. El equilibrio de capacidad avanzado mejora la gestión del espacio entre los volúmenes constituyentes de FlexGroup , lo que proporciona un rendimiento más consistente.
+
+pNFS puede redirigir la E/S de datos a una ruta de red localizada dependiendo de la información de diseño de archivo almacenada en el servidor NFS. Cuando se crea un solo archivo grande en partes en múltiples volúmenes constituyentes que potencialmente pueden abarcar varios nodos en el clúster, pNFS en ONTAP aún puede proporcionar tráfico localizado a cada parte del archivo porque ONTAP también mantiene la información de diseño del archivo para todas las partes del archivo. Cuando se lee un archivo, la localidad de la ruta de datos cambiará según sea necesario.
+
+.Equilibrio de capacidad avanzado con pNFS
+image::pNFS_fig_019.png[Equilibrio de capacidad avanzado con pNFS]
+
+.Información relacionada
+* link:../flexgroup/supported-unsupported-config-concept.html["Configuración del volumen de FlexGroup"]
+

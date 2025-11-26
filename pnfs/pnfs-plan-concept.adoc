@@ -1,0 +1,95 @@
+---
+permalink: pnfs/pnfs-plan-concept.html 
+sidebar: sidebar 
+keywords: tr-4063, pnfs, plan, prerequisites, requirements, flexgroup, nfsv4.1, nfsv4.2, interoperability, limits, technical report 
+summary: Antes de usar pNFS en ONTAP, asegúrese de cumplir con los requisitos previos y comprender los requisitos y límites de interoperabilidad. 
+---
+= Plan para la implementación de pNFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Antes de implementar pNFS en su entorno, asegúrese de cumplir con los requisitos previos y comprender los requisitos de interoperabilidad y los límites de configuración.
+
+
+
+== Requisitos previos
+
+Antes de habilitar y usar pNFS en ONTAP, asegúrese de que se cumplan los siguientes requisitos:
+
+* NFSv4.1 o posterior está habilitado en el servidor NFS
+* Al menos uno link:pnfs-architecture-concept.html#data-path-information["Los datos LIF existen por nodo"] en el clúster para el SVM que aloja el servidor NFS
+* Todo link:pnfs-architecture-concept.html#data-path-information["Los LIF de datos en el SVM son enrutables"] a clientes NFS
+* Los clientes NFS admiten pNFS (la mayoría de las distribuciones de Linux modernas a partir de 2014)
+* La conectividad de red entre los clientes y todos los LIF de datos en la SVM es funcional
+* La resolución de DNS (si se utilizan nombres de host) está configurada correctamente para todos los LIF de datos
+* link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes["Volúmenes de FlexGroup"] están configurados (recomendado para obtener mejores resultados)
+* link:pnfs-tuning-performance-concept.html#nfsv4-x-id-domains["Coincidencia de dominios de identificación de NFSv4.x"] entre clientes y ONTAP
+* link:pnfs-tuning-performance-concept.html#nfs-kerberos["NFS Kerberos"] (si se utiliza) está habilitado en todos los LIF de datos en el SVM
+
+
+
+
+== Resumen de mejores prácticas
+
+Al implementar pNFS en su entorno, siga estas prácticas recomendadas:
+
+* Usar link:pnfs-tuning-performance-concept.html#volume-type-recommendations["Volúmenes de FlexGroup"] Para un mejor rendimiento y escalamiento de capacidad
+* Asegúrese de que todos link:pnfs-tuning-performance-concept.html#network-interface-connectivity["Las interfaces de red en el SVM son enrutables"] a los clientes
+* link:pnfs-tuning-performance-concept.html#nfsv4-0["Desactivar NFSv4,0"] para garantizar que los clientes utilicen NFSv4.1 o posterior
+* Distribuya los puntos de montaje en múltiples interfaces y nodos de red
+* Utilice DNS round robin para link:pnfs-tuning-performance-concept.html#metadata-server["servidores de metadatos de equilibrio de carga"]
+* Verificar link:pnfs-tuning-performance-concept.html#nfsv4-x-id-domains["Coincidencia de dominios de identificación de NFSv4.x"] en clientes y servidores
+* Conducta link:pnfs-tuning-performance-concept.html#network-interface-migration["migraciones de interfaz de red"] y link:pnfs-tuning-performance-concept.html#storage-failoversgivebacks["conmutaciones por error de almacenamiento"] durante las ventanas de mantenimiento
+* Permitir link:pnfs-tuning-performance-concept.html#nfs-kerberos["NFS Kerberos"] en todos los LIF de datos si se utiliza seguridad Kerberos
+* Evite usar link:pnfs-tuning-performance-concept.html#nfsv4-1-referrals["Referencias de NFSv4.1"] al usar pNFS
+* Prueba link:pnfs-tuning-performance-concept.html#nconnect["Configuración de nconnect"] con cuidado para evitar sobrepasar los límites de conexión TCP
+* Considerar link:pnfs-use-cases-concept.html#pnfs-with-nfsv4-1-session-trunking["troncalización de sesiones"] como alternativa a link:pnfs-use-cases-concept.html#pnfs-with-nconnect["nconectar"] (no utilice ambos juntos)
+* Verificar link:pnfs-tuning-performance-concept.html#client-recommendations["Soporte del proveedor del sistema operativo del cliente"] para pNFS antes de la implementación
+
+
+
+
+== Interoperabilidad
+
+pNFS en ONTAP está diseñado para funcionar con clientes NFS compatibles con RFC. Se aplican las siguientes consideraciones:
+
+* El más moderno link:pnfs-tuning-performance-concept.html#client-recommendations["Distribuciones de Linux de 2014 y posteriores"] Admite pNFS (RHEL 6.4, Fedora 17 y posteriores)
+* Verifique con el proveedor del sistema operativo de su cliente que pNFS sea compatible
+* pNFS funciona tanto con FlexVol como con link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes["Volúmenes de FlexGroup"]
+* pNFS es compatible con NFSv4.1 y link:pnfs-tuning-performance-concept.html#nfsv4-2["NFSv4.2"]
+* pNFS se puede utilizar con link:pnfs-tuning-performance-concept.html#nfs-kerberos["NFS Kerberos"] (krb5, krb5i, krb5p), pero el rendimiento podría verse afectado
+* pNFS se puede utilizar junto con link:pnfs-use-cases-concept.html#pnfs-with-nconnect["nconectar"] o link:pnfs-use-cases-concept.html#pnfs-with-nfsv4-1-session-trunking["troncalización de sesiones"] (pero no ambos simultáneamente)
+* pNFS no funciona sobre link:pnfs-tuning-performance-concept.html#nfsv4-0["NFSv4.0"]
+
+
+
+
+== Límites
+
+Los siguientes límites se aplican a pNFS en ONTAP:
+
+* link:pnfs-tuning-performance-concept.html#nconnect["Límites de conexión TCP"] por nodo varía según la plataforma (consulte NetApp Hardware Universe para conocer los límites específicos)
+* Tamaño máximo de archivo: depende del tipo de volumen y la versión de ONTAP
+* Cantidad máxima de archivos: hasta 200 mil millones de archivos con link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes["Volúmenes de FlexGroup"]
+* Capacidad máxima: Hasta 60 PB con link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes["Volúmenes de FlexGroup"]
+* link:pnfs-tuning-performance-concept.html#network-interface-connectivity["Recuento de interfaces de red"]:Se requiere al menos un LIF de datos por nodo; es posible que se necesiten más para equilibrar la carga
+
+
+Al utilizar link:pnfs-use-cases-concept.html#pnfs-with-nconnect["Conéctese con pNFS"]Tenga en cuenta que los recuentos de conexiones TCP se multiplican rápidamente:
+
+* Cada montaje de cliente con nconnect crea múltiples conexiones TCP por LIF de datos
+* Con muchos clientes que utilizan valores altos de nconnect, link:pnfs-tuning-performance-concept.html#nconnect["Límites de conexión TCP"] puede superarse
+* Exceder los límites de conexión TCP impide nuevas conexiones hasta que se liberen las conexiones existentes
+
+
+.Información relacionada
+* link:../nfs-admin/enable-disable-nfsv41-task.html["Habilitar o deshabilitar NFSv4.1"]
+* link:../nfs-config/create-lif-task.html["Cree una LIF"]
+* link:../nfs-admin/ontap-support-nfsv41-concept.html["Compatibilidad de ONTAP con NFSv4.1"]
+* link:../nfs-admin/ontap-support-nfsv42-concept.html["Compatibilidad de ONTAP con NFSv4.2"]
+* https://hwu.netapp.com["NetApp Hardware Universe"^]
+* link:../flexgroup/index.html["Gestión de volúmenes de FlexGroup"]
+
