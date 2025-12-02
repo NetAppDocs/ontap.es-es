@@ -50,7 +50,7 @@ image:workflow_svm_migrate.gif["Flujo de trabajo de migración de SVM. Esto resu
 | AFF A-Series | ONTAP 9.10.1 y versiones posteriores 
 |===
 
-NOTE: Al migrar de un clúster AFF a un clúster FAS con agregados híbridos, la colocación automática de volúmenes intentará realizar una coincidencia de agregados similares.  Por ejemplo, si el clúster de origen tiene 60 volúmenes, la ubicación de volúmenes intentará encontrar un agregado AFF en el destino para colocar los volúmenes.  Cuando no haya suficiente espacio en los agregados AFF , los volúmenes se colocarán en agregados con discos no flash.
+NOTE: Al migrar de un clúster AFF a un clúster FAS con agregados híbridos, la ubicación automática de volumen intenta realizar una coincidencia de agregados similares. Por ejemplo, si el clúster de origen tiene 60 volúmenes, la ubicación del volumen intenta encontrar un agregado AFF en el destino para colocar los volúmenes. Cuando no hay suficiente espacio en los agregados AFF , los volúmenes se colocan en agregados con discos que no son flash.
 
 
 
@@ -119,23 +119,27 @@ Según la versión de ONTAP instalada en el clúster, la red que conecte los cl�
 
 Antes de iniciar una migración de SVM, debe cumplir los siguientes requisitos previos:
 
-* Debe ser un administrador de clústeres.
-* link:../peering/create-cluster-relationship-93-later-task.html["Los clústeres de origen y destino deben tener una relación entre sí"].
-* Los clústeres de origen y destino deben tener la función SnapMirror Synchronouslink:../system-admin/install-license-task.html["licencia instalada"]. Esta licencia se incluye con link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["ONTAP One"].
-* Todos los nodos del clúster de origen deben ejecutar ONTAP 9.10.1 o una versión posterior. Para obtener información sobre compatibilidad específica con controladoras de cabinas ONTAP, consulte link:https://hwu.netapp.com/["Hardware Universe"^].
-* Todos los nodos del clúster de origen deben ejecutar la misma versión de ONTAP.
-* Todos los nodos del clúster de destino deben ejecutar la misma versión de ONTAP.
-* La versión de ONTAP del clúster de destino debe tener la misma o no más de dos versiones más recientes que el clúster de origen.
-* Los clústeres de origen y destino deben admitir la misma subred IP para el acceso a la LIF de datos.
-* La SVM de origen debe contener menos que xref:Maximum supported volumes per SVM[número máximo de volúmenes de datos admitidos para la versión]el .
-* Debe haber suficiente espacio disponible en el destino para la colocación del volumen.
-* El administrador de claves integrado o la administración de claves externa deben configurarse en el nivel de clúster en el destino si la SVM de origen tiene volúmenes cifrados.
+* Es un administrador de clúster.
+* link:../peering/create-cluster-relationship-93-later-task.html["Los clústeres de origen y destino están conectados entre sí"].
+* Los clústeres de origen y destino tienen la sincronización SnapMirror link:../system-admin/install-license-task.html["licencia instalada"]. Esta licencia está incluida con link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["ONTAP One"].
+* Todos los nodos del clúster de origen ejecutan ONTAP 9.10.1 o posterior. Para obtener soporte específico para el controlador de matriz ONTAP , consulte link:https://hwu.netapp.com/["Hardware Universe"^].
+* Todos los nodos del clúster de origen ejecutan la misma versión de ONTAP .
+* Todos los nodos del clúster de destino ejecutan la misma versión de ONTAP .
+* La versión de ONTAP del clúster de destino es la misma o no más de dos versiones más nuevas que la del clúster de origen.
+* Los clústeres de origen y destino admiten la misma subred IP para el acceso LIF de datos.
+* El SVM de origen contiene menos que el xref:Maximum supported volumes per SVM[número máximo de volúmenes de datos admitidos para la versión].
+* Hay suficiente espacio disponible en el destino para la colocación del volumen.
+* El administrador de claves integrado o la administración de claves externa se configura en el nivel de clúster en el destino si la SVM de origen tiene volúmenes cifrados.
 +
-** En este caso, los administradores de claves configurados a nivel de SVM en el origen no migrarán al destino. Este utilizará el administrador de claves a nivel de clúster.
+** En este caso, los administradores de claves configurados en el nivel SVM en el origen no migran al destino. El destino utiliza el administrador de claves a nivel de clúster.
 
 
 * Si el origen tiene volúmenes cifrados y está configurado para NetApp Aggregate Encryption (NAE), el destino también debe estar configurado para NAE.
 * Si va a migrar una SVM entre una configuración no MetroCluster y una de MetroCluster, o entre dos configuraciones de MetroCluster, compruebe que la configuración cumpla con los siguientes requisitos:
++
+
+NOTE: No se admite la migración de una SVM entre el clúster local y el clúster asociado en una configuración de MetroCluster .
+
 +
 ** Los clústeres de MetroCluster de origen y de destino tienen un estado «normal». Esto significa que no pueden estar en modo de switchover ni en estado de espera de conmutación.
 ** Los clústeres de MetroCluster de origen y de destino no se encuentran en proceso de transición de FC a IP ni de actualización de hardware.
@@ -159,12 +163,12 @@ Al realizar una migración de SVM, se recomienda dejar un margen de CPU del 30 %
 
 == Operaciones de SVM
 
-Debe comprobar si existen operaciones que puedan entrar en conflicto con una migración de SVM:
+Compruebe si hay operaciones que puedan entrar en conflicto con una migración de SVM:
 
 * No hay operaciones de conmutación por error en curso
 * WAFLIRON no se puede ejecutar
 * La huella dactilar no está en curso
-* No se están ejecutando Vol Move, rehost, clone, create, convert o Analytics
+* Vol mover, rehostear, clonar, crear, convertir o análisis no se están ejecutando
 * No se está ejecutando ninguna migración de SVM en el clúster de destino. Solo se permite una migración de SVM a la vez.
 
 
@@ -239,19 +243,20 @@ Todas las versiones de ONTAP no admiten las siguientes migraciones de SVM de Met
 
 * Migración de una SVM entre dos configuraciones MetroCluster FC
 * Migrar una SVM entre una configuración que no es de MetroCluster y una configuración MetroCluster FC
+* Migrar una SVM entre el clúster local y el clúster asociado en la misma configuración de MetroCluster .
 
 
 Ver el <<Requisitos previos,prerrequisitos>> para migrar una SVM en una configuración MetroCluster .
 
 
 
-| Cifrado de agregados de NetApp (NAE) | ONTAP 9.11.1 | Los volúmenes NAE deben colocarse en el destino compatible con NAE. Si no hay ningún destino NAE disponible, la operación de migración fallará. 
+| Cifrado de agregados de NetApp (NAE) | ONTAP 9.11.1 | Los volúmenes NAE deben colocarse en un destino compatible con NAE. Si no hay ningún destino NAE disponible, la operación de migración falla. 
 
 
 | Configuraciones de NDMP | No admitido |  
 
 
-| Cifrado de volúmenes de NetApp (NVE) | ONTAP 9.10.1 | Los volúmenes de NVE se migrarán como volúmenes NVE en el destino. 
+| Cifrado de volúmenes de NetApp (NVE) | ONTAP 9.10.1 | Los volúmenes NVE se migran como volúmenes NVE en el destino. 
 
 
 | Registros de auditoría de NFS y SMB | ONTAP 9.13.1  a| 
@@ -305,7 +310,7 @@ Las migraciones de SMB son disruptivas y requieren una actualización del client
 
 | Origen asíncrono de SnapMirror | ONTAP 9.11.1  a| 
 * Las transferencias pueden continuar con normalidad en las relaciones de SnapMirror de FlexVol durante la mayor parte de la migración.
-* Todas las transferencias continuas se cancelan durante la transición y las nuevas transferencias fallan durante la transición. Además, no se pueden reiniciar hasta que finalice la migración.
+* Cualquier transferencia en curso se cancela durante la transición y las nuevas transferencias fallan durante la transición. No se pueden reiniciar hasta que se complete la migración.
 * Las transferencias programadas que se cancelaron o omitieron durante la migración no se inician automáticamente una vez que finaliza la migración.
 +
 [NOTE]
