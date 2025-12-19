@@ -14,9 +14,13 @@ summary: Puede restablecer la relación original de protección de datos entre l
 Puede restablecer la relación original de protección de datos entre la SVM de origen y la de destino cuando ya no necesite servir datos desde el destino. El procedimiento es en gran medida idéntico al procedimiento de replicación de volúmenes, con una excepción. Debe detener la SVM de destino antes de volver a activar la SVM de origen.
 
 .Antes de empezar
-Si ha aumentado el tamaño del volumen de destino mientras se sirven los datos, antes de reactivar el volumen de origen, debería aumentar manualmente el tamaño máximo automático en el volumen de origen original para garantizar que pueda crecer lo suficiente.
+* Si ha aumentado el tamaño del volumen de destino mientras se sirven los datos, antes de reactivar el volumen de origen, debería aumentar manualmente el tamaño máximo automático en el volumen de origen original para garantizar que pueda crecer lo suficiente.
+
 
 link:destination-volume-grows-automatically-concept.html["Cuando un volumen de destino aumenta automáticamente"]
+
+
+WARNING: El administrador del clúster debe pausar las escrituras del cliente antes de reactivar el SVM de origen original para evitar la pérdida de datos.
 
 .Acerca de esta tarea
 A partir de ONTAP 9.11,1, puede reducir el tiempo de resincronización durante un ensayo de recuperación ante desastres utilizando  `-quick-resync true`la opción CLI  `snapmirror resync`del comando y realizando una resincronización inversa de una relación de recuperación ante desastres de SVM. Una resincronización rápida puede reducir el tiempo que lleva volver a la producción evitando las operaciones de reconstrucción y restauración del almacén de datos. Obtenga más información sobre `snapmirror resync` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html["Referencia de comandos del ONTAP"^].
@@ -40,21 +44,8 @@ Cuando utiliza System Manager para reactivar la máquina virtual de almacenamien
 
 
 .Pasos
-Puede realizar esta tarea desde System Manager o la CLI de ONTAP.
+Debe realizar esta tarea utilizando la CLI de ONTAP .
 
-[role="tabbed-block"]
-====
---
-.System Manager
-. En el clúster de destino, haga clic en *Protección > Relaciones* y localice la relación de protección deseada.
-. Pase el cursor sobre el nombre de la relación de origen, haga clic en image:icon_kabob.gif["Icono de opciones de menú"]y seleccione *Reactivar Source Storage VM*.
-. En la ventana *Reactivar VM de almacenamiento de origen*, haga clic en *Reactivar*.
-. En *Relaciones*, supervise el progreso de reactivación de la fuente visualizando *Estado de transferencia* para obtener información sobre la relación de protección. Cuando se complete la reactivación, el estado de la relación debe volver a «Reflejado».
-
-
---
-.CLI
---
 . A partir de la SVM de origen original o del clúster de origen original, cree una relación de recuperación ante desastres de SVM inversa con la misma configuración, política y conservación de identidad que la relación de recuperación ante desastres de SVM original:
 +
 [source, cli]
@@ -263,13 +254,14 @@ cluster_dst::> snapmirror release -source-path svm_backup: -destination-path svm
 ----
 
 
-.Después de terminar
-Utilice `snapmirror show` el comando para verificar que la relación de SnapMirror se ha creado.
-
+.El futuro
+* Utilice `snapmirror show` el comando para verificar que la relación de SnapMirror se ha creado.
++
 Obtenga más información sobre `snapmirror show` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-show.html["Referencia de comandos del ONTAP"^].
 
---
-====
+* Reanude las operaciones de escritura desde su cliente al SVM de origen original.
+
+
 .Información relacionada
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-create.html["snapmirror create"^]
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-delete.html["snapmirror elimina"^]
