@@ -130,6 +130,7 @@ Antes de iniciar una migración de SVM, debe cumplir los siguientes requisitos p
 * Todos los nodos del clúster de destino ejecutan la misma versión de ONTAP .
 * La versión de ONTAP del clúster de destino es la misma o no más de dos versiones más nuevas que la del clúster de origen.
 * Los clústeres de origen y destino admiten la misma subred IP para el acceso LIF de datos.
+* Tanto el clúster de origen como el de destino deben tener al menos una interfaz que tenga acceso a todas las redes SVM que migran; de lo contrario, la comprobación previa de la migración fallará.
 * El SVM de origen contiene menos que el xref:Maximum supported volumes per SVM[número máximo de volúmenes de datos admitidos para la versión].
 * Hay suficiente espacio disponible en el destino para la colocación del volumen.
 * El administrador de claves integrado o la administración de claves externa se configura en el nivel de clúster en el destino si la SVM de origen tiene volúmenes cifrados.
@@ -190,7 +191,26 @@ Para obtener información sobre la interoperabilidad de versiones de ONTAP entre
 | Función | Se admite la primera versión | Comentarios 
 
 
+| Registros de auditoría (NFS y SMB) | ONTAP 9.13.1  a| 
+[NOTE]
+====
+Para la migración de SVM en las instalaciones con auditoría habilitada, debe deshabilitar la auditoría en la SVM de origen y, a continuación, llevar a cabo la migración.
+
+====
+Antes de la migración de SVM:
+
+* link:../nas-audit/enable-disable-auditing-svms-task.html["El registro de auditoría debe estar habilitado en el clúster de destino"].
+* link:../nas-audit/commands-modify-auditing-config-reference.html?q=audit+log+destination+path["La ruta de destino del registro de auditoría de la SVM de origen debe crearse en el clúster de destino"].
+
+
+
+
 | Protección autónoma de ransomware | ONTAP 9.12.1 |  
+
+
+| Instancias en la nube | No admitido  a| 
+No se admite la migración de SVM hacia o desde instancias locales a la nube.
+
 
 
 | Cloud Volumes ONTAP | No admitido |  
@@ -262,20 +282,6 @@ Ver el <<Requisitos previos,prerrequisitos>> para migrar una SVM en una configur
 | Cifrado de volúmenes de NetApp (NVE) | ONTAP 9.10.1 | Los volúmenes NVE se migran como volúmenes NVE en el destino. 
 
 
-| Registros de auditoría de NFS y SMB | ONTAP 9.13.1  a| 
-[NOTE]
-====
-Para la migración de SVM en las instalaciones con auditoría habilitada, debe deshabilitar la auditoría en la SVM de origen y, a continuación, llevar a cabo la migración.
-
-====
-Antes de la migración de SVM:
-
-* link:../nas-audit/enable-disable-auditing-svms-task.html["La redirección de registros de auditoría debe estar habilitada en el clúster de destino"].
-* link:../nas-audit/commands-modify-auditing-config-reference.html?q=audit+log+destination+path["La ruta de destino del registro de auditoría de la SVM de origen debe crearse en el clúster de destino"].
-
-
-
-
 | NFS v3, NFS v4,1 y NFS v4,2 | ONTAP 9.10.1 |  
 
 
@@ -291,6 +297,9 @@ Antes de la migración de SVM:
 | Gestor de claves incorporado (OKM) con modo Common Criteria habilitado en el clúster de origen | No admitido |  
 
 
+| ONTAP Select | No admitido | No se admite la migración de SVM hacia o desde instancias de ONTAP Select . 
+
+
 | Qtrees | ONTAP 9.14.1 |  
 
 
@@ -300,7 +309,7 @@ Antes de la migración de SVM:
 | S3 | No admitido |  
 
 
-| Protocolo de SMB | ONTAP 9.12.1  a| 
+| Protocolo de SMB | ONTAP 9.12.1 Sin embargo, el protocolo SMB1 no es compatible.  a| 
 Las migraciones de SMB son disruptivas y requieren una actualización del cliente después de la migración.
 
 
@@ -429,3 +438,10 @@ En la siguiente tabla se indican las operaciones de volumen admitidas dentro de 
 
 | Restaurar archivo desde instantánea | Permitido | Permitido | No admitido 
 |===
+
+
+== Información posterior a la migración
+
+* Después de la migración, las políticas de instantáneas locales tienen la extensión -MIG que podría interrumpir parte de la automatización. Debes buscar esta extensión y cambiar el nombre de las políticas según sea necesario.
+* Los volúmenes SnapMirror de destino de bóveda migrados deben realizar una resincronización para reactivar la protección. La resincronización de la bóveda es necesaria porque la migración crea una nueva línea base entre las SVM de migración que es más reciente que la línea base anterior de la bóveda. Al realizar una resincronización se reactiva la bóveda, lo que también eliminará todos los datos más recientes que la línea base de la bóveda actual, específicamente la instantánea que se generó durante la migración.
+
