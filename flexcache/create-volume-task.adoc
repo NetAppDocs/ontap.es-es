@@ -11,16 +11,17 @@ summary: Puede crear un volumen de FlexCache en el mismo clúster para mejorar e
 
 
 [role="lead"]
-Puede crear un volumen de FlexCache en el mismo clúster para mejorar el rendimiento al acceder a un objeto activo. Si tiene centros de datos en diferentes ubicaciones, puede crear volúmenes de FlexCache en clústeres remotos para acelerar el acceso a los datos.
+Puedes crear un volumen FlexCache en el mismo clúster ONTAP para mejorar el rendimiento al acceder a un objeto caliente. Si tienes centros de datos en diferentes ubicaciones, puedes crear volúmenes FlexCache en clústeres ONTAP remotos para acelerar el acceso a los datos.
 
 .Acerca de esta tarea
-* A partir de ONTAP 9,5, FlexCache admite los volúmenes FlexVol como volúmenes de origen y FlexGroup como volúmenes FlexCache.
-* A partir de ONTAP 9,7, se admiten tanto los volúmenes FlexVol volume como FlexGroup como volúmenes de origen.
-* A partir de ONTAP 9.14.0, se puede crear un volumen FlexCache sin cifrar a partir de un origen cifrado.
+* A partir de ONTAP 9.18.1, puedes habilitar el acceso a buckets NAS S3 en un volumen FlexCache configurando la opción `-is-s3-enabled` en `true` cuando creas el volumen. Esta opción está deshabilitada por defecto.
 * A partir de ONTAP 9.18.1, FlexCache admite la creación de volúmenes de caché para volúmenes de origen con SVM que pertenecen a una relación SVM-DR.
 +
 Si está ejecutando ONTAP 9.18.1 o posterior, un administrador de almacenamiento debe emparejar las SVM de caché con las SVM de origen primarias y secundarias que forman parte de una relación SVM-DR antes de crear volúmenes de caché de volúmenes de origen que forman parte de la relación SVM-DR.
 
+* A partir de ONTAP 9.14.0, se puede crear un volumen FlexCache sin cifrar a partir de un origen cifrado.
+* A partir de ONTAP 9.7, tanto el volumen FlexVol como los volúmenes FlexGroup son compatibles como volúmenes de origen.
+* A partir de ONTAP 9,5, FlexCache admite los volúmenes FlexVol como volúmenes de origen y FlexGroup como volúmenes FlexCache.
 
 
 .Antes de empezar
@@ -39,7 +40,7 @@ NOTE: Si una pareja de alta disponibilidad está utilizando link:https://docs.ne
 ====
 .System Manager
 --
-. Si el volumen de FlexCache está en un clúster diferente al volumen de origen, cree una relación de paridad de clústeres:
+. Si el volumen FlexCache está en un clúster ONTAP diferente al volumen de origen, crea una relación de paridad entre clústeres:
 +
 .. En el clúster local, haga clic en *Protección > Descripción general*.
 .. Expanda *Configuración de interconexión de clústeres*, haga clic en *Agregar interfaces de red* y agregue interfaces de red de interconexión de clústeres para el clúster.
@@ -144,7 +145,7 @@ vserver peer create -vserver <local_SVM> -peer-vserver <remote_SVM> -peer-cluste
 +
 [source, cli]
 ----
-volume flexcache create -vserver <cache_svm> -volume <cache_vol_name> -auto-provision-as flexgroup -size <vol_size> -origin-vserver <origin_svm> -origin-volume <origin_vol_name>
+volume flexcache create -vserver <cache_svm> -volume <cache_vol_name> -auto-provision-as flexgroup -size <vol_size> -origin-vserver <origin_svm> -origin-volume <origin_vol_name> -is-s3-enabled true|false
 ----
 +
 En el ejemplo siguiente se crea un volumen de FlexCache y se seleccionan automáticamente los agregados existentes para el aprovisionamiento:
@@ -161,8 +162,16 @@ En el siguiente ejemplo se crea un volumen FlexCache y se establece la ruta de u
 +
 [listing]
 ----
-cluster1::> flexcache create -vserver vs34 -volume fc4 -aggr-list aggr34,aggr43 -origin-volume origin1 -size 400m -junction-path /fc4
+cluster1::> volume flexcache create -vserver vs34 -volume fc4 -aggr-list aggr34,aggr43 -origin-volume origin1 -size 400m -junction-path /fc4
 [Job 903] Job succeeded: Successful
+----
++
+El siguiente ejemplo habilita el acceso S3 en un volumen FlexCache:
+
++
+[listing]
+----
+cluster1::> volume flexcache create -vserver vs3 -volume cache_vs3_vol33 -origin-volume vol33 -origin-vserver vs3 -junction-path /cache_vs3_vol33 -is-s3-enabled true
 ----
 . Verifique la relación de FlexCache desde el volumen de FlexCache y el volumen de origen.
 +
