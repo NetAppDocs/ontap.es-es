@@ -61,12 +61,17 @@ IMPORTANT: No realice operaciones como `cluster remove-node` , , `cluster unjoin
 ** ONTAP 9.4 y posterior: `cluster remove-node -skip-last-low-version-node-check`
 
 
-* Si desune 2 nodos de un clúster de 4 nodos, la alta disponibilidad de clúster se habilita automáticamente en los dos nodos que quedan.
+* Si quitas dos nodos de un clúster de cuatro nodos, la HA de clúster se activa automáticamente en los dos nodos restantes.
 
 
+[NOTE]
+====
+Todos los datos del sistema y de los usuarios, de todos los discos que están conectados al nodo, deben hacerse inaccesibles para los usuarios antes de eliminar un nodo del cluster.
 
-NOTE: Antes de quitar un nodo del clúster, se deben hacer inaccesibles a todos los datos del sistema y del usuario de todos los discos que están conectados al nodo. Si un nodo se desunió incorrectamente desde un clúster, póngase en contacto con el soporte de NetApp para obtener ayuda con las opciones de recuperación.
+Si se eliminó incorrectamente un nodo de un clúster, contacta al soporte de NetApp para que te ayuden con las opciones de recuperación.
 
+====
+[[disable-ha]]
 .Pasos
 . Cambie el nivel de privilegio a avanzado:
 +
@@ -74,21 +79,35 @@ NOTE: Antes de quitar un nodo del clúster, se deben hacer inaccesibles a todos 
 ----
 set -privilege advanced
 ----
-. Compruebe si un nodo del clúster contiene épsilon:
+. Identifica el nodo en el clúster que tiene epsilon:
 +
 [source, cli]
 ----
-cluster show -epsilon true
+cluster show
 ----
-. Si un nodo del clúster contiene épsilon y ese nodo se va a desunir, mueva épsilon a un nodo que no se va a desvincular:
 +
-.. Mueva épsilon del nodo que se va a desunir
+En el siguiente ejemplo, "node0" contiene actualmente épsilon:
+
++
+[listing]
+----
+cluster::*>
+Node                 Health  Eligibility  Epsilon
+-------------------- ------- ------------ ------------
+node0                true    true         true
+node1                true    true         false
+node2                true    true         false
+node3                true    true         false
+----
+. [[epsilon-true]]Si el nodo que estás eliminando mantiene epsilon:
++
+.. Mueve el epsilon del nodo que estás eliminando:
 +
 [source, cli]
 ----
-cluster modify -node <name_of_node_to_be_unjoined> -epsilon false
+cluster modify -node <name_of_node_to_be_removed> -epsilon false
 ----
-.. Mueva épsilon a un nodo que no se va a desunir:
+.. Mueve épsilon a un nodo que no vas a eliminar:
 +
 [source, cli]
 ----
@@ -105,7 +124,7 @@ cluster ring show
 +
 El nodo maestro es el nodo que contiene procesos `mgmt` como , , , , `vldb` `vifmgr` `bcomd` y `crs`.
 
-. Si el nodo que desea quitar es el nodo maestro actual, habilite otro nodo del clúster para que se seleccione como nodo maestro:
+. Si el nodo que estás eliminando es el nodo maestro actual, habilita otro nodo en el clúster para que sea elegido como nodo maestro:
 +
 .. Haga que el nodo maestro actual no sea apto para participar en el cluster:
 +
@@ -114,12 +133,16 @@ El nodo maestro es el nodo que contiene procesos `mgmt` como , , , , `vldb` `vif
 cluster modify -node <node_name> -eligibility false
 ----
 +
-El nodo se marca como no saludable hasta que se restablezca la elegibilidad. Cuando el nodo maestro deja de ser elegible, el quórum del clúster elige a uno de los nodos restantes como el nuevo maestro.
+El nodo se marca como no saludable hasta que se restablece la elegibilidad. Cuando el nodo maestro deja de ser elegible, uno de los nodos restantes es elegido por el quórum del clúster como el nuevo maestro.
 
 +
+[NOTE]
+====
+Si realizas este paso en el primer nodo de un par de HA, deberías marcar solo ese nodo como no apto. No modifiques el estado del compañero de HA.
 
-NOTE: Si está realizando este paso en el primer nodo de un par de alta disponibilidad, debe marcar solo ese nodo como no elegible. No modifique el estado del socio de HA. Si el nodo asociado se selecciona como el nuevo maestro, debe verificar si contiene épsilon antes de declararlo no elegible. Esto se hace cuando repites estos pasos para eliminar el nodo asociado.
+Si el nodo asociado es seleccionado como el nuevo maestro, necesitas verificar si tiene epsilon antes de hacerlo inelegible. Si el nodo asociado tiene epsilon, necesitas mover epsilon a un nodo diferente que permanezca en el cluster antes de hacerlo inelegible. Haces esto cuando repites estos pasos para remover el nodo asociado.
 
+====
 .. Haga que el nodo maestro anterior sea apto para participar de nuevo en el clúster:
 +
 [source, cli]
@@ -128,8 +151,8 @@ cluster modify -node <node_name> -eligibility true
 ----
 
 
-. Inicie sesión en la LIF de gestión de nodos remotos o en la LIF de gestión de clústeres en un nodo que no sea el que se está quitando.
-. Quite el nodo del clúster:
+. Inicia sesión en la LIF de gestión del nodo remoto o en la LIF de gestión del clúster en un nodo que no vas a quitar del clúster.
+. Elimina los nodos del clúster:
 +
 |===
 | Para esta versión de ONTAP... | Se usa este comando... 
@@ -168,7 +191,7 @@ El sistema le informa de lo siguiente:
 
 +
 ** También debe quitar del clúster el compañero de conmutación al nodo de respaldo.
-** Una vez que se ha eliminado el nodo y antes de poder volver a unirse a un clúster, debe utilizar la opción del menú de arranque (4) limpiar la configuración e inicializar todos los discos u opción (9) Configurar la partición avanzada de unidades para borrar la configuración del nodo e inicializar todos los discos.
+** Después de que se elimine el nodo y antes de que pueda volver a unirse a un clúster, debes usar la opción del menú de arranque *(4) Clean configuration and initialize all disks* o la opción *(9) Configure Advanced Drive Partitioning* para borrar la configuración del nodo e inicializar todos los discos.
 +
 Se genera un mensaje de fallo si tiene condiciones que debe abordar antes de quitar el nodo. Por ejemplo, el mensaje podría indicar que el nodo tiene recursos compartidos que debe quitar o que el nodo está en una configuración de alta disponibilidad de clúster o en una configuración de recuperación tras fallos de almacenamiento que debe deshabilitar.
 
@@ -179,21 +202,21 @@ Si el nodo es el maestro de quórum, el clúster perderá brevemente y volverá 
 
 . Si un mensaje de fallo indica condiciones de error, solucione esas condiciones y vuelva a ejecutar `cluster remove-node` `cluster unjoin` el comando o.
 +
-El nodo se reinicia automáticamente después de que se quita correctamente del clúster.
+El nodo se reinicia automáticamente después de ser eliminado con éxito del cluster.
 
 . Si va a reutilizar el nodo, borre la configuración del nodo e inicialice todos los discos:
 +
 .. Durante el proceso de inicio, pulse Ctrl-C para mostrar el menú de inicio cuando se le solicite.
-.. Seleccione la opción del menú de inicio (4) Limpiar configuración e inicializar todos los discos.
+.. Selecciona la opción del menú de arranque *(4) Clean configuration and initialize all disks*.
 
 
-. Volver al nivel de privilegio de administrador:
+. [[return-admin]]Vuelve al nivel de privilegio admin:
 +
 [source, cli]
 ----
 set -privilege admin
 ----
-. Repita los pasos anteriores para eliminar el partner de conmutación por error del clúster.
+. Repite los pasos <<disable-ha,1>> a <<return-admin,9>> para eliminar el failover partner del clúster.
 
 
 .Información relacionada
