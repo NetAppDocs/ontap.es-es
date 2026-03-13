@@ -2,20 +2,21 @@
 permalink: performance-admin/set-throughput-ceiling-qos-task.html 
 sidebar: sidebar 
 keywords: setting, throughput, ceiling, qos 
-summary: 'Puede usar el campo max-rendimiento para un grupo de políticas a fin de definir un techo de rendimiento para las cargas de trabajo de objetos de almacenamiento (QoS máx.). Puede aplicar el grupo de políticas cuando crea o modifica el objeto de almacenamiento.' 
+summary: Un límite máximo de QoS o de rendimiento garantiza que el rendimiento de una carga de trabajo no supere un número máximo de IOPS o MBps, o IOPS y MBps independientemente de las cargas de trabajo competidoras. Establece un límite de rendimiento para evitar que las cargas de trabajo menos críticas consuman recursos de rendimiento excesivos y degraden el rendimiento de las cargas de trabajo más críticas 
 ---
-= Establece un techo de rendimiento con calidad de servicio en ONTAP
+= Establece un límite de rendimiento con los grupos de políticas de ONTAP QoS
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
+Un máximo de QoS o techo de rendimiento garantiza que el rendimiento de una carga de trabajo no supere un número máximo de IOPS o MBps, o IOPS y MBps independientemente de las cargas de trabajo en competencia. Establece un techo de rendimiento para evitar que las cargas de trabajo menos críticas consuman recursos de rendimiento excesivos y degraden el rendimiento de las cargas de trabajo más críticas.
+
 Puede usar el `max-throughput` campo de un grupo de políticas para definir un techo de rendimiento para las cargas de trabajo del objeto de almacenamiento (QoS máx.). Puede aplicar el grupo de políticas cuando crea o modifica el objeto de almacenamiento.
 
 .Antes de empezar
-* Para crear un grupo de políticas, debe ser un administrador de clústeres.
-* Para aplicar un grupo de políticas a una SVM, debe ser un administrador de clústeres.
+* Debes ser un administrador de clúster para crear un grupo de políticas y aplicar un grupo de políticas a una SVM.
 
 
 .Acerca de esta tarea
@@ -38,8 +39,10 @@ Si establece un techo y un piso para la misma carga de trabajo, puede especifica
 .Pasos
 . Cree un grupo de políticas:
 +
-`qos policy-group create -policy-group _policy_group_ -vserver _SVM_ -max-throughput _number_of_iops_|Mb/S|iops,Mb/S -is-shared true|false`
-
+[source, cli]
+----
+qos policy-group create -policy-group <policy_group> -vserver <SVM> -max-throughput <number_of_iops_|Mb/S|iops,Mb/S> -is-shared <true|false>
+----
 +
 Obtenga más información sobre `qos policy-group create` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-create.html["Referencia de comandos del ONTAP"^].
 
@@ -47,7 +50,7 @@ Obtenga más información sobre `qos policy-group create` en el link:https://doc
 Puede usar el `qos policy-group modify` comando para ajustar los techos de rendimiento.
 
 +
-El siguiente comando crea el grupo de políticas compartidas `pg-vs1` con un rendimiento máximo de 5.000 IOPS:
+El siguiente ejemplo crea el grupo de políticas compartido `pg-vs1` con un límite de rendimiento de 5,000 IOPS:
 
 +
 [listing]
@@ -55,7 +58,7 @@ El siguiente comando crea el grupo de políticas compartidas `pg-vs1` con un ren
 cluster1::> qos policy-group create -policy-group pg-vs1 -vserver vs1 -max-throughput 5000iops -is-shared true
 ----
 +
-El siguiente comando crea el grupo de políticas no compartido `pg-vs3` con una salida máxima de 100 IOPS y 400 Kb/S:
+El siguiente ejemplo crea el grupo de políticas no compartido `pg-vs3` con un rendimiento máximo de 100 IOPS y 400 Kb/S:
 
 +
 [listing]
@@ -63,7 +66,7 @@ El siguiente comando crea el grupo de políticas no compartido `pg-vs3` con una 
 cluster1::> qos policy-group create -policy-group pg-vs3 -vserver vs3 -max-throughput 100iops,400KB/s -is-shared false
 ----
 +
-El siguiente comando crea el grupo de políticas no compartidas `pg-vs4` sin un límite de rendimiento:
+El siguiente ejemplo crea el grupo de políticas no compartido `pg-vs4` sin un límite de rendimiento:
 
 +
 [listing]
@@ -75,13 +78,15 @@ Obtenga más información sobre `qos policy-group modify` en el link:https://doc
 
 . Aplique un grupo de políticas a una SVM, un archivo, un volumen o una LUN:
 +
-`_storage_object_ create -vserver _SVM_ -qos-policy-group _policy_group_`
+[source, cli]
+----
+vserver create -vserver <SVM> -qos-policy-group <policy_group>
+----
++
+Puedes usar el comando `vserver modify` para aplicar un grupo de políticas diferente al objeto de almacenamiento.
 
 +
-Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^]. Puede usar `_storage_object_ modify` el comando para aplicar otro grupo de políticas al objeto de almacenamiento.
-
-+
-El siguiente comando aplica el grupo de políticas `pg-vs1` a la SVM `vs1`:
+El siguiente ejemplo aplica la policy group `pg-vs1` a SVM `vs1`:
 
 +
 [listing]
@@ -89,7 +94,7 @@ El siguiente comando aplica el grupo de políticas `pg-vs1` a la SVM `vs1`:
 cluster1::> vserver create -vserver vs1 -qos-policy-group pg-vs1
 ----
 +
-Los siguientes comandos aplican grupo de políticas `pg-app` a los volúmenes `app1` y `app2`:
+Los siguientes ejemplos aplican el grupo de políticas `pg-app` a los volúmenes `app1` y `app2`:
 
 +
 [listing]
@@ -103,8 +108,10 @@ cluster1::> volume create -vserver vs2 -volume app2 -aggregate aggr1 -qos-policy
 ----
 . Supervise el rendimiento del grupo de políticas:
 +
-`qos statistics performance show`
-
+[source, cli]
+----
+qos statistics performance show
+----
 +
 Obtenga más información sobre `qos statistics performance show` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-performance-show.html["Referencia de comandos del ONTAP"^].
 
@@ -115,7 +122,7 @@ Supervise el rendimiento desde el clúster. No utilice una herramienta en el hos
 
 ====
 +
-El siguiente comando muestra el rendimiento del grupo de políticas:
+El siguiente ejemplo muestra el rendimiento del grupo de políticas:
 
 +
 [listing]
@@ -130,8 +137,10 @@ _System-Background         30           0KB/s        0ms
 ----
 . Supervisar el rendimiento de la carga de trabajo:
 +
-`qos statistics workload performance show`
-
+[source, cli]
+----
+qos statistics workload performance show
+----
 +
 [NOTE]
 ====
@@ -139,7 +148,7 @@ Supervise el rendimiento desde el clúster. No utilice una herramienta en el hos
 
 ====
 +
-El siguiente comando muestra el rendimiento de la carga de trabajo:
+El siguiente ejemplo muestra el rendimiento de la carga de trabajo:
 
 +
 [listing]
@@ -157,9 +166,6 @@ _Scan_Backgro..   5688       20            0KB/s        0ms
 Obtenga más información sobre `qos statistics workload performance show` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-performance-show.html["Referencia de comandos del ONTAP"^].
 
 +
-[NOTE]
-====
 Puede utilizar `qos statistics workload latency show` el comando para ver estadísticas detalladas de latencia de las cargas de trabajo de calidad de servicio. Obtenga más información sobre `qos statistics workload latency show` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html["Referencia de comandos del ONTAP"^].
 
-====
 

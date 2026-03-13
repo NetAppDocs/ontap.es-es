@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: use, adaptive, qos, policy, groups 
 summary: Puede usar un grupo de políticas de calidad de servicio adaptativo para escalar automáticamente un techo o un tamaño de piso a volumen, y mantener la ratio de IOPS a TB|GB a medida que cambie el tamaño del volumen. Esto es una ventaja importante si gestiona cientos o miles de cargas de trabajo en una puesta en marcha grande. 
 ---
-= Utilice grupos de políticas de calidad de servicio adaptativos en ONTAP
+= Configura el límite de rendimiento con los grupos de políticas de QoS adaptable de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -14,13 +14,17 @@ summary: Puede usar un grupo de políticas de calidad de servicio adaptativo par
 Puede utilizar un grupo de políticas de QoS adaptativa para ajustar automáticamente un límite máximo o mínimo de rendimiento al tamaño del volumen, manteniendo la relación de IOPS a TB/GB a medida que cambia el tamaño del volumen.  Eso supone una ventaja significativa cuando se gestionan cientos o miles de cargas de trabajo en una implementación a gran escala.
 
 .Antes de empezar
-* Debe ejecutar ONTAP 9,3 o una versión posterior. Los grupos de políticas de calidad de servicio adaptativa están disponibles a partir de ONTAP 9.3.
+* Debes estar ejecutando ONTAP 9.3 o posterior.
 * Para crear un grupo de políticas, debe ser un administrador de clústeres.
+* El objeto de almacenamiento que quieres añadir al grupo de políticas debe ser miembro de un grupo de políticas no adaptable
++
+Un objeto de almacenamiento puede ser miembro de un grupo de políticas adaptable o de un grupo de políticas no adaptable, pero no de ambos.
+
+* La SVM del objeto de almacenamiento y la política deben ser la misma.
+* El objeto de almacenamiento debe estar en línea.
 
 
 .Acerca de esta tarea
-Un objeto de almacenamiento puede ser miembro de un grupo de políticas adaptables o de un grupo de políticas no adaptativas, pero no ambos. La SVM del objeto de almacenamiento y la política deben ser iguales. El objeto de almacenamiento debe estar en línea.
-
 Los grupos de políticas de calidad de servicio adaptativos siempre no son compartidos: El techo o el piso de rendimiento definidos se aplican a la carga de trabajo de cada miembro de forma individual.
 
 La relación de límites de rendimiento con el tamaño de objeto de almacenamiento se determina por la interacción de los siguientes campos:
@@ -29,17 +33,11 @@ La relación de límites de rendimiento con el tamaño de objeto de almacenamien
 +
 [NOTE]
 ====
- `expected-iops` Solo está garantizado en plataformas AFF. `expected-iops` Está garantizado para FabricPool solo si la política de organización en niveles está establecida en «ninguno» y no hay bloques en la nube. `expected-iops` Está garantizada para volúmenes que no están en una relación síncrona de SnapMirror.
+ `expected-iops` está garantizado en plataformas AFF solo para volúmenes que no están en una relación sincrónica de SnapMirror. `expected-iops` está garantizado para FabricPool solo si la política de niveles está establecida en "none" y no hay bloques en la nube.
 
 ====
 * `peak-iops`es el número máximo de IOPS posibles por TB/GB asignado o utilizado.
-* `expected-iops-allocation` especifica si se utiliza el espacio asignado (el valor predeterminado) o el espacio utilizado para expected-iops.
-+
-[NOTE]
-====
-`expected-iops-allocation` Está disponible en ONTAP 9, 5 y posterior. No es compatible con ONTAP 9.4 y versiones anteriores.
-
-====
+* `expected-iops-allocation` especifica si se utiliza el espacio asignado (el valor predeterminado) o el espacio utilizado para expected-iops. `expected-iops-allocation is available beginning with ONTAP 9.5.`
 * `peak-iops-allocation` especifica si se utiliza el espacio asignado o el espacio utilizado (el valor por defecto) para `peak-iops`.
 *  `absolute-min-iops` Es el número mínimo absoluto de IOPS. Puede utilizar este campo con objetos de almacenamiento muy pequeños. Sustituye tanto `peak-iops` y/o `expected-iops` cuando `absolute-min-iops` es mayor que el calculado `expected-iops`.
 +
@@ -48,11 +46,67 @@ Por ejemplo, si establece `expected-iops` en 1.000 IOPS/TB y el tamaño del volu
 * `block-size` Especifica el tamaño del bloque de I/O de la aplicación. El valor predeterminado es 32K. Los valores válidos son 8K, 16K, 32K, 64K, CUALQUIERA. CUALQUIER significa que no se aplica el tamaño de los bloques.
 
 
+.Pasos
+. Cree un grupo de políticas de calidad de servicio adaptativo:
++
+[source, cli]
+----
+qos adaptive-policy-group create -policy group _policy_group_ -vserver _SVM_ -expected-iops _number_of_iops_/TB|GB -peak-iops _number_of_iops_/TB|GB -expected-iops-allocation-space|used-space -peak-iops-allocation allocated-space|used-space -absolute-min-iops _number_of_iops_ -block-size 8K|16K|32K|64K|ANY
+----
++
+Obtenga más información sobre `qos adaptive-policy-group create` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-adaptive-policy-group-create.html["Referencia de comandos del ONTAP"^].
+
++
+[NOTE]
+====
+`-expected-iops-allocation` Y `-block-size` está disponible en ONTAP 9, 5 y posterior. Estas opciones no son compatibles con ONTAP 9.4 y versiones anteriores.
+
+====
++
+El siguiente comando crea un grupo de políticas de calidad de servicio adaptativa `adpg-app1` con `-expected-iops` un establecido en 300 IOPS/TB, `-peak-iops` se `-peak-iops-allocation` establece en 1.000 IOPS/TB, se establece en `used-space`y `-absolute-min-iops` se establece en 50 IOPS:
+
++
+[listing]
+----
+cluster1::> qos adaptive-policy-group create -policy group adpg-app1 -vserver vs2 -expected-iops 300iops/tb -peak-iops 1000iops/TB -peak-iops-allocation used-space -absolute-min-iops 50iops
+----
+. Aplique un grupo de políticas de calidad de servicio adaptable a un volumen:
++
+[source, cli]
+----
+volume create -vserver SVM -volume _volume_ -aggregate _aggregate_ -size _number_of_ TB|GB -qos-adaptive-policy-group _policy_group_
+----
++
+Obtenga más información sobre `volume create` en el link:https://docs.netapp.com/us-en/ontap-cli/volume-create.html["Referencia de comandos del ONTAP"^].
+
++
+El siguiente comando aplica un grupo de políticas de calidad de servicio adaptativas `adpg-app1` al `app1` volumen :
+
++
+[listing]
+----
+cluster1::> volume create -vserver vs1 -volume app1 -aggregate aggr1 -size 2TB -qos-adaptive-policy-group adpg-app1
+----
++
+Los siguientes comandos aplican el grupo de políticas de calidad de servicio adaptativa predeterminado `extreme` al volumen nuevo `app4` y al volumen existente `app5`. El techo de rendimiento definido para el grupo de políticas se aplica a los volúmenes `app4` y `app5` de forma individual:
+
++
+[listing]
+----
+cluster1::> volume create -vserver vs4 -volume app4 -aggregate aggr4 -size 2TB -qos-adaptive-policy-group extreme
+----
++
+[listing]
+----
+cluster1::> volume modify -vserver vs5 -volume app5 -qos-adaptive-policy-group extreme
+----
+
+
 
 
 == Grupos de políticas QoS adaptativas predeterminadas
 
-Existen tres grupos de políticas de calidad de servicio adaptativas predeterminados disponibles, como se muestra en la siguiente tabla. Puede aplicar estos grupos de políticas directamente a un volumen.
+Hay disponibles tres grupos de políticas QoS adaptativas predeterminadas. Puedes aplicar estos grupos de políticas directamente a un volumen.
 
 |===
 
@@ -92,109 +146,3 @@ Existen tres grupos de políticas de calidad de servicio adaptativas predetermin
 75
 
 |===
-
-
-== restricciones de asignación de grupos de políticas de objetos de almacenamiento
-
-En algunos casos, no se puede asignar un objeto de almacenamiento a un grupo de políticas si su objeto contenedor o sus objetos secundarios pertenecen a un grupo de políticas.
-
-A partir de ONTAP 9.18.1, puede usar políticas QoS anidadas, que permiten asignar grupos de políticas tanto al objeto contenedor, como un SVM, como a su objeto hijo, como un volumen.  En un entorno multiusuario, las políticas QoS anidadas permiten a los administradores subdividir los límites QoS en las SVM entre los volúmenes y qtrees dentro de la SVM, y proporcionar la capacidad de equilibrar los recursos de almacenamiento en los entornos informáticos, al tiempo que permiten priorizar las cargas de trabajo críticas para la misión.
-
-Las políticas QoS anidadas son compatibles con los siguientes pares de objetos:
-
-* SVM y volúmenes FlexVol o FlexGroup contenidos por el SVM.
-* Volúmenes FlexVol o FlexGroup y qtrees dentro de los volúmenes.
-
-
-Para políticas QoS anidadas, se utiliza la política aplicable más restrictiva.
-
-La siguiente tabla enumera las restricciones.
-
-|===
-| Si asigna... | Entonces no puedes asignarlo a un grupo de políticas... 
-
-
- a| 
-SVM a un grupo de políticas
- a| 
-Cualquier objeto de almacenamiento contenido por la SVM.
-
-
-NOTE: Si está ejecutando ONTAP 9.18.1, los volúmenes FlexVol y FlexGroup contenidos en las SVM _pueden_ asignarse a un grupo de políticas.
-
-
-
- a| 
-Del volumen a un grupo de políticas
- a| 
-La SVM que contiene el volumen o cualquier LUN hijo.
-
-
-NOTE: Si está ejecutando ONTAP 9.18.1 o posterior, el SVM que contiene el volumen _puede_ asignarse a un grupo de políticas.  Además, se pueden asignar qtrees en volúmenes FlexVol o FlexGroup .
-
-
-
- a| 
-LUN a un grupo de políticas
- a| 
-El volumen o SVM que contiene las LUN
-
-
-
- a| 
-Archivo a un grupo de políticas
- a| 
-El volumen o SVM que contiene el archivo
-
-|===
-.Pasos
-. Cree un grupo de políticas de calidad de servicio adaptativo:
-+
-`qos adaptive-policy-group create -policy group _policy_group_ -vserver _SVM_ -expected-iops _number_of_iops_/TB|GB -peak-iops _number_of_iops_/TB|GB -expected-iops-allocation-space|used-space -peak-iops-allocation allocated-space|used-space -absolute-min-iops _number_of_iops_ -block-size 8K|16K|32K|64K|ANY`
-
-+
-Obtenga más información sobre `qos adaptive-policy-group create` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-adaptive-policy-group-create.html["Referencia de comandos del ONTAP"^].
-
-+
-[NOTE]
-====
-`-expected-iops-allocation` Y `-block-size` está disponible en ONTAP 9, 5 y posterior. Estas opciones no son compatibles con ONTAP 9.4 y versiones anteriores.
-
-====
-+
-El siguiente comando crea un grupo de políticas de calidad de servicio adaptativa `adpg-app1` con `-expected-iops` un establecido en 300 IOPS/TB, `-peak-iops` se `-peak-iops-allocation` establece en 1.000 IOPS/TB, se establece en `used-space`y `-absolute-min-iops` se establece en 50 IOPS:
-
-+
-[listing]
-----
-cluster1::> qos adaptive-policy-group create -policy group adpg-app1 -vserver vs2 -expected-iops 300iops/tb -peak-iops 1000iops/TB -peak-iops-allocation used-space -absolute-min-iops 50iops
-----
-. Aplique un grupo de políticas de calidad de servicio adaptable a un volumen:
-+
-`volume create -vserver SVM -volume _volume_ -aggregate _aggregate_ -size _number_of_ TB|GB -qos-adaptive-policy-group _policy_group_`
-
-+
-Obtenga más información sobre `volume create` en el link:https://docs.netapp.com/us-en/ontap-cli/volume-create.html["Referencia de comandos del ONTAP"^].
-
-+
-El siguiente comando aplica un grupo de políticas de calidad de servicio adaptativas `adpg-app1` al `app1` volumen :
-
-+
-[listing]
-----
-cluster1::> volume create -vserver vs1 -volume app1 -aggregate aggr1 -size 2TB -qos-adaptive-policy-group adpg-app1
-----
-+
-Los siguientes comandos aplican el grupo de políticas de calidad de servicio adaptativa predeterminado `extreme` al volumen nuevo `app4` y al volumen existente `app5`. El techo de rendimiento definido para el grupo de políticas se aplica a los volúmenes `app4` y `app5` de forma individual:
-
-+
-[listing]
-----
-cluster1::> volume create -vserver vs4 -volume app4 -aggregate aggr4 -size 2TB -qos-adaptive-policy-group extreme
-----
-+
-[listing]
-----
-cluster1::> volume modify -vserver vs5 -volume app5 -qos-adaptive-policy-group extreme
-----
-
