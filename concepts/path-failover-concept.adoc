@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: path failover 
 summary: 'Existen diferencias importantes en la forma en que ONTAP gestiona la conmutación por error de rutas en las topologías NAS y SAN. Un LIF NAS migra automáticamente a un puerto de red diferente tras un error de enlace. Un LIF SAN no migra (a menos que lo mueva manualmente después del fallo). En su lugar, la tecnología multivía en el host desvía el tráfico a otra LIF, en la misma SVM, pero accediendo a un puerto de red diferente.' 
 ---
-= Información general sobre conmutación por error de rutas
+= Conoce la gestión de conmutación por error de rutas de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -12,3 +12,50 @@ summary: 'Existen diferencias importantes en la forma en que ONTAP gestiona la c
 
 [role="lead"]
 Existen diferencias importantes en la forma en que ONTAP gestiona la conmutación por error de rutas en las topologías NAS y SAN. Un LIF NAS migra automáticamente a un puerto de red diferente tras un error de enlace. Un LIF SAN no migra (a menos que lo mueva manualmente después del fallo). En su lugar, la tecnología multivía en el host desvía el tráfico a un LIF diferente, en la misma SVM, pero accediendo a un puerto de red diferente.
+
+
+
+== Recuperación tras fallos de rutas NAS
+
+Un LIF NAS migra automáticamente a un puerto de red superviviente tras un error de enlace en su puerto actual. El puerto al que migra la LIF debe ser miembro del _grupo de conmutación por error_ de la LIF. La política de _grupo de recuperación tras fallos_ reduce los objetivos de conmutación por error de una LIF de datos a los puertos del nodo al que pertenecen los datos y su partner de alta disponibilidad.
+
+Para mayor comodidad administrativa, ONTAP crea un grupo de conmutación por error para cada dominio de difusión_ de la arquitectura de red. Los puertos de grupo de dominios de difusión que pertenecen a la misma red de capa 2. Si utiliza VLAN, por ejemplo, para segregar el tráfico por departamento (ingeniería, marketing, finanzas, etc.), cada VLAN define un dominio de retransmisión independiente. El grupo de conmutación por error asociado al dominio de retransmisión se actualiza automáticamente cada vez que agrega o quita un puerto de dominio de retransmisión.
+
+Casi siempre es una buena idea usar un dominio de difusión para definir un grupo de conmutación por error para garantizar que el grupo de conmutación por error permanezca actualizado. Sin embargo, en ocasiones, puede que desee definir un grupo de conmutación por error que no esté asociado a un dominio de difusión. Por ejemplo, puede que desee que las LIF solo conmuten al nodo de respaldo en puertos de un subconjunto de los puertos definidos en el dominio de retransmisión.
+
+image:nas-lif-migration.gif["Diagrama de migración de LIF tras un fallo de enlace en un puerto."]
+
+|===
+
+
+ a| 
+*_subredes_*
+
+A _subnet_ reserva un bloque de direcciones IP en un dominio de difusión. Estas direcciones pertenecen a la misma red de capa 3 y se asignan a puertos en el dominio de retransmisión cuando se crea una LIF. Por lo general, es más fácil y menos propenso a errores a especificar un nombre de subred al definir una dirección de LIF que especificar una dirección IP y una máscara de red.
+
+|===
+
+
+== Recuperación tras fallos de rutas SAN
+
+Un host SAN utiliza ALUA (acceso asimétrico de unidad lógica) y MPIO (I/o multivía) para redirigir el tráfico a un LIF superviviente tras un error de enlace. Las rutas predefinidas determinan las posibles rutas a la LUN servida por la SVM.
+
+En un entorno SAN, los hosts se consideran _initiators_ of Requests de LUN _Targets. MPIO permite varias rutas desde iniciadores a destinos. ALUA identifica las rutas más directas, denominadas _rutas optimizadas._
+
+Normalmente, configura varias rutas optimizadas a los LIF en el nodo propietario de la LUN y varias rutas no optimizadas a los LIF en su partner de alta disponibilidad. Si un puerto falla en el nodo propietario, el host enruta el tráfico a los puertos supervivientes. Si todos los puertos fallan, el host enruta el tráfico a través de las rutas no optimizadas.
+
+La asignación de LUN selectiva (SLM) de ONTAP limita el número de rutas del host a una LUN de forma predeterminada. Solo se puede acceder a una LUN creada recientemente a través de las rutas al nodo que posee la LUN o su compañero de alta disponibilidad. También puede limitar el acceso a una LUN mediante la configuración de LIF en un _Port set_ para el iniciador.
+
+image:san-host-rerouting.gif["ejemplo de recuperación tras fallos de ruta san"]
+
+|===
+
+
+ a| 
+*_mover volúmenes en entornos SAN_*
+
+De forma predeterminada, ONTAP _selectivo de asignación de LUN (SLM)_ limita el número de rutas a un LUN desde un host SAN. Solo es posible acceder a una LUN creada a través de las rutas al nodo propietario de la LUN o de su compañero de alta disponibilidad, el _reporting Nodes_ de la LUN.
+
+Esto significa que cuando mueve un volumen a un nodo en otro par de alta disponibilidad, debe añadir nodos de generación de informes para el par de alta disponibilidad de destino a la asignación de LUN. A continuación, puede especificar las nuevas rutas en la configuración de MPIO. Una vez completado el movimiento de volúmenes, es posible eliminar los nodos de generación de informes para la pareja de alta disponibilidad de origen de la asignación.
+
+|===
