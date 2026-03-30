@@ -1,21 +1,63 @@
 ---
 sidebar: sidebar 
 permalink: anti-ransomware/respond-san-entropy-eval-period.html 
-keywords: ransomware, arp, san, mode, switch, active, learning, entropy, autonomous ransomware protection 
+keywords: ransomware, arp, block, san, nas, mode, switch, active, learning, entropy, autonomous ransomware protection 
 summary: A partir de ONTAP 9.17.1, ARP requiere un período de evaluación para determinar si los niveles de entropía del volumen SAN son adecuados para la protección contra ransomware. 
 ---
-= Obtenga más información sobre el período de evaluación de ONTAP ARP para volúmenes SAN
+= Conoce el periodo de evaluación de ONTAP ARP/AI para cargas de trabajo de dispositivos de bloque
 :allow-uri-read: 
 
 
 [role="lead"]
-A partir de ONTAP 9.17.1, ARP requiere un período de evaluación para determinar si los niveles de entropía de las cargas de trabajo de volúmenes SAN son adecuados para la protección contra ransomware. Una vez habilitado ARP en un volumen SAN, ARP/AI supervisa y protege activamente el volumen durante el período de evaluación, al tiempo que determina un umbral de cifrado óptimo.  La detección y las alertas pueden producirse durante el período de evaluación utilizando un umbral conservador mientras se establecen los umbrales de referencia. ARP distingue entre cargas de trabajo adecuadas e inadecuadas en el volumen SAN evaluado y, si se determina que son adecuadas para la protección, establece automáticamente un umbral de cifrado basado en las estadísticas del período de evaluación.
+A partir de ONTAP 9.17.1, ARP/AI requiere un periodo de evaluación para determinar si los niveles de entropía de las cargas de trabajo de dispositivos de bloque son adecuados para la protección contra ransomware. Estas cargas de trabajo incluyen LUN de SAN y discos virtuales de hipervisor (por ejemplo, discos virtuales de VMware en almacenes de datos NFS y, a partir de ONTAP 9.17.1P5, discos virtuales de Hyper-V, KVM y OpenStack) almacenados en volúmenes ONTAP. Después de activar ARP en un volumen elegible, ARP/AI supervisa y protege activamente el volumen durante el periodo de evaluación mientras determina simultáneamente un umbral de cifrado óptimo. La detección y las alertas pueden producirse durante el periodo de evaluación utilizando un umbral conservador mientras se establecen los umbrales de referencia a lo largo de varios días. ARP distingue entre cargas de trabajo aptas y no aptas en el volumen evaluado y, si se determina que las cargas de trabajo son aptas para la protección, establece automáticamente un umbral de cifrado basado en las estadísticas del periodo de evaluación.
+
+
+
+== Cargas de trabajo compatibles y aplicabilidad de la evaluación
+
+El periodo de evaluación de los dispositivos en bloque se aplica en los siguientes escenarios:
+
+* *Volúmenes SAN*
++
+** Cargas de trabajo basadas en LUN presentadas como dispositivos de bloque a hosts o hipervisores.
+
+
+* *Volúmenes NAS que contienen discos virtuales de hipervisor detectados automáticamente por ONTAP*
++
+** Los hipervisores compatibles incluyen VMware, Hyper-V, KVM y discos virtuales OpenStack almacenados en almacenes de datos NFS o SMB.
+
+
+
+
+Dentro de estos volúmenes:
+
+* El periodo de evaluación _es_ aplicable a ataques detectados basados en cambios de entropía dentro del sistema de archivos invitado del disco virtual (por ejemplo, ransomware operando sobre archivos dentro del guest OS mapeados a un LUN o disco virtual).
+* El periodo de evaluación _no_ es aplicable a los ataques detectados basados en entropía y cambios de extensión de archivos realizados directamente en los archivos del disco virtual desde el host del hipervisor (por ejemplo, ransomware que opera directamente en  `.vmdk` archivos desde un punto de montaje de datastore NFS ESXi). Estos ataques directos al disco utilizan una ruta de detección diferente que no depende del periodo de evaluación de dispositivo de bloque.
+
+
+
+
+== Compatibilidad de versiones para la detección de dispositivos de bloque e hipervisores
+
+* *ONTAP 9.17.1*
++
+** Presenta el periodo de evaluación de dispositivos de bloque para volúmenes SAN.
+** Permite la detección de ataques ARP/AI dentro de LUNs SAN y dentro de discos virtuales VMware almacenados en datastores NFS de ONTAP.
+
+
+* *ONTAP 9.17.1P5 y posteriores*
++
+** Amplía la detección de dispositivos de bloque ARP/AI a discos virtuales de hipervisor como Hyper-V, KVM y OpenStack.
+** Aplica la misma lógica de evaluación de dispositivos de bloque y umbrales a estas cargas de trabajo de hipervisor adicionales cuando son detectadas por ONTAP.
+
+
+
 
 
 
 == Comprender la evaluación de la entropía
 
-El sistema recopila estadísticas de cifrado continuas en intervalos de 10 minutos. Durante la evaluación, también se crean continuamente instantáneas periódicas de ARP cada cuatro horas.  Si el porcentaje de cifrado dentro de un intervalo excede el umbral de cifrado óptimo identificado para este volumen, se activa una alerta. `Anti_ransomware_attack_backup` Se crea una instantánea y el tiempo de retención de la misma aumenta en cualquier instantánea ARP periódica.
+Durante el periodo de evaluación, el sistema recopila continuamente estadísticas de cifrado en intervalos de 10 minutos de las cargas de trabajo de dispositivos de bloque e hipervisores compatibles. También se crean continuamente instantáneas periódicas de ARP cada cuatro horas. Si el porcentaje de cifrado dentro de un intervalo supera el umbral de cifrado óptimo identificado para este volumen, se activa una alerta, se crea una instantánea `Anti_ransomware_attack_backup` y se aumenta el tiempo de retención de instantáneas en cualquier instantánea periódica de ARP.
 
 .Confirmar que el periodo de evaluación está activo
 Puede confirmar que la evaluación está activa ejecutando el siguiente comando y confirmando un estado de `evaluation_period`. Si un volumen no es elegible para evaluación, no se mostrará el estado de evaluación.
@@ -77,7 +119,7 @@ vs0         lun1              96-100%         0               0
 
 == Cargas de trabajo adecuadas y umbrales adaptativos
 
-La evaluación finaliza con uno de los siguientes resultados:
+La evaluación finaliza con uno de los siguientes resultados tanto para cargas de trabajo SAN LUN como para discos virtuales de hipervisor evaluados mediante detección de dispositivos de bloque:
 
 * *La carga de trabajo es adecuada para ARP*. ARP establece automáticamente el umbral adaptativo por encima del 10 % del porcentaje máximo de cifrado observado durante el período de evaluación. ARP también continúa recopilando estadísticas y crea instantáneas periódicas de ARP.
 * *La carga de trabajo no es adecuada para ARP*. ARP establece automáticamente el umbral adaptativo al porcentaje máximo de cifrado observado durante el período de evaluación. ARP también continúa recopilando estadísticas y crea instantáneas periódicas de ARP, pero el sistema finalmente recomienda deshabilitar ARP en el volumen.
