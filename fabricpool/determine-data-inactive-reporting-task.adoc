@@ -2,7 +2,7 @@
 permalink: fabricpool/determine-data-inactive-reporting-task.html 
 sidebar: sidebar 
 keywords: determining, how, much, data, volume, inactive, using, data reporting, fabricpool 
-summary: Ver la cantidad de datos de un volumen inactivos le permite utilizar correctamente los niveles de almacenamiento. La información de la generación de informes de datos inactivos le ayuda a decidir qué agregado utiliza para FabricPool, si va a mover un volumen dentro o fuera de FabricPool, o si desea modificar la política de organización en niveles de un volumen. 
+summary: 'El informe de datos inactivos (IDR) es una herramienta excelente para determinar la cantidad de datos inactivos (fríos) que se pueden distribuir por niveles desde un nivel local.' 
 ---
 = Analice datos inactivos de ONTAP con informes de datos inactivos
 :allow-uri-read: 
@@ -11,26 +11,47 @@ summary: Ver la cantidad de datos de un volumen inactivos le permite utilizar co
 
 
 [role="lead"]
-Ver la cantidad de datos de un volumen inactivos le permite utilizar correctamente los niveles de almacenamiento. La información de la generación de informes de datos inactivos le ayuda a decidir qué agregado utiliza para FabricPool, si va a mover un volumen dentro o fuera de FabricPool, o si desea modificar la política de organización en niveles de un volumen.
+El informe de datos inactivos (IDR) es una herramienta excelente para determinar la cantidad de datos inactivos (fríos) que se pueden distribuir por niveles desde un nivel local.
+
+Por defecto, IDR utiliza un periodo de enfriamiento de 31 días para determinar qué datos se consideran inactivos. La cantidad de datos fríos que se escalan depende de las políticas de escalonamiento establecidas en los volúmenes. En versiones anteriores a ONTAP 9.8, IDR utilizaba un periodo de enfriamiento fijo de 31 días.
 
 .Antes de empezar
-Debe ejecutar ONTAP 9.4 o posterior para utilizar la funcionalidad de generación de informes de datos inactivos.
+**ONTAP 9.4**
+
+* IDR está activado por defecto en todos los agregados de FabricPool.
+* IDR puede activarse en agregados SSD no-FabricPool.
+
+
+**ONTAP 9.6**
+
+* IDR está activado por defecto en todos los agregados SSD que no sean FabricPool.
+* IDR puede activarse en agregados de discos duros que no sean FabricPool.
+
+
+**ONTAP 9.8**
+
+* El periodo de refrigeración de IDR puede ajustarse mediante la configuración volume -tiering-minimum-cooling-days.
+
 
 .Acerca de esta tarea
-* La generación de informes de datos inactivos no se admite en algunos agregados.
-+
-No se pueden habilitar los informes de datos inactivos cuando FabricPool no se puede habilitar, incluidas las siguientes instancias:
+* IDR informa sobre los datos inactivos que se pueden clasificar por niveles, no sobre los datos inactivos que se han clasificado por niveles. Si se ha activado FabricPool y los datos inactivos se han clasificado por niveles, IDR dejará de informar sobre ellos.
 
+
+[NOTE]
+====
+Aunque IDR está activado por defecto en todos los agregados SSD (ONTAP 9.6 y posteriores), si la carga de trabajo de un cliente necesita el 90% de los recursos del sistema, IDR se desactiva automáticamente, poniendo los días de refrigeración a cero. Si esto ocurre, IDR no se vuelve a activar automáticamente.
+
+Para evitar que el proceso automatizado cierre IDR con el fin de liberar recursos para otras cargas de trabajo, activa manualmente -is-inactive-data-reporting-enabled en true.
+
+====
+* Notificación de datos inactivos cuando no se puede activar FabricPool, incluidos los siguientes casos:
 +
 ** Agregados raíz
+** Agregados que contienen volúmenes que utilizan una garantía de espacio distinta de ninguna. (No se admiten volúmenes con aprovisionamiento grueso.)
 ** Agregados de MetroCluster que ejecutan versiones de ONTAP anteriores a 9.7
 ** Flash Pool (agregados híbridos o agregados de SnapLock)
 
 
-* La generación de informes de datos inactivos está habilitada de forma predeterminada en agregados donde cualquier volumen tiene la compresión adaptativa habilitada.
-* La generación de informes de datos inactivos está habilitada de forma predeterminada en todos los agregados de SSD de ONTAP 9.6.
-* La generación de informes de datos inactivos está habilitada de forma predeterminada en el agregado de FabricPool en ONTAP 9.4 y ONTAP 9.5.
-* Puede habilitar la generación de informes de datos inactivos en agregados que no son de FabricPool mediante la interfaz de línea de comandos de ONTAP, incluidos los agregados de HDD, empezando por ONTAP 9.6.
 
 
 
