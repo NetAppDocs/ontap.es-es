@@ -2,7 +2,7 @@
 permalink: san-config/configure-fc-nvme-hosts-ha-pairs-reference.html 
 sidebar: sidebar 
 keywords: ways to, configure, fc, fc-nvme, san hosts with ha pairs 
-summary: Puede configurar hosts SAN FC y FC-NVMe para conectarse a los pares de alta disponibilidad a través de una o varias estructuras. No puede conectar directamente hosts SAN FC o FC-NVMe a parejas de alta disponibilidad sin utilizar un switch. 
+summary: Puedes configurar hosts SAN FC y FC-NVMe para que se conecten a pares de HA a través de una o varias fabrics o, dependiendo de tu versión de ONTAP, puedes conectar directamente hosts SAN FC o FC-NVMe a pares de HA sin usar un switch. 
 ---
 = Configure las estructuras FC o FC-NVME con sistemas ONTAP
 :allow-uri-read: 
@@ -11,17 +11,21 @@ summary: Puede configurar hosts SAN FC y FC-NVMe para conectarse a los pares de 
 
 
 [role="lead"]
-Es recomendable configurar sus hosts SAN FC y FC-NVMe usando pares de alta disponibilidad y un mínimo de dos switches. Esto proporciona redundancia en las capas de la estructura y del sistema de almacenamiento para admitir tolerancia a fallos y operaciones no disruptivas. No puede conectar directamente hosts SAN FC o FC-NVMe a parejas de alta disponibilidad sin utilizar un switch.
+Para FC y FC/NVMe, la topología de red entre la solución de almacenamiento y los hosts se denomina fabric. Para crear redundancia, que te protege contra la pérdida de acceso a los datos, se recomienda que configures tu SAN con pares de HA usando dos o más switches en una configuración multivía. Las configuraciones de fabric único, que usan solo un switch entre los hosts y el almacenamiento, no son totalmente redundantes.
 
-Las estructuras en cascada, malla parcial, malla completa, núcleo-borde y director son métodos estándar en el sector para conectar switches FC a una estructura, y todos son compatibles. No se admite el uso de estructuras heterogéneas de switches FC, a excepción de los switches blade integrados. Las excepciones específicas se enumeran en la link:https://imt.netapp.com/matrix/["Herramienta de matriz de interoperabilidad"^]. Una estructura puede estar compuesta por uno o varios switches y las controladoras de almacenamiento se pueden conectar a varios switches.
+A partir de ONTAP 9.19.1, también puedes conectar directamente hosts SAN FC o FC-NVMe a pares de HA sin usar un conmutador. Las configuraciones de conexión directa pueden ser especialmente valiosas en ubicaciones remotas y entornos híbridos donde la simplicidad es clave.
 
-Varios hosts, utilizando diferentes sistemas operativos, como Windows, Linux o UNIX, pueden acceder a las controladoras de almacenamiento al mismo tiempo. Los hosts requieren que se instale y configure una solución multivía compatible. Los sistemas operativos compatibles y las soluciones multivía se pueden verificar en la herramienta de matriz de interoperabilidad.
+Los tejidos en cascada, malla parcial, malla completa, core-edge y director son métodos estándar del sector para conectar conmutadores FC a un tejido, y todos son compatibles. No se admite el uso de tejidos de conmutadores FC heterogéneos, excepto en el caso de conmutadores blade integrados. Se enumeran excepciones específicas en el link:https://imt.netapp.com/matrix/["Herramienta de matriz de interoperabilidad"^]. Un tejido puede constar de uno o varios conmutadores, y los controladores de almacenamiento pueden conectarse a varios conmutadores.
+
+Varios hosts que utilizan diferentes sistemas operativos, como Windows, Linux o UNIX, pueden acceder a los controladores de almacenamiento al mismo tiempo. Los hosts requieren que se instale y configure una solución de multivía compatible. Los sistemas operativos y las soluciones de multivía compatibles pueden verificarse en la Interoperability Matrix Tool.
 
 
 
 == Configuraciones FC y FC-NVMe multiestructura
 
-En las configuraciones de par de alta disponibilidad multiestructura, existen dos o más switches que conectan pares de alta disponibilidad a uno o varios hosts. Para mayor simplicidad, la siguiente figura de par de alta disponibilidad multiestructura solo muestra dos estructuras, pero puede tener dos o más estructuras en cualquier configuración de estructura múltiple.
+Se recomienda configurar tus hosts SAN FC y FC-NVMe utilizando pares HA y un mínimo de dos switches. [EH5.1][FD5.2][EH5.3]Esto proporciona redundancia en las capas de fabric y sistema de almacenamiento para soportar la tolerancia a fallos y las operaciones sin interrupciones.
+
+En una configuración de par de HA multifabric, dos o más switches conectan el par de HA a uno o más hosts. Cada switch crea una estructura independiente formada por las rutas entre los hosts y el par de HA que pasan por el switch. Agregar un switch crea una estructura adicional. Una configuración multifabric puede incluir dos o más switches y sus estructuras correspondientes. Para simplificar, la siguiente figura muestra solo dos switches, que representan dos estructuras independientes.
 
 Los números de puerto de destino FC (0C, 0d, 1a, 1b) que aparecen en las ilustraciones son ejemplos. Los números de puerto reales varían según el modelo de su nodo de almacenamiento y si usa adaptadores de expansión.
 
@@ -31,7 +35,7 @@ image:scrn_en_drw_fc-32xx-multi-HA.png["Diagrama de par de estructura múltiple 
 
 == Configuraciones FC y FC-NVMe de estructura única
 
-En configuraciones de pareja de alta disponibilidad de estructura única, existe una estructura que conecta ambas controladoras en el par de alta disponibilidad a uno o varios hosts. Dado que los hosts y las controladoras están conectados a través de un único switch, las configuraciones de par de alta disponibilidad de estructura única no son totalmente redundantes.
+En las configuraciones de par de HA de tejido único, un conmutador conecta el par de HA a uno o más hosts. El conmutador único crea un tejido único que consta de todas las rutas entre los hosts y el par de HA. Al no haber redundancia, un fallo del conmutador puede provocar la interrupción del servicio.
 
 Los números de puerto de destino FC (0A, 0C) que aparecen en las ilustraciones son ejemplos. Los números de puerto reales varían según el modelo de su nodo de almacenamiento y si usa adaptadores de expansión.
 
@@ -39,12 +43,16 @@ Todas las plataformas que admiten las configuraciones FC admiten configuraciones
 
 image:scrn_en_drw_fc-62xx-single-HA.png["Diagrama de par de alta disponibilidad de estructura de switch único"]
 
-[NOTE]
-====
-link:../system-admin/single-node-clusters.html["Configuraciones de nodo único"] no se recomiendan porque no proporcionan la redundancia necesaria para admitir tolerancia a fallos y operaciones no disruptivas.
 
-====
+
+== Configuraciones FC y FC-NVMe de conexión directa
+
+A partir de ONTAP 9.19.1, las configuraciones FC y FC-NVMe de conexión directa están disponibles para los sistemas AFF, ASA, ASA r2 y FAS. En una configuración de conexión directa, uno o varios hosts se conectan directamente a tus pares de HA sin la presencia de un conmutador. Esta configuración puede ser especialmente valiosa en sitios remotos y entornos híbridos donde la simplicidad es clave.
+
+image:scrn_en_drw_fc-302020-direct-sing-on.png["Configuración de conexión directa"]
+
 .Información relacionada
+* link:configure-fc-ports-direct-attachment.html["Configura los puertos FC de ONTAP para la conexión directa a hosts FC y FC-NVMe"].
 * Descubre link:../san-admin/selective-lun-map-concept.html#determine-whether-slm-is-enabled-on-a-lun-map["Asignación de LUN selectiva (SLM)"]cómo limita las rutas que se usan para acceder a las LUN que son propiedad de una pareja de alta disponibilidad.
 * Obtenga más información link:../san-admin/manage-lifs-all-san-protocols-concept.html["LIF SAN"]sobre .
 

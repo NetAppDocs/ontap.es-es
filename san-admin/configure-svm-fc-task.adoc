@@ -13,11 +13,13 @@ summary: Para configurar una máquina virtual de almacenamiento para FC, debes c
 [role="lead"]
 Para configurar una máquina virtual de almacenamiento (SVM) para FC, debe crear LIF para la SVM y asignar el protocolo FC a esas LIF.
 
-.Antes de empezar
-Debe tener una licencia de FC (link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["Incluido con ONTAP One"]) y debe estar habilitada. Si la licencia de FC no está habilitada, las LIF y las SVM parecerán estar online, pero el estado operativo será `down`. Para que los LIF y SVM estén operativos, el servicio FC debe estar habilitado. Debe usar la división en zonas de iniciador único para todas las LIF FC de la SVM a fin de alojar los iniciadores.
-
 .Acerca de esta tarea
 NetApp admite un mínimo de un LIF de FC por nodo para cada SVM que sirve datos con el protocolo FC. Debe usar dos LIF por nodo y dos estructuras, con un LIF por nodo conectado. De este modo se proporciona redundancia en la capa del nodo y en la estructura.
+
+.Antes de empezar
+* Para realizar esta tarea, debe ser un administrador de clústeres.
+* Debe tener una licencia de FC (link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["Incluido con ONTAP One"]) y debe estar habilitada. Si la licencia de FC no está habilitada, las LIF y las SVM parecerán estar online, pero el estado operativo será `down`. Para que los LIF y SVM estén operativos, el servicio FC debe estar habilitado. Debe usar la división en zonas de iniciador único para todas las LIF FC de la SVM a fin de alojar los iniciadores.
+
 
 .Pasos
 [role="tabbed-block"]
@@ -32,18 +34,21 @@ Configuración de una máquina virtual de almacenamiento para iSCSI con ONTAP Sy
 
 
  a| 
-. En System Manager, haga clic en *almacenamiento > Storage VMs* y, a continuación, haga clic en *Agregar*.
+. En System Manager, selecciona *Storage > Storage VMs* y luego selecciona *Add*.
 . Escriba un nombre para la máquina virtual de almacenamiento.
 . Seleccione *FC* para *Protocolo de acceso*.
-. Haga clic en *Habilitar FC*. + los puertos FC se asignan automáticamente.
-. Haga clic en *Guardar*.
+. Selecciona *Habilitar FC*.
++
+Los puertos FC se asignan automáticamente.
+
+. Seleccione *Guardar*.
 
  a| 
-. En System Manager, haga clic en *almacenamiento > Storage VMs*.
-. Haga clic en la máquina virtual de almacenamiento que desee configurar.
-. Haga clic en la pestaña *Settings* y, a continuación, haga clic en image:icon_gear.gif["El icono Actions"] junto al protocolo FC.
-. Haga clic en *Activar FC* e introduzca la dirección IP y la máscara de subred de la interfaz de red. + los puertos FC se asignan automáticamente.
-. Haga clic en *Guardar*.
+. En System Manager, seleccione *almacenamiento > Storage VMs*.
+. Selecciona la máquina virtual de almacenamiento que quieres configurar.
+. Selecciona la pestaña *Configuración* y luego selecciona image:icon_gear.gif["El icono Actions"] junto al protocolo FC.
+. Selecciona *Enable FC* e introduce la dirección IP y la máscara de subred para la interfaz de red. + Los puertos FC se asignan automáticamente.
+. Seleccione *Guardar*.
 
 
 |===
@@ -52,24 +57,32 @@ Configuración de una máquina virtual de almacenamiento para iSCSI con ONTAP Sy
 --
 . Habilite el servicio FC en la SVM:
 +
-`vserver fcp create -vserver _vserver_name_ -status-admin up`
-
+[source, cli]
+----
+vserver fcp create -vserver <vserver_name> -status-admin up
+----
 . Cree dos LIF para las SVM en cada nodo que sirva FC:
 +
 ** Para ONTAP 9,6 y versiones posteriores:
 +
-`network interface create -vserver _vserver_name_ -lif _lif_name_ -service-policy default-data-blocks -data-protocol fcp -home-node _node_name_ -home-port _port_name_ -status-admin up`
-
+[source, cli]
+----
+network interface create -vserver <vserver_name> -lif <lif_name> -data-protocol fcp -service-policy default-data-fcp -home-node <node_name> -home-port <port_name> -address <ip_address> -netmask <netmask> -status-admin up
+----
 ** Para ONTAP 9,5 y versiones anteriores:
 +
-`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol fcp -home-node _node_name_ -home-port _port_`
-
+[source, cli]
+----
+network interface create -vserver <vserver_name>_ -lif <lif_name> -role data -data-protocol fcp -home-node <node_name> -home-port <port_name>
+----
 
 
 . Compruebe que sus LIF se han creado y que su estado operativo es `online`:
 +
-`network interface show -vserver _vserver_name_ _lif_name_`
-
+[source, cli]
+----
+network interface show -vserver <vserver_name> <lif_name>
+----
 +
 Obtenga más información sobre `network interface show` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html["Referencia de comandos del ONTAP"^].
 
@@ -78,7 +91,4 @@ Obtenga más información sobre `network interface show` en el link:https://docs
 --
 ====
 .Información relacionada
-* https://mysupport.netapp.com/site/global/dashboard["Soporte de NetApp"^]
-* https://mysupport.netapp.com/matrix["Herramienta de matriz de interoperabilidad de NetApp"^]
-* xref:lifs-cluster-concept.adoc[Consideraciones para los LIF en entornos SAN de clúster]
-
+link:manage-lifs-all-san-protocols-concept.html["Más información sobre ONTAP LIFs para entornos SAN"].

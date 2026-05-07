@@ -15,7 +15,9 @@ ONTAP utiliza software ALUA (Acceso Asimétrico de Unidad Lógica) para multiví
 
 A partir de ONTAP 9,5, la conmutación/devolución de la pareja de alta disponibilidad multivía es compatible con los hosts NVMe que usan Asynchronous Namespace Access (ANA). En ONTAP 9,4, NVMe solo admite una ruta desde el host al destino, por lo que el host de aplicaciones debe gestionar la ruta al respaldo de su partner de alta disponibilidad.
 
-El software multivía es necesario en el host SAN si puede acceder a un espacio de nombres LUN o NVMe a través de más de una ruta. Presenta un disco único al sistema operativo para todas las rutas que se dirigen a un espacio de nombres LUN o NVMe. Sin él, el sistema operativo trataría cada una de las partes como un disco independiente, lo que provocaría daños en los datos.
+Para obtener información sobre las configuraciones de host específicas compatibles con ALUA o ANA, consulte el https://mysupport.netapp.com/matrix["Herramienta de matriz de interoperabilidad de NetApp"^] y https://docs.netapp.com/us-en/ontap-sanhost/index.html["Configuración de host SAN ONTAP"] del sistema operativo del host.
+
+El software de multivía, también conocido como software MPIO (I/O multivía), se recomienda en configuraciones de HA. El software de multivía es necesario en tu host SAN para que pueda acceder a un LUN o espacio de nombres NVMe a través de más de una ruta. Presenta un único disco al sistema operativo para todas las rutas a un LUN o espacio de nombres NVMe. Sin él, el sistema operativo podría tratar cada ruta como un disco independiente, lo que provocaría corrupción de datos.
 
 Se considera que su solución tiene varias rutas si dispone de alguna de las siguientes opciones:
 
@@ -24,9 +26,10 @@ Se considera que su solución tiene varias rutas si dispone de alguna de las sig
 * Varios puertos de iniciador conectando varios LIF SAN en la SVM
 
 
-El software multivía, también conocido como software MPIO (I/O multivía), se recomienda en configuraciones de alta disponibilidad. Además de la asignación selectiva de LUN, también se recomienda usar la división en zonas de switches de FC o conjuntos de puertos para limitar las rutas utilizadas para acceder a las LUN.
+Deberías usar Selective LUN Map, la división en zonas de conmutadores FC o conjuntos de puertos para limitar las rutas utilizadas para acceder a los LUN y a los espacios de nombres.
 
-Para obtener información sobre las configuraciones de host específicas compatibles con ALUA o ANA, consulte el https://mysupport.netapp.com/matrix["Herramienta de matriz de interoperabilidad de NetApp"^] y https://docs.netapp.com/us-en/ontap-sanhost/index.html["Configuración de host SAN ONTAP"] del sistema operativo del host.
+.Información relacionada
+Conoce más sobre link:../san-admin/multipath-automatic-lif-failover-support.html["Configuraciones SAN multivía soportadas por ONTAP"].
 
 
 
@@ -34,15 +37,22 @@ Para obtener información sobre las configuraciones de host específicas compati
 
 No debe superar más de ocho rutas desde el host a cada nodo del clúster. Tampoco debe superar la cantidad total de rutas que se pueden admitir para el sistema operativo del host y la multivía utilizada en el host.
 
-Debe tener un mínimo de dos rutas por LUN que se conecte a cada nodo de informes mediante link:../san-admin/selective-lun-map-concept.html["Asignación de LUN selectiva (SLM)"]la máquina virtual de almacenamiento (SVM) del clúster. De este modo, se eliminan los puntos únicos de error y el sistema puede sobrevivir a fallos de componentes.
-
 Si tiene cuatro o más nodos en el clúster o más de cuatro puertos de destino que utilizan las SVM en cualquiera de los nodos, Puede usar los siguientes métodos para limitar el número de rutas que se pueden utilizar para acceder a las LUN de los nodos de modo que no supere el máximo recomendado de ocho rutas.
 
-* SLM
+* link:selective-lun-map-concept.html["Asignación de LUN selectiva (SLM)"]
 +
-SLM reduce el número de rutas entre el host y la LUN solo a rutas del nodo que posee el LUN y el partner de alta disponibilidad del nodo propietario. De forma predeterminada, SLM está habilitado.
+SLM reduce el número de rutas desde el host al LUN a solo las rutas en el nodo propietario del LUN y el nodo de alta disponibilidad (HA) asociado. SLM está habilitado por defecto. Deberías tener un mínimo de dos rutas por LUN que conecten a cada nodo de informes a través de SLM que está siendo usado por la máquina virtual de almacenamiento (SVM) en tu clúster. Esto elimina los puntos únicos de fallo y permite que el sistema sobreviva a fallos de componentes.
 
-* link:../san-admin/limit-lun-access-portsets-igroups-concept.html["Conjuntos de puertos para iSCSI"]
-* Asignaciones de igroup de FC desde el host
-* División en zonas de switches FC
+* link:../san-admin/limit-lun-access-portsets-igroups-concept.html["Conjuntos de puertos"]
++
+Los conjuntos de puertos se pueden utilizar con SLM para restringir aún más el acceso de ciertos destinos a ciertos iniciadores. Cuando se utiliza SLM con conjuntos de puertos, se podrá acceder a los LUN en el conjunto de puertos del nodo que posee la LUN y en el partner de alta disponibilidad de ese nodo.
+
+* Asignaciones de grupos de iniciadores (igroup) de tu host
++
+Puedes definir igroups y asignarlos a LUN para controlar qué iniciadores tienen acceso a los LUN.
+
+* link:../san-config/fc-fcoe-recommended-zoning-configuration.html["División en zonas de switches FC"]
++
+Deberías crear una configuración de zonas si tu host no tiene instalada una solución de multivía, si hay cuatro o más hosts conectados a tu SAN o si SLM no está implementado en los nodos de tu clúster.
+
 

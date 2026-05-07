@@ -1,0 +1,233 @@
+---
+sidebar: sidebar 
+permalink: san-admin/multipath-automatic-lif-failover-support.html 
+keywords: netapp, ontap, san, multipath, automatic lif failover, supported configurations, active-active, local-active, active-active-scsi-only, multipathing, 
+summary: La versión de ONTAP se puede actualizar de forma no disruptiva en el clúster. 
+---
+= Conoce la multivía SAN y el soporte de conmutación por error automática de LIF para sistemas ONTAP
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+En las configuraciones multivía, se configuran varias rutas de red entre tu host y el sistema de almacenamiento, de modo que si una ruta deja de estar disponible, la E/S puede redirigirse a una ruta alternativa para evitar la interrupción del servicio. La conmutación por error automática de LIF permite que una interfaz lógica (LIF) migre automáticamente a un puerto diferente si su puerto principal deja de estar disponible o si ocurre una conmutación por error de almacenamiento. La multivía con conmutación por error automática de LIF redirige sin problemas la E/S a la ruta disponible más optimizada sin necesidad de una transición de ruta de conmutación por error.
+
+
+
+== Configuraciones multivía compatibles con SAN
+
+Las siguientes configuraciones multivía son compatibles con entornos SAN.
+
+local-activo:: Las rutas del nodo propietario del LUN o namespace están activas y optimizadas. Las rutas del HA partner están activas pero no optimizadas.
+activo-activo:: Todas las rutas del par de HA propietario del LUN o espacio de nombres están activas y optimizadas.
+active-active-scsi-only:: Las rutas en el nodo propietario del LUN o espacio de nombres son activas y optimizadas. Las rutas en el socio de HA pueden ser activas-optimizadas o activas-no-optimizadas dependiendo del protocolo SAN. La configuración active-active-scsi-only se admite solo en sistemas ASA.
+
+
+El soporte para configuraciones SAN multivía varía en función de tu sistema de almacenamiento y la versión de ONTAP.
+
+[cols="1,1,1,1"]
+|===
+| Sistema | Versión de ONTAP | Configuraciones multivía compatibles | Configuración multivía por defecto 
+
+
+| FAS | 9,0 y posterior | local-activo | local-activo 
+
+
+.2+| AFF | 9.19.1 y posteriores  a| 
+* activo-activo
+* local-activo
+
+| local-activo 
+
+
+| 9.18.1 y anteriores | local-activo | local-activo 
+
+
+.2+| ASA | 9.19.1 y posteriores  a| 
+* activo-activo
+* active-active-scsi-only
+
+| activo-activo 
+
+
+| 9.18.1 y anteriores  a| 
+* activo-activo
+* active-active-scsi-only
+
+| active-active-scsi-only 
+
+
+| ASA r2 | 9.16.1 y posterior | activo-activo | activo-activo 
+|===
+
+
+== Comportamiento predeterminado de conmutación por error de LIF por configuración
+
+En función de la configuración de multivía, las rutas entre el host y el sistema de almacenamiento están activas-optimizadas o activas-no optimizadas. Cuando se produce una conmutación por error de almacenamiento con rutas activas-optimizadas, el host no necesita esperar la transición ALUA o ANA de las rutas de conmutación por error para reanudar la E/S. Para las rutas activas-no optimizadas, ALUA o ANA deben realizar la transición de la E/S de las rutas que han fallado al partner de HA antes de que se pueda reanudar la E/S. Más información sobre link:../san-config/host-support-multipathing-concept.html["ALUA y ANA"].
+
+[cols="1,1,1,1,1"]
+|===
+| Configuración multivía | Protocolo | Política de conmutación por error predeterminada de LIF | Trayectorias de los nodos propietarios | Rutas de pareja de HA 
+
+
+| local-activo  a| 
+* iSCSI
+* NVMe/TCP
+* NVMe/FC
+
+| solo local | active-optimized | activo-no-optimizado 
+
+
+.2+| activo-activo  a| 
+* iSCSI
+* NVMe/TCP
+
+| sólo para partners de sfo | active-optimized | active-optimized 
+
+
+ a| 
+* FCP
+* NVMe/FC
+
+| N/A Los puertos persistentes se utilizan para la conmutación por error | active-optimized | active-optimized 
+
+
+.4+| active-active-scsi-only (Sólo disponible en plataformas ASA) | iSCSI | sólo para partners de sfo | active-optimized | active-optimized 
+
+
+| NVMe/TCP | solo local | active-optimized | activo-no-optimizado 
+
+
+| FC | N/A Los puertos persistentes se utilizan para la conmutación por error | active-optimized | active-optimized 
+
+
+| NVMe/FC | N/A Los puertos persistentes se utilizan para la conmutación por error | active-optimized | activo-no-optimizado 
+|===
+
+
+== Soporte para la conmutación automática por error de LIF
+
+La conmutación por error automática de LIF es compatible con configuraciones de multivía activas-activas que ejecutan los protocolos iSCSI y NVMe/TCP y con configuraciones de multivía activas-activas-solo-scsi que ejecutan el protocolo iSCSI. Los LIF están configurados para usar la política de conmutación por error sfo-partner-only creada por el sistema de forma predeterminada. La política predeterminada sfo-partner-only puede modificarse.
+
+La conmutación por error automática de LIF no es compatible con configuraciones de multivía local-activa. La política predeterminada de solo local no se puede modificar.
+
+Las configuraciones multivía activo-activo que ejecutan el protocolo FC o NVMe-FC utilizan puertos persistentes para conmutar por error. Los puertos persistentes son compatibles a partir de ONTAP 9.8 y no utilizan políticas de conmutación por error. Más información sobre link:../san-config/asa-support-limitations.html["soporte para puertos persistentes"].
+
+El soporte para la conmutación por error automática de LIF depende de tu sistema de almacenamiento, la versión de ONTAP y el protocolo SAN.
+
+[cols="1,1,1,1"]
+|===
+| Sistema | Versión de ONTAP | Protocolo SAN | Soporte de conmutación por error de LIF 
+
+
+| FAS | 9,0 y posterior | Todo | No admitido 
+
+
+.4+| AFF .3+| 9.19.1 y posteriores | iSCSI | Conmutación automática por error de LIF con configuración de multivía activa-activa o activa-activa-solo-scsi 
+
+
+| NVMe/TCP | Conmutación automática por error de LIF con configuración de multivía activa-activa 
+
+
+ a| 
+* FC
+* NVMe/FC
+
+| Conmutación por error con puertos persistentes 
+
+
+| 9.18.1 y anteriores | Todo | No admitido 
+
+
+.9+| ASA .3+| 9.19.1 y posteriores | iSCSI | Conmutación automática por error de LIF con configuración de multivía activa-activa o activa-activa-solo-scsi 
+
+
+| NVMe/TCP | Conmutación automática por error de LIF con configuración de multivía activa-activa 
+
+
+ a| 
+* FC
+* NVMe/FC
+
+| Conmutación por error con puertos persistentes 
+
+
+.3+| 9.11.1 a 9.18.1 | iSCSI | Conmutación automática de LIF 
+
+
+| FC | Conmutación por error con puertos persistentes 
+
+
+ a| 
+* NVMe/FC
+* NVMe/TCP
+
+| No admitido 
+
+
+.2+| 9.8 a 9.10.1 | FC | Conmutación por error con puertos persistentes 
+
+
+ a| 
+* iSCSI
+* NVMe/FC
+* NVMe/TCP
+
+| No admitido 
+
+
+| 9,7 | Todo | No admitido 
+
+
+.2+| ASA r2 .2+| 9.19.1 y posteriores  a| 
+* iSCSI
+* NVMe/TCP
+
+| Conmutación automática por error de LIF con configuración de multivía activa-activa 
+
+
+ a| 
+* FC
+* NVMe/FC
+
+| Conmutación por error con puertos persistentes 
+|===
+
+
+== Limitaciones de la configuración de multivía
+
+Existen limitaciones de configuración de multivía SAN para máquinas virtuales de almacenamiento (SVM) en una relación de sincronización activa SnapMirror y para configuraciones MetroCluster.
+
+* *SnapMirror Active Sync*
++
+Si tus SVM están en una relación de sincronización activa SnapMirror, la configuración multivía en la SVM de origen y la SVM de destino debe ser la misma. No se admiten configuraciones multivía diferentes para la SVM de origen y la SVM de destino.
+
+* *MetroCluster configuraciones*
++
+El tipo de sistema de almacenamiento en los sitios primario y secundario debe ser el mismo.
+
+
+
+
+
+== Multivía activa-activa en sistemas AFF
+
+A partir de ONTAP 9.19.1, los sistemas AFF admiten multivía activa-activa con conmutación por error automática de LIF a nivel de SVM en entornos SAN. Esto reduce el tiempo de conmutación por error, permitiendo a los clientes SAN ejecutar cargas de trabajo de misión crítica en sistemas AFF con la misma resiliencia de ruta y balanceo de carga sin interrupciones que antes solo estaba disponible en los sistemas ASA. El soporte de multivía activa-activa y la conmutación por error automática de LIF en tus sistemas AFF te permiten consolidar los dominios de gestión, optimizar tu huella de almacenamiento, aprovechar las inversiones existentes en NAS y estandarizar en un sistema de almacenamiento único todas tus necesidades de protocolo, mientras sigues cumpliendo con estrictos SLA de disponibilidad y rendimiento.
+
+En los sistemas AFF, solo puedes configurar la multivía activo-activo cuando creas un nuevo SVM en ONTAP 9.19.1 y versiones posteriores. No se puede convertir un SVM de una configuración activo-local a una configuración activo-activo.
+
+Puedes mover LUN y espacios de nombres existentes de SVM configuradas para multivía local-activa a SVM configuradas para multivía activa-activa. Si mueves un LUN o espacio de nombres a una nueva SVM, debes volver a mapear tu host a la nueva SVM antes de empezar a servir datos.
+
+
+NOTE: Si tu clúster ejecuta ONTAP 9.19.1 o posterior e incluye tanto sistemas FAS como AFF, deberías usar la configuración multivía local-activa para todos los sistemas. No se recomienda usar una configuración local-activa para los sistemas FAS y una configuración activa-activa para los sistemas AFF en el mismo clúster.
+
+.Información relacionada
+* Más información sobre link:asa-iscsi-lif-fo-task.html:["conmutación por error automática de iSCSI LIF en sistemas ASA"].
+* Más información sobre link:https://docs.netapp.com/us-en/asa-r2/administer/manage-client-vm-access.html#create-a-lif-network-interface["conmutación por error automática de iSCSI LIF en sistemas ASA r2"^].
+

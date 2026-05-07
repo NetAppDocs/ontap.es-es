@@ -16,9 +16,13 @@ summary: La protección autónoma contra ransomware utiliza el análisis de la c
 
 
 [role="lead"]
-A partir de ONTAP 9.10.1, los administradores de ONTAP pueden activar Autonomous Ransomware Protection (ARP) para realizar análisis de cargas de trabajo en entornos NAS (NFS y SMB) para detectar y advertir de forma proactiva sobre actividades anómalas que puedan indicar un ataque de ransomware. A partir de ONTAP 9.17.1, ARP también es compatible con volúmenes de dispositivos de bloque, incluidos volúmenes SAN que contienen LUN o espacios de nombres NVMe, o volúmenes NAS que contienen discos virtuales de hipervisores como VMware. A partir de ONTAP 9.17.1P5, los hipervisores Hyper-V, KVM y OpenStack también son compatibles, y ARP añade un modo de evaluación para los discos virtuales contenidos en volúmenes NAS (ver <<Entornos NAS y tipos de modos>>). ARP está integrado directamente en ONTAP, lo que garantiza control y coordinación integrados con las demás funciones de ONTAP. ARP funciona en tiempo real, procesando los datos a medida que se escriben o se leen del sistema de archivos y detectando y respondiendo rápidamente a posibles ataques de ransomware.
+A partir de ONTAP 9.10.1, los administradores de ONTAP pueden activar Autonomous Ransomware Protection (ARP) para realizar análisis de cargas de trabajo en entornos NAS (NFS y SMB) para detectar y advertir de forma proactiva sobre actividades anómalas que puedan indicar un ataque de ransomware. ARP está integrado directamente en ONTAP, lo que garantiza control y coordinación integrados con las demás funciones de ONTAP. ARP funciona en tiempo real, procesando los datos a medida que se escriben o se leen del sistema de archivos y detectando y respondiendo rápidamente a posibles ataques de ransomware.
 
-ARP crea instantáneas bloqueadas a intervalos regulares junto con las programadas para mayor protección. Administra de forma inteligente el tiempo que se conservan las instantáneas. Si no se detecta ninguna actividad inusual, las instantáneas se reciclan rápidamente. Sin embargo, si se detecta un ataque, se conserva una instantánea creada antes del inicio del ataque durante un período prolongado. Para obtener más información, incluidos los cambios agregados por la versión de ONTAP , consulte <<Instantáneas de ARP>>.
+ARP crea instantáneas bloqueadas a intervalos regulares, además de las instantáneas programadas. La retención de instantáneas se ajusta dinámicamente: las instantáneas se reciclan rápidamente cuando no se detecta ninguna actividad inusual y las instantáneas tomadas antes de un ataque detectado se retienen durante más tiempo para investigación y recuperación.
+
+Para conocer la compatibilidad del protocolo, la idoneidad de la carga de trabajo y los requisitos específicos de cada versión, consulta link:use-cases-restrictions-concept.html["Casos de uso y consideraciones sobre ARP"].
+
+Para obtener más información sobre las instantáneas generadas por ARP, incluidos los cambios añadidos por versión de ONTAP, consulta <<Instantáneas de ARP>>.
 
 
 
@@ -227,9 +231,21 @@ Puede ver información sobre amenazas moderadas en la sección *Eventos* de Syst
 
 ARP crea una instantánea cuando se detectan los primeros signos de un ataque. Posteriormente, se realiza un análisis detallado para confirmar o descartar el posible ataque.  Dado que las instantáneas ARP se crean de forma proactiva incluso antes de que se confirme por completo un ataque, también podrían generarse a intervalos regulares para ciertas aplicaciones legítimas. La presencia de estas instantáneas no debe considerarse una anomalía.  Si se confirma un ataque, la probabilidad del ataque se incrementa a `Moderate` y se genera una notificación de ataque.
 
-A partir de ONTAP 9.17.1, se generan instantáneas de ARP a intervalos regulares para los volúmenes NAS y SAN, así como en respuesta a anomalías detectadas. ONTAP antepone un nombre a la instantánea ARP para facilitar su identificación.
+.Diferencias de instantáneas ARP por versión
+* *Modificar la configuración de retención*: A partir de ONTAP 9.11.1, puedes link:modify-automatic-snapshot-options-task.html["modificar la configuración de retención de las instantáneas"].
+* *Intervalos y respuesta ante anomalías*: A partir de ONTAP 9.17.1, las instantáneas ARP se generan a intervalos regulares tanto para volúmenes NAS como SAN, así como en respuesta a anomalías detectadas, que siempre ha sido la respuesta estándar. ONTAP antepone un nombre a la instantánea ARP para que sea fácilmente identificable.
+* *SnapMirror synchronous y active sync*: A partir de ONTAP 9.19.1 RC, las instantáneas ARP creadas para volúmenes que participan en relaciones de SnapMirror synchronous o SnapMirror active sync siguen estas reglas adicionales:
++
+** Las instantáneas ARP se crean y conservan en el volumen primario.
+** Las instantáneas ARP no se replican en el secundario como parte de SnapMirror synchronous o SnapMirror active sync. Necesitas link:enable-task.html["habilitar ARP de nuevo"] en el volumen de recuperación después de la conmutación por error.
 
-A partir de ONTAP 9.11.1, puede modificar la configuración de retención. Para obtener más información, consulte link:modify-automatic-shapshot-options-task.html["Modifique las opciones de snapshots"] .
+
+
+
+
+NOTE: La restauración a nivel de volumen (`volume snapshot restore` en volúmenes SAN síncronos SnapMirror o de sincronización activa SnapMirror puede requerir que temporalmente pongas en pausa o interrumpas la relación síncrona SnapMirror o de sincronización activa SnapMirror. En muchos casos, puedes evitar interrumpir SnapMirror síncrono o de sincronización activa SnapMirror usando FlexClone u operaciones de restauración a nivel de archivo desde ARP u otras snapshots en el volumen primario.
+
+link:use-cases-restrictions-concept.html#snapmirror["Más información sobre la compatibilidad con SnapMirror synchronous y SnapMirror active sync"].
 
 La siguiente tabla resume las diferencias de instantáneas ARP por versión.
 

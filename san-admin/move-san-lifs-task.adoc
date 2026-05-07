@@ -2,16 +2,25 @@
 permalink: san-admin/move-san-lifs-task.html 
 sidebar: sidebar 
 keywords: move, san, lifs 
-summary: Si es necesario desconectar un nodo, puedes mover un SAN LIF para conservar su información de configuración, como su WWPN, y evitar la rezonificación de la estructura de conmutación. Como un SAN LIF debe desconectarse antes de moverlo, el tráfico del host debe depender del software de multivía del host para proporcionar acceso sin interrupciones al LUN. Puedes mover los SAN LIF a cualquier nodo de un clúster, pero no puedes mover los SAN LIF entre máquinas virtuales de almacenamiento. 
+summary: Si es necesario desconectar un nodo, puedes mover un SAN LIF para conservar su información de configuración, como su WWPN, y evitar la rezonificación de la estructura de conmutación. 
 ---
-= Mover un LIF SAN
+= Mover una LIF SAN de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Si un nodo tiene que desconectarse, puede mover un LIF SAN para conservar la información de configuración, como su WWPN, y evitar volver a dividir en zonas la estructura de switches. Como hay que desconectar un LIF SAN antes de trasladarlo, el tráfico del host debe depender de software multivía del host para ofrecer un acceso no disruptivo a la LUN. Puede mover LIF SAN a cualquier nodo de un clúster, pero no puede mover estas entre máquinas virtuales de almacenamiento (SVM).
+Si es necesario desconectar un nodo, puedes mover un SAN LIF para conservar su información de configuración, como su WWPN. Mover un LIF no requiere volver a zonificar tu estructura FC ni crear nuevas sesiones iSCSI entre los hosts del clúster y la interfaz de destino. Puedes mover SAN LIFs a cualquier nodo del clúster, pero no entre máquinas virtuales de almacenamiento (SVM).
+
+Puedes mover un LIF para hacer lo siguiente sin interrupciones:
+
+* Sustituir un par de HA de un clúster por un par de HA actualizado de forma transparente para los hosts que acceden a datos de LUN o namespace
+* Actualizar una tarjeta de interfaz de destino
+* Traslade los recursos de una máquina virtual de almacenamiento (SVM) de un conjunto de nodos de un clúster a otro conjunto de nodos del clúster
+
+
+No puedes mover un SAN LIF usando el comando `network interface move`. Para mover un SAN LIF, tienes que ponerlo fuera de línea, moverlo a un nuevo nodo o puerto de origen y luego volver a ponerlo en línea. Como un SAN LIF debe ponerse fuera de línea antes de moverlo, el tráfico del host debe depender del software de multivía del host para proporcionar acceso sin interrupciones al LUN y así evitar cualquier interrupción de E/S.
 
 .Antes de empezar
 Si el LIF es miembro de un conjunto de puertos, es necesario haber eliminado el LIF del conjunto de puertos antes de poder mover el LIF a un nodo diferente.
@@ -22,31 +31,38 @@ El nodo de destino y el puerto físico de un LIF que desee mover deben estar en 
 .Pasos
 . Vea el estado administrativo y operativo de la LIF:
 +
-`network interface show -vserver _vserver_name_`
-
+[source, cli]
+----
+network interface show -vserver <SVM_name>
+----
 +
 Obtenga más información sobre `network interface show` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html["Referencia de comandos del ONTAP"^].
 
 . Cambie el estado de la LIF a `down` (sin conexión):
 +
-`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -status-admin down`
-
+[source, cli]
+----
+network interface modify -vserver <SVM_name> -lif <LIF_name> -status-admin down
+----
 +
 Obtenga más información sobre `network interface modify` en el link:https://docs.netapp.com/us-en/ontap-cli/network-interface-modify.html["Referencia de comandos del ONTAP"^].
 
 . Asigne a la LIF un nodo y un puerto nuevos:
 +
-`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -home-node _node_name_ -home-port _port_name_`
-
+[source, cli]
+----
+network interface modify -vserver <SVM_name> -lif <LIF_name> -home-node <node_name> -home-port <port_name>
+----
 . Cambie el estado de la LIF a `up` (en línea):
 +
-`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -status-admin up`
-
-+
-Obtenga más información sobre `up` en el link:https://docs.netapp.com/us-en/ontap-cli/up.html["Referencia de comandos del ONTAP"^].
-
+[source, cli]
+----
+network interface modify -vserver <SVM_name> -lif <LIF_name> -status-admin up
+----
 . Compruebe los cambios:
 +
-`network interface show -vserver _vserver_name_`
-
+[source, cli]
+----
+network interface show -vserver <SVM_name>
+----
 

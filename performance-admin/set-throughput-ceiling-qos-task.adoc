@@ -13,14 +13,40 @@ summary: Un límite máximo de QoS o de rendimiento garantiza que el rendimiento
 [role="lead"]
 Un máximo de QoS o techo de rendimiento garantiza que el rendimiento de una carga de trabajo no supere un número máximo de IOPS o MBps, o IOPS y MBps independientemente de las cargas de trabajo en competencia. Establece un techo de rendimiento para evitar que las cargas de trabajo menos críticas consuman recursos de rendimiento excesivos y degraden el rendimiento de las cargas de trabajo más críticas.
 
-Puede usar el `max-throughput` campo de un grupo de políticas para definir un techo de rendimiento para las cargas de trabajo del objeto de almacenamiento (QoS máx.). Puede aplicar el grupo de políticas cuando crea o modifica el objeto de almacenamiento.
+Puedes especificar el límite de rendimiento cuando creas un grupo de políticas QoS o puedes esperar hasta que monitorees tus cargas de trabajo para especificarlo.
+
+link:guarantee-throughput-qos-task.html["Más información sobre techos de rendimiento"].
 
 .Antes de empezar
-* Debes ser un administrador de clúster para crear un grupo de políticas y aplicar un grupo de políticas a una SVM.
+* Debes ser administrador del clúster para crear un grupo de políticas y aplicarlo a una SVM.
 
 
 .Acerca de esta tarea
-* A partir de ONTAP 9.4, puede usar un grupo de políticas _no compartido_ QoS para especificar que el techo de rendimiento definido se aplique a la carga de trabajo de cada miembro de forma individual. De lo contrario, el grupo de políticas es _shared:_ el rendimiento total de las cargas de trabajo asignadas al grupo de políticas no puede superar el límite máximo especificado.
+* Los grupos de políticas de QoS adaptables y no adaptables se activan automáticamente para aumentar temporalmente el límite máximo de rendimiento de una carga de trabajo en un 50% durante 1 segundo para responder a demandas elevadas de rendimiento a corto plazo de forma predeterminada. A partir de ONTAP 9.19.1, puedes modificar esta configuración predeterminada. En ONTAP 9.18.1 y versiones anteriores, esta configuración no se puede modificar.
++
+Usa las siguientes opciones para modificar la configuración predeterminada:
+
++
+[cols="3"]
+|===
+| Opción | Descripción | Configuración predeterminada 
+
+
+ a| 
+`burst-percent`
+| Porcentaje de aumento del rendimiento | 50% 
+
+
+ a| 
+`burst duration`
+| Duración del aumento de caudal en segundos | 1 segundo 
+
+
+ a| 
+`burst-iops`
+| Número máximo de IOPs por encima del límite de rendimiento para la duración de ráfaga especificada | 0 
+|===
+* Puedes usar un grupo de políticas de QoS _no compartido_ para especificar que el límite de rendimiento definido se aplica a cada carga de trabajo miembro de forma individual. De lo contrario, el grupo de políticas es _compartido:_ el rendimiento total de las cargas de trabajo asignadas al grupo de políticas no puede superar el límite especificado.
 +
 Defina `-is-shared=false` para `qos policy-group create` que el comando especifique un grupo de políticas no compartido.
 
@@ -82,9 +108,6 @@ Obtenga más información sobre `qos policy-group modify` en el link:https://doc
 ----
 vserver create -vserver <SVM> -qos-policy-group <policy_group>
 ----
-+
-Puedes usar el comando `vserver modify` para aplicar un grupo de políticas diferente al objeto de almacenamiento.
-
 +
 El siguiente ejemplo aplica la policy group `pg-vs1` a SVM `vs1`:
 
@@ -163,9 +186,40 @@ _USERSPACE_APPS     14       55        10.92KB/s   236.00us
 _Scan_Backgro..   5688       20            0KB/s        0ms
 ----
 +
+A continuación se muestra un ejemplo de salida para una carga de trabajo con max-throughput establecido en 2000 IOPS y burst-percent establecido en 25 para una duración de ráfaga de 5 segundos.
+
++
+[listing]
+----
+cluster1::> qos statistics workload performance show -workload test_vol_nfs_pct25-wid54260
+
+Workload	                ID	    IOPS
+--------------------------- -----   ----
+test_vol_nfs_pct25-wid54260	54260	2564
+-total-	-	                        3704
+test_vol_nfs_pct25-wid54260	54260	2527
+-total-	-	                        3105
+test_vol_nfs_pct25-wid54260	54260	2550
+-total-	-	                        3445
+test_vol_nfs_pct25-wid54260	54260	2476
+-total-	-	                        3460
+test_vol_nfs_pct25-wid54260	54260	2479
+-total-	-	                        3511
+test_vol_nfs_pct25-wid54260	54260	1996
+-total-	-	                        2197
+test_vol_nfs_pct25-wid54260	54260	2068
+-total-	-	                        2057
+test_vol_nfs_pct25-wid54260	54260	2087
+-total-	-	                        3119
+
+----
++
 Obtenga más información sobre `qos statistics workload performance show` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-performance-show.html["Referencia de comandos del ONTAP"^].
 
 +
-Puede utilizar `qos statistics workload latency show` el comando para ver estadísticas detalladas de latencia de las cargas de trabajo de calidad de servicio. Obtenga más información sobre `qos statistics workload latency show` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html["Referencia de comandos del ONTAP"^].
+Puedes usar el comando `qos statistics workload latency show` para ver estadísticas detalladas de latencia para cargas de trabajo QoS.
+
++
+Conoce más sobre  `qos statistics workload latency show` en el link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html["Referencia de comandos del ONTAP"^].
 
 
