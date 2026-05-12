@@ -111,6 +111,119 @@ network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -state up
 
 
 
+== Configura adaptadores FC para conexión directa a hosts FC y FC-NVMe
+
+A partir de ONTAP 9.19.1, no es necesario un switch FC para establecer conexiones entre hosts FC y FC-NVMe y el almacenamiento ONTAP. Los hosts se pueden conectar directamente a puertos adaptadores FC en sistemas AFF, ASA, ASA r2 y FAS. La capacidad de conexión directa puede ser especialmente valiosa en sitios remotos y entornos híbridos en los que la simplicidad es clave. Debes poner el puerto FC fuera de línea y modificar su topología antes de poder conectarlo directamente a un host.
+
+Los puertos FC utilizados en configuraciones de conexión directa tienen las siguientes restricciones:
+
+* El puerto solo puede asignarse a una VM de almacenamiento (SVM).
+* Sólo se puede asignar una interfaz de red (LIF) al puerto después de configurarlo para la conexión directa.
+* El puerto puede admitir el protocolo FC o el protocolo FC-NVMe, pero no ambos.
+
+
+.Antes de empezar
+Debe ser un administrador de clústeres.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. En System Manager, selecciona *Red > Puertos FC*.
+. Selecciona image:icon_kabob.gif["icono de selección"] junto al puerto que quieres configurar para la conexión directa y luego selecciona *Editar topología*.
+. En *Topología*, selecciona *Directa* y luego selecciona *Quiero cambiar la topología y desconectar el puerto*.
+. Selecciona *Guardar.*
+. Conecta el cable del puerto de destino directamente al iniciador del host.
+. Si tienes un sistema ASA r2, sigue link:https://docs.netapp.com/us-en/asa-r2/administer/manage-client-vm-access.html#create-a-lif-network-interface["este procedimiento de System Manager"^] para crear una LIF. Si tienes un sistema AFF, ASA o FAS, sigue estos pasos para crear una LIF:
++
+.. Selecciona *Red > Interfaces* y luego selecciona image:icon_add.gif["añadir icono"].
+.. Selecciona el protocolo FC o NVMe/FC.
+.. Nombra el LIF o acepta el nombre generado por ONTAP.
+.. Si hay al menos una subred configurada, puedes seleccionar una subred para el LIF.
+.. Si no seleccionas una subred, puedes especificar la dirección IP y la máscara de subred para el dominio de difusión.
+.. Selecciona el puerto de origen del dominio de difusión.
++
+El control del puerto de origen se muestra en función del dominio de difusión o de la selección de subred
+
+.. Seleccione *Guardar*.
++
+El puerto se pone en línea automáticamente cuando se crea la LIF.
+
+
+
+
+
+.El futuro
+En System Manager, selecciona *Network > FC ports* y luego verifica que la *Topology* se muestre como *Direct*.
+
+--
+.CLI
+--
+. Verifica que el puerto que quieres usar para la conexión directa admite la topología directa:
++
+[source, cli]
+----
+network fcp adapter show -fields topologies-supported
+----
+. Ver el estado administrativo y operativo del LIF utilizado para el puerto adaptador:
++
+[source, cli]
+----
+network interface show -vserver <SVM_name>
+----
+. Desconecta el LIF utilizado para el puerto adaptador:
++
+[source, cli]
+----
+network interface modify -vserver <SVM_name> -lif <*---> -status-admin down
+----
+. Retira todos los LIF del puerto adaptador:
++
+[source, cli]
+----
+network interface delete -vserver <SVM_name> -lif <lif_name>,<lif_name>
+----
+. Desconectar el adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter_port> -status-admin down
+----
+. Cambia la topología del puerto adaptador a directa:
++
+[source, cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter_port> -topology direct
+----
+. Conecta el cable del puerto de destino directamente al iniciador del host.
+. Crear una única interfaz LIF:
++
+[source, cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -data protocol fcp|fcp-nvme -home-node <node_name> -home-port <port_name>
+----
++
+El puerto se habilita automáticamente tras la creación de la LIF.
+
+. Verifica que el puerto esté configurado para la conexión directa:
++
+[source, cli]
+----
+network fcp interface show
+----
++
+La topología debería mostrarse como directa.
+
+
+
+--
+====
+.Información relacionada
+* Conoce más sobre link:../san-config/configure-fc-nvme-hosts-ha-pairs-reference.html["Fabrics FC y FC-NVMe y configuraciones de conexión directa"].
+
+
+
+
 == Configurar la velocidad del adaptador de FC
 
 Debe configurar la velocidad de puerto de destino del adaptador para que coincida con la velocidad del dispositivo al que se conecta, en lugar de utilizar la autonegociación. Un puerto configurado para la autonegociación puede tardar más tiempo en reconectar después de una toma de control/devolución u otra interrupción.
@@ -164,4 +277,9 @@ network fcp adapter modify -node node1 -adapter 0c -state up
 ----
 network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin up
 ----
+
+
+.Información relacionada
+* Conoce más sobre link:limit-lun-access-portsets-igroups-concept.html["Formas de limitar el acceso a LUN con conjuntos de puertos y grupos de iniciadores"].
+* Aprende cómo link:selective-lun-map-concept.html#determine-whether-slm-is-enabled-on-a-lun-map["Asignación de LUN selectiva (SLM)"] limita las rutas que se usan para acceder a los LUNs propiedad de un par de HA.
 
