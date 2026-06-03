@@ -1,18 +1,36 @@
 ---
 permalink: smb-admin/disable-enable-branchcache-task.html 
 sidebar: sidebar 
-keywords: disable, branchcache, storage, virtual, machine, svm, changing, change, operating, mode, disable, operate, per-share, automatic, disable or enable branchcache 
+keywords: disable, enable, branchcache, storage, virtual, machine, svm, changing, change, operating, mode, operate, per-share, automatic, branch, office, client, cache 
 summary: Puedes desactivar BranchCache en la máquina virtual de almacenamiento cambiando el modo de funcionamiento de BranchCache a desactivado. Puedes activar BranchCache en cualquier momento cambiando el modo de funcionamiento para ofrecer servicios BranchCache por recurso compartido o automáticamente para todos los recursos compartidos. 
 ---
-= Deshabilitar o habilitar BranchCache en recursos compartidos SMB de ONTAP
+= Desactivar o activar BranchCache en una ONTAP SVM
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Es posible deshabilitar BranchCache en la máquina virtual de almacenamiento (SVM) si se cambia el modo operativo de BranchCache a `disabled`. Puede habilitar BranchCache en cualquier momento cambiando el modo operativo para ofrecer servicios de BranchCache por recurso compartido o automáticamente para todos los recursos compartidos.
+Si configuraste previamente BranchCache pero no quieres que los clientes de la sucursal usen contenido en caché, puedes desactivar el almacenamiento en caché en el servidor CIFS. Debes saber qué sucede cuando desactivas BranchCache. Puedes desactivar BranchCache en la máquina virtual de almacenamiento cambiando el modo de funcionamiento de BranchCache a desactivado. Puedes activar BranchCache en cualquier momento cambiando el modo de funcionamiento para ofrecer servicios de BranchCache por recurso compartido o automáticamente para todos los recursos compartidos.
 
+Cuando deshabilita BranchCache, ONTAP ya no calcula los hash ni envía los metadatos al cliente solicitante. Sin embargo, no se interrumpe el acceso a los archivos. A partir de entonces, cuando los clientes habilitados para BranchCache solicitan información de metadatos sobre el contenido al que desean acceder, ONTAP responde con un error definido por Microsoft, lo que hace que el cliente envíe una segunda solicitud al contenido real. En respuesta a la solicitud de contenido, el servidor CIFS envía el contenido real almacenado en la máquina virtual de almacenamiento (SVM).
+
+Una vez que se deshabilita BranchCache en el servidor CIFS, los recursos compartidos de SMB no anuncian las funcionalidades de BranchCache. Para acceder a los datos de nuevas conexiones SMB, los clientes realizan solicitudes de lectura SMB normales.
+
+Puede volver a habilitar BranchCache en el servidor CIFS en cualquier momento.
+
+* Dado que el almacén hash no se elimina cuando deshabilita BranchCache, ONTAP puede usar los hash almacenados al responder a las solicitudes hash una vez que vuelva a habilitar BranchCache, siempre y cuando el hash solicitado siga siendo válido.
+* Todos los clientes que hayan establecido conexiones SMB a recursos compartidos habilitados con BranchCache durante el momento en el que se deshabilitó BranchCache no obtienen compatibilidad con BranchCache si se vuelve a habilitar BranchCache después.
++
+Esto se debe a que ONTAP anuncia el soporte de BranchCache para un recurso compartido en el momento de la configuración de la sesión del SMB. Los clientes que establecieron sesiones con recursos compartidos habilitados para BranchCache mientras BranchCache estaba deshabilitado necesitan desconectar y volver a conectarse para usar el contenido en caché para este recurso compartido.
+
+
+
+[NOTE]
+====
+Si no desea guardar el almacén hash después de deshabilitar BranchCache en un servidor CIFS, puede eliminarlo en forma manual. Si vuelve a habilitar BranchCache, debe asegurarse de que exista el directorio de almacén hash. Una vez que se vuelve a habilitar BranchCache, los recursos compartidos con BranchCache habilitados anuncian las funcionalidades de BranchCache. ONTAP crea nuevos hash a medida que las nuevas solicitudes las realizan los clientes habilitados para BranchCache.
+
+====
 .Pasos
 . Ejecute el comando apropiado:
 +

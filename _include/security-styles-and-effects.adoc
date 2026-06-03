@@ -9,36 +9,43 @@ Es importante entender que los estilos de seguridad no determinan qué tipos de 
 
 Por ejemplo, si un volumen utiliza el estilo de seguridad UNIX, los clientes SMB todavía pueden acceder a los datos (siempre y cuando estos se autentiquen y autoricen correctamente) debido a la naturaleza multiprotocolo de ONTAP. Sin embargo, ONTAP utiliza permisos UNIX que sólo los clientes UNIX pueden modificar mediante herramientas nativas.
 
-[cols="5*"]
+[cols="5"]
 |===
 | Estilo de seguridad | Clientes que pueden modificar permisos | Permisos que pueden utilizar los clientes | El estilo de seguridad efectivo resultante | Clientes que pueden acceder a los ficheros 
 
 
-.2+| UNIX .2+| NFS | Bits del modo NFSv3 .2+| UNIX .9+| NFS y SMB 
+| UNIX | NFS  a| 
+* Bits del modo NFSv3
+* ACL de NFSv4.x
+
+| UNIX | NFS y SMB 
 
 
-| ACL de NFSv4.x 
+| NTFS | SMB | ACL de NTFS | NTFS | NFS y SMB 
 
 
-| NTFS | SMB | ACL de NTFS | NTFS 
+| Mixto | NFS o SMB  a| 
+* Bits del modo NFSv3
+* ACL de NFSv4.x
+* ACL de NTFS
+
+ a| 
+* UNIX (para bits de modo NFSv3 y ACLs NFSv4.x)
+* NTFS (para ACL NTFS)
+
+| NFS y SMB 
 
 
-.3+| Mixto .3+| NFS o SMB | Bits del modo NFSv3 .2+| UNIX 
+| Unificado (solo para Infinite Volume, en ONTAP 9.4 y versiones anteriores). | NFS o SMB  a| 
+* Bits del modo NFSv3
+* ACL de NFSv4.1
+* ACL de NTFS
 
+ a| 
+* UNIX (para bits de modo NFSv3 y ACLs NFSv4.1)
+* NTFS (para ACL NTFS)
 
-| NFSv4.ACLs 
-
-
-| ACL de NTFS | NTFS 
-
-
-.3+| Unificado (solo para Infinite Volume, en ONTAP 9.4 y versiones anteriores). .3+| NFS o SMB | Bits del modo NFSv3 .2+| UNIX 
-
-
-| ACL de NFSv4.1 
-
-
-| ACL de NTFS | NTFS 
+| NFS y SMB 
 |===
 Los volúmenes de FlexVol son compatibles con UNIX, NTFS y estilos de seguridad mixtos. Cuando el estilo de seguridad es mixto o unificado, los permisos efectivos dependen del tipo de cliente que modificó por última vez los permisos porque los usuarios establecen el estilo de seguridad de forma individual. Si el último cliente que modificó permisos era un cliente NFSv3, los permisos son bits del modo NFSv3 de UNIX. Si el último cliente era un cliente NFSv4, los permisos son ACL de NFSv4. Si el último cliente era un cliente SMB, los permisos son ACL de Windows NTFS.
 

@@ -4,17 +4,30 @@ sidebar: sidebar
 keywords: offer, caching, service, certain, share, offer, cache, disable, branchcache, exist, smb, disable branchcache on a single smb share 
 summary: Si no desea ofrecer servicios de almacenamiento en caché en determinados recursos compartidos que anteriormente ofrecían contenido en caché, puede deshabilitar BranchCache en un recurso compartido de SMB existente. 
 ---
-= Deshabilitar BranchCache en un solo recurso compartido SMB de ONTAP
+= Deshabilite BranchCache en los recursos compartidos SMB
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
+Si no desea proporcionar servicios de almacenamiento en caché de BranchCache en ciertos recursos compartidos de SMB, pero quizás desee proporcionar servicios de almacenamiento en caché en esos recursos compartidos más tarde, puede deshabilitar BranchCache en función de su recurso compartido. Si tiene BranchCache configurado para ofrecer almacenamiento en caché en todos los recursos compartidos pero desea deshabilitar temporalmente todos los servicios de almacenamiento en caché, puede modificar la configuración de BranchCache para detener el almacenamiento en caché automático en todos los recursos compartidos.
+
+Si BranchCache en un recurso compartido de SMB se deshabilita después de haber habilitado por primera vez, ONTAP deja de enviar metadatos al cliente que lo solicita. Un cliente que necesita datos los recupera directamente del servidor de contenido (servidor CIFS en la máquina virtual de almacenamiento (SVM)).
+
+
+
+== Deshabilitar BranchCache en un solo recurso compartido SMB de ONTAP
+
 Si no desea ofrecer servicios de almacenamiento en caché en determinados recursos compartidos que anteriormente ofrecían contenido en caché, puede deshabilitar BranchCache en un recurso compartido de SMB existente.
 
 .Paso
-. Introduzca el siguiente comando: `vserver cifs share properties remove -vserver vserver_name -share-name share_name -share-properties branchcache`
+. Introduzca el siguiente comando:
++
+[source, cli]
+----
+vserver cifs share properties remove -vserver <SVM_name> -share-name <share_name> -share-properties branchcache
+----
 +
 Se elimina la propiedad compartida de BranchCache. Otras propiedades de recursos compartidos aplicadas permanecen en vigor.
 
@@ -68,3 +81,45 @@ File Attribute Cache Lifetime: 10s
                 Offline Files: manual
 Vscan File-Operations Profile: standard
 ----
+
+
+== Detener el almacenamiento en caché automático en todos los recursos compartidos SMB de ONTAP
+
+Si la configuración de BranchCache habilita automáticamente el almacenamiento en caché en todos los recursos compartidos SMB en cada máquina virtual de almacenamiento (SVM), puede modificar la configuración de BranchCache para detener el almacenamiento en caché automático de contenido para todos los recursos compartidos SMB.
+
+.Acerca de esta tarea
+Para detener el almacenamiento en caché automático en todos los recursos compartidos SMB, debe cambiar el modo operativo de BranchCache a almacenamiento en caché por recurso compartido.
+
+.Pasos
+. Configura BranchCache para detener el almacenamiento automático en caché en todos los recursos compartidos SMB:
++
+[source, cli]
+----
+vserver cifs branchcache modify -vserver <SVM_name> -operating-mode per-share
+----
+. Verifica que la configuración de BranchCache sea correcta:
++
+[source, cli]
+----
+vserver cifs branchcache show -vserver <SVM_name>
+----
+
+
+.Ejemplo
+El siguiente comando cambia la configuración de BranchCache en una máquina virtual de almacenamiento (SVM, antes conocida como Vserver) vs1 para detener el almacenamiento en caché automático en todos los recursos compartidos SMB:
+
+[listing]
+----
+cluster1::> vserver cifs branchcache modify -vserver vs1 -operating-mode per-share
+
+cluster1::> vserver cifs branchcache show -vserver vs1
+
+                                 Vserver: vs1
+          Supported BranchCache Versions: enable_all
+                      Path to Hash Store: /hash_data
+          Maximum Size of the Hash Store: 20GB
+Encryption Key Used to Secure the Hashes: -
+        CIFS BranchCache Operating Modes: per_share
+----
+.Información relacionada
+xref:configure-branchcache-enabled-shares-concept.adoc[Obtenga información sobre cómo configurar recursos compartidos habilitados para BranchCache]

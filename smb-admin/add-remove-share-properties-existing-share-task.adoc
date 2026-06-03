@@ -11,14 +11,94 @@ summary: Puede personalizar un recurso compartido SMB existente agregando o quit
 
 
 [role="lead"]
-Puede personalizar un recurso compartido SMB existente agregando o quitando propiedades de recurso compartido. Esto puede ser útil para cambiar la configuración de recursos compartidos con el fin de satisfacer los requisitos en constante cambio del entorno.
+Puedes personalizar un recurso compartido SMB existente añadiendo o eliminando propiedades del recurso compartido.
+
+Las propiedades de recursos compartidos disponibles son las siguientes:
+
+[cols="2,4"]
+|===
+| Comparta propiedades | Descripción 
+
+
+ a| 
+`oplocks`
+ a| 
+Esta propiedad especifica que el recurso compartido utiliza bloqueos oportunistas, también conocidos como almacenamiento en caché en el cliente.
+
+
+
+ a| 
+`browsable`
+ a| 
+Esta propiedad permite a los clientes de Windows examinar el recurso compartido.
+
+
+
+ a| 
+`showsnapshot`
+ a| 
+Esta propiedad especifica que los clientes pueden ver y recorrer las instantáneas.
+
+
+
+ a| 
+`changenotify`
+ a| 
+Esta propiedad especifica que el recurso compartido admite peticiones de notificación de cambio. Para los recursos compartidos en una SVM, esta es una propiedad inicial predeterminada.
+
+
+
+ a| 
+`attributecache`
+ a| 
+Esta propiedad permite que el atributo de archivo que almacena en caché en el recurso compartido SMB proporcione un acceso más rápido a los atributos. El valor predeterminado es deshabilitar el almacenamiento en caché de atributos. Esta propiedad debe estar habilitada sólo si hay clientes que se conectan a recursos compartidos a través de SMB 1.0. Esta propiedad de recurso compartido no es aplicable si los clientes se conectan a recursos compartidos a través de SMB 2.x o SMB 3.0.
+
+
+
+ a| 
+`continuously-available`
+ a| 
+Esta propiedad permite a los clientes SMB que lo admiten abrir archivos de una forma persistente. Los archivos abiertos de esta manera están protegidos contra eventos disruptivos, como la conmutación por error y la devolución.
+
+
+
+ a| 
+`branchcache`
+ a| 
+Esta propiedad especifica que el recurso compartido permite a los clientes solicitar hash de BranchCache en los archivos dentro de este recurso compartido. Esta opción solo es útil si se especifica «'por recurso compartido» como modo operativo en la configuración de BranchCache CIFS.
+
+
+
+ a| 
+`access-based-enumeration`
+ a| 
+Esta propiedad especifica que _Access Based Enumeration_ (ABE) está habilitado en este recurso compartido. Las carpetas compartidas filtradas POR ABE son visibles para un usuario en función de los derechos de acceso de ese usuario individual, lo que impide la visualización de carpetas u otros recursos compartidos a los que el usuario no tiene derechos de acceso.
+
+
+
+ a| 
+`namespace-caching`
+ a| 
+Esta propiedad especifica que los clientes SMB que se conectan a este recurso compartido pueden almacenar en caché los resultados de enumeración de directorios que devuelven los servidores CIFS, lo que puede proporcionar un mejor rendimiento. De forma predeterminada, los clientes de SMB 1 no almacenan en caché los resultados de la enumeración de directorios. Dado que los resultados de enumeración de directorios de caché de los clientes SMB 2 y SMB 3 son los mismos, al especificar esta propiedad de recurso compartido, se proporcionan ventajas de rendimiento solo para las conexiones de cliente SMB 1.
+
+
+
+ a| 
+`encrypt-data`
+ a| 
+Esta propiedad especifica que se debe utilizar el cifrado SMB al acceder a este recurso compartido. Los clientes de SMB que no admiten cifrado al acceder a los datos de SMB no podrán acceder a este recurso compartido.
+
+|===
+
+
+== Añade propiedades de recurso compartido en recursos compartidos SMB de ONTAP existentes
+
+Puedes personalizar un recurso compartido SMB existente añadiendo propiedades de recurso compartido. Esto puede ser útil si quieres cambiar la configuración del recurso compartido para satisfacer los requisitos cambiantes de tu entorno.
 
 .Antes de empezar
 Debe existir el recurso compartido cuyas propiedades desea modificar.
 
 .Acerca de esta tarea
-Directrices para añadir propiedades de recurso compartido:
-
 * Puede agregar una o más propiedades de recursos compartidos mediante una lista delimitada por comas.
 * Todas las propiedades de recurso compartido que haya especificado anteriormente permanecen vigentes.
 +
@@ -31,36 +111,22 @@ Puede utilizar el `vserver cifs share properties remove` comando para eliminar p
 
 
 
-Directrices para eliminar propiedades de recurso compartido:
-
-* Puede quitar una o varias propiedades de recursos compartidos mediante una lista delimitada por comas.
-* Las propiedades de recurso compartido que ha especificado previamente pero no las quita permanecen vigentes.
-
-
 .Pasos
-. Introduzca el comando correspondiente:
+. Agrega propiedades de recursos compartidos:
 +
-|===
-| Si desea... | Introduzca el comando... 
+[source, cli]
+----
+vserver cifs share properties add -vserver <SVM_name> -share-name <share_name> -share-properties <properties>,...
+----
+. Verifica la configuración de las propiedades compartidas:
++
+[source, cli]
+----
+vserver cifs share show -vserver vserver_name -share-name share_name
+----
 
 
- a| 
-Añada propiedades de recurso compartido
- a| 
-`+vserver cifs share properties add -vserver _vserver_name_ -share-name _share_name_ -share-properties _properties_,...+`
-
-
-
- a| 
-Quite las propiedades de uso compartido
- a| 
-`+vserver cifs share properties remove -vserver _vserver_name_ -share-name _share_name_ -share-properties _properties_,...+`
-
-|===
-. Compruebe la configuración de la propiedad de recurso compartido: `vserver cifs share show -vserver vserver_name -share-name share_name`
-
-
-.Ejemplos
+.Ejemplo
 El siguiente comando agrega la `showsnapshot` propiedad de recurso compartido a un recurso compartido denominado “hare1” en SVM VS1:
 
 [listing]
@@ -75,6 +141,33 @@ vs1        share1  /share1   oplocks      -          Everyone / Full Control
                              changenotify
                              showsnapshot
 ----
+
+
+== Eliminar propiedades de recurso compartido en recursos compartidos SMB de ONTAP existentes
+
+Puedes personalizar un recurso compartido SMB existente eliminando las propiedades del recurso compartido. Esto puede ser útil si quieres cambiar la configuración del recurso compartido para satisfacer los requisitos cambiantes de tu entorno.
+
+.Acerca de esta tarea
+* Puede quitar una o varias propiedades de recursos compartidos mediante una lista delimitada por comas.
+* Las propiedades de recurso compartido que ha especificado previamente pero no las quita permanecen vigentes.
+
+
+.Pasos
+. Eliminar propiedades compartidas:
++
+[source, cli]
+----
+vserver cifs share properties remove -vserver <SVM_name> -share-name <share_name> -share-properties <properties>,...
+----
+. Verifica la configuración de las propiedades compartidas:
++
+[source, cli]
+----
+vserver cifs share show -vserver <SVM_name> -share-name <share_name>
+----
+
+
+.Ejemplo
 El siguiente comando elimina la `browsable` propiedad de recurso compartido de un recurso compartido denominado «hare2» en SVM VS1:
 
 [listing]

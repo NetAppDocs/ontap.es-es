@@ -2,7 +2,7 @@
 permalink: smb-admin/configure-branchcache-task.html 
 sidebar: sidebar 
 keywords: configure, branchcache, service, per-share, basis, smb, share, configure branchcache on the cifs server 
-summary: Puede configurar BranchCache para proporcionar servicios de BranchCache por recurso compartido. Como alternativa, puede configurar BranchCache para habilitar automáticamente el almacenamiento en caché en todos los recursos compartidos de SMB. 
+summary: Puedes configurar BranchCache para recursos compartidos individuales o para todos los recursos compartidos SMB. Si eliges la configuración por recurso compartido, debes activar BranchCache en cada recurso compartido SMB que deba proporcionar almacenamiento en caché. 
 ---
 = Configurar BranchCache en servidores SMB de ONTAP
 :allow-uri-read: 
@@ -11,7 +11,17 @@ summary: Puede configurar BranchCache para proporcionar servicios de BranchCache
 
 
 [role="lead"]
-Puede configurar BranchCache para proporcionar servicios de BranchCache por recurso compartido. Como alternativa, puede configurar BranchCache para habilitar automáticamente el almacenamiento en caché en todos los recursos compartidos de SMB.
+Para usar BranchCache, tienes que configurar tus clientes y, si es necesario, los servidores de caché alojados en las sucursales donde se almacenará el contenido en caché. Puedes configurar BranchCache para recursos compartidos individuales o para todos los recursos compartidos SMB. Si eliges la configuración por recurso compartido, tienes que habilitar BranchCache en cada recurso compartido SMB que deba proporcionar almacenamiento en caché. También puedes configurar BranchCache para habilitar el almacenamiento en caché automáticamente en todos los recursos compartidos SMB.
+
+.Antes de empezar
+Debe cumplir los siguientes requisitos antes de configurar BranchCache en el servidor CIFS para la SVM:
+
+* ONTAP debe instalarse en todos los nodos del clúster.
+* CIFS debe tener una licencia y se debe configurar un servidor SMB. La licencia SMB se incluye con link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["ONTAP One"]. Si no tiene ONTAP One y la licencia no está instalada, póngase en contacto con su representante de ventas.
+* Se debe configurar la conectividad de red IPv4 o IPv6.
+* Para BranchCache 1, se debe habilitar SMB 2.1 o una versión posterior.
+* Para BranchCache 2, se debe habilitar SMB 3.0 y los clientes de Windows remotos deben admitir BranchCache 2.
+
 
 .Acerca de esta tarea
 Puede configurar BranchCache en las SVM.
@@ -22,6 +32,7 @@ Puede configurar BranchCache en las SVM.
 
 Debe especificar los siguientes parámetros al configurar BranchCache:
 
+[cols="2,6"]
 |===
 | Parámetros necesarios | Descripción 
 
@@ -45,6 +56,7 @@ La ruta de hash puede contener espacios en blanco y cualquier carácter válido 
 |===
 Opcionalmente, puede especificar los siguientes parámetros:
 
+[cols="2,6"]
 |===
 | Parámetros opcionales | Descripción 
 
@@ -83,24 +95,59 @@ El valor predeterminado es habilitar BranchCache por recurso compartido.
 .Pasos
 . Habilite SMB 2.1 y 3.0 según sea necesario:
 +
-.. Establezca el nivel de privilegio en avanzado: `set -privilege advanced`
-.. Compruebe la configuración de SMB de SVM configurada para determinar si todas las versiones necesarias de SMB están habilitadas: `vserver cifs options show -vserver _vserver_name_`
-.. Si es necesario, habilite SMB 2,1: `vserver cifs options modify -vserver _vserver_name_ -smb2-enabled true`
+.. Configure el nivel de privilegio en Advanced:
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Comprueba la configuración SMB del SVM para determinar si todas las versiones necesarias de SMB están habilitadas:
++
+[source, cli]
+----
+vserver cifs options show -vserver <SVM_name>
+----
+.. Si es necesario, activa SMB 2.1:
++
+[source, cli]
+----
+vserver cifs options modify -vserver <SVM_name> -smb2-enabled true
+----
 +
 El comando habilita SMB 2.0 y SMB 2.1.
 
-.. Si es necesario, habilite SMB 3,0: `vserver cifs options modify -vserver _vserver_name_ -smb3-enabled true`
-.. Vuelva al nivel de privilegio de administrador: `set -privilege admin`
+.. Si es necesario, activa SMB 3.0:
++
+[source, cli]
+----
+vserver cifs options modify -vserver <SVM_name> -smb3-enabled true
+----
+.. Vuelva al nivel de privilegio de administrador:
++
+[source, cli]
+----
+set -privilege admin
+----
 
 
-. Configurar BranchCache: `vserver cifs branchcache create -vserver _vserver_name_ -hash-store-path path [-hash-store-max-size {integer[KB|MB|GB|TB|PB]}] [-versions {v1-enable|v2-enable|enable-all] [-server-key text] -operating-mode {per-share|all-shares}`
+. Configura BranchCache:
++
+[source, cli]
+----
+vserver cifs branchcache create -vserver <SVM_name> -hash-store-path <path> [-hash-store-max-size {integer[KB|MB|GB|TB|PB]}] [-versions {v1-enable|v2-enable|enable-all}] [-server-key <text>] -operating-mode {per-share|all-shares}
+----
 +
 La ruta de almacenamiento hash especificada debe existir y debe residir en un volumen gestionado por la SVM. La ruta también debe ubicarse en un volumen de lectura y escritura. El comando falla si la ruta es de solo lectura o no existe.
 
 +
 Si desea usar la misma clave de servidor para configuraciones de BranchCache adicionales, registre el valor introducido para la clave de servidor. La clave de servidor no aparece cuando se muestra información sobre la configuración de BranchCache.
 
-. Compruebe que la configuración de BranchCache sea correcta: `vserver cifs branchcache show -vserver _vserver_name_`
+. Verifica que la configuración de BranchCache sea correcta:
++
+[source, cli]
+----
+vserver cifs branchcache show -vserver <SVM_name>
+----
 
 
 .Ejemplos
@@ -159,9 +206,15 @@ cluster1::> vserver cifs branchcache show -vserver vs1
 Encryption Key Used to Secure the Hashes: -
         CIFS BranchCache Operating Modes: per_share
 ----
+.El futuro
+Después de configurar BranchCache en el servidor SMB, debe instalar y configurar BranchCache en los equipos cliente y, opcionalmente, en los servidores de almacenamiento en caché de la oficina remota. Microsoft proporciona instrucciones para la configuración de BranchCache en la oficina remota.
+
+Las instrucciones para configurar clientes de sucursal y, de manera opcional, los servidores de almacenamiento en caché que usen BranchCache se encuentran en el sitio web de Microsoft BranchCache.
+
+http://technet.microsoft.com/EN-US/NETWORK/DD425028["Microsoft BranchCache Docs: Novedades"^]
+
 .Información relacionada
 * xref:branchcache-version-support-concept.html[Obtenga más información sobre la compatibilidad de versiones de BranchCache]
-* xref:configure-branchcache-remote-office-concept.adoc[Obtenga información sobre cómo configurar BranchCache en la oficina remota]
 * xref:create-branchcache-enabled-share-task.adoc[Cree un recurso compartido de SMB habilitado con BranchCache]
 * xref:enable-branchcache-existing-share-task.adoc[Habilitar BranchCache en recursos compartidos existentes]
 * xref:modify-branchcache-config-task.html[Modificar las configuraciones de BranchCache en los recursos compartidos]

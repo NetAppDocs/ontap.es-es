@@ -1,0 +1,78 @@
+---
+permalink: smb-admin/configure-metadata-cache-smb.html 
+sidebar: sidebar 
+keywords: enable, smb, metadata, cache, store, path, file, attribute, data, performance, client, workload, how smb metadata caching works 
+summary: Cuando se habilita esta opción, la caché de metadatos del SMB almacena los datos de atributos de archivos y rutas por una cantidad limitada de tiempo. Esto puede mejorar el rendimiento de SMB para los clientes de SMB 1.0 con cargas de trabajo comunes. 
+---
+= Configure la caché de metadatos para los recursos compartidos de SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+El almacenamiento en caché de metadatos permite almacenar en caché atributos de archivos en clientes SMB 1.0 para proporcionar un acceso más rápido a los atributos de archivos y carpetas. Puede habilitar o deshabilitar el almacenamiento en caché de atributos por recurso compartido. También puede configurar el tiempo de espera para las entradas en caché si está activado el almacenamiento en caché de metadatos. No es necesario configurar el almacenamiento en caché de metadatos si los clientes se conectan a recursos compartidos mediante SMB 2.x o SMB 3.0.
+
+Cuando se habilita esta opción, la caché de metadatos del SMB almacena los datos de atributos de archivos y rutas por una cantidad limitada de tiempo. Esto puede mejorar el rendimiento de SMB para los clientes de SMB 1.0 con cargas de trabajo comunes.
+
+En determinadas tareas, SMB crea una cantidad significativa de tráfico que puede incluir varias consultas idénticas para los metadatos de archivos y rutas. Puede reducir el número de consultas redundantes y mejorar el rendimiento de clientes de SMB 1.0 utilizando el almacenamiento en caché de metadatos del SMB para recuperar información de la caché.
+
+[NOTE]
+====
+Si bien es poco probable, es posible que la caché de metadatos proporcione información obsoleta a clientes SMB 1.0. Si su entorno no se puede permitir este riesgo, no debe habilitar esta función.
+
+====
+
+
+== Habilitar la caché de metadatos SMB de ONTAP
+
+Puede mejorar el rendimiento de SMB para los clientes de SMB 1.0 al habilitar la caché de metadatos de SMB. De manera predeterminada, el almacenamiento en caché de metadatos de SMB está deshabilitado.
+
+.Paso
+. Activa el almacenamiento en caché de metadatos SMB en un recurso compartido nuevo o existente:
++
+** Activa el almacenamiento en caché de metadatos SMB cuando crees un nuevo recurso compartido:
++
+[source, cli]
+----
+vserver cifs share create -vserver <SVM_name> -share-name <share_name> -path <path> -share-properties attributecache
+----
+** Activar el almacenamiento en caché de metadatos SMB en un recurso compartido existente:
++
+[source, cli]
+----
+vserver cifs share properties add -vserver <SVM_name> -share-name <share_name> -share-properties attributecache
+----
+
+
+
+
+
+
+== Configurar la duración de las entradas de caché de metadatos SMB de ONTAP
+
+Puede configurar la vida útil de las entradas de la caché de metadatos SMB para optimizar el rendimiento de la caché de metadatos de SMB en su entorno. El valor predeterminado es 10 segundos.
+
+.Antes de empezar
+Debe haber habilitado la función de caché de metadatos SMB. Si el almacenamiento en caché de metadatos de SMB no está habilitado, no se utiliza la configuración TTL de la caché de SMB.
+
+.Paso
+. Configura la duración de las entradas de la caché de metadatos SMB en un recurso compartido nuevo o existente:
++
+** Configura el tiempo de vida de las entradas de la caché de metadatos SMB al crear un nuevo recurso compartido:
++
+[source, cli]
+----
+vserver cifs share create -vserver <SVM_name> -share-name <share_name> -path <path> -attribute-cache-ttl [integerh][integerm][integers]
+----
+** Configura el tiempo de vida de las entradas de la caché de metadatos SMB en un recurso compartido existente:
++
+[source, cli]
+----
+vserver cifs share modify -vserver <SVM_name> -share-name <share_name> -attribute-cache-ttl [integerh][integerm][integers]
+----
+
+
+
+
+Puede especificar propiedades y opciones de configuración de recursos compartidos adicionales al crear o modificar recursos compartidos. Obtenga más información sobre `vserver cifs share` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=vserver+cifs+share["Referencia de comandos del ONTAP"^].
