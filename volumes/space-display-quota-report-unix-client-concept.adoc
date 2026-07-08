@@ -28,3 +28,144 @@ El recuento de bloques incluye los bloques directos e indirectos utilizados para
 El subsistema de cuota está diseñado para considerar e incluir sólo los aspectos controlables por el usuario del sistema de archivos. Los directorios, las ACL y el espacio de instantáneas son ejemplos de espacio excluido de los cálculos de cuotas. Las cuotas se utilizan para imponer límites, no garantías, y sólo funcionan en el sistema de archivos activo. La contabilidad de cuotas no cuenta con ciertas construcciones del sistema de archivos, ni tiene en cuenta la eficiencia del almacenamiento (como la compresión o la deduplicación).
 
 Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].
+
+
+
+== Disparidad entre el comando ls y el informe de cuota para el uso de espacio
+
+Cuando se utiliza `ls` el comando para ver el contenido de un FlexVol volume montado en un cliente UNIX, los tamaños de archivo que se muestran en el resultado pueden diferir del uso que se muestra en el informe de cuotas del volumen, según el tipo de bloques de datos del archivo.
+
+La salida `ls` del comando muestra solo el tamaño de un archivo y no incluye bloques indirectos utilizados por el archivo. Los bloques vacíos del archivo también se incluyen en el resultado del comando.
+
+Por lo tanto, si un archivo no tiene bloques vacíos, el tamaño mostrado por el `ls` comando puede ser menor que el uso de disco especificado por un informe de cuotas debido a la inclusión de bloques indirectos en el informe de cuotas. Por el contrario, si el archivo tiene bloques vacíos, el tamaño mostrado por `ls` el comando puede ser mayor que el uso de disco especificado por el informe de cuotas.
+
+La salida `ls` del comando muestra solo el tamaño de un archivo y no incluye bloques indirectos utilizados por el archivo. Los bloques vacíos del archivo también se incluyen en el resultado del comando.
+
+.Ejemplo de la diferencia entre el uso de espacio contabilizado por el comando ls y un informe de cuota
+[%collapsible]
+====
+En el siguiente informe de cuotas se muestra un límite de 10 MB para un primer trimestre de qtree:
+
+[listing]
+----
+
+                                      ----Disk----  ----Files-----   Quota
+  Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+  -------  --------  ------  -------  -----  -----  ------  ------   ---------
+  vol1     q1          tree    user1   10MB  10MB        1       -   q1
+
+...
+----
+Un archivo presente en el mismo qtree puede tener un tamaño que supere el límite de cuota cuando se ve desde un cliente UNIX utilizando `ls` el comando, como se muestra en el ejemplo siguiente:
+
+[listing]
+----
+[user1@lin-sys1 q1]$ ls -lh
+-rwxr-xr-x  1 user1 nfsuser  **27M** Apr 09  2013 file1
+----
+====
+Obtenga más información sobre `ls` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=ls["Referencia de comandos del ONTAP"^].
+
+
+
+== Aprende cómo el comando df tiene en cuenta el tamaño de los archivos
+
+La forma en que el `df` comando informa el uso de espacio depende de dos condiciones: Si se habilitan o deshabilitan las cuotas en el volumen que contiene el qtree y si se realiza un seguimiento del uso de la cuota dentro del qtree.
+
+Cuando se habilitan las cuotas para el volumen que contiene el qtree y el uso de cuota dentro del qtree, el uso del espacio notificado por `df` el comando equivale al valor especificado en el informe de cuotas. En esta situación, el uso de cuotas excluye los bloques utilizados por directorios, ACL, directorios de flujo y archivos de metadatos.
+
+Cuando las cuotas no están habilitadas en el volumen o cuando el qtree no tiene configurada una regla de cuota, el uso de espacio informado incluye bloques utilizados por directorios, ACL, directorios de flujo y archivos de metadatos para todo el volumen, incluidos otros qtrees dentro del volumen. En esta situación, el uso de espacio informado por `df` el comando es mayor que el valor esperado informado cuando se realiza un seguimiento de las cuotas.
+
+Cuando se ejecuta `df` el comando desde el punto de montaje de un qtree para el que se realiza un seguimiento del uso de cuota, el resultado del comando muestra el mismo uso de espacio que el valor especificado en el informe de cuotas. En la mayoría de los casos, cuando la regla de cuota de árbol tiene un límite de disco duro, el tamaño total informado por el `df` comando es igual al límite de disco y el espacio disponible es igual a la diferencia entre el límite de disco de cuota y el uso de cuota.
+
+Sin embargo, en algunos casos, el espacio disponible notificado por el `df` comando puede igualar el espacio disponible en el volumen como un todo. Esto puede suceder cuando no hay un límite de disco duro configurado para el qtree. A partir de ONTAP 9.9.1, también puede ocurrir cuando el espacio disponible en el conjunto del volumen es menor que el espacio de cuota de árbol restante. Cuando se da alguna de estas condiciones, el tamaño total notificado por `df` el comando es un número sintetizado igual a la cuota utilizada en el qtree más el espacio disponible en la FlexVol volume.
+
+[NOTE]
+====
+Este tamaño total no es ni el límite de disco de qtree ni el tamaño configurado en el volumen. También puede variar en función de la actividad de escritura en otros qtrees o en la actividad de eficiencia del almacenamiento en segundo plano.
+
+====
+.Ejemplo del uso del espacio registrado por el comando <code>df</code> y un informe de cuotas
+[%collapsible]
+====
+El siguiente informe de cuotas muestra un límite de disco de 1 GB para el qtree alice, 2 GB para el qtree bob y sin límite para el proyecto de Qtree.1:
+
+[listing]
+----
+C1_vsim1::> quota report -vserver vs0
+Vserver: vs0
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol2     alice     tree    1
+                                  502.0MB    1GB       2       -   alice
+vol2     bob       tree    2
+                                   1003MB    2GB       2       -   bob
+vol2     project1  tree    3
+                                  200.8MB      -       2       -   project1
+vol2               tree    *           0B      -       0       -   *
+4 entries were displayed.
+----
+En el siguiente ejemplo, el resultado `df` del comando en qtrees alice y bob informa del mismo espacio utilizado que el informe de cuotas, y del mismo tamaño total (en términos de bloques de 1M KB) que el límite de disco. Esto se debe a que las reglas de cuota de los qtrees alice y bob tienen un límite de disco definido y el espacio disponible del volumen (1211 MB) es mayor que el espacio restante de la cuota de árbol para el qtree alice (523 MB) y el qtree bob (1045 MB).
+
+[listing]
+----
+linux-client1 [~]$ df -m /mnt/vol2/alice
+Filesystem          1M-blocks  Used Available Use% Mounted on
+172.21.76.153:/vol2      1024   502       523  50% /mnt/vol2
+
+linux-client1 [~]$ df -m /mnt/vol2/bob
+Filesystem          1M-blocks  Used Available Use% Mounted on
+172.21.76.153:/vol2      2048  1004      1045  50% /mnt/vol2
+----
+En el siguiente ejemplo, la salida del `df` comando en el qtree project1 informa del mismo espacio utilizado que el informe de cuota, pero el tamaño total se sintetiza agregando el espacio disponible en el volumen en su conjunto (1211 MB) al uso de cuota del qtree project1 (201 MB) para proporcionar un total de 1412 MB. Esto se debe a que la regla de cuota para el proyecto de qtree 1 no tiene ningún límite de disco.
+
+[listing]
+----
+linux-client1 [~]$ df -m /mnt/vol2/project1
+Filesystem          1M-blocks  Used Available Use% Mounted on
+172.21.76.153:/vol2      1412   201      1211  15% /mnt/vol2
+----
+En el siguiente ejemplo se muestra cómo el resultado `df` del comando en el volumen en conjunto informa del mismo espacio disponible que project1.
+
+[listing]
+----
+linux-client1 [~]$ df -m /mnt/vol2
+Filesystem          1M-blocks  Used Available Use% Mounted on
+172.21.76.153:/vol2      2919  1709      1211  59% /mnt/vol2
+----
+====
+Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].
+
+
+
+== Discrepancia entre el comando du y el informe de cuotas sobre el uso del espacio
+
+Cuando ejecuta `du` el comando para comprobar el uso de espacio en disco de un qtree o una instancia de FlexVol volume montada en un cliente UNIX, el valor de uso puede ser mayor que el valor que muestra un informe de cuota para el qtree o el volumen.
+
+La salida `du` del comando contiene el uso de espacio combinado de todos los archivos a través del árbol de directorios que comienza en el nivel del directorio en el que se emite el comando. Debido a que el valor de uso mostrado por `du` el comando también incluye los bloques de datos para directorios, es superior al valor mostrado por un informe de cuotas.
+
+.Ejemplo de la diferencia entre el uso de espacio contabilizado por el comando du y un informe de cuota
+[%collapsible]
+====
+En el siguiente informe de cuotas se muestra un límite de 10 MB para un primer trimestre de qtree:
+
+[listing]
+----
+
+                                      ----Disk----  ----Files-----   Quota
+  Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+  -------  --------  ------  -------  -----  -----  ------  ------   ---------
+  vol1     q1        tree    user1    10MB   10MB   1       -        q1
+
+...
+----
+En el ejemplo siguiente, el uso de espacio en disco como resultado `du` del comando muestra un valor mayor que supera el límite de cuota:
+
+[listing]
+----
+[user1@lin-sys1 q1]$ du -sh
+**11M**     q1
+----
+====
+Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].

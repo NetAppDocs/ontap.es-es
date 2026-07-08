@@ -1,0 +1,99 @@
+---
+permalink: volumes/quota-resize-reinitialization.html 
+sidebar: sidebar 
+keywords: when to, use, resizing 
+summary: El cambio de tamaño de cuotas es más rápido que la inicialización de cuotas, pero tiene restricciones. 
+---
+= Conoce el cambio de tamaño y la reinicialización de las cuotas de ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cambiar el tamaño de una cuota es más rápido que reinicializarla, sin embargo, si realizas ciertos cambios en tus cuotas, debes hacer una reinicialización completa de la cuota
+
+
+
+== Redimensionamiento de cuotas de ONTAP
+
+Puedes modificar el tamaño de las cuotas al realizar los siguientes tipos de cambios en las reglas de las cuotas:
+
+* Cambiar una cuota existente.
++
+Por ejemplo, cambiar los límites de una cuota existente.
+
+* Agregar una cuota para un destino de cuota para el que existe una cuota predeterminada o una cuota de seguimiento predeterminada.
+* Eliminación de una cuota para la que se especifica una entrada de cuota predeterminada o de cuota de seguimiento predeterminada.
+* Combinar cuotas de usuario separadas en una cuota para varios usuarios.
+
+
+[NOTE]
+====
+Después de realizar cambios extensos de cuotas, debe realizar una reinicialización completa para garantizar que todos los cambios surtan efecto.
+
+====
+[NOTE]
+====
+Si intenta cambiar el tamaño y no todos los cambios de cuota se pueden incorporar mediante una operación de cambio de tamaño, ONTAP emitirá una advertencia. Puede determinar a partir del informe de cuotas si su sistema de almacenamiento está realizando un seguimiento del uso del disco para un usuario, grupo o qtree concreto. Si ve una cuota en el informe de cuotas, significa que el sistema de almacenamiento está realizando un seguimiento del espacio en disco y del número de archivos que pertenecen al destino de cuota.
+
+====
+.Ejemplos de cambios en las cuotas que pueden aplicarse modificando el tamaño
+Algunos cambios en las reglas de cuota se pueden hacer efectivos mediante el cambio de tamaño. Considere las siguientes cuotas:
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   15K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+kbuck         user@/vol/vol2/  100M   75K
+----
+Supongamos que realiza los siguientes cambios:
+
+* Aumente el número de archivos para el destino de usuario predeterminado.
+* Agregue una nueva cuota de usuario para un nuevo usuario, boris, que necesita más límite de disco que la cuota de usuario predeterminada.
+* Eliminar la entrada explícita de cuota del usuario kbuck; el nuevo usuario necesita ahora sólo los límites de cuota predeterminados.
+
+
+Estos cambios tienen como resultado las siguientes cuotas:
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   25K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+boris         user@/vol/vol2/  100M   75K
+----
+El cambio de tamaño activa todos estos cambios; no es necesaria una reinicialización completa de la cuota.
+
+
+
+== Reinicialización de cuotas de ONTAP
+
+Aunque el cambio de tamaño de las cuotas es más rápido, debe volver a inicializar todas las cuotas si realiza algunos cambios pequeños o extensos en las cuotas.
+
+Es necesaria una reinicialización completa de la cuota en las siguientes circunstancias:
+
+* Se crea una cuota para un destino que no ha tenido previamente una cuota (ni una cuota explícita ni una derivada de una cuota por defecto).
+* Se cambia el estilo de seguridad de un qtree de UNIX a mixto o NTFS.
+* Se cambia el estilo de seguridad de un qtree de NTFS o mixto a UNIX.
+* Se quitan usuarios de un destino de cuota con varios usuarios o se agregan usuarios a un destino que ya tiene varios usuarios.
+* Usted realiza cambios extensos en sus cuotas.
+
+
+.Ejemplo de cambios de cuotas que requieren inicialización
+Supongamos que tiene un volumen que contiene tres qtrees y las únicas cuotas en el volumen son tres cuotas de árbol explícitas. Decide realizar los siguientes cambios:
+
+* Agregue un qtree nuevo y cree una nueva cuota de árbol para él.
+* Añada una cuota de usuario predeterminada para el volumen.
+
+
+Ambos cambios requieren una inicialización de cuota completa. El redimensionamiento no hace que las cuotas sean efectivas.

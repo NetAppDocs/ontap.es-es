@@ -1,0 +1,171 @@
+---
+permalink: volumes/quota-reports.html 
+sidebar: sidebar 
+keywords: how, use, quota report, see, quotas in effect 
+summary: Consulte el informe de cuotas para ver qué cuotas están en vigor más allá de las que ha creado explícitamente. 
+---
+= Conoce los informes de cuotas de ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Puede utilizar los informes de cuotas para ver detalles como la configuración de reglas y políticas de cuotas, cuotas aplicadas y configuradas y errores que se han producido durante el cambio de tamaño y la reinicialización de cuotas.
+
+La visualización de la información de cuota es útil en situaciones como las siguientes:
+
+* Configuración de cuotas, por ejemplo para configurar cuotas y verificar las configuraciones
+* Respondiendo a las notificaciones de que pronto se alcanzarán los límites de espacio en disco o de archivos o que se hayan alcanzado
+* Responder a las solicitudes de más espacio
+
+
+
+
+== Consulta qué cuotas de ONTAP están en vigor usando el informe de cuotas
+
+Debido a las diversas formas en que interactúan las cuotas, hay más cuotas en vigor que sólo las que se han creado explícitamente. Para ver qué cuotas están en vigor, puede ver el informe de cuotas.
+
+Los siguientes ejemplos muestran informes de cuotas para los diferentes tipos de cuotas aplicadas en un volumen de FlexVol vol1 y un qtree de ese volumen:
+
+.Ejemplo que no tiene ninguna cuota de usuario especificada para el qtree
+En este ejemplo, hay un qtree, q1, que está contenido por el volumen vol1. El administrador ha creado tres cuotas:
+
+* Límite de cuota de árbol por defecto en vol1 de 400MB
+* Un límite de cuota de usuario predeterminado en vol1 de 100 MB
+* Un límite de cuota de usuario explícito en vol1 de 200MB para el usuario jsmith
+
+
+Las reglas de cuota para estas cuotas son similares al siguiente ejemplo:
+
+[listing]
+----
+cluster1::*> volume quota policy rule show -vserver vs1 -volume vol1
+
+Vserver: vs1               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   ""        ""      -           400MB        -       -        -          -
+user   ""        ""      off         100MB        -       -        -          -
+user   jsmith    ""      off         200MB        -       -        -          -
+----
+El informe de cuotas de estas cuotas es similar al siguiente ejemplo:
+
+[listing]
+----
+cluster1::> volume quota report
+Vserver: vs1
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     -          tree   *           0B  400MB       0       -   *
+vol1     -          user   *           0B  100MB       0       -   *
+vol1     -          user   jsmith    150B  200MB       7       -   jsmith
+vol1     q1         tree   1           0B  400MB       6       -   q1
+vol1     q1         user   *           0B  100MB       0       -
+vol1     q1         user   jsmith      0B  100MB       5       -
+vol1     -          user   root        0B    0MB       1       -
+vol1     q1         user   root        0B    0MB       8       -
+----
+Las tres primeras líneas del informe de cuotas muestran las tres cuotas especificadas por el administrador. Puesto que dos de estas cuotas son cuotas predeterminadas, ONTAP crea automáticamente cuotas derivadas.
+
+La cuarta línea muestra la cuota de árbol derivada de la cuota de árbol predeterminada para cada qtree en vol1 (en este ejemplo, sólo q1).
+
+La quinta línea muestra la cuota de usuario predeterminada que se crea para el qtree como resultado de la existencia de la cuota de usuario predeterminada en el volumen y en la cuota de qtree.
+
+La sexta línea muestra la cuota de usuario derivada que se crea para jsmith en el qtree porque hay una cuota de usuario predeterminada para el qtree (línea 5) y el jsmith de usuario es propietario de archivos en ese qtree. Tenga en cuenta que el límite aplicado al usuario jsmith en el qtree Q1 no está determinado por el límite explícito de cuota de usuario (200MB). Esto se debe a que el límite de cuota de usuario explícito está en el volumen, por lo que no afecta los límites del qtree. En su lugar, el límite de cuota de usuario derivado para el qtree se determina con la cuota de usuario predeterminada para el qtree (100MB).
+
+Las dos últimas líneas muestran más cuotas de usuario que se derivan de las cuotas de usuario predeterminadas en el volumen y en el qtree. Se creó una cuota de usuario derivada para el usuario raíz tanto en el volumen como en el qtree porque el usuario raíz era propietario de los archivos tanto del volumen como del qtree. Puesto que el usuario root recibe un tratamiento especial en términos de cuotas, sus cuotas derivadas sólo realizan un seguimiento de las cuotas.
+
+.Ejemplo con cuotas de usuario especificadas para el qtree
+Este ejemplo es similar al anterior, salvo que el administrador haya añadido dos cuotas al qtree.
+
+Aún hay un volumen, vol1, y un qtree, el primer trimestre. El administrador ha creado las siguientes cuotas:
+
+* Límite de cuota de árbol por defecto en vol1 de 400MB
+* Un límite de cuota de usuario predeterminado en vol1 de 100 MB
+* Un límite de cuota de usuario explícito en vol1 para el usuario jsmith de 200MB
+* Un límite de cuota de usuario predeterminado en el qtree Q1 de 50MB
+* Un límite explícito de cuota de usuario en el qtree Q1 para el usuario jsmith de 75MB
+
+
+Las reglas de cuota para estas cuotas son las siguientes:
+
+[listing]
+----
+cluster1::> volume quota policy rule show -vserver vs1 -volume vol1
+
+Vserver: vs1               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   ""        ""      -           400MB        -       -        -          -
+user   ""        ""      off         100MB        -       -        -          -
+user   ""        q1      off          50MB        -       -        -          -
+user   jsmith    ""      off         200MB        -       -        -          -
+user   jsmith    q1      off          75MB        -       -        -          -
+----
+El informe de cuotas de estas cuotas tiene este aspecto:
+
+[listing]
+----
+
+cluster1::> volume quota report
+Vserver: vs1
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     -          tree   *           0B  400MB       0       -   *
+vol1     -          user   *           0B  100MB       0       -   *
+vol1     -          user   jsmith   2000B  200MB       7       -   jsmith
+vol1     q1         user   *           0B   50MB       0       -   *
+vol1     q1         user   jsmith      0B   75MB       5       -   jsmith
+vol1     q1         tree   1           0B  400MB       6       -   q1
+vol1     -          user   root        0B    0MB       2       -
+vol1     q1         user   root        0B    0MB       1       -
+----
+Las cinco primeras líneas del informe de cuotas muestran las cinco cuotas creadas por el administrador. Puesto que algunas de estas cuotas son cuotas predeterminadas, ONTAP crea automáticamente cuotas derivadas.
+
+La sexta línea muestra la cuota de árbol derivada de la cuota de árbol predeterminada para cada qtree en vol1 (en este ejemplo, sólo q1).
+
+Las últimas dos líneas muestran las cuotas de usuario que se derivan de las cuotas de usuario predeterminadas en el volumen y en el qtree. Se creó una cuota de usuario derivada para el usuario raíz tanto en el volumen como en el qtree porque el usuario raíz era propietario de los archivos tanto del volumen como del qtree. Puesto que el usuario root recibe un tratamiento especial en términos de cuotas, sus cuotas derivadas sólo realizan un seguimiento de las cuotas.
+
+No se han creado otras cuotas predeterminadas ni cuotas derivadas por los siguientes motivos:
+
+* No se creó una cuota de usuario derivada para el usuario jsmith aunque el usuario tenga archivos tanto en el volumen como en el qtree, ya que el usuario ya tiene cuotas explícitas en ambos niveles.
+* No se crearon cuotas de usuario derivadas para otros usuarios, ya que ningún otro usuario posee archivos, ya sea en el volumen o en el qtree.
+* La cuota de usuario predeterminada del volumen no creó una cuota de usuario predeterminada en el qtree porque el qtree ya tenía una cuota de usuario predeterminada.
+
+
+
+
+== Utiliza el informe de cuotas de ONTAP para determinar qué cuotas limitan las escrituras en un archivo específico
+
+Puede usar el comando volume quota report con una ruta de archivo específica para determinar qué límites de cuota afectan a las operaciones de escritura en un archivo. Esto puede ayudarle a entender qué cuota está impidiendo una operación de escritura.
+
+.Paso
+. El comando volume quota report se utiliza con el parámetro -path.
+
+
+.Ejemplo de visualización de cuotas que afectan a un archivo específico
+En el siguiente ejemplo, se muestran el comando y el resultado para determinar qué cuotas están vigentes para las escrituras en el archivo 1, que reside en el primer trimestre de qtree del volumen FlexVol vol2:
+
+[listing]
+----
+cluster1:> volume quota report -vserver vs0 -volume vol2 -path /vol/vol2/q1/file1
+Virtual Server: vs0
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol2     q1        tree    jsmith     1MB  100MB       2   10000   q1
+vol2     q1        group   eng        1MB  700MB       2   70000
+vol2               group   eng        1MB  700MB       6   70000   *
+vol2               user    corp\jsmith
+                                      1MB   50MB       1       -   *
+vol2     q1        user    corp\jsmith
+                                      1MB   50MB       1       -
+5 entries were displayed.
+----
