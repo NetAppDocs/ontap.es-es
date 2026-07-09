@@ -15,28 +15,33 @@ Para remediar las detecciones en caliente, explore las causas subyacentes de los
 
 
 
+[[understanding-the-bottleneck]]
 == Comprender el cuello de botella
 
 A continuación<<Figure-1,imagen>>, se muestra un escenario típico de hotspotting de archivo único. El volumen es un FlexGroup con un único componente por nodo y el archivo reside en el nodo 1.
 
 Si distribuye todas las conexiones de red de los clientes NAS a través de los diferentes nodos del cluster, seguirá creando cuellos de botella en la CPU que da servicio a la afinidad del volumen en la que reside el archivo activo. También puede introducir el tráfico de red del clúster (tráfico de este a oeste) a las llamadas procedentes de clientes conectados a nodos que no sean donde reside el archivo. La sobrecarga del tráfico este-oeste suele ser pequeña, pero para las cargas de trabajo de computación de alto rendimiento cada poco cuenta.
 
+[[Figure-1]]
 .Figura 1: Escenario de punto de acceso de archivo único de FlexGroup
 image:flexcache-hotspot-hdfa-flexgroup.png["Figura 1: Escenario de punto de acceso de archivo único de FlexGroup"]
 
 
 
+[[why-an-auto-provisioned-flexcache-isnt-the-answer]]
 == Por qué un FlexCache aprovisionado automáticamente no es la respuesta
 
 Para remediar la detección en caliente, elimine el cuello de botella de la CPU y preferiblemente el tráfico de este a oeste también. FlexCache puede ayudarle si se configura correctamente.
 
 En el siguiente ejemplo, FlexCache se aprovisiona automáticamente con argumentos de System Manager, NetApp Console o CLI predeterminados. <<Figure-1,Figura 1>> y<<Figure-2,figura 2>> A primera vista parecen iguales: ambos son contenedores NAS de cuatro nodos y un solo constituyente.  La única diferencia es que el contenedor NAS de la figura 1 es un FlexGroup y el contenedor NAS de la figura 2 es un FlexCache.  Cada figura describe el mismo cuello de botella: la CPU del nodo 1 para el acceso al servicio de afinidad de volumen al archivo activo y el tráfico este-oeste que contribuye a la latencia.  Un FlexCache aprovisionado automáticamente no ha eliminado el cuello de botella.
 
+[[Figure-2]]
 .Figura 2: Escenario de FlexCache con aprovisionamiento automático
 image:flexcache-hotspot-hdfa-1x4x1.png["Figura 2: Escenario de FlexCache con aprovisionamiento automático"]
 
 
 
+[[anatomy-of-a-flexcache]]
 == Anatomía de un FlexCache
 
 Para diseñar de forma eficaz un FlexCache para la corrección de puntos de acceso, debe comprender algunos detalles técnicos sobre FlexCache.
@@ -51,6 +56,7 @@ La solución es un conjunto de FlexCaches de alta densidad.
 
 
 
+[[anatomy-of-a-high-density-flexcache]]
 == Anatomía de un FlexCache de alta densidad
 
 Un FlexCache de alta densidad (HDF) tendrá componentes en solo pocos nodos, a medida que lo permitan los requisitos de capacidad para los datos almacenados en caché. El objetivo es hacer que su caché utilice un solo nodo. Si los requisitos de capacidad hacen que esto sea imposible, solo puede tener componentes en unos pocos nodos.

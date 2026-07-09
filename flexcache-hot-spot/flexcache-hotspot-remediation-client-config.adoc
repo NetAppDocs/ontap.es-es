@@ -13,6 +13,7 @@ Para remediar la detección en caliente, configure el cliente correctamente para
 
 
 
+[[linux-client-configuration]]
 == Configuración de clientes Linux
 
 Tanto si elige una implementación de HDFA dentro de SVM como entre SVM, debe usar `autofs` Linux para asegurarse de que los clientes equilibran la carga en el distinto HDFS. La `autofs` configuración será distinta entre SVM e dentro de ella.
@@ -31,6 +32,7 @@ Se configura `autofs` para buscar un archivo llamado `auto_hotspot` en el `/etc`
 
 
 
+[[intra-svm-hdfa-autofs-configuration]]
 === Configuración autofs de HDFA dentro de SVM
 
 En el siguiente ejemplo, crearemos un `autofs` mapa para el diagrama en <<Figure-1,figura 1>>. Debido a que cada caché tiene la misma ruta de unión y el nombre de host `cache` tiene cuatro registros DNS A, solo necesitamos una línea:
@@ -41,11 +43,13 @@ hotspot cache:/hotspot
 ----
 Esta línea simple hará que el cliente NFS realice una búsqueda DNS para el nombre de host `cache`. DNS está configurado para devolver las IPs en forma de round-robin. Esto dará como resultado una distribución uniforme de las conexiones NAS de interfaz de usuario. Una vez que el cliente reciba la IP, montará la ruta de unión `/hotspot` en `/flexcache/hotspot`. Podría conectarse a SVM1, SVM2, SVM3 o SVM4, pero el SVM en particular no importa.
 
+[[Figure-1]]
 .Figura 1: 2x2x2 inter-SVM HDFA
 image:flexcache-hotspot-hdfa-2x2x2-inter-svm-hdfa.png["Figura 1: 2x2x2 HDFA"]
 
 
 
+[[intra-svm-hdfa-autofs-configuration]]
 === Configuración autofs de HDFA dentro de SVM
 
 En el siguiente ejemplo, crearemos un `autofs` mapa para el diagrama en <<Figure-2,figura 2>>. Debemos asegurarnos de que los clientes NFS montan las IP que forman parte de la puesta en marcha de la ruta de unión de HDF. En otras palabras, no queremos montar `/hotspot1` con nada más que IP 192.168.0.11. Para ello, podemos enumerar los cuatro pares IP/ruta de unión para una ubicación de montaje local en el `auto_hotspot` mapa.
@@ -64,11 +68,13 @@ Cuando el cliente intenta acceder `/flexcache/hotspot`, `autofs` va a realizar u
 
 Este ping NULL requiere que el servicio NFS de ONTAP procese el paquete, pero no requiere acceso a disco. El primer ping que se devolverá será la dirección IP y la ruta de unión `autofs` que se montará.
 
+[[Figure-2]]
 .Figura 2: HDFA intra-SVM 4x1x4
 image:flexcache-hotspot-hdfa-4x1x4-intra-svm-hdfa.png["Figura 2: S4x1x4 intra-SVM HDFA"]
 
 
 
+[[windows-client-configuration]]
 == Configuración de clientes Windows
 
 Con clientes de Windows, debe utilizar un HDFA dentro de SVM. Para equilibrar la carga en los distintos HDFS en la SVM, se debe añadir un nombre de recurso compartido único a cada HDF. Después de eso, siga los pasos de link:https://learn.microsoft.com/en-us/windows-server/storage/dfs-namespaces/create-a-dfs-namespace["Documentación de Microsoft"^] para implementar varios destinos DFS para la misma carpeta.

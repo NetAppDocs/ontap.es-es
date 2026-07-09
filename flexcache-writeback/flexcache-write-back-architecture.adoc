@@ -15,12 +15,14 @@ Los siguientes conceptos detallan cómo funciona la reescritura de FlexCache.
 
 
 
+[[delegations]]
 == Delegaciones
 
 Las delegaciones en bloqueo y delegaciones de datos ayudan a FlexCache a mantener tanto los datos almacenados en caché de escritura inversa como de escritura inversa consistentes, coherentes y actualizados. El origen orquesta ambas delegaciones.
 
 
 
+[[lock-delegations]]
 === Bloquear delegaciones
 
 Una delegación de bloqueo es una autoridad de bloqueo a nivel de protocolo que el origen otorga por archivo a una caché para emitir bloqueos de protocolo a los clientes según sea necesario. Estos incluyen xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Delegaciones de bloqueo exclusivo (XLD)] y xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Delegaciones de bloqueo compartido (SLD)].
@@ -47,6 +49,7 @@ NOTE: Hay un límite de 170 XLDs por componente de origen.
 
 
 
+[[data-delegations]]
 === Delegaciones de datos
 
 Una delegación de datos es una garantía por archivo dada a una caché por el origen que indica que los datos almacenados en caché para ese archivo están actualizados. Siempre que la caché tenga una delegación de datos para un archivo, puede proporcionar los datos almacenados en caché para ese archivo al cliente sin tener que ponerse en contacto con el origen. Si la caché no tiene una delegación de datos para el archivo, debe ponerse en contacto con el origen para recibir los datos solicitados por el cliente.
@@ -57,6 +60,7 @@ Las lecturas en una caché de retroescritura habilitada generalmente funcionan c
 
 
 
+[[tracking-dirty-data]]
 == Seguimiento de datos sucios
 
 La reescritura de la caché al origen se produce de forma asíncrona. Esto significa que los datos desfasados no se vuelven a escribir inmediatamente en el origen. ONTAP emplea un sistema de registros de datos sucio para realizar un seguimiento de los datos desfasados por archivo. Cada registro de datos sucios (DDR) representa aproximadamente 20MB GB de datos sucios para un archivo en particular. Cuando un archivo se está escribiendo activamente, ONTAP comenzará a vaciar los datos sucios después de que se hayan llenado dos DDR y se haya escrito el tercer DDR. Esto provoca que se queden aproximadamente 40MB TB de datos desfasados en una caché durante las escrituras. En el caso de los protocolos con estado (NFSv4.x, SMB), los 40MB TB restantes de datos se volverán a vaciar en el origen cuando se cierre el archivo. Para los protocolos sin estado (NFSv3), los 40MB GB de datos se volverán a vaciar cuando se solicite el acceso al archivo en una caché diferente o cuando el archivo esté inactivo durante dos o más minutos, hasta un máximo de cinco minutos. Para obtener más información sobre el vaciado de datos sucios activado por temporizador o activado por espacio, consulte <<Depuradores de caché>>.
@@ -78,6 +82,7 @@ Además de los DDRs y depuradores, algunas operaciones NAS front-end también ac
 
 
 
+[[disconnected-mode]]
 == Modo desconectado
 
 Cuando un XLD para un archivo se mantiene en una caché de escritura y esa caché se desconecta del origen, las lecturas de ese archivo todavía se permiten en las otras cachés y el origen. Este comportamiento difiere cuando un XLD es retenido por una caché de escritura activada. En este caso, si la caché está desconectada, las lecturas en el archivo se bloquearán en todas partes. Esto ayuda a garantizar que se mantenga el 100% de consistencia, la moneda y la coherencia. Las lecturas se permiten en el modo de escritura simultánea, ya que se garantiza que el origen tenga todos los datos disponibles que se han reconocido de escritura en el cliente. En el modo de reescritura durante una desconexión, el origen no puede garantizar que todos los datos escritos y confirmados por la caché de reescritura habilitada los hayan realizado en el origen antes de que se produjera la desconexión.
@@ -89,6 +94,7 @@ WARNING: La revocación manual del XLD provocará la pérdida de datos desfasado
 
 
 
+[[cache-scrubbers]]
 == Depuradores de caché
 
 Hay depuradores en ONTAP que se ejecutan en respuesta a eventos específicos, como un temporizador que caduca o umbrales de espacio que se están violando. Los depuradores toman un bloqueo exclusivo en el archivo que se está depurando, congelando efectivamente la E/S en ese archivo hasta que se complete la limpieza.
@@ -104,18 +110,23 @@ Los depuradores incluyen:
 
 
 
+[[sequence-diagrams]]
 == Diagramas de secuencia
 
 Estos diagramas de secuencia representan la diferencia en los reconocimientos de escritura entre el modo de escritura y escritura.
 
 
 
+[[write-around-sequence-diagram]]
+[[write-around]]
 === Escritura simultánea
 
 image:flexcache-write-around-sequence-diagram.png["Diagrama de secuencia de escritura simultánea de FlexCache"]
 
 
 
+[[write-back-sequence-diagram]]
+[[write-back]]
 === Reescritura
 
 image:flexcache-write-back-sequence-diagram.png["Diagrama de secuencia de anotación de FlexCache"]
