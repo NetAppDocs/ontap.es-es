@@ -21,6 +21,7 @@ Cuando planifique la implementación de sincronización activa de SnapMirror, as
 [[hardware]]
 == Hardware subyacente
 
+.Soporte SAN
 En la siguiente tabla se describen las configuraciones de clústeres de NetApp admitidas.
 
 [cols="25,25,25,25"]
@@ -35,10 +36,10 @@ AFF
  a| 
 A-Series y C-Series
  a| 
-Conmutación automática por error dúplex (activo/activo simétrico), conmutación automática por error (activo/pasivo asimétrico)
+Dúplex con conmutación automática al respaldo (asimétrico activo/activo), conmutación automática al respaldo (asimétrico activo/pasivo)
  a| 
 * 2 (ONTAP 9.9.1 o posterior)
-* 4 (ONTAP 9.16.1 con configuraciones simétricas activa/activa)
+* 4 (ONTAP 9.16.1 con configuraciones simétricas activo/activo)
 
 
 
@@ -48,10 +49,10 @@ ASA
  a| 
 A-Series y C-Series
  a| 
-Conmutación automática por error dúplex (activo/activo simétrico), conmutación automática por error (activo/pasivo asimétrico)
+Dúplex con conmutación automática al respaldo (simétrico activo/activo), conmutación automática al respaldo (asimétrico activo/pasivo)
  a| 
 * 2 (ONTAP 9.9.1 o posterior
-* 4 (ONTAP 9.16.1 con configuraciones simétricas activa/activa)
+* 4 (ONTAP 9.16.1 con configuraciones simétricas activo/activo)
 
 
 
@@ -61,13 +62,43 @@ ASA r2
  a| 
 Todo
  a| 
-Dúplex de conmutación por error automatizada (simétrico activo/activo)
+Dúplex con conmutación automática al respaldo (simétrico activo/activo)
  a| 
 * 2 (ONTAP 9.17.1 o anterior)
 * 4 (ONTAP 9.18.1 o posterior)
 
 
 |===
+.Soporte NAS
+En la siguiente tabla se describen las configuraciones de clústeres de NetApp admitidas.
+
+[cols="25,25,25,25"]
+|===
+| Tipo de clúster | Modelos compatibles | Funciones admitidas | Máximo de nodos de clúster admitidos 
+
+
+ a| 
+AFF
+ a| 
+A-Series y C-Series
+ a| 
+Asimétrico activo/pasivo (conmutación automática al respaldo)
+ a| 
+2 (ONTAP 9.19.1 o posterior)
+
+
+
+ a| 
+AFX
+ a| 
+Todo
+ a| 
+Asimétrico activo/pasivo (conmutación automática al respaldo)
+ a| 
+4 (ONTAP 9.19.1 o posterior)
+
+|===
+.Replicación entre plataformas
 En la siguiente tabla se describe la capacidad de replicación entre tipos de cluster.
 
 [cols="33,33,33"]
@@ -83,6 +114,15 @@ Serie A de AFF
 AFF C-Series
  a| 
 Sí
+
+
+
+ a| 
+AFF
+ a| 
+AFX
+ a| 
+No
 
 
 
@@ -111,15 +151,6 @@ ASA r2
  a| 
 No
 
-
-
- a| 
-ASA r2
- a| 
-ASA r2
- a| 
-Sí
-
 |===
 
 
@@ -136,6 +167,21 @@ Sí
 
 
 | Versión de ONTAP Mediator | Versiones de Linux compatibles 
+
+
+ a| 
+1.12.1
+ a| 
+* Red Hat Enterprise Linux
++
+** Compatible: 10.1 y 9.7 ^1^
+** Recomendado: 10.2, 10.0, 9.8, 9.6, 9.4 y 8.10
+
+
+* Rocky Linux 10.2, 9.8 y 8.10
+* Oracle Linux 10.1 y 9.7
+
+
 
 
  a| 
@@ -320,7 +366,7 @@ NOTE: Si tus sistemas de almacenamiento ONTAP se adquirieron antes de junio de 2
 [[supported-protocols]]
 == Protocolos compatibles
 
-La sincronización activa de SnapMirror admite protocolos SAN.
+SnapMirror active sync es compatible con los siguientes protocolos SAN.
 
 * Los protocolos FC e iSCSI son compatibles a partir de ONTAP 9.9.1.
 * El protocolo NVMe es compatible con cargas de trabajo de VMware a partir de ONTAP 9.17.1.
@@ -339,6 +385,23 @@ No puedes ampliar ni reducir un grupo de coherencia de forma no disruptiva cuand
 
 
 
+A partir de ONTAP 9.19.1, la sincronización activa de SnapMirror es compatible con los siguientes protocolos NAS.
+
+* NFSv3 y posteriores
++
+Se admite la conmutación por error sin interrupciones para NFSv3 y versiones posteriores.
+
+* SMB
++
+** Se admite la conmutación por error sin interrupciones para los recursos compartidos SMB 3 CA.
+** Se admite la conmutación por error disruptiva (pero manteniendo un RPO de cero) para recursos compartidos SMB2 y SMB3 no CA.
+** SMB1 no es compatible.
+
+
+
+
+Los clústeres NAS requieren la misma configuración de dirección IP y protocolo en el clúster primario y en el secundario para permitir una conmutación por error sin interrupciones. Dado que los SVM pueden configurarse con la misma dirección IP y los mismos protocolos, SnapMirror active sync admite configuraciones NAS a nivel de SVM; sin embargo, el SVM secundario permanece inactivo (no se ejecuta) porque las LIF deben permanecer desactivadas hasta que se produzca una conmutación por error para evitar colisiones de IP con el SVM primario.
+
 
 
 [[ipspace]]
@@ -346,12 +409,14 @@ No puedes ampliar ni reducir un grupo de coherencia de forma no disruptiva cuand
 
 La sincronización activa de SnapMirror requiere el espacio IP predeterminado para las relaciones entre pares del clúster. No se admiten espacios IP personalizados.
 
+Con la sincronización activa de SnapMirror para NAS, los SVM primarios y secundarios pueden estar en diferentes IPspaces.
+
 
 
 [[ntfs-security-style]]
 == Estilo de seguridad NTFS
 
-El estilo de seguridad NTFS *no* es compatible con los volúmenes de sincronización activa de SnapMirror.
+El estilo de seguridad NTFS *no* es compatible en los volúmenes de SnapMirror active sync para SAN. El estilo de seguridad NTFS es compatible con SnapMirror active sync para NAS.
 
 
 
@@ -370,7 +435,7 @@ El estilo de seguridad NTFS *no* es compatible con los volúmenes de sincronizac
 [[other-prerequisites]]
 == Otros requisitos previos
 
-* En versiones anteriores a ONTAP 9.15.1, las relaciones de sincronización activa de SnapMirror no son compatibles con volúmenes de destino de lectura/escritura (volúmenes convertidos a lectura/escritura desde DP en un activo-pasivo asimétrico). Antes de que puedas usar un volumen de lectura/escritura, tienes que convertirlo en un volumen DP creando una relación SnapMirror a nivel de volumen (ya sea asíncrona o síncrona) y luego eliminando la relación. Para más detalles, consulta link:convert-active-sync-task.html["Convierta unas relaciones de SnapMirror existentes en sincronización activa de SnapMirror"].
+* En versiones anteriores a ONTAP 9.15.1, las relaciones de sincronización activa de SnapMirror no son compatibles en volúmenes de destino de lectura-escritura (volúmenes convertidos a lectura-escritura desde DP en una configuración activa-pasiva asimétrica). Antes de que puedas usar un volumen de lectura-escritura, debes convertirlo en un volumen DP creando una relación de SnapMirror a nivel de volumen (ya sea asíncrona o síncrona) y luego eliminando la relación. Para más detalles, consulta link:convert-active-sync-task.html["Convierta unas relaciones de SnapMirror existentes en sincronización activa de SnapMirror"].
 * Las máquinas virtuales de almacenamiento que utilizan la sincronización activa de SnapMirror no se pueden unir a Active Directory como una computadora cliente.
 
 

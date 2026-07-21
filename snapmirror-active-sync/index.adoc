@@ -14,15 +14,17 @@ summary: Utilice la sincronización activa de SnapMirror para proteger las aplic
 
 
 [role="lead"]
-La sincronización activa de SnapMirror , también conocida como SnapMirror Business Continuity (SM-BC), permite que los servicios comerciales sigan funcionando en caso de una falla total del sitio.  Esta tecnología permite que las aplicaciones conmuten sin problemas a una copia secundaria sin intervención manual ni secuencias de comandos personalizadas.
+SnapMirror active sync (denominado como SnapMirror Business Continuity antes de ONTAP 9.15.1) permite que los servicios empresariales sigan funcionando en caso de un fallo total del sitio. Esta tecnología permite que las aplicaciones se conmuten de forma transparente a una copia secundaria sin necesidad de intervención manual ni scripts personalizados.
 
-NetApp SnapMirror active sync (SM-as) está diseñado para ser una protección a nivel de aplicación más granular, de menor costo y más fácil de usar con conmutación por error automática.  La sincronización activa de SnapMirror permite que los servicios empresariales de misión crítica sigan funcionando, incluso durante una falla total del sitio.  Con la sincronización activa de SnapMirror , ahora puede replicar de forma sincrónica múltiples volúmenes de una aplicación (agregándolos a un grupo de consistencia) entre sitios en ubicaciones geográficamente dispersas.  Puede conmutar automáticamente por error a la copia secundaria en caso de interrupción de la copia principal, lo que permite la continuidad del negocio para las aplicaciones de nivel uno.
+SnapMirror active sync (SM-as) está diseñado para ofrecer una protección a nivel de aplicación más granular, de menor costo y más fácil de usar, con conmutación automática al respaldo. Con SnapMirror active sync, puedes replicar de forma síncrona varios volúmenes de una aplicación entre sitios en ubicaciones geográficamente dispersas. Puedes conmutar automáticamente al respaldo en la copia secundaria en caso de una interrupción en la principal, lo que permite la continuidad del negocio para aplicaciones de primer nivel.
 
 Las regulaciones para las instituciones financieras en algunos países requieren que las empresas brinden servicio periódicamente desde sus centros de datos secundarios.  La sincronización activa de SnapMirror , con sus clústeres de alta disponibilidad, permite estas conmutaciones de centros de datos para la continuidad del negocio.
 
-Disponible a partir de ONTAP 9.9.1, la sincronización activa de SnapMirror es compatible con clústeres AFF y All-Flash SAN Array (ASA).  Los clústeres primarios y secundarios deben ser del mismo tipo: ASA, ASA r2 o AFF.  La sincronización activa de SnapMirror protege las aplicaciones con LUN iSCSI o FCP o espacios de nombres NVMe.
+Disponible a partir de ONTAP 9.9.1, SnapMirror active sync es compatible con clústeres AFF y ASA. Los clústeres primario y secundario deben ser del mismo tipo: AFF, ASA o ASA r2. SnapMirror active sync protege las aplicaciones con LUN de iSCSI o FCP o espacios de nombres NVMe.
 
-La sincronización activa de SnapMirror admite configuraciones simétricas y asimétricas.  El soporte para activo/activo simétrico se introdujo en ONTAP 9.15.1.  La configuración activa/activa simétrica permite que ambas copias de un LUN protegido realicen operaciones de E/S de lectura y escritura con replicación sincrónica bidireccional, lo que permite que cada copia de LUN atienda solicitudes de E/S locales.
+SnapMirror active sync para cargas de trabajo SAN admite tanto la configuración simétrica como la asimétrica. ONTAP 9.9.1 y versiones posteriores incluyen compatibilidad con la configuración asimétrica. La compatibilidad con el modo activo/activo simétrico se introdujo en ONTAP 9.15.1. La configuración activa/activa simétrica permite que ambas copias de un LUN protegido realicen operaciones de lectura y escritura con replicación síncrona bidireccional, lo que permite que cada copia del LUN atienda las solicitudes de E/S locales.
+
+A partir de ONTAP 9.19.1, SnapMirror active sync admite cargas de trabajo NAS a nivel de SVM mediante NFS (v3 y v4) y SMB (2.x o posterior), en clústeres AFF (solo de 2 nodos) o clústeres AFX (solo de 4 nodos), y el acceso de lectura y escritura solo en el primario. El SVM secundario y los volúmenes que contiene no son accesibles mediante protocolos NAS, pero puedes clonar los volúmenes secundarios en un SVM diferente para acceder a ellos.
 
 
 NOTE: A partir de julio de 2024, el contenido de informes técnicos publicados anteriormente como archivos PDF se ha integrado con la documentación de los productos de ONTAP. La documentación de sincronización activa de SnapMirror de ONTAP ahora incluye contenido de _TR-4878: SnapMirror active sync_.
@@ -40,40 +42,47 @@ SnapMirror Active Sync ofrece las siguientes ventajas:
 * Posibilidad de probar la conmutación al respaldo de cada aplicación.
 * Creación instantánea de clones reflejados sin que afecte a la disponibilidad de las aplicaciones.
 * La capacidad para poner en marcha cargas de trabajo protegidas y sin protección en el mismo clúster de ONTAP.
-* El LUN, el espacio de nombres NVMe, el subsistema NVMe o la identidad de la unidad de almacenamiento siguen siendo los mismos, por lo que la aplicación los ve como un dispositivo virtual compartido.
+* El LUN, el espacio de nombres NVMe, el subsistema NVMe o la identidad de la unidad de almacenamiento en las configuraciones SAN, así como la identidad del volumen en las configuraciones NAS, permanecen igual, así que la aplicación los ve como un dispositivo virtual compartido.
 * La capacidad de reutilizar clústeres secundarios con flexibilidad para crear clones instantáneos para el uso de las aplicaciones con fines de generación de informes, UAT o prueba de desarrollo, sin que el rendimiento ni la disponibilidad de las aplicaciones se vean afectados.
 
 
-La sincronización activa de SnapMirror le permite proteger sus LUN de datos o espacios de nombres NVMe, lo que permite que las aplicaciones conmuten por error de forma transparente para garantizar la continuidad del negocio en caso de desastre. Para obtener más información, consulte link:use-cases-concept.html["Casos de uso"] .
+SnapMirror active sync te permite proteger tus LUN de datos o espacios de nombres NVMe en configuraciones SAN y volúmenes en configuraciones NAS, lo que permite que las aplicaciones hagan una conmutación automática al respaldo de manera transparente para asegurar la continuidad del negocio en caso de desastre. Para más información, consulta link:use-cases-concept.html["Casos de uso"].
 
 
 
 [[key-concepts]]
 == Conceptos clave
 
-La sincronización activa de SnapMirror utiliza grupos de consistencia para garantizar que sus datos se repliquen.  La sincronización activa de SnapMirror utiliza ONTAP Mediator o, a partir de ONTAP 9.17.1, Cloud Mediator para conmutación por error automatizada, lo que garantiza que los datos se entreguen en caso de un desastre. Al planificar la implementación de la sincronización activa de SnapMirror , es importante comprender los conceptos esenciales de la sincronización activa de SnapMirror y su arquitectura.
+SnapMirror active sync utiliza grupos de consistencia en configuraciones SAN y SVM en configuraciones NAS para garantizar que tus datos se repliquen. SnapMirror active sync utiliza el ONTAP Mediator o, a partir de ONTAP 9.17.1, el Cloud Mediator para la conmutación automática al respaldo, asegurando que los datos se sirvan en caso de un escenario de desastre. Al planificar tu implementación de SnapMirror active sync, es importante entender los conceptos esenciales de SnapMirror active sync y su arquitectura.
 
 .Asimetría y simetría
-En configuraciones simétricas activas/activas, ambos sitios pueden acceder al almacenamiento local para E/S activas. Esta configuración está optimizada para aplicaciones en clúster, como VMware vMSC, Windows Failover Cluster con SQL y Oracle RAC.
+En las configuraciones simétricas de clúster SAN activo/activo, ambos sitios pueden acceder al almacenamiento local para operaciones de E/S activas. La configuración simétrica activo/activo está optimizada para aplicaciones en clúster, como VMware vMSC, Windows Failover Cluster con SQL y Oracle RAC.
 
-En las configuraciones asimétricas activas/pasivas, los datos del sitio secundario se proxyan a un LUN, namespace o unidad de almacenamiento.
+En las configuraciones SAN asimétricas activo/activo, los datos del sitio secundario se envían a través de un proxy a un LUN, un espacio de nombres o una unidad de almacenamiento.
 
 Para obtener más información, consulte xref:architecture-concept.html[Arquitectura de Active Sync de SnapMirror].
 
-.Grupo de consistencia
+En las configuraciones NAS no hay proxy y la SVM secundaria está inactiva, pero puedes clonar los volúmenes a otra SVM para darles acceso.
+
+.Grupo de coherencia (solo SAN)
 Para los sistemas AFF y ASA , link:../consistency-groups/index.html["grupo de consistencia"] Es una colección de volúmenes FlexVol que garantiza la consistencia de la carga de trabajo de la aplicación, la cual debe protegerse para la continuidad del negocio. En sistemas ASA r2, un grupo de consistencia es una colección de unidades de almacenamiento.
 
 El propósito de un grupo de consistencia es tomar instantáneas simultáneas de una colección de volúmenes o unidades de almacenamiento, garantizando así copias de la colección consistentes ante fallos en un momento dado. Un grupo de consistencia garantiza que todos los volúmenes de un conjunto de datos se inactiven y luego se instale en el mismo momento. Esto proporciona un punto de restauración consistente con los datos en todos los volúmenes o unidades de almacenamiento que lo soportan. De este modo, un grupo de consistencia mantiene la consistencia del orden de escritura dependiente. Si decide proteger las aplicaciones para la continuidad del negocio, el grupo de volúmenes o unidades de almacenamiento correspondiente a esta aplicación debe agregarse a un grupo de consistencia para establecer una relación de protección de datos entre los grupos de consistencia de origen y destino. Los grupos de consistencia de origen y destino deben contener el mismo número y tipo de volúmenes.
 
+.Compatibilidad con SVM y FlexVol (SnapMirror active sync para NAS)
+En ONTAP 9.19.1, SnapMirror active sync para NAS admite la protección de SVMs que contienen volúmenes FlexVol. Los grupos de consistencia o los volúmenes FlexGroup dentro de un SVM no son compatibles con SnapMirror active sync en configuraciones NAS.
+
 .Componente
-Un volumen individual, LUN o espacio de nombres NVMe (a partir de ONTAP 9.17.1) que forma parte del grupo de consistencia protegido en la relación de sincronización activa de SnapMirror .
+En una configuración SAN, un componente es un volumen individual, un LUN o un espacio de nombres NVMe (a partir de ONTAP 9.17.1) que forma parte del grupo de consistencia protegido en la relación de sincronización activa de SnapMirror.
+
+En una configuración NAS, un componente es un volumen, y el SVM que lo contiene es la entidad que se protege en la relación de sincronización activa de SnapMirror.
 
 .Mediador ONTAP
 El link:../mediator/index.html["Mediador ONTAP"] Recibe información sobre el estado de los clústeres y nodos de ONTAP emparejados, coordinando la conexión entre ambos y determinando si cada nodo/clúster está en buen estado y en funcionamiento. ONTAP Mediator proporciona información sobre el estado de:
 
 * Clústeres de ONTAP entre iguales
 * Nodos del clúster de ONTAP en paridad
-* Grupos de consistencia (que definen las unidades de conmutación por error en una relación de sincronización activa de SnapMirror); para cada grupo de consistencia, se proporciona la siguiente información:
+* Unidades de conmutación por error (que se corresponden con los grupos de consistencia en una relación de SnapMirror active sync para SAN y con las SVM en una relación de SnapMirror active sync para NAS); para cada unidad de conmutación por error, se proporciona la siguiente información:
 +
 ** Estado de replicación: No inicializado, en sincronización o fuera de sincronización
 ** Qué clúster aloja la copia principal
@@ -101,7 +110,7 @@ La sincronización activa de SnapMirror emplea un principio primario, que da pre
 
 El sesgo primario es una implementación de quórum especial que mejora la disponibilidad de un conjunto de datos protegido con SnapMirror con sincronización activa. Si la copia primaria está disponible, se aplica el sesgo primario cuando no se puede acceder al mediador ONTAP desde ambos clusters.
 
-Primary-first y el sesgo primario son compatibles en SnapMirror active sync a partir de ONTAP 9.15.1. Las copias primarias se designan en System Manager y se muestran mediante la API de REST de ONTAP y la CLI de ONTAP.
+Primary-first y primary bias son compatibles en configuraciones SAN de sincronización activa de SnapMirror a partir de ONTAP 9.11.1. Las copias primarias se designan en System Manager y se muestran mediante la API de REST y la CLI.
 
 .Fuera de sincronización (OOS)
 Cuando las operaciones de I/O de aplicaciones no se replican en el sistema de almacenamiento secundario, se informará como **fuera de sincronización**. Un estado fuera de sincronización significa que los volúmenes secundarios no se sincronizan con el primario (origen) y que no se está produciendo la replicación de SnapMirror.
@@ -113,8 +122,8 @@ La sincronización activa de SnapMirror admite la resincronización automática,
 A partir de ONTAP 9.15,1, SnapMirror active sync admite link:interoperability-reference.html#fan-out-configurations["reconfiguración automática en configuraciones ramificadas"].
 
 .Configuración uniforme y no uniforme
-* **El acceso uniforme al host** significa que los hosts de ambos sitios están conectados a todas las rutas a los clústeres de almacenamiento en ambos sitios. Las rutas entre sitios se extienden a distancias.
-* **El acceso al host no uniforme** significa que los hosts en cada sitio están conectados solo al clúster en el mismo sitio. Las rutas entre sitios y las rutas extendidas no están conectadas.
+* **Acceso uniforme a los hosts** significa que los hosts de ambos sitios están conectados a todas las rutas hacia los clústeres de almacenamiento de ambos sitios. Las rutas entre sitios se extienden a lo largo de las distancias. El acceso uniforme a los hosts se aplica únicamente a configuraciones SAN.
+* **Acceso no uniforme a los hosts** significa que los hosts de cada sitio están conectados únicamente al clúster del mismo sitio. Las rutas entre sitios y las rutas extendidas no están conectadas.
 
 
 
@@ -131,82 +140,77 @@ El objetivo de tiempo de recuperación es el objetivo de tiempo de recuperación
 [[snapmirror-active-sync-configuration-support-by-ontap-version]]
 == Compatibilidad con la configuración de sincronización activa de SnapMirror según la versión de ONTAP
 
-La compatibilidad con la sincronización activa de SnapMirror varía según la versión de ONTAP:
+El tipo de clústeres, protocolos y configuraciones compatibles con SnapMirror active sync varía según tu versión de ONTAP. La tabla indica la versión de ONTAP en la que se añadieron las actualizaciones y las configuraciones que admiten esas actualizaciones.
 
-[cols="4*"]
+[cols="2*"]
 |===
+| Versión de ONTAP | Agrega compatibilidad con 
 
 
-| Versión de ONTAP | Clústeres compatibles | Protocolos compatibles | Configuraciones admitidas 
+| 9.19.1 y posteriores  a| 
+* NFS
+* SMB
+
+
+Los protocolos NAS son compatibles con estos tipos de clústeres:
+
+* AFF
+* AFX
+
+
 
 
 | 9.17.1 y posteriores  a| 
-* AFF
-* ASA
-* C-Series
-* ASA r2
-
- a| 
-* iSCSI
-* FC
-* NVMe para cargas de trabajo de VMware
-
- a| 
-* Activo/pasivo asimétrico
+* NVMe para cargas de trabajo de host de VMware
 
 
 
-NOTE: Asymmetric active/passive no es compatible con ASA r2 y NVMe. Para más información sobre la compatibilidad con NVMe, mira link:../nvme/support-limitations.html["Configuración, compatibilidad y limitaciones de NVMe"].
+
+| 9.16.1 y posterior  a| 
+* ASA r2, clústeres de 2 nodos
+* Clústeres simétricos activo/activo de 4 nodos a 4 nodos AFF o ASA
++
+Las configuraciones simétricas activo/activo admiten clústeres de 4 nodos a 4 nodos en ONTAP 9.16.1 y versiones posteriores, además de clústeres de 2 nodos a 2 nodos.
+
++
+En ASA r2, solo se admiten clústeres de 2 nodos a 2 nodos.
+
+
+
+
+
+| 9.15.1 y posteriores  a| 
+El siguiente tipo de configuración:
 
 * Activo-activo simétrico
++
+Las configuraciones simétricas activo/activo admiten clústeres de dos nodos en ONTAP 9.15.1.
 
 
 
 
-| 9.16.1  a| 
+
+| 9.9.1 y posterior  a| 
 * AFF
-* ASA
-* C-Series
-* ASA r2
+* ASA (solo C-Series)
 
- a| 
+
+Protocolos:
+
 * iSCSI
 * FC
 
- a| 
-* Activo/pasivo asimétrico
-* Activo/activo simétrico Las configuraciones activo/activo simétrico admiten clústeres de 4 nodos a 4 nodos en ONTAP 9.16.1 y versiones posteriores. Para ASA r2, solo se admiten clústeres de 2 nodos.
 
+Tipos de configuración:
 
+* Activo/activo asimétrico
 
-
-| 9.15.1  a| 
-* AFF
-* ASA
-* C-Series
-
- a| 
-* iSCSI
-* FC
-
- a| 
-* Activo/pasivo asimétrico
-* Activo/activo simétrico Las configuraciones activo/activo simétricas admiten clústeres de 2 nodos en ONTAP 9.15.1. Los clústeres de 2 nodos a 2 nodos y los clústeres de 4 nodos a 4 nodos se admiten en ONTAP 9.16.1 y versiones posteriores.
-
-
-
-
-| 9.9.1  a| 
-* AFF
-* ASA
-* C-Series
-
- a| 
-* iSCSI
-* FC
-
- a| 
-Activo/pasivo asimétrico
 
 |===
 Los clústeres primarios y secundarios deben ser del mismo tipo: link:../san-admin/learn-about-asa.html["ASA"] , link:https://docs.netapp.com/us-en/asa-r2/get-started/learn-about.html["ASA r2"^] , o AFF.
+
+Para obtener información adicional sobre la configuración, consulta:
+
+* link:prerequisites-reference.html["SnapMirror requisitos previos para active sync"]
+* link:limits-reference.html["SnapMirror límites de objetos de active sync"]
+
