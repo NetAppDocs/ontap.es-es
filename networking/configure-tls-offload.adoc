@@ -19,48 +19,81 @@ A partir de ONTAP 9.19.1, puedes configurar la descarga de TLS para mejorar el r
 * La fase de apretón de manos TLS no se descarga. Solo se descarga la fase de datos posterior al apretón de manos.
 * La migración de interfaz lógica de red (LIF) a puertos que no admiten descarga provoca una reversión automática del software.
 +
-En el caso de las conexiones TLS offloaded, las operaciones criptográficas TLS normalmente omiten el software y son gestionadas por una NIC con capacidad de offload. Si la LIF asociada con esta conexión migra a un puerto de red sin capacidad de TLS offload, las operaciones criptográficas pasan a software y son gestionadas por el kernel del sistema.
+En el caso de las conexiones con descarga de TLS, las operaciones criptográficas de TLS suelen eludir el software y son gestionadas por una tarjeta de red (NIC) con capacidad de descarga. Si el LIF asociado con esta conexión migra a un puerto de red sin capacidad de descarga de TLS, las operaciones criptográficas recurren al software y son gestionadas por el núcleo del sistema.
 
 * Las interfaces de gestión (HTTPS, API de REST) no se ven afectadas por esta configuración.
 * La configuración de la descarga de hardware TLS es a nivel de clúster.
 
 
 .Tarjetas de red y plataformas compatibles
-La descarga de hardware TLS requiere una tarjeta de red compatible. Se admiten las siguientes tarjetas de red:
+La descarga de TLS en hardware requiere una tarjeta de red compatible. La siguiente tabla muestra las tarjetas de red compatibles por plataforma.
 
+[cols="1,2,3a"]
+|===
+| Familia de plataformas | Plataformas | Tarjetas de red compatibles 
+
+
+| AFF y FAS | AFF A20, AFF A30, AFF A50, AFF C30, AFF C60, FAS50  a| 
 * CX7 de 4 puertos 10/25 GbE
-* CX6-Dx de 2 puertos 40/100 GbE
+* 2 puertos CX6-DX 40/100 GbE
 * 2 puertos CX7 40/100 GbE
-* CX7 de 2 puertos 40/100/200
 
 
-Las tarjetas CX7 10/25 GbE de 4 puertos, CX6-Dx 40/100 GbE de 2 puertos y CX7 40/100 GbE de 2 puertos son compatibles con las siguientes plataformas AFF:
-
-* AFF A20
-* AFF A30
-* AFF A50
-* AFF C30
-* AFF C60
 
 
-Las tarjetas CX6-Dx 40/100 GbE de 4 puertos, CX7 40/100 GbE de 2 puertos y CX7 40/100/200 GbE de 2 puertos son compatibles con las siguientes plataformas AFF y FAS:
-
-* AFF A70-90
-* AFF C80
-* FAS70
-* FAS90
-* AFF A1K
+| AFF y FAS | AFF A70, AFF A90, AFF C80, FAS70, FAS90, AFF A1K  a| 
+* 2 puertos CX6-DX 40/100 GbE
+* 2 puertos CX7 40/100 GbE
+* 2 puertos CX7 40/100/200/400 GbE
 
 
+
+
+| ASA | ASA A20, ASA A30, ASA A50, ASA C30  a| 
+* CX7 de 4 puertos 10/25 GbE
+* 2 puertos CX6-DX 40/100 GbE
+* 2 puertos CX7 40/100 GbE
+
+
+
+
+| ASA | ASA A70, ASA A90, ASA A1K  a| 
+* 2 puertos CX6-DX 40/100 GbE
+* 2 puertos CX7 40/100 GbE
+* 2 puertos CX7 40/100/200/400 GbE
+
+
+
+
+| AFX | AFX 1K  a| 
+* 2 puertos CX6-DX 40/100 GbE
+* 2 puertos CX7 40/100 GbE
+* 2 puertos CX7 40/100/200/400 GbE
+
+
+
+
+| AFX | AFX 2K  a| 
+* 2 puertos CX7 40/100/200/400 GbE
+
+
+|===
 .Tipos de tráfico soportados
 La descarga de hardware TLS admite los siguientes tipos de tráfico:
 
+* NFS
 * NVMe/TCP
 * Cifrado de clústeres entre iguales
 * FabricPool
 * S3
 * NFS
 
+
+
+NOTE: En los sistemas ASA, la descarga de TLS por hardware solo se aplica al tráfico NVMe/TCP. NFS sobre TLS, FabricPool y S3 no son compatibles con las plataformas ASA.
+
+
+NOTE: En las plataformas AFX, la descarga de TLS por hardware admite los tipos de tráfico front-end NFS y S3. NVMe/TCP no se admite en las plataformas AFX porque AFX no admite protocolos SAN/de bloques.
 
 .Antes de empezar
 * Debes ser administrador de ONTAP en el `admin` Nivel de privilegios para realizar las siguientes tareas.
@@ -101,19 +134,11 @@ false      TLSv1.3,  false   TLS_RSA_WITH_AES_128_CCM,
 +
 [source, cli]
 ----
-security config modify -is-offload-enabled {true|false}
+security config modify * -is-offload-enabled {true|false}
 ----
 +
 Este comando habilita o deshabilita la descarga de hardware para la fase de datos TLS en conexiones nuevas. Las conexiones existentes creadas antes de habilitar la función de descarga TLS no se descargan hasta que esas conexiones se eliminan y se vuelven a crear.
 
-+
-Al activar la descarga TLS, debe especificarse la interfaz:
-
-+
-[source, cli]
-----
-security config modify -is-offload-enabled true -interface SSL
-----
 
 
 .Información relacionada
