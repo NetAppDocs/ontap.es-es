@@ -204,17 +204,17 @@ Al clonar volúmenes, tenga en cuenta las siguientes prácticas recomendadas:
 
 
 
-[[how-tiering-policies-work-with-cloud-migration]]
-== Funcionamiento de las políticas de organización en niveles con la migración al cloud
+[[how-cloud-retrieval-policies-work-with-tiering-policies]]
+== Cómo funcionan las políticas de recuperación en la nube junto con las políticas de clasificación por niveles
 
-La recuperación de datos en el cloud de FabricPool se controla mediante políticas de niveles que determinan la recuperación de datos del nivel de cloud al nivel de rendimiento según el patrón de lectura. Los patrones de lectura pueden ser secuenciales o aleatorios.
+La recuperación de datos en la nube de FabricPool está controlada por políticas de recuperación que determinan cuándo los datos se escriben de nuevo en el nivel local. Los patrones de lectura pueden ser secuenciales o aleatorios.
 
-En la siguiente tabla, se enumeran las políticas de organización en niveles y las reglas de recuperación de datos en el cloud para cada política.
+La siguiente tabla muestra las políticas de organización por niveles de volumen y el comportamiento predeterminado de recuperación para cada política.
 
 |===
 
 
-| Política de organización en niveles | Comportamiento de la recuperación 
+| Política de organización en niveles | Comportamiento predeterminado de recuperación 
 
 
  a| 
@@ -257,30 +257,44 @@ En la siguiente tabla se enumeran las políticas de recuperación de cloud admit
  a| 
 predeterminado
  a| 
-La política de organización en niveles decide qué datos se deben recuperar, de modo que no hay cambios en la recuperación de datos en la nube con «almacén,`" `cloud-retrieval-policy`». Esta política es el valor predeterminado para cualquier volumen independientemente del tipo de agregado alojado.
+Cuando se leen bloques fríos de un volumen, se usa el comportamiento predeterminado de su política de jerarquización de volúmenes. Esta política es el valor predeterminado para cualquier volumen, independientemente del tipo de agregado alojado.
 
 
 
  a| 
 lectura
  a| 
-Todas las lecturas de datos condicionadas por el cliente se realiza desde el nivel de cloud al nivel de rendimiento.
+Cuando se leen bloques fríos en un volumen con una política de recuperación de la nube configurada en "`On-Read`", ya sea de forma aleatoria o secuencial, se convierten en bloques calientes y se escriben en el nivel local.
+
+Las aplicaciones que utilizan lecturas secuenciales activan las escrituras diferidas en el nivel local al configurar la política de recuperación en la nube del volumen en "`On-Read`". Esto puede ser beneficioso para las aplicaciones que necesitan el rendimiento del nivel local a partir de datos que antes estaban inactivos y que ahora están siendo leídos por cargas de trabajo activas
 
 
 
  a| 
 nunca
  a| 
-No se datos controlados por el cliente que pase del nivel de cloud al nivel de rendimiento
+Cuando se leen bloques fríos en un volumen cuya política de recuperación en la nube está configurada en "`Never`", estos siguen siendo fríos y permanecen en el nivel de la nube. No se vuelven a escribir en el nivel local.
+
+Configurar la política de recuperación de la nube en «`Nunca»` es similar a la política de tiering All, ya que no permite que los datos vuelvan al tier local, pero difiere de la política de tiering All en que sigue usando la configuración de tiering-minimum-cooling-days del volumen en lugar de hacer el tiering tan pronto como sea posible.
+
+Por ejemplo, un volumen que use la configuración predeterminada de la política de Auto tiering no marcaría los datos como fríos hasta después de 31 días de inactividad. Después de 31 días, los datos inactivos se trasladarían al almacenamiento de objetos y no regresarían al ser leídos porque la política de recuperación en la nube del volumen se había configurado en "`Never`".
 
 
 
  a| 
 promocionar
  a| 
-* En lo que respecta a la política de organización en niveles «'none», todos los datos del cloud se envían del nivel de cloud al nivel de rendimiento
-* En cuanto a la política de organización en niveles, se obtienen los datos de AFS «solo sinapshot».
+* Para la política de tiering «`none,`», todos los datos escalonados se escriben de nuevo en el nivel local.
+* Para la política de almacenamiento por niveles "`snapshot-only,`" los datos por niveles que no son instantáneas se escriben de nuevo en el nivel local.
 
 
 |===
-Obtenga más información sobre los comandos descritos en este procedimiento en el link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^].
+.Ejemplo de modificar la política de recuperación en la nube
+El siguiente ejemplo cambia la política de almacenamiento por niveles del volumen a `none` y la política de recuperación a `promote`:
+
+[listing]
+----
+set -privilege advanced
+
+volume modify -vserver vs1 -volume myvol -tiering-policy none -cloud-retrieval-policy promote
+----
