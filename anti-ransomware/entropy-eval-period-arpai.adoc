@@ -1,0 +1,113 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/entropy-eval-period-arpai.html 
+keywords: ARP AI, arpai, SAN, entropy evaluation, block device, ransomware detection, ONTAP 9.17.1, evaluation period, hypervisor, VMware, Hyper-V, KVM, OpenStack, machine learning ransomware 
+summary: A partir de ONTAP 9.17.1, ARP/AI requiere un periodo de evaluación para determinar si los niveles de entropía de los dispositivos de bloque son adecuados para la protección contra el ransomware. 
+---
+= Infórmate sobre el periodo de evaluación de la entropía de ARP/AI de ONTAP para cargas de trabajo de dispositivos de bloque
+:allow-uri-read: 
+
+
+[role="lead"]
+A partir de ONTAP 9.17.1, ARP/AI requiere un periodo de evaluación para determinar si los niveles de entropía de las cargas de trabajo de dispositivos de bloque son adecuados para la protección contra ransomware. Estas cargas de trabajo incluyen LUN de SAN y discos virtuales de hipervisor (por ejemplo, discos virtuales de VMware en almacenes de datos NFS y, a partir de ONTAP 9.17.1P5, discos virtuales de Hyper-V, KVM y OpenStack) almacenados en volúmenes ONTAP. Una vez que ARP/AI está habilitado en un volumen compatible, supervisa y protege activamente el volumen durante el periodo de evaluación mientras determina el umbral de cifrado óptimo.
+
+
+NOTE: Esta página se refiere a ARP/AI (ONTAP 9.17.1 y versiones posteriores). ARP no es compatible con volúmenes SAN en versiones anteriores de ONTAP.
+
+
+
+[[supported-workloads-and-evaluation-applicability]]
+== Cargas de trabajo compatibles y aplicabilidad de la evaluación
+
+El periodo de evaluación de los dispositivos en bloque se aplica en los siguientes escenarios:
+
+* *Volúmenes SAN*: cargas de trabajo basadas en LUN presentadas como dispositivos de bloques a los hosts o hipervisores.
+* *Volúmenes NAS que contienen discos virtuales de hipervisor detectados automáticamente por ONTAP*: Los hipervisores compatibles incluyen VMware, Hyper-V, KVM y OpenStack cuyos discos virtuales se almacenan en almacenes de datos NFS o SMB.
+
+
+Dentro de estos volúmenes:
+
+* El periodo de evaluación _es_ aplicable a ataques detectados basados en cambios de entropía dentro del sistema de archivos invitado del disco virtual (por ejemplo, ransomware operando sobre archivos dentro del guest OS mapeados a un LUN o disco virtual).
+* El periodo de evaluación _no_ se aplica a los ataques detectados en función de la entropía y los cambios en las extensiones de archivo realizados directamente en los archivos del disco virtual desde el host del hipervisor (por ejemplo, ransomware que actúa directamente sobre archivos .vmdk desde un punto de montaje de un datastore NFS de ESXi). Estos ataques directos al disco utilizan una ruta de detección diferente.
+
+
+
+
+[[understand-entropy-evaluation]]
+== Comprender la evaluación de la entropía
+
+El periodo de evaluación tiene una duración mínima de dos semanas y máxima de cuatro semanas. Si se escriben más de 10 GB de datos durante las dos primeras semanas, la evaluación finaliza al término de ese periodo de dos semanas. Si no se alcanza el umbral de 10 GB en el plazo de dos semanas, la evaluación continúa hasta que se hayan escrito 10 GB de datos, sin superar el máximo de cuatro semanas.
+
+Durante el periodo de evaluación, el sistema recopila estadísticas de cifrado de forma continua en intervalos de 10 minutos a partir de las cargas de trabajo de dispositivos de bloques e hipervisores compatibles. También se crean continuamente instantáneas periódicas de ARP/AI cada cuatro horas. Si el porcentaje de cifrado dentro de un intervalo supera el umbral de cifrado óptimo identificado para este volumen, se activa una alerta, se crea una instantánea de `Anti_ransomware_attack_backup` y se aumenta el tiempo de retención de las instantáneas periódicas de ARP/AI.
+
+.Confirmar que el periodo de evaluación está activo
+Puedes confirmar que la evaluación está activa ejecutando el siguiente comando y comprobando que el estado sea  `evaluation_period`. Si un volumen no es apto para la evaluación, no se muestra el estado de la evaluación.
+
+[source, cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <volume_name>
+----
+Ejemplo de respuesta:
+
+[listing, subs="+quotes"]
+----
+Vserver Name                                : vs1
+Volume Name                                 : v1
+State                                       : enabled
+Attack Probability                          : none
+Attack Timeline                             : -
+Number of Attacks                           : -
+Attack Detected By                          : -
+*Block device detection status               : Evaluation_period*
+----
+.Recopilación de datos del período de evaluación del monitor
+Puedes supervisar la detección del cifrado en tiempo real. Este comando devuelve un histograma que muestra la cantidad de datos en cada rango de porcentaje de cifrado. El histograma se actualiza cada 10 minutos.
+
+[source, cli]
+----
+security anti-ransomware volume entropy-stat show-encryption-percentage-histogram -vserver <svm_name> -volume <vol_name> -duration real_time
+----
+
+
+[[suitable-workloads-and-adaptive-thresholds]]
+== Cargas de trabajo adecuadas y umbrales adaptativos
+
+La evaluación concluye con uno de los siguientes resultados:
+
+* *La carga de trabajo es adecuada para ARP/AI*. ARP/AI establece automáticamente el umbral adaptativo por encima del 10 % del porcentaje máximo de cifrado observado durante el periodo de evaluación. ARP/AI también continúa recopilando estadísticas y crea instantáneas periódicas de ARP/AI.
+* *La carga de trabajo no es adecuada para ARP/AI*. ARP/AI establece automáticamente el umbral adaptativo en el porcentaje máximo de cifrado registrado durante el periodo de evaluación. ARP/AI también continúa recopilando estadísticas y crea instantáneas periódicas de ARP/AI, pero el sistema finalmente recomienda desactivar ARP/AI en el volumen.
+
+
+.Determinar los resultados de la evaluación
+Una vez finalizado el periodo de evaluación, ARP/AI establece automáticamente el umbral adaptativo en función de los resultados de la evaluación. Puedes consultar los resultados de la evaluación ejecutando el siguiente comando. La idoneidad del volumen se indica en el campo  `Block device detection status`:
+
+[source, cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <volume_name>
+----
+Ejemplo de respuesta:
+
+[listing, subs="+quotes"]
+----
+Vserver Name                               : vs1
+Volume Name                                : v1
+State                                      : enabled
+Attack Probability                         : none
+Attack Timeline                            : -
+Number of Attacks                          : -
+Attack Detected By                         : -
+*Block device detection status              : Active_suitable_workload*
+
+Block device evaluation start time :  5/16/2025 01:49:01
+----
+También puedes mostrar el valor umbral adoptado como resultado de la evaluación:
+
+[source, cli]
+----
+security anti-ransomware volume attack-detection-parameters show -vserver <svm_name> -volume <volume_name>
+----
+.Información relacionada
+* link:modify-snapshot-options-arpai.html["Modificar las opciones de instantáneas para ARP/AI"]
+* link:manage-parameters-arpai.html["Gestiona los parámetros de detección de ataques ARP/AI"]
+* link:respond-arpai.html["Responde a la actividad anómala detectada por ARP/AI"]
+

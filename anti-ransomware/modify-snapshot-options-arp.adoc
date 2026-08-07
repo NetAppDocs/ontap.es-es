@@ -1,0 +1,109 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/modify-snapshot-options-arp.html 
+keywords: ARP, snapshot settings, retention, arw snap, autonomous ransomware protection, ONTAP 9.11.1, NAS, deprecated settings, learning mode, legacy ARP snapshot settings, ONTAP 9.15.1 or earlier 
+summary: 'Ajusta la configuración de creación y retención de las instantáneas ARP que se generan automáticamente en respuesta a posibles amenazas de ransomware en los volúmenes NAS (ONTAP 9.11.1 through 9.15.1).' 
+---
+= Ajusta la configuración de las instantáneas ARP de ONTAP generadas automáticamente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.11,1, puede usar la interfaz de línea de comandos para controlar la configuración de retención de las copias Snapshot de protección autónoma frente a ransomware (ARP) que se generan automáticamente en respuesta a ataques sospechosos de ransomware.
+
+
+NOTE: Si utilizas ONTAP 9.16.1 o una versión posterior, consulta link:modify-snapshot-options-arpai.html["Ajusta la configuración de las instantáneas ARP/AI generadas automáticamente"].
+
+.Antes de empezar
+Solo puedes modificar las opciones de instantáneas ARP en una link:../system-admin/types-svms-concept.html["nodo SVM"] y no en otros tipos de SVM.
+
+
+NOTE: La configuración que se describe en esta sección es válida para las versiones de ONTAP desde la 9.11.1 hasta la 9.15.1. Si has actualizado a ONTAP 9.16.1 o una versión posterior, usa la link:modify-snapshot-options-arpai.html["Configuración de instantáneas ARP/AI"].
+
+.Pasos
+. Mostrar todos los valores actuales de la instantánea ARP:
++
+[source, cli]
+----
+options -option-name arw*
+----
+. Mostrar la configuración actual de la instantánea ARP seleccionada:
++
+[source, cli]
+----
+options -option-name <arw_setting_name>
+----
+. Modificar la configuración de la instantánea ARP:
++
+[source, cli]
+----
+options -option-name <arw_setting_name> -option-value <arw_setting_value>
+----
++
+Puedes modificar los siguientes parámetros (ONTAP 9.11.1 a 9.15.1):
+
++
+[cols="1,3,1"]
+|===
+| Ajuste | Descripción | Versiones compatibles con ARP 
+
+
+| `arw.snap.max.count`  a| 
+Especifica el número máximo de instantáneas ARP que pueden existir en un volumen en un momento dado. Las copias más antiguas se eliminan para garantizar que el número total de instantáneas ARP se mantenga dentro de este límite.
+ a| 
+ONTAP 9.11.1 a 9.15.1
+
+
+
+| `arw.snap.create.interval.hours`  a| 
+Especifica el intervalo _en horas_ entre instantáneas ARP. Se crea una nueva instantánea ARP cuando se sospecha de un ataque basado en la entropía de los datos y la instantánea creada más recientemente es anterior al intervalo especificado.
+ a| 
+ONTAP 9.11.1 a 9.15.1
+
+
+
+| `arw.snap.normal.retain.interval.hours`  a| 
+Especifica la duración, en horas, de la conservación de una instantánea de ARP. Cuando una instantánea de ARP alcanza el umbral de conservación, se elimina.
+ a| 
+ONTAP 9.11.1 a 9.15.1 (obsoleto a partir de la versión 9.17.1 y posteriores)
+
+
+
+| `arw.snap.max.retain.interval.days`  a| 
+Especifica la duración máxima _en días_ para la que se puede conservar una instantánea ARP. Cualquier instantánea de ARP anterior a esta duración se elimina cuando no se notifica ningún ataque en el volumen.
+
+
+NOTE: El intervalo máximo de retención se ignora si se detecta una amenaza moderada. La instantánea ARP creada en respuesta a la amenaza se conserva hasta que respondas a la amenaza. Cuando marcas una amenaza como falso positivo, ONTAP elimina las instantáneas ARP del volumen.
+ a| 
+ONTAP 9.11.1 a 9.15.1 (obsoleto a partir de la versión 9.17.1 y posteriores)
+
+
+
+| `arw.snap.create.interval.hours.post.max.count`  a| 
+Especifica el intervalo _en horas_ entre instantáneas ARP cuando el volumen ya contiene el número máximo de instantáneas ARP. Cuando se alcanza el número máximo, se elimina una instantánea ARP para dejar espacio a una nueva copia. Utiliza esta opción para reducir la velocidad de creación y conservar copias más antiguas.
+ a| 
+ONTAP 9.11.1 a 9.15.1 (obsoleto a partir de la versión 9.17.1 y posteriores)
+
+
+
+| `arw.snap.new.extns.interval.hours`  a| 
+Especifica el intervalo _en horas_ entre las instantáneas ARP que se crean cuando se detecta una nueva extensión de archivo. Se crea una nueva instantánea ARP cuando se detecta una nueva extensión de archivo y la instantánea anterior de este tipo es más antigua que el intervalo especificado. Esta opción existe independientemente de `arw.snap.create.interval.hours`, que especifica el intervalo para las instantáneas basadas en la entropía.
+ a| 
+ONTAP 9.11.1 a 9.15.1 (obsoleto a partir de la versión 9.17.1 y posteriores)
+
+
+
+| `arw.snap.surge.interval.days`  a| 
+Especifica el intervalo _en días_ entre las instantáneas ARP creadas en respuesta a picos de IO. Esta opción también especifica el periodo de retención _en días_ para una instantánea de pico de ARP.
+ a| 
+ONTAP 9.11.1 a 9.15.1
+
+|===
+
+
+.Información relacionada
+* link:learn-about-arp.html#arp-snapshots["Evaluación de amenazas e instantáneas ARP"]
+* link:modify-snapshot-options-arpai.html["Ajusta la configuración de las instantáneas ARP/AI (ONTAP 9.16.1 y versiones posteriores)"]
+

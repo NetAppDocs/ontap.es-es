@@ -1,0 +1,165 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/support-arp.html 
+keywords: ARP, autonomous ransomware protection, ONTAP 9.10.1, supported configurations, NAS, FlexVol, FlexGroup, SnapMirror, MAV, multi-admin verification, 4000 file extensions, NFS, SMB, learning mode, legacy ARP, ONTAP 9.10.1 through 9.15.1 
+summary: 'ARP (ONTAP 9.10.1 a 9.15.1) es compatible con cargas de trabajo NAS en volúmenes FlexVol y FlexGroup. Revisa las configuraciones y los límites admitidos antes de implementar ARP.' 
+---
+= Configuraciones compatibles con ARP en ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La protección autónoma contra el ransomware (ARP) está disponible para cargas de trabajo NAS a partir de ONTAP 9.10.1 hasta ONTAP 9.15.1. Antes de implementar ARP, debes conocer los usos recomendados y las configuraciones compatibles, así como las implicaciones en el rendimiento.
+
+
+NOTE: ARP/AI es el modelo actual de protección contra ransomware de ONTAP para ONTAP 9.16.1 y versiones posteriores. Si usas ONTAP 9.16.1 o una versión posterior, consulta link:support-arpai.html["Configuraciones compatibles con ARP/AI"].
+
+
+
+[[suitable-workloads]]
+== Cargas de trabajo adecuadas
+
+ARP es adecuado para estos tipos de cargas de trabajo:
+
+* Bases de datos en almacenamiento NFS
+* Directorios iniciales Windows o Linux
++
+Los usuarios pueden crear archivos con extensiones que no se detectan durante el periodo de aprendizaje, por lo que existe una mayor probabilidad de que se produzcan falsos positivos en esta carga de trabajo.
+
+* Imágenes y vídeo
++
+Por ejemplo, historiales médicos y datos de automatización de diseño electrónico (EDA)
+
+
+
+
+
+[[unsuitable-workloads]]
+== Cargas de trabajo poco adecuadas
+
+ARP no es adecuado para estos tipos de cargas de trabajo:
+
+* Cargas de trabajo con una alta frecuencia de operaciones de creación o eliminación de archivos (cientos de miles de archivos en pocos segundos; por ejemplo, cargas de trabajo de prueba/desarrollo).
++
+La detección de amenazas de ARP depende de su capacidad para reconocer un aumento inusual en las operaciones de creación, renombrado o eliminación de archivos. Si la propia aplicación es la fuente de la actividad del archivo, no se puede distinguir con eficacia de la actividad de ransomware.
+
+* Cargas de trabajo en volúmenes con más de 4,000 extensiones de archivo distintas.
++
+ARP (ONTAP 9.10.1 a 9.15.1) puede analizar hasta 4 000 extensiones de archivo por volumen. Si el número de extensiones de archivo únicas en un volumen supera este límite, ARP no puede detectar de forma eficaz la actividad de ransomware y la carga de trabajo se considera inadecuada.
+
+* Cargas de trabajo donde la aplicación o el host cifran los datos.
++
+ARP depende de distinguir los datos entrantes como cifrados o no cifrados. Si la propia aplicación cifra los datos, la eficacia de la función se reduce. Sin embargo, ARP puede seguir funcionando según la actividad del archivo (eliminar, sobrescribir, crear, o crear o renombrar con una nueva extensión) y el tipo de archivo.
+
+* Cargas de trabajo SAN.
++
+ARP (de la versión 9.10.1 a la 9.15.1) no es compatible con volúmenes SAN. La compatibilidad con SAN se introdujo con ARP/AI en ONTAP 9.17.1. link:learn-about-arpai.html["Consulta la documentación de ARP/AI para obtener más información sobre SAN."]
+
+
+
+
+
+[[supported-configurations]]
+== Configuraciones admitidas
+
+ARP (de la versión 9.10.1 a la 9.15.1) admite cargas de trabajo NAS a través de los protocolos NFS y SMB en volúmenes FlexVol y, a partir de ONTAP 9.13.1, en volúmenes FlexGroup.
+
+|===
+| Configuración | ONTAP 9.15.1 | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
+
+
+| FlexVol volúmenes (NAS) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
+
+
+| FlexGroup volúmenes (NAS) | ✓ | ✓ | ✓ |  |  |  
+
+
+| Volúmenes con SnapMirror asíncrono | ✓ | ✓ | ✓ | ✓ |  |  
+
+
+| SVM con SnapMirror asíncrono (recuperación ante desastres de SVM) | ✓ | ✓ | ✓ | ✓ |  |  
+
+
+| Movilidad de datos de SVM (`vserver migrate`) | ✓ | ✓ | ✓ | ✓ |  |  
+
+
+| Verificación multi-admin (MAV) | ✓ | ✓ | ✓ |  |  |  
+
+
+| Configuraciones de MetroCluster | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
+|===
+
+
+[[snapmirror-and-arp-interoperability]]
+[[snapmirror]]
+== Interoperabilidad de SnapMirror y ARP
+
+A partir de ONTAP 9.12.1, se admite ARP en los volúmenes de destino asíncronos de SnapMirror. SnapMirror síncrono y SnapMirror active sync solo son compatibles con ARP/AI a partir de ONTAP 9.19.1.
+
+Si un volumen de origen de SnapMirror tiene habilitado ARP, el volumen de destino de SnapMirror adquiere automáticamente el estado de configuración de ARP (como  `dry-run` o  `enabled`), los datos de entrenamiento de ARP y la instantánea creada por ARP del volumen de origen. El volumen de destino no necesita habilitar ARP por separado.
+
+Mientras un volumen de destino esté compuesto por instantáneas de solo lectura (RO), no se realiza ningún procesamiento ARP sobre sus datos. Sin embargo, cuando un volumen de destino SnapMirror se convierte a lectura/escritura (RW), ARP se habilita automáticamente en el volumen de destino convertido a RW.
+
+
+NOTE: En ONTAP 9.10.1 y 9.11.1, SnapMirror no transfiere el estado de configuración de ARP, los datos de entrenamiento ni las instantáneas de los volúmenes de origen a los volúmenes de destino. Cuando el volumen de destino de SnapMirror se convierte a lectura-escritura, ARP en el volumen de destino debe habilitarse explícitamente en modo de aprendizaje después de la conversión.
+
+
+
+[[unsupported-configurations]]
+== Configuraciones no admitidas
+
+ARP no admite las siguientes configuraciones de volumen:
+
+* Volúmenes FlexCache (ARP es compatible con los volúmenes FlexVol de origen, pero no con los volúmenes de caché)
+* Volúmenes sin conexión
+* Volúmenes de SnapLock
+* SnapMirror síncrono
+* SnapMirror síncrono activo
+* SnapMirror volúmenes de destino asíncronos en ONTAP 9.10.1 y 9.11.1 (compatibles a partir de ONTAP 9.12.1)
+* Volúmenes restringidos
+* Volúmenes raíz de equipos virtuales de almacenamiento
+* Volúmenes de máquinas virtuales de almacenamiento detenidas
+* FlexVol a FlexGroup conversión (ARP debe estar desactivado antes de la conversión)
+
+
+
+
+[[performance-and-volume-limits]]
+== Límites de rendimiento y volumen
+
+ARP puede tener un impacto mínimo en el rendimiento del sistema, medido en rendimiento e IOPS máximos. El impacto de la función ARP depende de la carga de trabajo específica del volumen. Para cargas de trabajo comunes, se recomiendan los siguientes límites de configuración:
+
+[cols="2,1,2"]
+|===
+| Características de las cargas de trabajo | Límite de volúmenes recomendado por nodo | Degradación del rendimiento cuando se excede el límite de volumen por nodo ^1^ 
+
+
+| Lectura intensiva o los datos se pueden comprimir | 150 | 4 % de IOPS máximo 
+
+
+| Escritura intensiva y los datos no se pueden comprimir | 60 | 10 % del máximo de IOPS 
+|===
+^1^ El rendimiento del sistema no se degrada más allá de estos porcentajes, independientemente de la cantidad de volúmenes agregados que excedan los límites recomendados.
+
+Debido a que los análisis de ARP se ejecutan en una secuencia priorizada, los análisis se ejecutan en cada volumen con menor frecuencia a medida que aumenta la cantidad de volúmenes protegidos.
+
+
+NOTE: Habilitar ARP por defecto en un gran número de nuevos volúmenes puede incrementar el uso de recursos del sistema. Considera las demandas de espacio para procesos competidores como las instantáneas cuando habilites ARP en volúmenes.
+
+
+
+[[multi-admin-verificationmulti-admin-verification-with-arp-protected-volumes]]
+== [[multi-admin-verification]]Verificación de múltiples administradores con volúmenes protegidos mediante ARP
+
+A partir de ONTAP 9.13.1, puede habilitar la verificación multiadministrador (MAV) para obtener seguridad adicional con ARP. MAV garantiza que al menos dos o más administradores autenticados deben desactivar ARP, pausar ARP o marcar un ataque sospechoso como falso positivo en un volumen protegido. Aprenda a link:../multi-admin-verify/enable-disable-task.html["Habilite MAV para volúmenes protegidos por ARP"].
+
+Debes definir administradores para un grupo MAV y crear reglas MAV para los comandos `security anti-ransomware volume disable`, `security anti-ransomware volume pause` y `security anti-ransomware volume attack clear-suspect` que quieras proteger.
+
+Obtenga más información acerca de `security anti-ransomware volume disable`, `security anti-ransomware volume pause` y `security anti-ransomware volume attack clear-suspect` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume["Referencia de comandos del ONTAP"^].
+
+.Información relacionada
+* link:enable-arp.html["Habilita ARP en un volumen"]
+* link:enable-default-arp.html["Activar ARP por defecto en nuevos volúmenes"]
+

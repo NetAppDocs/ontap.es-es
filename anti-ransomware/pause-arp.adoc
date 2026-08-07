@@ -1,0 +1,98 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/pause-arp.html 
+keywords: ARP, arpai, ARP AI, pause, resume, autonomous ransomware protection, workload event, MAV, multi-admin verification 
+summary: Suspende temporalmente y reanuda el análisis de ARP o ARP/AI durante los eventos previstos de carga de trabajo inusual. 
+---
+= Pausa la protección ARP o ARP/AI de ONTAP para excluir los eventos de las cargas de trabajo del análisis
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si esperas eventos de carga de trabajo inusuales, puedes suspender y reanudar temporalmente el análisis de Autonomous Ransomware Protection (ARP y ARP/AI) en cualquier momento.
+
+A partir de ONTAP 9.13.1, puedes habilitar la verificación de múltiples administradores (MAV) para que se requieran dos o más usuarios administradores autenticados para pausar ARP o ARP/AI.
+
+link:../multi-admin-verify/enable-disable-task.html["Más información acerca de MAV"].
+
+.Acerca de esta tarea
+Durante una pausa de ARP o ARP/AI, ONTAP no registra eventos ni acciones para nuevas escrituras; sin embargo, el análisis continúa para los registros anteriores en segundo plano.
+
+
+NOTE: No utilices la función de desactivación de ARP o ARP/AI para pausar los análisis. Si lo haces, se desactiva la protección en el volumen y se pierde toda la información existente sobre el comportamiento aprendido de la carga de trabajo. Para ARP (ONTAP 9.10.1 a 9.15.1), sería necesario reiniciar el periodo de aprendizaje. Para ARP/AI (ONTAP 9.16.1 y posteriores), se pierden todos los datos acumulados sobre el comportamiento de la carga de trabajo. Para los volúmenes SAN, el periodo de evaluación se reinicia desde el principio.
+
+.Pasos
+Puedes utilizar System Manager o la CLI de ONTAP para pausar ARP o ARP/AI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Selecciona *Almacenamiento > Volúmenes* y luego selecciona el volumen donde quieres pausar ARP o ARP/AI.
+. En la pestaña *Seguridad* de la descripción general de Volúmenes, seleccione *Pausar anti-ransomware* en el cuadro *Anti-ransomware*.
++
+
+NOTE: A partir de ONTAP 9.13.1, si utilizas MAV para proteger la configuración de ARP o ARP/AI, la operación de pausa te pedirá que obtengas la aprobación de uno o varios administradores adicionales. link:../multi-admin-verify/request-operation-task.html["La aprobación debe recibirse de todos los administradores"] asociados al grupo de aprobación de MAV o la operación fallará.
+
+. Para reanudar la monitorización, seleccione *Reanudar anti-ransomware*.
+
+
+--
+.CLI
+--
+. Pausa ARP o ARP/AI en un volumen:
++
+[source, cli]
+----
+security anti-ransomware volume pause -vserver <svm_name> -volume <vol_name>
+----
+. Para reanudar el procesamiento, utilice `resume` el comando:
++
+[source, cli]
+----
+security anti-ransomware volume resume -vserver <svm_name> -volume <vol_name>
+----
++
+Obtenga más información sobre `security anti-ransomware volume` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume+["Referencia de comandos del ONTAP"^].
+
+. Si utilizas MAV para proteger la configuración de ARP o ARP/AI, la operación de pausa te pedirá que obtengas la aprobación de uno o varios administradores adicionales. La aprobación debe recibirse de todos los administradores asociados con el grupo de aprobación de MAV o la operación fallará.
++
+Si utiliza MAV y una operación de pausa esperada necesita aprobaciones adicionales, cada aprobador de grupo MAV realiza lo siguiente:
+
++
+.. Mostrar la solicitud:
++
+[source, cli]
+----
+security multi-admin-verify request show
+----
+.. Apruebe la solicitud:
++
+[source, cli]
+----
+security multi-admin-verify request approve -index[<number returned from show request>]
+----
++
+Si utiliza MAV y es un aprobador de grupo MAV, puede rechazar una solicitud de operación de pausa:
+
++
+[source, cli]
+----
+security multi-admin-verify request veto -index[<number returned from show request>]
+----
++
+Obtenga más información sobre `security multi-admin-verify request` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+multi-admin-verify+request["Referencia de comandos del ONTAP"^].
+
+
+
+
+
+--
+====

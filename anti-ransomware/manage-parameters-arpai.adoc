@@ -1,0 +1,197 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/manage-parameters-arpai.html 
+keywords: ARP AI, arpai, detection parameters, configure workload characteristics, modify, security anti-ransomware attack, SAN ransomware parameters, ONTAP 9.16.1, machine learning ransomware, event alerts 
+summary: A partir de ONTAP 9.16.1, modifica los parámetros de detección de ARP/AI para las cargas de trabajo NAS y SAN para mejorar la precisión de la detección de ransomware. 
+---
+= Gestiona los parámetros de detección de ataques ARP/AI en ONTAP
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.16.1, puedes modificar los parámetros de detección de ransomware en un volumen específico con ARP/AI habilitado y registrar un pico conocido como actividad normal de archivos. El ajuste de los parámetros de detección ayuda a mejorar la precisión de los informes en función de la carga de trabajo específica de tu volumen.
+
+
+NOTE: Si utilizas ONTAP 9.15.1 o una versión anterior, consulta link:manage-parameters-arp.html["Gestiona los parámetros de detección de ataques ARP"].
+
+
+
+[[how-arpai-attack-detection-works]]
+== Cómo funciona la detección de ataques ARP/AI
+
+ARP/AI utiliza un modelo de aprendizaje automático para detectar actividad de ransomware. Cuando ARP/AI está en modo activo (o en modo de evaluación para volúmenes SAN), supervisa continuamente los comportamientos de los volúmenes. Estos incluyen la entropía, las extensiones de archivo y las IOPS de archivos (NAS) o las tasas de cifrado a nivel de volumen (SAN). Para más información sobre los criterios de detección, consulta link:learn-about-arpai.html#what-arp-ai-detects["lo que detecta ARP/AI"].
+
+Algunos volúmenes y cargas de trabajo requieren parámetros de detección diferentes. Por ejemplo, un volumen con ARP/AI activado puede contener numerosos tipos de extensiones de archivo, en cuyo caso quizá quieras modificar el umbral para las extensiones de archivo nunca vistas o desactivar esas advertencias por completo.
+
+A partir de ONTAP 9.14.1, puedes configurar alertas cuando ARP/AI detecta una nueva extensión de archivo y cuando ARP/AI crea una instantánea. Para más información, consulta <<modify-alerts>>.
+
+.Detección de ataques en entornos NAS
+ARP/AI emite una alerta de amenaza cuando detecta cualquiera de las siguientes situaciones:
+
+* Alta entropía de datos
+* Varios archivos con la misma extensión de archivo nunca vista antes (observados en un periodo de 48 horas)
+
+
+
+NOTE: Para reducir el elevado número de alertas de falsos positivos, ve a *Almacenamiento > Volúmenes > Seguridad > Configurar características de la carga de trabajo* y desactiva *Supervisar nuevos tipos de archivos*. A partir de ONTAP 9.18.1 P2, System Manager ya no muestra las características de la carga de trabajo ARP/AI, incluidas las estadísticas de referencia y de picos. Las estadísticas de picos siguen estando disponibles usando las opciones de la CLI de ONTAP y la API de REST para análisis avanzados.
+
+.Detección de ataques en entornos SAN
+A partir de ONTAP 9.17.1, ARP/AI emite una advertencia si detecta tasas de cifrado elevadas que superan un umbral determinado automáticamente. Este umbral se establece después de un link:entropy-eval-period-arpai.html["período de evaluación"] pero puede modificarse.
+
+
+
+[[modify-arpai-attack-detection-parameters]]
+== Modificar los parámetros de detección de ataques ARP/AI
+
+En función del comportamiento previsto del volumen habilitado para ARP/AI, es posible que quieras modificar los parámetros de detección de ataques.
+
+.Pasos
+. Ver los parámetros de detección de ataques existentes:
++
+[source, cli]
+----
+security anti-ransomware volume attack-detection-parameters show -vserver <svm_name> -volume <volume_name>
+----
++
+....
+security anti-ransomware volume attack-detection-parameters show -vserver vs1 -volume vol1
+                                             Vserver Name : vs1
+                                              Volume Name : vol1
+           Block Device Auto Learned Encryption Threshold : 10
+            Is Detection Based on High Entropy Data Rate? : true
+  Is Detection Based on Never Seen before File Extension? : true
+                  Is Detection Based on File Create Rate? : true
+                  Is Detection Based on File Rename Rate? : true
+                  Is Detection Based on File Delete Rate? : true
+           Is Detection Relaxing Popular File Extensions? : true
+                High Entropy Data Surge Notify Percentage : 100
+                 File Create Rate Surge Notify Percentage : 100
+                 File Rename Rate Surge Notify Percentage : 100
+                 File Delete Rate Surge Notify Percentage : 100
+ Never Seen before File Extensions Count Notify Threshold : 5
+       Never Seen before File Extensions Duration in Hour : 48
+....
+. Todos los campos mostrados se pueden modificar con valores booleanos o enteros. Para modificar un campo, utilice el  `security anti-ransomware volume attack-detection-parameters modify` dominio.
++
+Obtenga más información sobre `security anti-ransomware volume attack-detection-parameters modify` en el link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-attack-detection-parameters-modify.html["Referencia de comandos del ONTAP"^].
+
+
+
+
+
+[[report-known-surges]]
+== Informe de sobretensiones conocidas
+
+ARP/AI sigue modificando los valores de referencia de los parámetros de detección incluso en modo activo. Si detectas picos en tu volumen de actividad, ya sean picos puntuales o propios de una nueva normalidad, debes reportarlos como seguros. Reportar manualmente estos picos como seguros ayuda a mejorar la precisión de las evaluaciones de amenazas de ARP/AI.
+
+.Informe de un aumento puntual
+. Si se produce un pico puntual en circunstancias conocidas y quieres que ARP/AI notifique un pico similar en circunstancias futuras, elimina dicho pico del comportamiento de la carga de trabajo:
++
+[source, cli]
+----
+security anti-ransomware volume workload-behavior clear-surge -vserver <svm_name> -volume <volume_name>
+----
++
+Obtenga más información sobre `security anti-ransomware volume workload-behavior clear-surge` en el link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-workload-behavior-clear-surge.html["Referencia de comandos del ONTAP"^].
+
+
+
+.Modificar sobretensiones de línea base
+. Si un pico notificado debe considerarse un comportamiento normal de la aplicación, informa el pico como tal para modificar el valor de referencia del pico:
++
+[source, cli]
+----
+security anti-ransomware volume workload-behavior update-baseline-from-surge -vserver <svm_name> -volume <volume_name>
+----
++
+Obtenga más información sobre  `security anti-ransomware volume workload-behavior update-baseline-from-surge` en el link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-workload-behavior-update-baseline-from-surge.html["Referencia de comandos del ONTAP"^] .
+
+
+
+
+
+[[configure-arpai-alerts]]
+[[modify-alerts]]
+== Configura alertas ARP/AI
+
+A partir de ONTAP 9.14.1, puedes configurar alertas para dos eventos:
+
+* Detección de una nueva extensión de archivo en un volumen
+* Creación de una instantánea ARP/AI
+
+
+Las alertas para estos dos eventos se pueden configurar en volúmenes individuales o para todo el SVM. Si habilitas las alertas para el SVM, la configuración de las alertas solo se hereda en los volúmenes creados después de habilitar la alerta. De forma predeterminada, las alertas no están habilitadas en ningún volumen.
+
+Las alertas de eventos se pueden controlar con la verificación de varios administradores. Para más información, consulta link:support-arpai.html#multi-admin-verification-with-arpai-protected-volumes["Verificación de múltiples administradores con volúmenes protegidos con ARP/AI"].
+
+.Pasos
+Puedes utilizar System Manager o la CLI de ONTAP para configurar alertas para eventos ARP/AI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Configure alertas para un volumen
+. Vaya a *Volúmenes*. Seleccione el volumen cuya configuración desea modificar.
+. Seleccione la pestaña *Seguridad* y luego *Configuración de gravedad del evento*.
+. Para recibir alertas de *Nueva extensión de archivo detectada* y *Instantánea de ransomware creada*, seleccione el menú desplegable bajo el encabezado *Gravedad*. Cambie la configuración de *No generar evento* a *Aviso*.
+. Seleccione *Guardar*.
+
+
+.Configure alertas para una SVM
+. Vaya a *Storage VM* y luego seleccione la SVM para la cual desea habilitar la configuración.
+. En el encabezado *Seguridad*, localice la tarjeta *Anti-ransomware*. Seleccione image:../media/icon_kabob.gif["Icono de opciones de menú"] Luego, *Editar gravedad del evento de ransomware*.
+. Para recibir alertas de *Nueva extensión de archivo detectada* y *Instantánea de ransomware creada*, seleccione el menú desplegable bajo el encabezado *Gravedad*. Cambie la configuración de *No generar evento* a *Aviso*.
+. Seleccione *Guardar*.
+
+
+--
+.CLI
+--
+.Configure alertas para un volumen
+* Para configurar alertas para una nueva extensión de archivo:
++
+[source, cli]
+----
+security anti-ransomware volume event-log modify -vserver <svm_name> -volume <volume_name> -is-enabled-on-new-file-extension-seen true
+----
+* Para configurar alertas para la creación de una instantánea ARP/AI:
++
+[source, cli]
+----
+security anti-ransomware volume event-log modify -vserver <svm_name> -volume <volume_name> -is-enabled-on-snapshot-copy-creation true
+----
+* Confirme la configuración con `anti-ransomware volume event-log show` el comando.
+
+
+.Configure alertas para una SVM
+* Para configurar alertas para una nueva extensión de archivo:
++
+[source, cli]
+----
+security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-new-file-extension-seen true
+----
+* Para configurar alertas para la creación de una instantánea ARP/AI:
++
+[source, cli]
+----
+security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-snapshot-copy-creation true
+----
+* Confirme la configuración con `security anti-ransomware vserver event-log show` el comando.
+
+
+Obtenga más información sobre  `security anti-ransomware vserver event-log` comandos en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security-anti-ransomware-vserver-event-log["Referencia de comandos del ONTAP"^] .
+
+--
+====
+.Información relacionada
+* link:https://kb.netapp.com/onprem/ontap/da/NAS/Understanding_Autonomous_Ransomware_Protection_attacks_and_the_Autonomous_Ransomware_Protection_snapshot["Entiende los ataques ARP/AI y la instantánea ARP/AI"^]
+* link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^]
+

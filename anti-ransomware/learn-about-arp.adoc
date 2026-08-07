@@ -1,0 +1,194 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/learn-about-arp.html 
+keywords: ransomware, arp, autonomous protection, security, detect, detection, threat, attack, learning mode, anti-ransomware, entropy, file extension, file IOPS, NAS 
+summary: El modelo ARP original utiliza un periodo de aprendizaje para establecer valores de referencia de comportamiento antes de pasar a la detección activa de ransomware. Se aplica a los volúmenes NAS FlexVol en ONTAP 9.10.1 a 9.15.1 y a los volúmenes FlexGroup en ONTAP 9.13.1 a 9.17.1. 
+---
+= Conoce ONTAP ARP (ONTAP 9.10.1 a 9.15.1)
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+En ONTAP 9.10.1 hasta 9.15.1, Autonomous Ransomware Protection (ARP) supervisa los entornos NAS usando un periodo de aprendizaje para establecer líneas base de comportamiento antes de pasar a la detección activa de ransomware. ARP analiza la entropía de los datos, los cambios en las extensiones de los archivos y los patrones de IOPS de los archivos para identificar posibles ataques de ransomware. Para los volúmenes FlexGroup, el modelo ARP original también se aplica hasta ONTAP 9.17.1.
+
+
+NOTE: El modelo ARP original no recibió nuevas mejoras funcionales después de ONTAP 9.14.1. Si estás ejecutando ONTAP 9.16.1 o una versión posterior en volúmenes FlexVol, consulta link:learn-about-arpai.html["Aprende sobre ARP/IA"]. FlexGroup volumes usan el modelo ARP original hasta ONTAP 9.17.1 y son compatibles con ARP/AI a partir de ONTAP 9.18.1.
+
+
+
+[[what-arp-detects]]
+== Lo que ARP detecta
+
+ARP identifica los datos entrantes como cifrados o en texto sin cifrar y utiliza las siguientes señales discretas para detectar la actividad del ransomware:
+
+* *Entropía*: una evaluación del carácter aleatorio de los datos de un archivo (solo NAS)
+* *Tipos de extensión de archivo*: Una extensión de archivo que no se ajusta a los tipos de extensión esperados (solo NAS)
+* *IOPS de archivos*: un aumento repentino de la actividad anómala en los volúmenes con cifrado de datos (solo NAS; ONTAP 9.11.1 y versiones posteriores)
+
+
+ARP detecta la propagación de la mayoría de los ataques de ransomware después de que solo se cifra una pequeña cantidad de archivos, responde automáticamente para proteger los datos y le alerta de que está ocurriendo un ataque sospechoso.
+
+
+NOTE: Ningún sistema de detección de ransomware puede garantizar una seguridad completa.  ARP proporciona una capa adicional de defensa si el software antivirus no detecta una intrusión.
+
+
+
+[[enablement-options-for-arp]]
+== Opciones de habilitación para ARP
+
+ARP se habilita manualmente por volumen o se configura de forma predeterminada en los nuevos volúmenes a nivel de SVM.
+
+* Para habilitar ARP de forma predeterminada en todos los volúmenes nuevos de un SVM, consulta link:enable-default-arp.html["Activar ARP por defecto en nuevos volúmenes"].
+* Para habilitar ARP en un volumen concreto, consulta link:enable-arp.html["Habilita ARP en un volumen"].
+
+
+
+
+[[arp-protection-modes]]
+== Modos de protección ARP
+
+ARP comienza en modo de aprendizaje para establecer una referencia de comportamiento antes de pasar a la detección activa.
+
+
+
+[[nas-volumes]]
+=== Volúmenes NAS
+
+La siguiente tabla resume los modos ARP para entornos NAS.
+
+[cols="1,5,1"]
+|===
+| Modo | Descripción | Tipos y versiones de volúmenes 
+
+
+| Aprendiendo  a| 
+Al habilitar ARP, este se configura automáticamente en modo de aprendizaje. En el modo de aprendizaje, el sistema ONTAP elabora un perfil de alertas basado en las áreas analíticas: entropía, tipos de extensión de archivo e IOPS de archivos.
+
+Se recomienda dejar ARP en modo de aprendizaje durante 30 días. A partir de ONTAP 9.13.1, ARP determina automáticamente el intervalo de aprendizaje óptimo y automatiza el cambio, que podría ocurrir antes de los 30 días. Para versiones anteriores a ONTAP 9.13.1, puede realizar el cambio manualmente.
+
+link:switch-learning-arp.html["Obtenga más información sobre cómo cambiar del modo de aprendizaje al modo activo"].
+
+
+TIP: El comando `security anti-ransomware volume workload-behavior show` muestra las extensiones de archivo que se han detectado en el volumen. Si ejecuta este comando al principio del modo de aprendizaje y muestra una representación precisa de los tipos de archivo, no debe utilizar esos datos como base para moverse al modo activo, ya que ONTAP sigue recopilando otras métricas. Obtenga más información sobre `security anti-ransomware volume workload-behavior show` en el link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-workload-behavior-show.html["Referencia de comandos del ONTAP"^].
+ a| 
+* Volúmenes FlexVol con ONTAP 9.10.1 a 9.15.1
+* FlexGroup volúmenes con ONTAP 9.13.1 a 9.17.1
+
+
+
+
+| Activo  a| 
+Tras el periodo de aprendizaje, ARP supervisa la actividad de la carga de trabajo y responde automáticamente si detecta un comportamiento anómalo. Si se marca una extensión de archivo como anómala, debes evaluar la alerta. Puedes actuar ante la alerta para proteger tus datos, o puedes marcar la alerta como un falso positivo. Marcar una alerta como falso positivo actualiza el perfil de la alerta. Por ejemplo, si la alerta se activa por una nueva extensión de archivo y marcas la alerta como falso positivo, no recibirás una alerta la próxima vez que se observe esa extensión de archivo.
+ a| 
+* Volúmenes FlexVol con ONTAP 9.10.1 a 9.15.1
+* FlexGroup volúmenes con ONTAP 9.13.1 a 9.17.1
+
+
+|===
+
+
+[[threat-assessment]]
+== Evaluación de amenazas
+
+ARP evalúa la probabilidad de amenaza utilizando dos niveles:
+
+* *Bajo*: La detección más temprana de una anomalía en el volumen (por ejemplo, se observa una nueva extensión de archivo en el volumen). Este nivel de detección solo está disponible en el modelo ARP original.
++
+** A partir de ONTAP 9.11.1, puedes link:manage-parameters-arp.html["Personalizar los parámetros de detección para ARP"].
+
+
+* *Moderada*: Se detecta una entropía elevada o se observan varios archivos con la misma extensión de archivo nunca vista antes. La amenaza pasa a ser moderada después de que ONTAP ejecute un informe de análisis para determinar si la anomalía coincide con un perfil de ransomware. Cuando la probabilidad de ataque es moderada, ONTAP genera una notificación EMS que te pide evaluar la amenaza.
+
+
+ONTAP no envía alertas sobre amenazas de bajo nivel; sin embargo, a partir de ONTAP 9.14.1, puedes link:manage-parameters-arp.html#modify-alerts["modificar la configuración de alerta predeterminada"]. Para más información, consulta link:respond-arp.html["Responda a actividades anormales"].
+
+Puedes ver información sobre amenazas moderadas en la sección *Eventos* de System Manager o con el comando  `security anti-ransomware volume show`. Los eventos de amenazas bajas también se pueden ver usando el comando  `security anti-ransomware volume show`. Obtén más información sobre  `security anti-ransomware volume show` en el link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-show.html["Referencia de comandos del ONTAP"^].
+
+
+
+[[arp-snapshots]]
+== Instantáneas de ARP
+
+ARP crea una instantánea cuando se detectan los primeros indicios de un ataque. A continuación, se lleva a cabo un análisis detallado para confirmar o descartar el posible ataque. Dado que las instantáneas ARP se crean de forma proactiva incluso antes de que se confirme plenamente un ataque, su presencia no debe considerarse una anomalía. Si se confirma un probable ataque, la probabilidad de ataque se eleva a `Moderate` y se genera una notificación de ataque.
+
+A partir de ONTAP 9.11.1, puedes link:modify-snapshot-options-arp.html["modificar la configuración de retención de las instantáneas"].
+
+La siguiente tabla resume el comportamiento de las instantáneas ARP.
+
+[cols="1,3"]
+|===
+| Función | Modelo ARP original (ONTAP 9.15.1 y versiones anteriores) 
+
+
+| Desencadenante de creación  a| 
+* Se detecta alta entropía
+* Se ha detectado una nueva extensión de archivo
+* Se detecta un pico en las operaciones con archivos (ONTAP 9.11.1 y versiones posteriores)
+
+
+El intervalo de creación de instantáneas se basa en el tipo de disparador.
+
+
+
+| Convención de nombres prefijados | Copia de seguridad anti-ransomware 
+
+
+| Comportamiento de eliminación | La instantánea ARP está bloqueada y el administrador no puede eliminarla 
+
+
+| Número máximo de instantáneas | link:modify-snapshot-options-arp.html["Límite configurable de seis instantáneas"] 
+
+
+| Periodo de conservación  a| 
+* Determinado en función de las condiciones de activación (no fijo)
+* Las instantáneas creadas antes del ataque se conservan hasta que el administrador marque el ataque como verdadero o como un falso positivo (clear-suspect).
+
+
+
+
+| Acción claramente sospechosa | Los administradores pueden realizar una acción de «desestimar como sospechoso» para descartar la alerta y liberar las instantáneas bloqueadas. 
+
+
+| Tiempo de expiración | Ninguno 
+|===
+
+
+[[respond-to-and-assess-an-attack]]
+== Responder a un ataque y evaluarlo
+
+ARP crea instantáneas bloqueadas cuando se detectan los primeros indicios de un ataque. Deberás confirmar si el ataque es real o se trata de un falso positivo. Las instantáneas bloqueadas no se pueden eliminar por los medios habituales. Sin embargo, si más adelante decides marcar el ataque como falso positivo, ONTAP elimina la copia bloqueada.
+
+* link:respond-arp.html["Responde ante una actividad anómala: ARP"]
+* link:determine-ransomware-tips.html["Averigua si un ataque de ransomware es real"]
+
+
+
+
+[[recover-data-after-an-attack]]
+== Recupere los datos después de un ataque
+
+Si confirmas el ataque, el volumen se puede restaurar utilizando la instantánea ARP. Puedes recuperar los archivos afectados de instantáneas seleccionadas en lugar de revertir todo el volumen.
+
+* link:recover-arp.html["Recuperar datos de instantáneas ARP"]
+* link:../data-protection/restore-contents-volume-snapshot-task.html["Recuperarse de las instantáneas de ONTAP"]
+* link:https://www.netapp.com/blog/smart-ransomware-recovery["Recuperación inteligente de ransomware"^]
+
+
+
+
+[[multi-admin-verification]]
+== Verificación de varios administradores
+
+A partir de ONTAP 9.13.1, se recomienda habilitar la verificación de múltiples administradores (MAV) para que se requieran dos o más usuarios administradores autenticados para la configuración de ARP. Para obtener más información, consulta link:../multi-admin-verify/enable-disable-task.html["Habilite la verificación multiadministradora"].
+
+.Información relacionada
+* link:support-arp.html["Configuraciones compatibles con ARP"]
+* link:https://docs.netapp.com/us-en/ontap-cli/["Referencia de comandos del ONTAP"^]
+

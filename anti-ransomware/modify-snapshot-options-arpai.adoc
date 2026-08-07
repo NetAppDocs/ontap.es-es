@@ -1,0 +1,203 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/modify-snapshot-options-arpai.html 
+keywords: ARP AI, arpai, snapshot settings, retention, arw snap, autonomous ransomware protection AI, ONTAP 9.17.1, SAN snapshot parameters, machine learning ransomware 
+summary: Ajusta la configuración de creación y retención de las instantáneas ARP/AI que se generan automáticamente en respuesta a posibles amenazas de ransomware. 
+---
+= Ajusta la configuración de las instantáneas ARP/AI de ONTAP generadas automáticamente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.16.1, puedes utilizar la CLI para controlar la configuración de retención de las instantáneas de Autonomous Ransomware Protection con AI (ARP/AI) que se generan automáticamente en respuesta a posibles ataques de ransomware.
+
+
+NOTE: Si utilizas ONTAP 9.15.1 o una versión anterior, consulta link:modify-snapshot-options-arp.html["Ajustar la configuración para las instantáneas ARP generadas automáticamente"].
+
+.Antes de empezar
+Solo puedes modificar las opciones de instantáneas ARP/AI en una link:../system-admin/types-svms-concept.html["nodo SVM"] y no en otros tipos de SVM.
+
+.Pasos
+. Mostrar todos los ajustes actuales de las instantáneas de ARP/AI:
++
+[source, cli]
+----
+options -option-name arw*
+----
+. Mostrar la configuración seleccionada de la instantánea actual de ARP/AI:
++
+[source, cli]
+----
+options -option-name <arw_setting_name>
+----
+. Modificar la configuración de las instantáneas ARP/AI:
++
+[source, cli]
+----
+options -option-name <arw_setting_name> -option-value <arw_setting_value>
+----
++
+Puedes modificar los siguientes parámetros (ONTAP 9.16.1 y versiones posteriores):
+
++
+[cols="1,3,1"]
+|===
+| Ajuste | Descripción | Versiones compatibles con ARP/AI 
+
+
+| `arw.snap.max.count`  a| 
+Especifica el número máximo de instantáneas ARP/AI que pueden existir en un volumen en un momento dado. Las copias más antiguas se eliminan para garantizar que el número total de instantáneas ARP/AI se mantenga dentro de este límite.
+ a| 
+ONTAP 9.16.1 y versiones posteriores
+
+
+
+| `arw.snap.create.interval.hours`  a| 
+Especifica el intervalo _en horas_ entre instantáneas de ARP/AI. Se crea una nueva instantánea de ARP/AI cuando se sospecha de un ataque basado en la entropía de los datos y la instantánea creada más recientemente es anterior al intervalo especificado.
+ a| 
+ONTAP 9.16.1 y versiones posteriores
+
+
+
+| `arw.snap.normal.retain.interval.hours`  a| 
+Especifica la duración, _en horas_, durante la cual se conserva una instantánea ARP/AI. Cuando una instantánea ARP/AI alcanza el umbral de retención, se elimina.
+ a| 
+ONTAP 9.16.1 (obsoleto en 9.17.1 y versiones posteriores)
+
+
+
+| `arw.snap.max.retain.interval.days`  a| 
+Especifica la duración máxima _en días_ durante la que se puede conservar una instantánea ARP/AI. Cualquier instantánea ARP/AI que supere esta duración se elimina cuando no se ha notificado ningún ataque en el volumen.
+
+
+NOTE: El intervalo máximo de retención se ignora si ARP/AI detecta una amenaza. La instantánea de ARP/AI creada en respuesta a la amenaza se conserva hasta que respondas a la amenaza. Cuando marcas una amenaza como falso positivo, el temporizador de retención especificado por `arw.snap.retain.hours.after.clear.suspect.false.alert` se aplica a las instantáneas de ARP/AI. Después de que ese temporizador expire, se reanudan los ajustes de retención estándar.
+ a| 
+ONTAP 9.16.1 (obsoleto en 9.17.1 y versiones posteriores)
+
+
+
+| `arw.snap.create.interval.hours.post.max.count`  a| 
+Especifica el intervalo _en horas_ entre instantáneas ARP/AI cuando el volumen ya contiene el número máximo de instantáneas ARP/AI. Cuando se alcanza el número máximo, se elimina una instantánea ARP/AI para dejar espacio a una nueva copia. Utiliza esta opción para reducir la velocidad de creación y conservar copias más antiguas.
+ a| 
+ONTAP 9.16.1 (obsoleto en 9.17.1 y versiones posteriores)
+
+
+
+| `arw.snap.new.extns.interval.hours`  a| 
+Especifica el intervalo _en horas_ entre las instantáneas ARP/AI que se crean cuando se detecta una nueva extensión de archivo. Se crea una nueva instantánea ARP/AI cuando se detecta una nueva extensión de archivo y la instantánea anterior de este tipo es más antigua que el intervalo especificado. Esta opción existe independientemente de `arw.snap.create.interval.hours`, que especifica el intervalo para las instantáneas basadas en la entropía.
+ a| 
+ONTAP 9.16.1 (obsoleto en 9.17.1 y versiones posteriores)
+
+
+
+| `arw.snap.low.encryption.retain.duration.hours`  a| 
+Especifica la duración de retención _en horas_ para las instantáneas ARP/AI creadas durante los periodos de baja actividad de cifrado.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.snap.retain.hours.after.clear.suspect.false.alert`  a| 
+Especifica el intervalo _en horas_ durante el que se conserva una instantánea ARP/AI como medida de precaución después de que el administrador marque un incidente de ataque como falso positivo.
+ a| 
+ONTAP 9.16.1 y versiones posteriores
+
+
+
+| `arw.snap.retain.hours.after.clear.suspect.real.attack`  a| 
+Especifica el intervalo _en horas_ durante el cual se conserva una instantánea ARP/AI como medida de precaución después de que el administrador marque un incidente de ataque como un ataque real.
+ a| 
+ONTAP 9.16.1 y versiones posteriores
+
+
+
+| `arw.snap.surge.interval.days`  a| 
+Especifica el intervalo _en días_ entre las instantáneas ARP/AI creadas en respuesta a picos de IO. Esta opción también especifica el periodo de retención _en días_ para una instantánea de picos de ARP/AI.
+ a| 
+ONTAP 9.16.1 y versiones posteriores
+
+
+
+| `arw.high.encryption.alert.enabled`  a| 
+Activa las alertas por niveles elevados de cifrado. Cuando se configura en  `on` (valor predeterminado), ONTAP envía una alerta cuando el porcentaje de cifrado supera el umbral especificado en  `arw.high.encryption.percentage.threshold`.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.high.encryption.percentage.threshold`  a| 
+Especifica el porcentaje máximo de cifrado para un volumen. Si el porcentaje de cifrado supera este umbral, ONTAP interpreta el aumento como un ataque y crea una instantánea ARP/AI.  `arw.high.encryption.alert.enabled` debe configurarse en  `on` para que esta opción surta efecto.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.snap.high.encryption.retain.duration.hours`  a| 
+Especifica el intervalo de duración de retención _en horas_ para las instantáneas creadas durante un evento de umbral de cifrado alto.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+|===
+. Si utilizas ARP/AI en un entorno SAN, también puedes modificar los siguientes parámetros del periodo de evaluación:
++
+[cols="1,3,1"]
+|===
+| Ajuste | Descripción | Versiones compatibles 
+
+
+| `arw.block_device.auto.learn.threshold.min_value`  a| 
+Especifica el valor porcentual del umbral de cifrado mínimo durante la fase de aprendizaje automático de la evaluación para dispositivos de bloque.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.block_device.auto.learn.threshold.max_value`  a| 
+Especifica el valor porcentual del umbral de cifrado máximo durante la fase de aprendizaje automático de la evaluación para dispositivos de bloque.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.block_device.evaluation.phase.min_hours`  a| 
+Especifica el intervalo mínimo _en horas_ que debe ejecutarse la fase de evaluación antes de que se establezca el umbral de cifrado.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.block_device.evaluation.phase.max_hours`  a| 
+Especifica el intervalo máximo _en horas_ que debe ejecutarse la fase de evaluación antes de que se establezca el umbral de cifrado.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.block_device.evaluation.phase.min_data_ingest_size_GB`  a| 
+Especifica la cantidad mínima de datos _en GB_ que se deben ingerir durante la fase de evaluación antes de que se establezca el umbral de cifrado.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.block_device.evaluation.phase.alert.enabled`  a| 
+Especifica si las alertas están activadas para la fase de evaluación de ARP/AI en dispositivos de bloque. El valor por defecto es `True`.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+
+
+| `arw.block_device.evaluation.phase.alert.threshold`  a| 
+Especifica el porcentaje umbral durante la fase de evaluación de ARP/AI en dispositivos de bloque. Si el porcentaje de cifrado supera este umbral, se activa una alerta.
+ a| 
+ONTAP 9.17.1 y posteriores
+
+|===
+
+
+.Información relacionada
+* link:learn-about-arpai.html#arp-ai-snapshots["Evaluación de amenazas e instantáneas de ARP/AI"]
+* link:entropy-eval-period-arpai.html["Período de evaluación de la entropía ARP/AI para volúmenes SAN"]
+

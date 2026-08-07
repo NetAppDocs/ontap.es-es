@@ -1,0 +1,292 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/respond-arpai.html 
+keywords: ARP AI, arpai, respond, abnormal activity, false positive, ransomware attack, NAS, SAN, entropy spike, clear suspect, ONTAP 9.16.1, machine learning ransomware, ransomware detected ONTAP alert, ARP AI warning response, ARP AI false positive response 
+summary: Cuando ARP/AI detecte una actividad anómala en un volumen protegido, evalúa si se trata de un falso positivo o de un ataque real de ransomware y sigue el flujo de trabajo de respuesta recomendado por ONTAP. 
+---
+= Responde a la actividad anómala detectada por ONTAP ARP/AI
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cuando la Protección autónoma contra el ransomware con IA (ARP/AI) detecta una actividad anómala en un volumen protegido (ONTAP 9.16.1 y versiones posteriores), emite una advertencia. Evalúa la notificación y clasifícala como un falso positivo o como un posible ataque de ransomware. Una vez que hayas clasificado la actividad, ARP/AI registra tu evaluación, ajusta su perfil de amenaza y reanuda la supervisión normal.
+
+
+NOTE: Si utilizas ONTAP 9.15.1 o una versión anterior, consulta link:respond-arp.html["Responde a la actividad anómala detectada por ARP"].
+
+Al clasificar un ataque, las instantáneas ARP/AI se conservan durante un periodo reducido que comienza con la operación de clasificación:
+
+* ONTAP 9.17.1 y versiones posteriores: 7 días para ataques confirmados, 24 horas para falsos positivos.
+* ONTAP 9.16.1 y versiones anteriores: 5 días para ataques confirmados, 48 horas para falsos positivos.
+
+
+
+NOTE: Puedes modificar estos link:modify-snapshot-options-arpai.html["configuración de retención"] para las instantáneas de ARP/AI.
+
+.Acerca de esta tarea
+En el caso de los volúmenes NAS, ARP/AI muestra una lista de archivos sospechosos cuando detecta cualquier combinación de alta entropía de datos, actividad anómala del volumen con cifrado de datos y extensiones de archivo inusuales.
+
+Desde ONTAP 9.17.1:
+
+* *Para volúmenes NAS*: ARP/AI sigue proporcionando archivos y tipos de archivo sospechosos.
+* *Para volúmenes SAN* (volúmenes que contienen LUN o espacios de nombres NVMe): ARP/AI evalúa la entropía únicamente a nivel de volumen. ONTAP no ve archivos individuales dentro del LUN o del espacio de nombres, así que las listas de archivos sospechosos y los tipos de archivo *no* están disponibles. En su lugar, ARP/AI informa de picos en el porcentaje de cifrado a nivel de volumen (picos de entropía).
+
+
+Los detalles de los picos de entropía de los volúmenes NAS y SAN se notifican en la página Anti-ransomware de System Manager.
+
+Aunque la Protección autónoma contra el ransomware automatiza la detección y la creación de instantáneas, la determinación final de si un archivo o un evento es realmente malicioso requiere una investigación manual. La Protección autónoma contra el ransomware no puede determinar de forma definitiva si un evento es un ataque real de ransomware. Señala actividades sospechosas, pero tendrás que investigar y confirmar si el evento es realmente ransomware o un falso positivo (actividad benigna).
+
+link:determine-ransomware-tips.html["Determina si un archivo o un evento es realmente malicioso"].
+
+Cuando se emite una notificación de alerta de ARP/AI, responde clasificando la actividad de una de estas dos formas:
+
+* *Falso positivo*: El tipo de archivo identificado o el pico de entropía son normales en tu carga de trabajo y pueden ignorarse.
+* *Posible ataque de ransomware*: El tipo de archivo identificado o el pico de entropía no son habituales en tu carga de trabajo y deben tratarse como un posible ataque.
+
+
+La supervisión normal se reanuda después de que actualices con tu decisión y borres las notificaciones de ARP/AI. ARP/AI registra tu evaluación en el perfil de evaluación de amenazas, usando tu elección para supervisar las actividades de archivos posteriores.
+
+En caso de sospecha de ataque, debes determinar si se trata efectivamente de un ataque, responder si lo es y luego borrar los avisos y restaurar los datos. link:recover-arpai.html["Obtenga más información sobre cómo recuperarse de un ataque de ransomware"].
+
+.Antes de empezar
+ARP/AI debe estar protegiendo activamente un volumen y no encontrarse en modo de evaluación para volúmenes SAN.
+
+.Pasos
+Sigue estos pasos cuando necesites clasificar una actividad anormal:
+
+. <<Revisar los detalles de la actividad anormal,Revisar los detalles de la actividad anormal>>
+. <<Entiende el comportamiento de las instantáneas al borrar un evento sospechoso,Entiende el comportamiento de las instantáneas al borrar un evento sospechoso>>
+. Debe realizar una de las siguientes acciones:
++
+** <<Clasificar como falso positivo y reanudar el monitoreo,Clasificar como falso positivo y reanudar el monitoreo>>
+** <<Clasificar como posible ataque de ransomware y recuperar datos,Clasificar como posible ataque de ransomware, recuperar datos y finalizar>>
+
+
+
+
+Si necesitas restaurar datos, sigue los pasos en link:recover-arpai.html["Recupera datos después de un ataque de ransomware"].
+
+
+
+[[review-abnormal-activity-details]]
+== Revisar los detalles de la actividad anormal
+
+Puedes usar System Manager o la CLI de ONTAP para consultar los detalles de las advertencias ARP/AI antes de elegir un flujo de respuesta.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Cuando recibas una notificación de "actividad anormal", sigue el enlace. O bien, ve a *Storage > Volumes*, busca un volumen afectado y selecciona la pestaña *Security*.
++
+Las advertencias se muestran en el panel *Overview* del menú *Events* del panel de control de System Manager.
+
+. En la pestaña *Seguridad*, revisa los detalles de la actividad anormal:
++
+** En el caso de los volúmenes NAS, revisa el informe *Tipos de archivo sospechosos*. El cuadro de diálogo *Tipos de archivo sospechosos* muestra las extensiones de archivo y el número de archivos que ARP/AI ha identificado.
+** Tanto para volúmenes NAS como SAN, revisa el informe de picos de entropía, que muestra la ventana de tiempo, la duración, la cantidad de datos escritos y los valores de entropía.
+
+
+
+
+--
+.CLI
+--
+. Cuando reciba una notificación de un ataque de ransomware sospechoso, compruebe la hora y la gravedad del ataque:
++
+[source, cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <vol_name>
+----
++
+Salida de muestra:
+
++
+....
+Vserver Name: vs0
+Volume Name: vol1
+State: enabled
+Attack Probability: moderate
+Attack Timeline: 5/12/2025 01:03:23
+Number of Attacks: 1
+Attack Detected By: encryption_percentage_analysis
+....
++
+También puede comprobar los mensajes de EMS:
+
++
+[source, cli]
+----
+event log show -message-name callhome.arw.activity.seen
+----
+. (Opcional, NAS y SAN) Ver los picos de entropía recientes detectados en el volumen:
++
+[source, cli]
+----
+security anti-ransomware volume entropy-stat show-recent-high-encryption-stat -vserver <svm_name> -volume <vol_name>
+----
+. (Opcional) Ve un histograma del porcentaje de cifrado a lo largo del tiempo:
++
+[source, cli]
+----
+security anti-ransomware volume entropy-stat show-encryption-percentage-histogram -vserver <svm_name> -volume <vol_name>
+----
+
+
+--
+====
+
+
+[[understand-snapshot-behavior-when-clearing-a-suspected-event]]
+== Entiende el comportamiento de las instantáneas al borrar un evento sospechoso
+
+* Para  `volume snapshot restore` en ONTAP 9.16.1 y versiones posteriores, *borra primero el evento sospechoso* y luego realiza la restauración. Después de borrar los archivos sospechosos, las instantáneas ARP/AI se conservan según cómo clasifiques la actividad: 7 días (por defecto) si marcas la actividad como un posible ataque de ransomware, o 24 horas si la marcas como un falso positivo. Borrar primero no elimina tu destino de restauración. Además, la opción clear-suspect deja de estar disponible después de una restauración de volumen, así que tienes que borrar antes de restaurar.
+* Para métodos de recuperación distintos de `volume snapshot restore` (por ejemplo, FlexClone o SnapRestore de archivo único), realiza primero la recuperación de datos y luego borra el evento sospechoso. Estos métodos no afectan la disponibilidad de la opción clear-suspect.
+* A partir de ONTAP 9.13.1, si usas MAV para proteger la configuración de ARP/AI, la operación  `clear-suspect` puede requerir aprobaciones adicionales. link:../multi-admin-verify/request-operation-task.html["La aprobación debe recibirse de todos los administradores"] debe estar asociado con el grupo de aprobación de MAV o la operación fallará.
+
+
+
+
+[[classify-as-false-positive-and-resume-monitoring]]
+== Clasificar como falso positivo y reanudar el monitoreo
+
+Usa este flujo cuando el tipo de archivo identificado o el pico de entropía sea _esperado_ para la carga de trabajo.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Graba tu respuesta:
++
+** Para los avisos de tipo de archivo NAS, elige los archivos afectados, selecciona *Marcar como falso positivo* y luego elige *Actualizar y borrar tipos de archivo sospechosos*.
+** Para los picos de entropía (NAS y SAN), selecciona *Marcar como falso positivo* y luego selecciona *Guardar y descartar*.
+
+
+
+
+Estas acciones eliminan los avisos de advertencia sobre archivos sospechosos (NAS) o actividad anómala (NAS y SAN). Luego, ARP/AI reanuda la supervisión normal del volumen.
+
+--
+.CLI
+--
+. Ejecuta uno de los siguientes comandos para registrar tu decisión y reanudar la supervisión normal de ARP/AI:
++
+** Para extensiones de archivo NAS:
++
+[source, cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension_identifiers>] -false-positive true
+----
++
+Usa el siguiente parámetro opcional para identificar solo extensiones específicas como falsos positivos: `[-extension <text>, ... ]`
+
+** Para picos de entropía (NAS y SAN):
++
+[source, cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> -start-time <MM/DD/YYYY HH:MM:SS> -end-time <MM/DD/YYYY HH:MM:SS> -false-positive true
+----
++
+Para los volúmenes SAN, esta es la única forma admitida para categorizar la actividad anormal; no hay listas de archivos sospechosos ni extensiones de archivos.
+
+
+
+. A partir de ONTAP 9.18.1, puedes determinar el estado de la operación `clear-suspect`:
++
+[source, cli]
+----
+security anti-ransomware volume show -clear-suspect-status -volume <vol_name> -vserver <svm_name>
+----
+
+
+--
+====
+
+
+[[classify-as-potential-ransomware-attack-and-recover-data]]
+== Clasificar como posible ataque de ransomware y recuperar datos
+
+Usa este flujo cuando el tipo de archivo identificado o el pico de entropía sea _inesperado_ para la carga de trabajo.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Clasifica la actividad:
++
+** Para las advertencias sobre el tipo de archivo NAS, marca los archivos seleccionados como *Potencial ataque de ransomware*.
+** Para los picos de entropía (NAS y SAN), selecciona *Mark as potential ransomware attack*.
+
+
+. Antes de recuperar los datos, ten en cuenta tu link:recover-arpai.html#choose-a-recovery-method["opciones del método de recuperación"]. Luego haz una de las siguientes cosas:
++
+** *Para restaurar un volumen*: Borra primero los avisos y luego restaura el volumen:
++
+... [[arp-snapshot-decision-sm-pre-restore]]Avisos claros para el ataque potencial:
++
+**** Para los avisos de tipo de archivo NAS, selecciona *Actualizar y borrar tipos de archivo sospechosos*.
+**** Para los picos de entropía (NAS y SAN), selecciona *Guardar y descartar*.
++
+
+NOTE: Una vez eliminados los archivos sospechosos, la instantánea ARP/AI se conserva durante 7 días (por defecto). Si necesitas más tiempo para la recuperación de datos, link:modify-snapshot-options-arpai.html["ajustar la configuración de las instantáneas de ARP/AI"] para aumentar el tiempo de conservación de la instantánea. Una vez finalizada la recuperación de datos, puedes reducir el tiempo de conservación.
+
+
+
+... Recupera los datos usando link:recover-arpai.html["la instantánea más reciente de ARP/AI o una instantánea anterior"].
+
+
+** *Si piensas utilizar otro método de restauración*: Restaura primero los datos y luego borra las notificaciones:
++
+... link:recover-arpai.html["Recupera datos usando FlexClone o SnapRestore de archivo único"].
+... Finaliza la categorización después de la restauración de datos para reanudar la supervisión normal de ARP/AI:
++
+**** Para los avisos de tipo de archivo NAS, selecciona *Actualizar y borrar tipos de archivo sospechosos*.
+**** Para los picos de entropía (NAS y SAN), selecciona *Guardar y descartar*.
++
+
+NOTE: Al registrar tu decisión se borra el informe de ataque.
+
+
+
+
+
+
+
+
+
+--
+.CLI
+--
+. (Sólo volúmenes NAS) Crea un informe de ataque:
++
+.. Genera un informe de ataque y especifica dónde guardarlo.
++
+[source, cli]
+----
+security anti-ransomware volume attack generate-report -vserver <svm_name> -volume <vol_name> -dest-path <[svm_name]:[junction_path/sub_dir_name]>
+----
+
+
+. [[arp-snapshot-decision-cli-pre-restore]]Elimina el evento sospechoso antes de restaurar (para `volume snapshot restore`). Marca el ataque como posible ransomware (`-false-positive false`) y elimina los archivos sospechosos para liberar el bloqueo:
++
+** Para extensiones de archivo NAS:
++
+[source, cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension_identifiers>] -false-positive false
+----
+** Para picos de entropía (NAS y SAN):
++
+[source, cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> -start-time <MM/DD/YYYY HH:MM:SS> -end-time <MM/DD/YYYY HH:MM:SS> -false-positive false
+----
+
+
+. [[arp-snapshot-decision-cli-post-restore]]Accede a link:recover-arpai.html["recuperar datos"].
+
+
+--
+====
