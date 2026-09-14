@@ -11,7 +11,9 @@ summary: Configura la descarga de TLS
 
 
 [role="lead"]
-A partir de ONTAP 9.19.1, puedes configurar la descarga de TLS para mejorar el rendimiento de TLS post-apretón de manos aprovechando los recursos de las tarjetas Ethernet compatibles. Esta función descarga el cifrado y el descifrado, lo que reduce la sobrecarga de la CPU y mejora el rendimiento.
+A partir de ONTAP 9.19.1, puedes configurar la descarga de TLS para mejorar el rendimiento de TLS después del protocolo de enlace, usando los recursos de las tarjetas Ethernet compatibles. Esta función descarga el cifrado y descifrado, lo que reduce la carga de la CPU y mejora el rendimiento.
+
+Solo puedes habilitar la descarga de TLS para el tráfico que usa KTLS. Esta configuración no se aplica a todo el tráfico con TLS habilitado. El tráfico de gestión, como HTTPS y el tráfico de API de REST, no se ve afectado por esta configuración. El tráfico de HA no es compatible.
 
 .Acerca de esta tarea
 * La descarga TLS está desactivada por defecto.
@@ -22,7 +24,8 @@ A partir de ONTAP 9.19.1, puedes configurar la descarga de TLS para mejorar el r
 En el caso de las conexiones con descarga de TLS, las operaciones criptográficas de TLS suelen eludir el software y son gestionadas por una tarjeta de red (NIC) con capacidad de descarga. Si el LIF asociado con esta conexión migra a un puerto de red sin capacidad de descarga de TLS, las operaciones criptográficas recurren al software y son gestionadas por el núcleo del sistema.
 
 * Las interfaces de gestión (HTTPS, API de REST) no se ven afectadas por esta configuración.
-* La configuración de la descarga de hardware TLS es a nivel de clúster.
+* La descarga de TLS en hardware es una configuración a nivel de clúster.
+* El tráfico HA no es compatible con la descarga de TLS en hardware.
 
 
 .Tarjetas de red y plataformas compatibles
@@ -79,20 +82,44 @@ La descarga de TLS en hardware requiere una tarjeta de red compatible. La siguie
 
 |===
 .Tipos de tráfico soportados
-La descarga de hardware TLS admite los siguientes tipos de tráfico:
+La siguiente tabla muestra si la descarga de hardware TLS es compatible con cada tipo de tráfico.
 
-* NVMe/TCP
-* Cifrado de clústeres entre iguales
-* FabricPool
-* S3
-* NFS
+[cols="1,1,2"]
+|===
+| Tipo de tráfico | Compatible | Notas 
 
 
+| NVMe/TCP | Sí | Compatible con plataformas y tarjetas de red que admiten la descarga de TLS. 
+
+
+| Cifrado de clústeres entre iguales | Sí | Compatible con el tráfico de red del clúster. Esto no incluye el tráfico HA. 
+
+
+| FabricPool | Sí | Compatible con plataformas y tarjetas de red que admiten la descarga de TLS. 
+
+
+| S3 | Sí | Compatible con plataformas y tarjetas de red que admiten la descarga de TLS. 
+
+
+| NFS sobre TLS | Sí, a partir de ONTAP 9.19.1 | Compatible con el tráfico NFS sobre TLS de ONTAP donde se utiliza KTLS. 
+
+
+| KMIP | No | No admitido. 
+
+
+| System Manager | No | Las interfaces de gestión no se ven afectadas por esta configuración. 
+
+
+| API REST | No | Las interfaces de gestión no se ven afectadas por esta configuración. 
+
+
+| Tráfico HA | No | La descarga de TLS por hardware no se aplica al tráfico de HA. 
+|===
 
 NOTE: En los sistemas ASA, la descarga de TLS por hardware solo se aplica al tráfico NVMe/TCP. NFS sobre TLS, FabricPool y S3 no son compatibles con las plataformas ASA.
 
 
-NOTE: En las plataformas AFX, la descarga de TLS por hardware admite los tipos de tráfico front-end NFS y S3. NVMe/TCP no se admite en las plataformas AFX porque AFX no admite protocolos SAN/de bloques.
+NOTE: En las plataformas AFX, la descarga de hardware TLS es compatible con los tipos de tráfico NFS sobre TLS y S3 front-end. NVMe/TCP no es compatible con las plataformas AFX porque AFX no admite protocolos SAN ni de bloques.
 
 .Antes de empezar
 * Debes ser administrador de ONTAP en el `admin` Nivel de privilegios para realizar las siguientes tareas.
