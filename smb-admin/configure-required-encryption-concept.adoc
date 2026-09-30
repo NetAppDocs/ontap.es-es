@@ -23,16 +23,20 @@ El cifrado SMB en la SVM se controla mediante dos opciones de configuración:
 * Una propiedad de recurso compartido SMB que configura la configuración de cifrado SMB de recurso compartido
 
 
-Puede decidir si se requiere el cifrado para acceder a todos los datos en la SVM o si se requiere el cifrado SMB para acceder solo a los datos en recursos compartidos seleccionados. La configuración a nivel de SVM tiene preferencia en la configuración a nivel de recurso compartido.
+Puedes decidir si quieres exigir cifrado para acceder a todos los datos de la SVM o si quieres exigir cifrado SMB para acceder a los datos solo en recursos compartidos seleccionados. La propiedad del recurso compartido « `encrypt-data`» exige cifrado SMB para acceder a un recurso compartido. A partir de ONTAP 9.11.1, la propiedad del recurso compartido « `allow-unencrypted-access`» permite que los clientes SMB2 accedan a un recurso compartido sin cifrado, mientras que los clientes SMB3 siguen usando cifrado cuando « `encrypt-data`» está habilitado.
+
+La configuración a nivel de SVM prevalece sobre la configuración a nivel de recurso compartido.
 
 La configuración efectiva del cifrado SMB depende de la combinación de las dos opciones y se describe en la siguiente tabla:
 
 |===
-| Cifrado SMB Server habilitado | Configuración de cifrado compartido de datos activada | Comportamiento de cifrado del servidor 
+| Cifrado SMB Server habilitado | Configuración de cifrado compartido de datos activada | Se ha activado la configuración «allow-unencrypted-access» | Comportamiento de cifrado del servidor 
 
 
  a| 
 Verdadero
+ a| 
+Falso
  a| 
 Falso
  a| 
@@ -45,6 +49,8 @@ Verdadero
  a| 
 Verdadero
  a| 
+Falso
+ a| 
 El cifrado a nivel de servidor se habilita para todos los recursos compartidos de la SVM, independientemente del cifrado a nivel de recurso compartido. Con esta configuración, se produce el cifrado en toda la sesión SMB.
 
 
@@ -54,10 +60,14 @@ Falso
  a| 
 Verdadero
  a| 
-El cifrado a nivel de recurso compartido está habilitado para los recursos compartidos específicos. Con esta configuración, el cifrado se produce desde la conexión de árbol.
+Falso
+ a| 
+El cifrado a nivel de recurso compartido está habilitado para los recursos compartidos específicos. Los clientes SMB3 utilizan cifrado, pero los clientes SMB2 pueden acceder al recurso compartido sin cifrado porque la propiedad  `allow-unencrypted-access` está habilitada.
 
 
 
+ a| 
+Falso
  a| 
 Falso
  a| 
@@ -65,7 +75,24 @@ Falso
  a| 
 No hay ningún cifrado activado.
 
+
+
+ a| 
+Falso
+ a| 
+Falso
+ a| 
+Verdadero
+ a| 
+No hay ningún cifrado activado. La propiedad `allow-unencrypted-access` no tiene ningún efecto a menos que `encrypt-data` esté activado.
+
 |===
 Los clientes SMB que no admiten cifrado no pueden conectarse a un servidor SMB o recurso compartido que requiera cifrado.
 
 Los cambios en la configuración de cifrado surten efecto para las nuevas conexiones. Las conexiones existentes no se ven afectadas.
+
+
+NOTE: La propiedad `allow-unencrypted-access` es compatible a partir de ONTAP 9.11.1.
+
+
+NOTE: El cifrado SMB a nivel de SVM prevalece sobre la configuración a nivel de recurso compartido.
