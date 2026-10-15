@@ -18,7 +18,7 @@ Como práctica recomendada, pruebe su carga de trabajo de producción en un ento
 Las siguientes directrices han sido bien probadas internamente en NetApp. Es *_strong_* recomendable que te quedes dentro de ellos. Si no lo hace, podría ocurrir un comportamiento inesperado.
 
 * En ONTAP 9.17.1P1 se introdujeron mejoras significativas para la escritura diferida de FlexCache . Se recomienda *encarecidamente* que ejecute la versión recomendada actual después de la 9.17.1P1 tanto en el clúster de origen como en el de caché. Si no puede ejecutar la línea de código 9.17.1, la última versión P de 9.16.1 es la siguiente versión sugerida. ONTAP 9.15.1 no tiene todas las correcciones y mejoras necesarias para la escritura diferida de FlexCache y no se recomienda para cargas de trabajo de producción.
-* En su iteración actual, los cachés de retroescritura FlexCache deben configurarse con un único componente para todo el volumen FlexCache. Los FlexCaches de varios componentes pueden provocar expulsiones no deseadas de datos de la caché.
+* Las cachés de write-back de varios constituyentes FlexCache son compatibles con ONTAP 9.19.1 GA, 9.18.1P2, 9.17.1P3, 9.16.1P10 y versiones P posteriores en cada familia de versiones correspondiente. Para versiones anteriores de ONTAP, debes usar un único constituyente para todo el volumen FlexCache. Los FlexCaches de varios constituyentes en versiones anteriores pueden provocar expulsiones no deseadas de datos de la caché.
 * Las pruebas se han realizado con archivos de menos de 100 GB y tiempos de ida y vuelta de la WAN entre la caché y el origen que no superan los 200 ms. Cualquier carga de trabajo que exceda estos límites podría resultar en características de rendimiento inesperadas.
 * Al escribir en flujos de datos alternativos de SMB, el archivo principal se expulsa de la caché. Todos los datos desfasados del archivo principal deben vaciarse en el origen antes de poder realizar otras operaciones en ese archivo. El flujo de datos alternativo también se reenvía al origen.
 * Cambiar el nombre de un archivo hace que el archivo sea expulsado de la caché. Todos los datos desfasados del archivo deben vaciarse en el origen antes de poder realizar otras operaciones en ese archivo.
@@ -37,6 +37,32 @@ Cualquier otro atributo que se modifique o defina se reenviará al origen, lo qu
 
 * Las instantáneas tomadas en origen provocan la recuperación de todos los datos desfasados pendientes de cada caché con retroescritura habilitada asociada con ese volumen de origen. Esto puede requerir varios reintentos de la operación si hay una actividad de reescritura significativa en curso, ya que los expulsos de esos archivos desfasados pueden tardar algún tiempo.
 * Los bloqueos oportunistas (Oplocks) de SMB para escrituras no son compatibles con volúmenes FlexCache con escritura diferida habilitada.
-* Las cachés de escritura en repliegue cambian automáticamente al modo de escritura en repliegue cuando el espacio libre del volumen de origen desciende al 20% o menos. Esto ayuda a evitar que se agote el espacio en el origen, lo que provocaría que los datos con errores quedaran huérfanos en una caché habilitada para escritura en repliegue. Sin embargo, si el volumen de origen está sobreaprovisionado, lo que significa que su tamaño aprovisionado lógico es mayor que el espacio libre en el agregado, el porcentaje de espacio libre informado puede activar este umbral antes de lo que esperas. El umbral del 20% se evalúa tanto contra el espacio libre informado del volumen de origen como contra la capacidad física disponible del agregado.
-* Las redes intercluster de bajo ancho de banda y/o con pérdidas pueden tener un efecto negativo significativo en el rendimiento de escritura diferida de FlexCache . Aunque no existe un requisito de ancho de banda específico, ya que depende en gran medida de su carga de trabajo, se recomienda *encarecidamente* que garantice el buen funcionamiento del enlace entre clústeres entre la(s) caché(s) y el origen.
+* Las cachés de escritura diferida (write-back) pasan automáticamente al modo de escritura indirecta (write-around) cuando el espacio libre del volumen de origen desciende al 20 % o menos. Esto ayuda a evitar que se agote el espacio en el origen, lo que provocaría que los datos con errores quedaran huérfanos en una caché con escritura diferida habilitada. Si el volumen de origen está sobreaprovisionado, su tamaño lógico aprovisionado es mayor que el espacio libre del agregado. El umbral del 20 % se evalúa en función tanto del espacio disponible del volumen de origen como de la capacidad física disponible del agregado. `percent-used` y `capacity` pueden seguir mostrando 0 % aunque el espacio disponible ya se encuentre por debajo de ese umbral.
++
+El siguiente ejemplo muestra un volumen de origen con un aprovisionamiento excesivo. Casi no se han escrito datos, pero el agregado no puede respaldar el tamaño lógico completo:
+
++
+[source, cli]
+----
+ORIGIN::> vol show -volume origin_volume -fields percent-used,available,size
+vserver             volume           size    available percent-used
+------------------- ---------------- ------- --------- ------------
+origin_svm          origin_volume    19.70TB 1.33TB    0%
+----
++
+Fíjate en que `percent-used` es 0 %, pero el espacio disponible es de 1.33TB de 19.70TB, lo que equivale a 1.33 / 19.70, o aproximadamente 7 % disponible. Eso ya está por debajo del umbral del 20 %, por lo que las cachés de write-back de este origen cambian al modo write-around.
+
++
+[source, cli]
+----
+ORIGIN::> df -h origin_volume
+Filesystem               total       used      avail   capacity  Mounted on       Vserver
+/vol/origin_volume/      18TB        515MB     1363GB         0%    ---           origin_svm
+
+2 entries were displayed.
+----
++
+Fíjate en que `capacity` también está al 0 % y solo se utilizan 515MB. El espacio disponible es de 1363GB de un total de 18TB, lo que supone aproximadamente el 7 % del sistema de archivos. Las columnas de porcentaje muestran la escasa cantidad de datos almacenados. No indican qué parte del tamaño del volumen puede proporcionar realmente el agregado.
+
+* Las redes entre clústeres con poco ancho de banda y/o con pérdida de paquetes pueden tener un efecto negativo significativo en el rendimiento de write-back de FlexCache. Aunque no hay un requisito específico de ancho de banda, ya que depende en gran medida de tu carga de trabajo, te recomendamos *_encarecidamente_* que te asegures del buen estado del enlace entre clústeres que conecta la(s) caché(s) con el origen. Si tu red es propensa a la pérdida de paquetes y usas ONTAP 9.19.1 o una versión posterior, considera usar link:../networking/improve-tcp-wan-performance.html["TCP RACK"] para mejorar el rendimiento.
 
