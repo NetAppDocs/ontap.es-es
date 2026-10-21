@@ -1,0 +1,92 @@
+---
+permalink: san-config/fc-config-best-practices.html 
+sidebar: sidebar 
+keywords: fc, fabric, configuration, best, practices, san 
+summary: Para obtener el mejor rendimiento, debe tener en cuenta ciertas prácticas recomendadas al configurar el switch de FC. 
+---
+= Descubre las mejores prácticas para configurar fabrics FC con sistemas ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Seguir las prácticas recomendadas para la configuración de la FC fabric mejora el rendimiento, la fiabilidad y la estabilidad del host y del destino durante los cambios en la fabric.
+
+.Buenas prácticas recomendadas para la configuración del tejido FC
+* *división en zonas de un solo iniciador y un solo objetivo (SI/ST)*
++
+La división en zonas SI/ST reduce los picos de latencia durante los cambios en la fabric, elimina la diafonía, limita las Registered State Change Notifications (RSCNs), simplifica la resolución de problemas y mantiene el número de rutas dentro de los límites del host.
+
++
+** Impacto en el host: la división en zonas SI/ST garantiza un comportamiento predecible de MPIO, un descubrimiento más rápido y menos eventos de All Path Down (APD)/Permanent Device Loss (PDL).
+** Impacto previsto: la división en zonas SI/ST garantiza un menor número de eventos de inicio y cierre de sesión, así como sesiones FC estables.
+
+
+* *División en zonas basada en WWPN utilizando los WWPN de las LIF de destino (no puertos físicos)*
++
+La división en zonas basada en WWPN permite la movilidad de LIF, el takeover/giveback, las operaciones no disruptivas sin volver a aplicar la división en zonas y evita el restablecimiento de rutas durante el mantenimiento.
+
++
+** Impacto en el host: la división en zonas basada en WWPN garantiza que no se produzca ninguna pérdida de ruta durante los movimientos de LIF o la conmutación por error del controlador.
+** Impacto en el destino: la división en zonas basada en WWPN garantiza que ONTAP pueda trasladar los LIF de destino de forma transparente.
+
+
+* *NPIV habilitado en todos los conmutadores FC*
++
+Todos los switches conectados al fabric deben ser compatibles con NPIV y tener NPIV habilitado. ONTAP utiliza la virtualización de ID de N_Port (NPIV) para presentar destinos FC. Sin ella, los LIF de destino no pueden iniciar sesión correctamente.
+
++
+** Impacto en el host: NPIV evita las caídas intermitentes de rutas y los dispositivos que faltan.
+** Impacto en los objetivos: NPIV garantiza la visibilidad de los LIF de destino y unos inicios de sesión de FC estables.
+
+
+* *Dos fabrics independientes totalmente aislados entre sí*
++
+Una fabric dual independiente consta de dos switches físicos, fuentes de alimentación y cableado independientes. La Fabric A y la Fabric B nunca se conectan entre sí. Cada una mantiene su propio servidor de nombres FC, conjuntos de zonas e ID de dominio. Como las fabrics están totalmente aisladas, no hay ningún punto único de fallo. Se puede realizar mantenimiento sin interrupciones en una fabric mientras la otra sigue funcionando.
+
++
+** Impacto en el host: las dos fabrics independientes permiten mantener una E/S continua durante las actualizaciones del firmware de las fabrics o en caso de fallos en estas.
+** Impacto en el destino: dos fabrics independientes mantienen el acceso redundante al destino durante problemas con los switches.
+
+
+* *Velocidades fijas del puerto FC (evitar la negociación automática)*
++
+La negociación automática puede retrasar la reconstrucción de la fabric, provocar desajustes de velocidad y dar lugar a retrasos en la reconvergencia y fluctuaciones en los enlaces.
+
++
+** Impacto en el host: las velocidades fijas de los puertos FC dan lugar a ventanas de interrupción más cortas durante los restablecimientos del enlace.
+** Impacto previsto: las velocidades fijas de los puertos FC permiten que estos se activen más rápidamente tras eventos en el nodo o en el switch.
+
+
+* *Cumplimiento estricto de las configuraciones validadas por NetApp Interoperability Matrix Tool (IMT) (HBA, controlador, firmware, switch)*
++
+El cumplimiento estricto de las configuraciones validadas en https://mysupport.netapp.com/matrix["NetApp IMT"^] mantiene la latencia y el rendimiento esperados.
+
++
+** Impacto en el host: el uso de configuraciones validadas por IMT evita errores de E/S y tiempos de espera inexplicables.
+** Impacto previsto: el uso de configuraciones validadas por IMT evita incompatibilidades a nivel de protocolo.
+
+
+* *Supervisión proactiva de los contadores de errores de FC (CRC, pérdida de sincronización, RECV_ERROR)*
++
+Los errores de Fabric suelen manifestarse como latencia en el lado del host o como errores de E/S antes de que los contadores de almacenamiento de ONTAP los detecten. La supervisión proactiva de los recuentos de errores de FC evita un aumento sostenido de la latencia.
+
++
+** Impacto en el host: la supervisión proactiva permite la detección temprana y evita los reintentos de E/S del host y los bloqueos de las aplicaciones.
+** Impacto previsto: la supervisión proactiva evita atribuir erróneamente los problemas de fabric a problemas de almacenamiento.
+
+
+* *Evita la sobresuscripción del enlace entre conmutadores (ISL) para el tráfico de SAN*
++
+Los ISL saturados provocan escasez de crédito y un comportamiento de «drenaje lento».
+
++
+** Impacto en el host: evitar la sobresuscripción de ISL reduce los tiempos de espera de E/S del host y las colas.
+** Efecto deseado: al evitar la sobresuscripción de ISL, se previene la contrapresión hacia los puertos FC de ONTAP.
+
+
+
+
+.Información relacionada
+https://www.netapp.com/pdf.html?item=/media/10680-tr4080.pdf["Informe técnico de NetApp 4080: Prácticas recomendadas para SAN moderno"^].
