@@ -13,10 +13,12 @@ summary: Los LIF pueden tener características diferentes para admitir diferente
 
 
 [role="lead"]
-Los LIF pueden tener características diferentes para admitir diferentes tipos de puertos.
+Los LIF pueden tener diferentes características para admitir distintos tipos de puertos. Los LIF pueden estar alojados en un puerto físico o lógico en un IPspace. Cada puerto está asociado con un solo IPspace.
 
 
 NOTE: Cuando se configuran las LIF de interconexión de clústeres y gestión en la misma subred, es posible que el tráfico de gestión esté bloqueado por un firewall externo y que se produzca un error en las conexiones de AutoSupport y NTP. Puede recuperar el sistema ejecutando `network interface modify -vserver _vserver name_ -lif _intercluster LIF_ -status-admin up|down` el comando para alternar la LIF de interconexión de clústeres. Sin embargo, debe configurar la LIF entre clústeres y la LIF de gestión en subredes diferentes para evitar este problema.
+
+La siguiente tabla resume los tipos de LIF, los tipos de puerto con los que son compatibles y su comportamiento en caso de conmutación por error o migración.
 
 [cols="30,70"]
 |===
@@ -25,23 +27,68 @@ NOTE: Cuando se configuran las LIF de interconexión de clústeres y gestión en
 | LUN | Descripción 
 
 
-| LIF de datos | Una LIF asociada con una máquina virtual de almacenamiento (SVM) y se utiliza para comunicarse con los clientes. Puede tener varios LIF de datos en un puerto. Estas interfaces pueden migrar o realizar una conmutación al nodo de respaldo en todo el clúster. Puede modificar una LIF de datos para que sirva como LIF de gestión de SVM modificando su política de firewall en la gestión. Las sesiones establecidas en servidores NIS, LDAP, Active Directory, WINS y DNS utilizan LIF de datos. 
+| LIF del clúster  a| 
+Una LIF que se utiliza para transportar el tráfico intraclúster entre nodos de un clúster.
+
+* Las LIF de clúster siempre deben crearse en puertos de clúster.
+* Las LIF de clúster pueden realizar una conmutación por error entre puertos de clúster del mismo nodo, pero no pueden migrarse ni conmutarse por error a un nodo remoto. Cuando un nuevo nodo se une a un clúster, las direcciones IP se generan automáticamente. Sin embargo, si quieres asignar direcciones IP manualmente a las LIF del clúster, debes asegurarte de que las nuevas direcciones IP estén en el mismo rango de subred que las LIF existentes del clúster.
 
 
-| LIF del clúster | Una LIF que se utiliza para transportar tráfico dentro del clúster entre nodos de un clúster. Las LIF del clúster siempre se deben crear en los puertos del clúster. Los LIF de clúster pueden conmutar por error entre los puertos de clúster del mismo nodo, pero no se pueden migrar ni realizar una conmutación por error a un nodo remoto. Cuando un nuevo nodo se une a un clúster, las direcciones IP se generan automáticamente. Sin embargo, si desea asignar direcciones IP manualmente a las LIF del clúster, debe asegurarse de que las nuevas direcciones IP se encuentren en el mismo rango de subred que las LIF del clúster existentes. 
 
 
-| LIF de gestión de clústeres | LIF que proporciona una interfaz de gestión única para todo el clúster. Un LIF de gestión de clústeres puede conmutar al respaldo a cualquier nodo del clúster. No puede conmutar al respaldo en los puertos de clústeres o de interconexión de clústeres 
+| LIF de gestión de clústeres  a| 
+Un LIF que ofrece una única interfaz de gestión para todo el clúster.
+
+* Un LIF de gestión del clúster puede realizar una conmutación por error a cualquier nodo del clúster. No puede realizar una conmutación por error a puertos de clúster ni a puertos interclúster.
 
 
-| LIF de interconexión de clústeres | Un LIF que se utiliza para comunicación entre clústeres, backup y replicación. Antes de que se pueda establecer una relación de paridad de clústeres, debe crear una LIF de interconexión de clústeres en cada nodo del clúster. Estos LIF solo pueden conmutar por error a los puertos del mismo nodo. No se pueden migrar ni realizar una conmutación por error a otro nodo del clúster. 
 
 
-| LIF de gestión de nodos | Una LIF que proporciona una dirección IP dedicada para gestionar un nodo en particular en un clúster. Las LIF de gestión de nodos se crean en el momento de crear o unirse al clúster. Estas LIF se utilizan para el mantenimiento del sistema, por ejemplo, cuando un nodo se vuelve inaccesible desde el clúster. 
+| LIF de datos  a| 
+Un LIF asociado a una máquina virtual de almacenamiento (SVM) y que se utiliza para comunicarse con los clientes.
+
+* Cada SVM está asociada a un IPspace específico. Las SVM de datos suelen estar en el IPspace "Default", aunque no necesariamente.
+* Puedes alojar varias LIF de datos en un puerto. Estas LIF de datos pueden migrar o conmutar por error en todo el clúster. Puedes modificar una LIF de datos para que funcione como una LIF de gestión de SVM cambiando su política de firewall a mgmt.
+* Las sesiones establecidas con servidores NIS, LDAP, Active Directory, WINS y DNS usan LIF de datos.
 
 
-| LIF VIP | Una LIF VIP es cualquier LIF de datos creada en un puerto VIP. Para obtener más información, consulte link:../networking/configure_virtual_ip_vip_lifs.html["Configurar las LIF de IP virtual (VIP)"]. 
+
+
+| LIF de interconexión de clústeres  a| 
+Una LIF que se utiliza para la comunicación entre clústeres, copias de seguridad y replicación.
+
+* Debes crear una LIF entre clústeres en cada nodo del clúster antes de que se pueda establecer una relación de paridad entre clústeres. Estas LIF solo pueden conmutar por error a puertos en el mismo nodo. No pueden migrarse ni conmutar por error a otro nodo del clúster.
+
+
+
+
+| LIF de gestión de nodos  a| 
+Un LIF que proporciona una dirección IP dedicada para gestionar un nodo concreto de un clúster.
+
+* Los LIF de gestión de nodos se crean en el momento de crear el clúster o de unirse a él. Estos LIF se utilizan para el mantenimiento del sistema, por ejemplo, cuando un nodo se vuelve inaccesible desde el clúster.
+
+
+
+
+| Dirección LIF de gestión de SVM  a| 
+Un LIF que proporciona conectividad administrativa a un SVM, lo que permite realizar operaciones de gestión (a menudo a través del puerto 443) y prestar servicios relacionados con la gestión de ese SVM.
+
+* Cada SVM está asociada a un IPspace específico.
+* La LIF puede migrar o conmutar por error a otro nodo o puerto según la política de conmutación por error.
+* Puedes alojar varias LIF de gestión de SVM en un puerto.
+* Un LIF de gestión de SVM resulta útil cuando trabajas en un entorno de multi-tenancy.
+
+
+
+
+| LIF VIP  a| 
+Una LIF de IP virtual (VIP) es cualquier LIF de datos creada en un puerto VIP.
+
+Para obtener más información, consulta link:../networking/configure_virtual_ip_vip_lifs.html["Configurar las LIF de IP virtual (VIP)"].
+
 |===
 .Información relacionada
+* link:./configure_network_ports_cluster_administrators_only_overview.html["Obtenga información sobre la configuración de puertos de red ONTAP"]
 * link:https://docs.netapp.com/us-en/ontap-cli/network-interface-modify.html["modificación de la interfaz de red"^]
+* link:./configure_ipspaces_cluster_administrators_only_overview.html["Obtenga más información sobre la configuración del espacio IP de ONTAP"]
 
