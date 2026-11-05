@@ -1,0 +1,223 @@
+---
+permalink: data-protection/configure-backend-fc-replication.html 
+sidebar: sidebar 
+keywords: configure, backend, FC, replication 
+summary: 'A partir de ONTAP 9.20.1, puedes configurar la replicación asíncrona de backend SnapMirror y SnapLock para SnapVault a través de estructuras Fibre Channel (FC) existentes. Para habilitar la replicación de datos a través de FC, debes configurar la replicación FC de backend. .' 
+---
+= Configura tu sistema ONTAP para la replicación de backend a través de FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+A partir de ONTAP 9.20.1, puedes configurar la replicación asíncrona de backend SnapMirror y SnapLock para SnapVault a través de fabrics de Fibre Channel (FC) existentes. Para habilitar la replicación de datos a través de FC, debes configurar la replicación de backend por FC.
+
+
+NOTE: Al configurar la replicación del backend a través de FC, tanto la estructura de FC como la red IP entre clústeres deben estar operativas. Los datos de replicación pueden transportarse a través de la estructura de FC, pero la red IP entre clústeres es necesaria para la comunicación entre clústeres y las funciones de gestión de la replicación.
+
+.Acerca de esta tarea
+Las configuraciones FC de conexión directa y las configuraciones que utilizan la división en zonas automatizada de la estructura no son compatibles con la replicación de back-end a través de FC.
+
+.Antes de empezar
+Los nodos del clúster de origen y del clúster de destino deben cumplir los siguientes requisitos de configuración:
+
+* En la relación de replicación deben participar al menos cuatro nodos de almacenamiento: dos nodos del clúster de origen y dos nodos del clúster de destino.
+* Cada nodo debe configurarse con como mínimo los siguientes puertos:
++
+** 2 puertos dedicados para iniciadores FC
+** 2 puertos de destino FC para la conectividad de front-end FC
+** 2 puertos de destino FC para la conectividad con el backend FC
+
+
+* La estructura de conmutación que conecta los clústeres de origen y de destino debe disponer de un mínimo de 16 puertos disponibles con SFP compatibles, dedicados al tráfico de backend. Obtén más información sobre link:../san-config/fc-config-best-practices.html["buenas prácticas para la configuración de la estructura FC"].
+* Todos los HBAs, SFPs y puertos del switch en la ruta de replicación deben funcionar a la misma velocidad fija para garantizar la estabilidad del enlace.
+
+
+.Pasos
+. Identifica los adaptadores de red FC en el clúster de origen y en el clúster de destino que se utilizarán como iniciadores de backend:
++
+[source, cli]
+----
+network fcp adapter show
+----
++
+En los siguientes ejemplos, ssan-a50-06a-06b es el clúster de origen y ssan-a50-07a-07b es el clúster de destino. La salida de ejemplo para el clúster de origen es la siguiente:
+
++
+[listing]
+----
+ssan-a50-06a-06b::*>network fcp adapter show
+                  Connection  Port    Admin    Operational
+Node         Adapter  Established Address Status   Status
+------------ -------- ----------- ------- -------- ---------------
+ssan-a50-06a 3a       false       0       up       link not connected
+ssan-a50-06a 3b       false       0       up       link not connected
+ssan-a50-06a 3c       false       0       up       link not connected
+ssan-a50-06a 3d       false       0       up       link not connected
+ssan-a50-06b 3a       false       0       up       link not connected
+ssan-a50-06b 3b       false       0       up       link not connected
+ssan-a50-06b 3c       false       0       up       link not connected
+ssan-a50-06b 3d       false       0       up       link not connected
+----
++
+A continuación se muestra un ejemplo de salida para el clúster de destino:
+
++
+[listing]
+----
+ssan-a50-07a-07b::*>network fcp adapter show
+ssan-a50-07a 3a       false       0       up       link not connected
+ssan-a50-07a 3b       false       0       up       link not connected
+ssan-a50-07a 3c       false       0       up       link not connected
+ssan-a50-07a 3d       false       0       up       link not connected
+ssan-a50-07b 3a       false       0       up       link not connected
+ssan-a50-07b 3b       false       0       up       link not connected
+ssan-a50-07b 3c       false       0       up       link not connected
+ssan-a50-07b 3d       false       0       up       link not connected
+----
+. Configura 2 puertos para el modo iniciador en cada nodo de la relación de replicación tanto en el clúster de origen como en el de destino:
++
+.. Desconectar el adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter> -status-admin down
+----
++
+En el siguiente ejemplo, el puerto 3c se pone sin conexión.
+
++
+[listing]
+----
+network fcp adapter modify -node ssan-a50-06a -adapter 3c -status-admin down
+----
+.. Configura el adaptador para el modo iniciador:
++
+[source, cli]
+----
+system hardware unified-connect modify -t initiator <adapter_port>
+----
++
+No reinicies el nodo para aplicar la modificación del adaptador. Una vez que hayas configurado todos los adaptadores necesarios y los hayas vuelto a poner en línea, realiza una conmutación por error de almacenamiento para cada nodo con el fin de aplicar los cambios sin interrupciones.
+
+.. Conectar el adaptador:
++
+[source, cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter> -status-admin up
+----
+.. Repite estos pasos para cada puerto que debas configurar en modo iniciador.
+.. Comprueba que todos los puertos estén activos y configurados como iniciadores:
++
+[source, cli]
+----
+network fcp adapter show
+----
+
+
+. Realiza una conmutación por error manual del almacenamiento en cada par de alta disponibilidad que se esté configurando para la replicación FC.
++
+La conmutación por error del almacenamiento hace que las modificaciones del adaptador se completen sin necesidad de reiniciar el nodo de forma disruptiva.
+
++
+.. Realiza una conmutación por error de almacenamiento para el primer nodo de un par de alta disponibilidad:
++
+[source, cli]
+----
+storage failover takeover
+----
+.. Comprueba que la conmutación por error del almacenamiento se haya realizado correctamente:
++
+[source, cli]
+----
+storage failover show-takeover
+----
++
+La devolución automática está activada por defecto. Después de tomar el control de un nodo y de que termine de reiniciarse, el nodo asociado inicia automáticamente una devolución.
+
+.. Una vez completada la devolución automática del primer nodo, realiza una conmutación por error del almacenamiento en el segundo nodo del par de alta disponibilidad.
+.. Repite los pasos de conmutación por error del almacenamiento en cada par de alta disponibilidad que se esté configurando para la replicación FC.
+
+
+. Comprueba que los puertos FC de red de todos los nodos que se están configurando para la replicación FC estén activos y configurados como iniciadores:
++
+[source, cli]
+----
+system hardware unified-connect show
+----
+. Comprueba que los adaptadores FC integrados de tu sistema estén configurados como destinos:
++
+[source, cli]
+----
+network fcp adapter show
+----
++
+Los adaptadores integrados en el sistema se configuran como objetivos de forma predeterminada.
+
+. Usa el esquema de cableado recomendado para completar el cableado FC entre los puertos de destino FC y los puertos iniciadores.
+. Después de realizar el cableado, realiza la división en zonas de los puertos FC de destino y de iniciador de cada par de HA.
++
+Cada zona debe tener solo un iniciador y un objetivo.
+
++
+A continuación se muestra un ejemplo de división en zonas entre los nodos san-a50-06a/6b y san-a50-07a/7b:
+
++
+[listing]
+----
+zone-6a-7a-1 → Ports san-a50-06a:3c & san-a50-07a:3a
+zone-6a-7a-2 → Ports san-a50-06a:3d & san-a50-07a:3a
+zone-6a-7a-3 → Ports san-a50-06a:3c & san-a50-07a:3b
+zone-6a-7a-4 → Ports san-a50-06a:3d & san-a50-07a:3b
+zone-6b-7a-1 → Ports san-a50-06b:3c & san-a50-07a:3a
+zone-6b-7a-2 → Ports san-a50-06b:3d & san-a50-07a:3a
+zone-6b-7a-3 → Ports san-a50-06b:3c & san-a50-07a:3b
+zone-6b-7a-4 → Ports san-a50-06b:3d & san-a50-07a:3b
+zone-6a-7b-1 → Ports san-a50-06a:3c & san-a50-07b:3a
+zone-6a-7b-2 → Ports san-a50-06a:3d & san-a50-07b:3a
+zone-6a-7b-3 → Ports san-a50-06a:3c & san-a50-07b:3b
+zone-6a-7b-4 → Ports san-a50-06a:3d & san-a50-07b:3b
+zone-6b-7b-1 → Ports san-a50-06b:3c & san-a50-07b:3a
+zone-6b-7b-2 → Ports san-a50-06b:3d & san-a50-07b:3a
+zone-6b-7b-3 → Ports san-a50-06b:3c & san-a50-07b:3b
+zone-6b-7b-4 → Ports san-a50-06b:3d & san-a50-07b:3b
+----
+. Crea las interfaces de red de destino FC de backend (LIF) en el clúster de origen y a continuación en el clúster de destino:
++
+[source, cli]
+----
+network interface create -vserver <SVM> -lif <fcp_backend_target_lif> -data-protocol fcp -home-node <home_node> -home-port <home_port> -status-admin up
+----
++
+En el siguiente ejemplo, se crean LIF de FC de backend en el clúster A: ssan-a50-06a.
+
++
+[listing]
+----
+network interface create -vserver ssan-a50-06a -lif fcp_backend_target_lif_1 -data-protocol fcp -home-node ssan-a50-06a -home-port 3a -status-admin up
+network interface create -vserver ssan-a50-06a -lif fcp_backend_target_lif_2 -data-protocol fcp -home-node ssan-a50-06a -home-port 3b -status-admin up
+network interface create -vserver ssan-a50-06b -lif fcp_backend_target_lif_1 -data-protocol fcp -home-node ssan-a50-06b -home-port 3a -status-admin up
+network interface create -vserver ssan-a50-06b -lif fcp_backend_target_lif_2 -data-protocol fcp -home-node ssan-a50-06b -home-port 3b -status-admin up
+----
++
+En el siguiente ejemplo, se crean LIF de FC de backend en el clúster B: ssan-a50-07a
+
++
+[listing]
+----
+network interface create -vserver ssan-a50-07a -lif fcp_backend_target_lif_1 -data-protocol fcp -home-node ssan-a50-07a -home-port 3a -status-admin up
+network interface create -vserver ssan-a50-07a -lif fcp_backend_target_lif_2 -data-protocol fcp -home-node ssan-a50-07a -home-port 3b -status-admin up
+network interface create -vserver ssan-a50-07b -lif fcp_backend_target_lif_1 -data-protocol fcp -home-node ssan-a50-07b -home-port 3a -status-admin up
+network interface create -vserver ssan-a50-07b -lif fcp_backend_target_lif_2 -data-protocol fcp -home-node ssan-a50-07b -home-port 3b -status-admin up
+----
+. Comprueba que las LIFs se han creado:
++
+[source, cli]
+----
+network interface show -vserver <SVM>
+----
+
+
+.¿Y ahora qué?
+Ya estás listo para link:create-replication-relationship-task.html["configurar la replicación de SnapMirror"] usando FC como protocolo de transporte back-end.

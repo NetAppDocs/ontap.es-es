@@ -13,6 +13,13 @@ A partir de ONTAP 9.10.1, puede usar link:https://docs.microsoft.com/en-us/azure
 
 AWS KMS, AKV y Cloud KMS se pueden usar para proteger link:configure-netapp-volume-encryption-concept.html["Claves de cifrado de volúmenes de NetApp (NVE)"] solo las SVM de datos.
 
+[NOTE]
+====
+A partir de ONTAP 9.20.1, cuando habilitas un gestor de claves en la nube en una SVM de datos que ya gestiona volúmenes cifrados mediante el gestor de claves de ámbito de administrador, ONTAP migra automáticamente esas claves NVE al nuevo gestor de claves de la SVM de datos. En este flujo de trabajo, no necesitas ejecutar un comando `security key-manager key migrate` independiente.
+
+Esta migración automática se aplica a los SVM de datos. Si vas a realizar la transición del SVM de administración desde la gestión de claves integrada o la gestión de claves externa con alcance de clúster a un gestor de claves en la nube para SVM de datos, completa primero las tareas de transición correspondientes con alcance de administración.
+
+====
 .Acerca de esta tarea
 La gestión de claves con un proveedor de cloud se puede habilitar con la interfaz de línea de comandos o la API DE REST DE ONTAP.
 
@@ -30,7 +37,7 @@ Al utilizar el servicio de gestión de claves de un proveedor de cloud, debe ten
 * Los nodos del clúster ONTAP deben admitir NVE.
 * link:../encryption-at-rest/install-license-task.html["Debe haber instalado las licencias de cifrado de volúmenes (VE) y de gestión de claves de cifrado multi-tenant (MTEKM)"]. Estas licencias se incluyen con link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["ONTAP One"].
 * Debe ser un administrador de clúster o de SVM.
-* Las SVM de datos no deben incluir ningún volumen cifrado ni emplear un gestor de claves. Si la SVM de datos incluye volúmenes cifrados, debe migrarlos antes de configurar el KMS.
+* En ONTAP 9.20.1 y versiones posteriores, un SVM de datos puede incluir volúmenes cifrados si el gestor de claves de ámbito de administrador gestiona sus claves NVE. ONTAP migra automáticamente esas claves durante la operación de habilitación. En versiones anteriores, migra las claves antes de configurar el gestor de claves en la nube.
 
 
 
@@ -49,7 +56,10 @@ La habilitación de la gestión de claves externas depende del administrador de 
 +
 ** `DescribeKey`
 ** `Encrypt`
-** `Decrypt` + Para obtener más información, consulte la documentación de AWS para link:https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant["subvenciones"^].
+** `Decrypt`
++
+Para obtener más información, consulta la documentación de AWS sobre link:https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant["subvenciones"^].
+
 
 
 
@@ -104,8 +114,12 @@ Obtenga más información sobre `security key-manager external gcp` en el link:h
 
 --
 ====
-Si ya hay uno o más volúmenes cifrados configurados para una SVM de datos y el administrador de claves incorporado de la SVM de administrador gestiona las claves NVE correspondientes, esas claves se deben migrar al servicio de gestión de claves externa. Para hacerlo con la CLI, ejecute el comando:
-`security key-manager key migrate -from-Vserver _admin_SVM_ -to-Vserver _data_SVM_` No se pueden crear nuevos volúmenes cifrados para la SVM de datos del inquilino hasta que todas las claves NVE de la SVM de datos se migren correctamente.
+A partir de ONTAP 9.20.1, si ya hay uno o más volúmenes cifrados configurados para un SVM de datos y las claves NVE correspondientes las gestiona el gestor de claves con ámbito de administrador, ONTAP migra automáticamente esas claves durante la operación de habilitación. No necesitas ejecutar un comando `security key-manager key migrate` por separado.
+
+En las versiones de ONTAP anteriores a la 9.20.1, esas claves deben migrarse al servicio externo de gestión de claves. Para hacerlo mediante la CLI, ejecuta el comando:
+`security key-manager key migrate -from-Vserver _admin_SVM_ -to-Vserver _data_SVM_`
+
+No se pueden crear nuevos volúmenes cifrados para el SVM de datos del inquilino hasta que se hayan migrado correctamente todas las claves NVE de dicho SVM.
 
 .Información relacionada
 * link:https://docs.netapp.com/us-en/cloud-manager-cloud-volumes-ontap/task-encrypting-volumes.html["Cifrar volúmenes con las soluciones de cifrado de NetApp para Cloud Volumes ONTAP"^]

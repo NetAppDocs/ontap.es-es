@@ -11,7 +11,7 @@ summary: A partir de ONTAP 9.3, puede utilizar el comando snapmirror Protect par
 
 
 [role="lead"]
-A partir de ONTAP 9.3, puede utilizar el `snapmirror protect` Comando para configurar una relación de protección de datos en un solo paso.  Debe especificar una lista de volúmenes que se replicarán, una SVM en el clúster de destino, una programación de trabajos y una política SnapMirror . `snapmirror protect` hace el resto
+Puedes usar el comando  `snapmirror protect` para configurar una relación de protección de datos en un solo paso. Debes especificar una lista de volúmenes que se van a replicar, un SVM en el clúster de destino, una programación de tareas y una política de SnapMirror. `snapmirror protect` se encarga del resto.
 
 .Antes de empezar
 * Las SVM y los clústeres de origen y destino deben tener una relación entre iguales.
@@ -19,6 +19,11 @@ A partir de ONTAP 9.3, puede utilizar el `snapmirror protect` Comando para confi
 https://docs.netapp.com/us-en/ontap-system-manager-classic/peering/index.html["Relaciones entre iguales de clústeres y SVM"^]
 
 * El idioma del volumen de destino debe ser el mismo que el del volumen de origen.
+* A partir de ONTAP 9.20.1, puedes configurar la replicación asíncrona de backend de SnapMirror a través de estructuras FC existentes. Para hacerlo, el backend de tu sistema ONTAP debe estar configurado para la replicación FC, y tanto la estructura FC como la red IP entre clústeres deben estar operativas. Los datos de replicación pueden transportarse a través de la estructura FC, pero la red IP entre clústeres es necesaria para las comunicaciones del clúster y las funciones de gestión de la replicación. Las configuraciones FC de conexión directa no son compatibles con la replicación FC de backend. link:configure-backend-fc-replication.html["Aprende a configurar el backend de tu sistema ONTAP para la replicación FC"]
++
+** Si estás configurando una relación asíncrona de SnapMirror para usar FC como protocolo de transporte, en una configuración de MetroCluster, el iniciador de almacenamiento que se usa para MetroCluster debe ser distinto del iniciador que se usa para la replicación mediante FC. No se admite compartir el almacenamiento del iniciador entre ambos.
+
+
 
 
 .Acerca de esta tarea
@@ -27,22 +32,26 @@ El `snapmirror protect` comando elige un agregado asociado con la SVM especifica
  `snapmirror protect`A continuación, el comando realiza los siguientes pasos:
 
 * Crea un volumen de destino con un tipo adecuado y la cantidad de espacio reservado para cada volumen de la lista de volúmenes que se van a replicar.
-* Configura una relación de replicación adecuada para la directiva que usted especifique.
-* Inicializa la relación.
-
-
++
 El nombre del volumen de destino tiene el formato `_source_volume_name_dst_`. En caso de un conflicto con un nombre existente, el comando añade un número al nombre del volumen. Puede especificar un prefijo o sufijo en las opciones del comando. El sufijo sustituye al `dst` sufijo proporcionado por el sistema.
 
-En ONTAP 9.4 y versiones posteriores, un volumen de destino puede contener hasta 1019 instantáneas.  En ONTAP 9.3 y versiones anteriores, un volumen de destino puede contener hasta 251 instantáneas.
++
+Un volumen de destino puede contener hasta 1019 instantáneas.
 
+* Configura una relación de replicación adecuada para la directiva que usted especifique.
+* Inicializa la relación.
++
 [NOTE]
 ====
 La inicialización puede requerir mucho tiempo. `snapmirror protect` no espera a que se complete la inicialización antes de que finalice el trabajo. Por este motivo, debe utilizar `snapmirror show` el comando en lugar `job show` del comando para determinar cuándo se ha completado la inicialización.
 
 ====
-A partir de ONTAP 9.5, se pueden crear relaciones síncronas de SnapMirror mediante `snapmirror protect` el comando.
+* A partir de ONTAP 9.20.1, utiliza una política de protección de datos asíncrona compatible y la opción  `-transport fc` al crear tu relación de SnapMirror para replicar a través de tu red FC. La replicación de backend utiliza el protocolo IP de forma predeterminada. link:default-protection-policies-concept.html["Descubre qué políticas predeterminadas de protección de datos asíncrona son compatibles con la replicación FC de backend"].
++
 
-Obtenga más información sobre  `snapmirror protect` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-protect.html["Referencia de comandos del ONTAP"^] .
+NOTE: Para cambiar el protocolo de transporte seleccionado tras crear una relación de replicación de SnapMirror, debes eliminar y volver a crear la relación.
+
+
 
 .Paso
 . Cree e inicialice una relación de replicación en un paso:
@@ -61,12 +70,12 @@ Se debe ejecutar este comando desde la SVM de destino o el clúster de destino. 
 
 ====
 +
-En el siguiente ejemplo, se crea e inicializa una relación de recuperación ante desastres de SnapMirror utilizando la `MirrorAllSnapshots` política predeterminada:
+En el siguiente ejemplo se crea e inicializa una relación de DR de SnapMirror con la política predeterminada `MirrorAllSnapshots` y el protocolo de transporte FC:
 
 +
 [listing]
 ----
-cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_backup -policy MirrorAllSnapshots -schedule replication_daily
+cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_backup -policy MirrorAllSnapshots -schedule replication_daily -transport fc
 ----
 +
 [NOTE]

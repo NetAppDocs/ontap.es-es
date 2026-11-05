@@ -14,7 +14,7 @@ summary: A partir de ONTAP 9.13,1, se pueden establecer límites de capacidad pa
 A partir de ONTAP 9.13.1, puede establecer una capacidad máxima para una máquina virtual de almacenamiento (SVM). También puede configurar alertas cuando la SVM se acerca a un nivel de umbral de capacidad.
 
 .Acerca de esta tarea
-La capacidad de un SVM se calcula como la suma de FlexVols, Volúmenes FlexGroup, FlexClones y volúmenes de FlexCache. El cálculo de la capacidad afecta al volumen aunque estén restringidos, sin conexión o en la cola de recuperación después de la eliminación. Si hay volúmenes configurados con el crecimiento automático, el valor máximo de tamaño automático del volumen se calculará en el tamaño de la SVM; sin un crecimiento automático, se calculará el tamaño real del volumen.
+La capacidad de un SVM se calcula como la suma de los volúmenes FlexVol, los volúmenes FlexGroup, los volúmenes FlexClone y los volúmenes FlexCache. Los volúmenes influyen en el cálculo de la capacidad incluso si están restringidos, sin conexión o en la cola de recuperación después de eliminarlos. Si tienes volúmenes configurados con crecimiento automático, se calculará para el tamaño del SVM el valor máximo de cambio de tamaño automático del volumen; sin crecimiento automático, se calculará el tamaño real del volumen.
 
 La siguiente tabla captura el `autosize-mode` impacto de los parámetros en el cálculo de capacidad.
 
@@ -31,6 +31,13 @@ La siguiente tabla captura el `autosize-mode` impacto de los parámetros en el c
 |===
 .Antes de empezar
 * Para establecer un límite de las máquinas virtuales de almacenamiento, debe ser un administrador del clúster.
+* A partir de ONTAP 9.20.1, se pueden configurar límites de almacenamiento para las SVM que forman parte de una configuración IP de MetroCluster.
++
+[NOTE]
+====
+No se admite activar ni desactivar los límites de almacenamiento en la SVM *sync-destination* en una configuración IP de MetroCluster. Los límites de almacenamiento solo se pueden activar o desactivar en la SVM *sync-source*.
+
+====
 * A partir de ONTAP 9.16.1, se pueden configurar límites de almacenamiento para SVM que contengan volúmenes de protección de datos, incluidos los siguientes tipos de protección de datos:
 +
 ** Volúmenes FlexVol en recuperación ante desastres asíncrona sin cascada
@@ -42,17 +49,17 @@ La siguiente tabla captura el `autosize-mode` impacto de los parámetros en el c
 +
 ** Relaciones de almacén de SnapMirror
 ** SnapMirror síncrono activo
-** Volúmenes de FlexGroup
-** Grupos de consistencia
+** Grupos de coherencia que contienen volúmenes de protección de datos
+** Protección de datos en volúmenes FlexGroup
 ** DR DE SVM
 ** Cascadas
-** MetroCluster
+** MetroCluster FC
 
 
 * A partir de ONTAP 9.16.1, cuando se crea una relación de espejo de uso compartido de carga, la SVM de destino no puede tener un límite de almacenamiento habilitado.
 * Al migrar una SVM, la SVM de origen no puede tener un límite de almacenamiento habilitado. Para completar la operación de migración, desactive el límite de almacenamiento en el origen y, a continuación, complete la migración.
 * La capacidad de la SVM es distinta de xref:../volumes/quotas-concept.html[cuotas]. Las cuotas no pueden superar el tamaño máximo.
-* No es posible establecer un límite de almacenamiento cuando haya otras operaciones en curso en la SVM. Utilice `job show vserver <svm_name>` el comando para ver los trabajos existentes. Intente ejecutar el comando de nuevo cuando haya terminado algún trabajo. Obtenga más información sobre `job show` en el link:https://docs.netapp.com/us-en/ontap-cli/job-show.html["Referencia de comandos del ONTAP"^].
+* No puedes activar un límite de almacenamiento por primera vez mientras haya operaciones de volumen en curso en la SVM. Después de activar el límite, puedes modificarlo incluso mientras haya operaciones de volumen en curso. Usa el comando `job show -vserver <svm_name>` para ver los trabajos existentes. Vuelve a ejecutar el comando cuando se hayan completado los trabajos. Obtén más información sobre `job show` en link:https://docs.netapp.com/us-en/ontap-cli/job-show.html["Referencia de comandos del ONTAP"^].
 
 
 
@@ -64,7 +71,6 @@ Cuando se alcanza el límite de capacidad, las operaciones siguientes fallarán:
 
 * Creación de LUN, espacio de nombres o volumen
 * Clonado de LUN, espacio de nombres o volumen
-* Modificar un LUN, espacio de nombres o volumen
 * Aumentando el tamaño de LUN, espacio de nombres o volumen
 * Expansión de LUN, espacio de nombres o volumen
 * Realojamiento de LUN, espacio de nombres o volumen
@@ -128,6 +134,11 @@ Es posible establecer un límite de capacidad y una alerta de umbral en una SVM 
 
 Una vez que se configura el límite de capacidad, no se puede modificar el límite a un valor inferior a la capacidad asignada actualmente.
 
+[NOTE]
+====
+No se admite activar ni desactivar los límites de almacenamiento en la SVM *sync-destination* en una configuración IP de MetroCluster. Los límites de almacenamiento solo se pueden activar o desactivar en la SVM *sync-source*.
+
+====
 [role="tabbed-block"]
 ====
 .System Manager

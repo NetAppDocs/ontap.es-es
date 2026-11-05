@@ -34,6 +34,7 @@ ARP/AI crea instantáneas con uno de los siguientes nombres como prefijo:
 .Antes de empezar
 * Si respondes a un aviso de actividad anormal, link:respond-arpai.html#classify-as-potential-ransomware-attack-and-recover-data["primero debes categorizarlo como un posible ataque de ransomware"] antes de proceder con la restauración de datos.
 * Elige un <<choose-a-recovery-method,método de restauración>> y revisa <<recovery-constraints-and-considerations,restricciones de recuperación>> antes de completar un procedimiento de restauración.
+* A partir de ONTAP 9.20.1, si la política de respuesta de instantáneas ARP/AI se establece en `alert-only`, no se crean instantáneas ARP/AI y la recuperación de instantáneas ARP/AI no está disponible. Para recuperar datos, usa una instantánea programada de ONTAP o tu propia solución de backup.
 
 
 
@@ -64,6 +65,12 @@ Más información sobre link:../data-protection/restore-single-file-snapshot-tas
 * Para ONTAP 9.16.1 y versiones posteriores: Borra *primero* el evento sospechoso (en link:respond-arpai.html["Responda a actividades anormales"]) y luego realiza la restauración. Después de borrar, las instantáneas ARP/AI se conservan según cómo clasifiques la actividad. A partir de ONTAP 9.17.1, los valores predeterminados son 7 días (ataque real) o 24 horas (falso positivo). En ONTAP 9.16.1, los valores predeterminados son 5 días (ataque real) o 48 horas (falso positivo). La opción clear-suspect deja de estar disponible después de una restauración de volumen, así que tienes que borrar antes de restaurar.
 * Liberar el bloqueo de la instantánea ARP/AI solo es necesario cuando usas  `volume snapshot restore` para restaurar desde una instantánea anterior. No es necesario para FlexClone, SnapRestore de un solo archivo, operaciones de copia de datos ni métodos similares.
 * En el caso de los volúmenes SAN en los que el ataque se detecta únicamente mediante análisis de entropía, solo se conservan durante un periodo prolongado (10 días por defecto, configurable) la instantánea creada justo antes de la línea temporal del ataque y la instantánea del ataque. El resto de instantáneas periódicas siguen las reglas de retención normales. Esto es diferente de los volúmenes NAS, donde todas las instantáneas creadas antes de la línea temporal del ataque se conservan hasta que el administrador realiza una acción de limpiar sospechosos.
+* Para ONTAP 9.20.1 y versiones posteriores: la restauración de una instantánea de volumen puede restablecer la política de respuesta a instantáneas ARP/AI del volumen a la que estaba vigente en el momento en que se capturó la instantánea. Tras restaurar un volumen, comprueba que la política de respuesta a instantáneas sigue siendo la correcta:
++
+[source, cli]
+----
+security anti-ransomware volume snapshot-settings show -vserver <svm_name> -volume <volume_name>
+----
 
 
 .SnapMirror consideraciones

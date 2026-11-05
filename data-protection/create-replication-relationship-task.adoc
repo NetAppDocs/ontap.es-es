@@ -13,17 +13,30 @@ summary: La relación entre el volumen de origen en el almacenamiento primario y
 [role="lead"]
 La relación entre el volumen de origen en el almacenamiento primario y el volumen de destino en el almacenamiento secundario se denomina relación de protección de datos._ Se puede utilizar `snapmirror create` el comando para crear relaciones de protección de datos de replicación unificada, DR o SnapVault de SnapMirror.
 
+.Acerca de esta tarea
+* Este procedimiento se aplica a los sistemas FAS, AFF y ASA. Si tiene un sistema ASA r2 (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, ASA A20 o ASA C30), siga link:https://docs.netapp.com/us-en/asa-r2/data-protection/snapshot-replication.html["estos pasos"^] para crear una relación de replicación. Los sistemas R2 de ASA ofrecen una experiencia de ONTAP simplificada específica para clientes de SAN.
+* A partir de ONTAP 9.20.1, puedes configurar la replicación asíncrona de backend SnapMirror para que use transporte IP o FC. La replicación de backend usa la red IP de forma predeterminada. Usa una política de protección de datos asíncrona compatible y la opción `-transport fc` al crear tu relación de Snapmirror para replicar a través de tu estructura FC. link:default-protection-policies-concept.html["Descubre qué políticas predeterminadas de protección de datos asíncrona son compatibles con la replicación FC de backend"].
++
+** Para cambiar el protocolo de transporte seleccionado tras crear una relación de replicación de SnapMirror, debes eliminar y volver a crear la relación.
+** Las configuraciones FC de conexión directa no son compatibles con la replicación FC de backend.
 
-NOTE: Este procedimiento se aplica a los sistemas FAS, AFF y ASA. Si tiene un sistema ASA r2 (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, ASA A20 o ASA C30), siga link:https://docs.netapp.com/us-en/asa-r2/data-protection/snapshot-replication.html["estos pasos"^] para crear una relación de replicación. Los sistemas R2 de ASA ofrecen una experiencia de ONTAP simplificada específica para clientes de SAN.
 
-A partir de ONTAP 9.11.1, se puede usar System Manager para seleccionar políticas de mirroring y almacén predefinidas y personalizadas, para mostrar y seleccionar políticas heredadas, y para anular las programaciones de transferencia definidas en una política de protección al proteger volúmenes y máquinas virtuales de almacenamiento. Esta función también está disponible en ONTAP 9.8P12 y en parches posteriores de ONTAP 9.8.
-
+* A partir de ONTAP 9.11.1, se puede usar System Manager para seleccionar políticas de mirroring y almacén predefinidas y personalizadas, para mostrar y seleccionar políticas heredadas, y para anular las programaciones de transferencia definidas en una política de protección al proteger volúmenes y máquinas virtuales de almacenamiento. Esta función también está disponible en ONTAP 9.8P12 y en parches posteriores de ONTAP 9.8.
++
 [NOTE]
 ====
 Si utiliza la versión de revisión de ONTAP 9.8P12 o posterior de ONTAP 9.8 y configuró SnapMirror con System Manager, debe utilizar ONTAP 9.9.1P13 o posterior y ONTAP 9.10.1P10 o versiones de revisión posteriores si tiene pensado actualizar a las versiones de ONTAP 9.9.1 o ONTAP 9.10.1.
 
 ====
+
+
 .Antes de empezar
+* En ONTAP 9.20.1 y versiones posteriores, si configuras una relación asíncrona de SnapMirror para usar FC como protocolo de transporte:
++
+** El backend de tu sistema ONTAP debe estar configurado para la replicación FC y tanto el fabric de FC como la red IP entre clústeres deben estar operativos. Los datos de replicación pueden transportarse a través del fabric de FC, pero la red IP entre clústeres es necesaria para las comunicaciones entre clústeres y las funciones de gestión de la replicación. link:configure-backend-fc-replication.html["Aprende a configurar el backend de tu sistema ONTAP para la replicación FC"].
+** En una configuración MetroCluster, el iniciador de almacenamiento utilizado para MetroCluster debe ser distinto del iniciador utilizado para la replicación a través de FC. No se admite compartir el almacenamiento del iniciador entre los dos.
+
+
 * Las SVM y los clústeres de origen y destino deben tener una relación entre iguales.
 +
 link:../peering/index.html["Relaciones entre iguales de clústeres y SVM"]
@@ -160,12 +173,12 @@ En el ejemplo siguiente se crea una relación de SnapVault a través de la `XDPD
 cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy XDPDefault
 ----
 +
-En el siguiente ejemplo, se crea una relación de replicación unificada mediante la `MirrorAndVault` política predeterminada:
+El siguiente ejemplo crea una relación de replicación unificada con la política asíncrona predeterminada `MirrorAndVault` y el protocolo de transporte `fc`:
 
 +
 [listing]
 ----
-cluster_dst:> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorAndVault
+cluster_dst:> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorAndVault -transport fc
 ----
 +
 En el siguiente ejemplo, se crea una relación de replicación unificada mediante la `my_unified` política personalizada:

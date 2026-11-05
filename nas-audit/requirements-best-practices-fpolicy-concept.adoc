@@ -44,6 +44,13 @@ Esto incluye los LIF utilizados para conexiones de lectura de paso a través.
 
 
 
+* A partir de ONTAP 9.20.1, las políticas de FPolicy admiten eventos de S3. Para configurar FPolicy para eventos de objetos de S3, tienes que cumplir los siguientes requisitos adicionales:
++
+** Todos los nodos del clúster deben ejecutar ONTAP 9.20.1 o una versión posterior. Los clústeres con versiones mixtas bloquean la configuración de S3 FPolicy hasta que todos los nodos admitan esta función.
+** Solo se admiten buckets de NAS, no buckets nativos de S3.
+** Un servidor FPolicy externo compatible con el formato de notificación protobuf. No se admite el formato XML para los eventos de S3.
+
+
 
 
 
@@ -136,12 +143,41 @@ La supervisión de las operaciones de archivos influye en su experiencia general
 +
 ** Supervisión de los tipos mínimos de operaciones de archivo y activación del número máximo de filtros sin romper el caso de uso.
 ** Uso de filtros para operaciones getattr, lectura, escritura, apertura y cierre. Los entornos de directorio inicial SMB y NFS tienen un alto porcentaje de estas operaciones.
+** Solo las operaciones de S3 iniciadas por el cliente que se completan con éxito generan notificaciones. Las operaciones generadas internamente (como la caducidad de objetos o las restauraciones activadas por instantáneas) no generan notificaciones de FPolicy.
+** Las operaciones de S3 compatibles son las siguientes:
++
+*** Creación de objetos (PUT, COPY y CompleteMultipartUpload)
+*** Eliminación de objetos (DELETE y eliminación múltiple)
+*** Etiqueta de objeto (tag PUT y tag DELETE)
++
+
+NOTE: Los eventos GET y read no se supervisan.
+
+
+
+** Una solicitud de eliminación múltiple en S3 puede eliminar hasta 1.000 objetos, pero FPolicy envía una notificación por cada objeto eliminado con éxito (el espacio de SHM está limitado a 32 KB). Planifica la capacidad del servidor externo en consecuencia.
+** Utiliza el ámbito de la política de FPolicy para incluir o excluir buckets NAS específicos por nombre. Si el nombre de un bucket configurado está mal escrito o si se elimina el bucket, FPolicy no bloquea las operaciones, sino que simplemente no genera notificaciones para ese bucket.
 
 
 * Configuración del alcance de FPolicy para SVM:
 +
 Restrinja el alcance de las políticas a los objetos de almacenamiento relevantes, como recursos compartidos, volúmenes y exportaciones, en lugar de habilitarlos para toda la SVM. NetApp recomienda comprobar las extensiones del directorio. Si el `is-file-extension-check-on-directories-enabled` parámetro se define en `true`, los objetos de directorio se someten a las mismas comprobaciones de extensiones que los archivos normales.
 
+
+
+
+
+[[s3-fpolicy-limitations]]
+=== Limitaciones de FPolicy de S3
+
+A partir de ONTAP 9.20.1, FPolicy admite la supervisión de objetos S3 con las siguientes limitaciones:
+
+* S3 FPolicy funciona únicamente en modo asíncrono y no obligatorio. El modo síncrono, las políticas obligatorias y el bloqueo nativo (bloqueo basado en la extensión de los archivos) no son compatibles con los eventos de S3.
+* El almacenamiento persistente no es compatible con las notificaciones de S3 FPolicy.
+* No se admite el uso de SSL/TLS en la conexión al motor externo de FPolicy para las notificaciones de S3.
+* El acceso privilegiado a los datos y la lectura de paso no son aplicables a S3 FPolicy.
+* No se admite la entrega garantizada. Las notificaciones son solo de mejor esfuerzo y pueden perderse si el servidor FPolicy externo se desconecta o si el búfer de memoria compartida (SHM) permanece lleno después de varios intentos.
+* Las notificaciones de acceso denegado y operación fallida no son compatibles con los eventos de S3.
 
 
 
@@ -288,9 +324,13 @@ Obtenga más información sobre `statistics start` y `statistics show` en el lin
 
 NetApp recomienda deshabilitar una política de FPolicy antes de realizar cambios de configuración. Por ejemplo, si desea agregar o modificar una dirección IP en el motor externo configurado para la política activada, desactive primero la política.
 
-Si configura FPolicy para supervisar los volúmenes de NetApp FlexCache, NetApp recomienda que no configure FPolicy para que supervise las operaciones de los archivos de lectura y GETATTR. La supervisión de estas operaciones en ONTAP requiere la recuperación de datos de nodo a ruta (I2P). Dado que no pueden recuperarse datos I2P de volúmenes FlexCache, deben recuperarse del volumen de origen. Por lo tanto, la supervisión de estas operaciones elimina los beneficios de rendimiento que puede ofrecer FlexCache.
+Si configuras FPolicy para supervisar volúmenes NetApp FlexCache, NetApp recomienda que no configures FPolicy para supervisar las operaciones de archivo read y getattr. Supervisar estas operaciones en ONTAP requiere recuperar datos de inode a ruta (I2P). Como los datos I2P no se pueden recuperar de los volúmenes FlexCache, deben recuperarse del volumen de origen. Por lo tanto, supervisar estas operaciones elimina las ventajas de rendimiento que FlexCache puede ofrecer. Para los buckets S3 NAS en volúmenes FlexCache, las operaciones internas write-back y write-around en el volumen de origen no generan notificaciones de FPolicy. Como práctica recomendada, configura FPolicy tanto en el SVM de origen como en el SVM de FlexCache para capturar todos los eventos S3.
 
 Cuando se ponen en marcha FPolicy y una solución antivirus externa, primero la solución antivirus recibe notificaciones. El procesamiento de FPolicy se inicia solo después de que se complete el análisis antivirus. Es importante dimensionar correctamente las soluciones antivirus porque un análisis antivirus lento puede afectar al rendimiento general.
+
+S3 FPolicy es compatible con las configuraciones de MetroCluster. Tras la conmutación de sitios, puedes generar notificaciones de FPolicy desde el sitio remoto (superviviente) si el servidor externo de FPolicy está configurado y es accesible desde ese sitio.
+
+Durante las operaciones de toma de control y devolución de nodos, la conexión con el servidor FPolicy podría interrumpirse brevemente si la LIF asociada migra a otro nodo. La conexión se restablece automáticamente cuando hay una LIF adecuada disponible. Los clientes S3 que reintenten operaciones durante este intervalo generarán nuevas notificaciones de FPolicy cuando se restablezca la conexión.
 
 
 
@@ -306,6 +346,8 @@ Hay ciertas consideraciones de actualización y reversión que debe saber acerca
 
 Después de actualizar todos los nodos a una versión de ONTAP que admita la lectura PassThrough de FPolicy, el clúster puede usar la funcionalidad de lectura mediante paso a paso; sin embargo, la lectura a través permanece deshabilitada de forma predeterminada en las configuraciones de FPolicy existentes. Para utilizar la lectura de paso a través en las configuraciones de FPolicy existentes, debe deshabilitar la política de FPolicy, modificar la configuración y, a continuación, volver a habilitar la configuración.
 
+Una vez que todos los nodos se hayan actualizado a ONTAP 9.20.1 o una versión posterior, podrás configurar eventos de FPolicy con el protocolo S3 y operaciones con objetos S3 (creación de objetos, eliminación de objetos y etiquetado de objetos). En clústeres con versiones mixtas, no se permite la configuración de FPolicy para S3.
+
 
 
 [[reverting]]
@@ -318,6 +360,8 @@ Antes de revertir a una versión de ONTAP que no sea compatible con la lectura d
 
 
 Antes de revertir a una versión de ONTAP que no admite almacenes persistentes, asegúrese de que ninguna de las políticas de FPolicy tenga un almacén persistente configurado. Si se configura un almacén persistente, la reversión fallará.
+
+Antes de revertir a una versión de ONTAP que no sea compatible con S3 FPolicy, debes eliminar todos los eventos de FPolicy configurados con el protocolo S3. Si queda alguna configuración de S3 FPolicy, la reversión fallará.
 
 .Información relacionada
 * link:https://docs.netapp.com/us-en/ontap-cli/statistics-show.html["Las estadísticas muestran"^]

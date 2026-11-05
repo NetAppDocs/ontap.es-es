@@ -1,8 +1,8 @@
 ---
 permalink: volumes/cautions-increasing-maximum-directory-size-concept.html 
 sidebar: sidebar 
-keywords: flexvol, maximum, limits, maxdir-size, maxdirsize, caution, caveats, directory, size, directory size, max, allowed, default, volume 
-summary: El tamaño máximo de directorio predeterminado para los volúmenes FlexVol depende del modelo y está optimizado para el tamaño de la memoria del sistema. Antes de aumentar el tamaño máximo de directorio, se requiere el soporte técnico. 
+keywords: flexvol, flexgroup, maximum, limits, maxdir-size, maxdirsize, directory, size, directory size, max, 25 million files, large directory, directory index, is-dir-index-transfer-enabled 
+summary: Puedes configurar el tamaño máximo de los directorios en un volumen FlexVol. El tamaño máximo que debes establecer depende de la versión de ONTAP y de tu configuración específica. La función de control del tamaño de los directorios de ONTAP ha mejorado en ONTAP 9.20.1 para admitir directorios de mayor tamaño. 
 ---
 = Tamaño máximo de directorio para volúmenes ONTAP FlexVol
 :allow-uri-read: 
@@ -11,8 +11,106 @@ summary: El tamaño máximo de directorio predeterminado para los volúmenes Fle
 
 
 [role="lead"]
-Puede aumentar el tamaño máximo de directorio predeterminado para un FlexVol volume específico utilizando el `-maxdir-size` opción de la `volume modify` comando, pero hacerlo podría afectar el rendimiento del sistema. Ver ellink:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/What_is_maxdirsize["Base de conocimientos de NetApp : ¿Qué es maxdirsize?"^] .
+Puedes configurar el tamaño máximo de los directorios en un volumen FlexVol. El tamaño máximo que debes establecer depende de la versión de ONTAP y de tu configuración específica. La función de control del tamaño de los directorios de ONTAP ha mejorado en ONTAP 9.20.1 para admitir directorios de mayor tamaño.
 
-Para obtener más información sobre los tamaños máximos de directorios dependientes del modelo para volúmenes FlexVol, visite la página link:https://hwu.netapp.com/["NetApp Hardware Universe"^].
 
-Obtenga más información sobre `volume modify` en el link:https://docs.netapp.com/us-en/ontap-cli/volume-modify.html["Referencia de comandos del ONTAP"^].
+NOTE: La configuración del tamaño máximo de directorio se aplica tanto a los volúmenes individuales de FlexVol como a todos los volúmenes de un FlexGroup.
+
+
+
+[[considerations-for-directory-size-limit-processing]]
+== Consideraciones sobre el procesamiento del límite de tamaño del directorio
+
+El tamaño de un directorio varía en función del número de archivos, carpetas y otras entradas que contiene, así como de la longitud de los nombres. A medida que este tamaño total aumenta, puede afectar al rendimiento y a la capacidad de ONTAP para gestionar directorios de forma eficiente. Puedes limitar el tamaño máximo de un directorio con el parámetro del comando  `maxdir-size`. El tamaño máximo del directorio se establece una sola vez para un volumen específico y se aplica a todas las carpetas del volumen.
+
+
+
+[[operational-characteristics]]
+=== Características operativas
+
+El procesamiento de directorios de ONTAP presenta varias características relacionadas con el establecimiento y la imposición de un tamaño máximo.
+
+Máximo por defecto:: El tamaño máximo predeterminado del directorio en las versiones de ONTAP anteriores a la 9.20.1 es de 320 MB. El valor exacto depende del modelo y está optimizado para la cantidad de memoria del sistema en la plataforma. Consulta la https://hwu.netapp.com/["NetApp Hardware Universe"^] para obtener detalles y valores predeterminados específicos del modelo.
+Aumentar el tamaño máximo del directorio:: El valor máximo predeterminado es adecuado para la mayoría de las cargas de trabajo que ejecutan aplicaciones empresariales típicas; en la mayoría de los entornos no necesitas cambiar este valor. Si es necesario, puedes aumentar el tamaño máximo de directorio permitido mediante el parámetro `-maxdir-size` en los comandos de la CLI `volume create` y `volume modify`.
+Límite máximo recomendado:: NetApp por lo general no recomienda ampliar un directorio más allá de 1GB, aunque se ha observado que algunos directorios pueden superar con seguridad este tamaño. Antes de ONTAP 9.20.1, un tamaño excesivo conlleva riesgos para el rendimiento.
+
+
+
+
+[[performance-considerations]]
+=== Consideraciones de rendimiento
+
+El tamaño de un directorio influye directamente en el rendimiento de las búsquedas, sobre todo en el caso de directorios muy grandes y activos. A medida que un directorio crece, ONTAP crea automáticamente un índice interno para agilizar las búsquedas de nombres, de modo que la mayoría de las solicitudes no requieran un escaneo completo del directorio.
+
+Sin embargo, cuando se producen de forma continuada operaciones de creación y eliminación de archivos a alta velocidad, el proceso de gestión de índices puede quedarse rezagado respecto a la tasa de cambios entrantes. En algunos casos, esto puede dar lugar a un directorio de gran tamaño parcialmente indexado. En este caso, las solicitudes de búsqueda y de listado de directorios pueden sufrir una degradación significativa del rendimiento, que persiste hasta que el proceso de indexación se pone al día.
+
+
+
+[[enhanced-directory-size-supporting-25-million-files]]
+== Mayor capacidad del directorio con soporte para 25 millones de archivos
+
+A partir de ONTAP 9.20.1, puedes aumentar de forma segura el valor máximo del tamaño de los directorios más allá del límite de las versiones anteriores de ONTAP. El límite superior en la versión 9.20.1 y posteriores es de 4 GB; esto permite admitir aproximadamente 25 millones de archivos, carpetas y otras entradas. Esta mejora está diseñada para admitir cargas de trabajo, como AI, que requieren una gran cantidad de archivos en un único directorio.
+
+
+
+[[two-step-configuration-process]]
+=== Proceso de configuración en dos pasos
+
+La configuración de un volumen para que admita de forma segura directorios de mayor tamaño es un proceso que consta de dos pasos. Puedes realizar la configuración al crear un volumen o modificando uno ya existente. Los pasos son los siguientes:
+
+* Activa la función. Debes configurar el parámetro `-is-dir-index-transfer-enabled` en `true` (en lugar del valor predeterminado `false`) para un volumen específico mediante el comando `volume create` o `volume modify`.
+* Aumenta el tamaño máximo del directorio. Puedes establecer el valor máximo para el volumen con el parámetro  `-maxdir-size` durante la creación del volumen o en una modificación posterior. Se trata del mismo parámetro que se utilizaba con sistemas ONTAP anteriores a 9.20.1.
+
+
+Estos dos ajustes son independientes, por lo que el orden en el que realices la configuración es flexible. Sin embargo, NetApp recomienda habilitar primero la opción de tamaño mejorado (`-is-dir-index-transfer-enabled`) antes de permitir que los directorios de volumen crezcan hasta alcanzar el tamaño máximo configurado. Los directorios que hayan crecido antes de habilitar esta función no se beneficiarán plenamente de las mejoras hasta que se habilite la opción y se complete el proceso de conversión en segundo plano asociado.
+
+
+
+[[benefits]]
+=== Beneficios
+
+El aumento del tamaño máximo de los directorios aporta varias mejoras:
+
+* La indexación mejorada de los directorios se adapta al ritmo de las solicitudes rápidas y de gran volumen de creación y eliminación de archivos, lo que reduce el riesgo de que haya directorios grandes sin indexar.
+* La información del índice del directorio se replica en los volúmenes de destino de SnapMirror; un volumen de destino permanece indexado y ofrece un buen rendimiento incluso si se interrumpe una relación de SnapMirror.
+* El acceso a los directorios durante las comprobaciones de coherencia en segundo plano es más rápido, lo que reduce el impacto de los directorios de gran tamaño en las comprobaciones del estado del sistema.
+* El rendimiento de las búsquedas es más uniforme en una gama más amplia de operaciones, lo que ofrece una opción de respaldo fiable incluso cuando el índice de un directorio no está disponible.
+
+
+
+
+[[enhanced-internal-processing]]
+=== Procesamiento interno mejorado
+
+Al habilitar la opción mejorada de tamaño máximo de directorio, ONTAP inicia un escáner en segundo plano que convierte la información existente del índice de directorio del volumen a un nuevo formato flexible. Este proceso se ejecuta de forma asíncrona y tarda algo de tiempo en completarse, especialmente en un volumen con muchos directorios existentes. Es posible que los directorios grandes existentes no aprovechen por completo las ventajas de rendimiento y replicación hasta que finalice el proceso de escaneo.
+
+Una vez que hayas activado la opción en un volumen, no debes intentar desactivarla. Al desactivarla, se pone en marcha un escáner en segundo plano que convierte la información del índice de directorios a su formato original; el escáner debe terminar antes de que la opción se revierta por completo.
+
+
+
+[[restrictions-and-cautions]]
+=== Restricciones y precauciones
+
+Antes de habilitar la función mediante el parámetro  `-is-dir-index-transfer-enabled`, ten en cuenta las siguientes restricciones:
+
+* No es compatible con S3 duality. Existe un límite conocido en el número de objetos dentro de un directorio que S3 duality puede admitir. Las dos funciones son mutuamente excluyentes y no deben usarse juntas.
+* No se admite en un volumen que esté, o que tengas previsto colocar, en una relación NAS síncrona de SnapMirror o de sincronización activa de SnapMirror.
+* No es compatible con un volumen que sea candidato para la migración de SVM.
+* Los destinos SnapMirror asíncronos y los destinos cloud de SnapMirror deben ejecutar ONTAP 9.17.1 o una versión posterior; no se admite la replicación a versiones anteriores.
+* Logical Directory Replication (LDR) no es compatible con un volumen que tenga esta función habilitada.
+* No se puede activar directamente en un volumen de destino (DP) de SnapMirror; su estado siempre sigue al del volumen de origen.
+* Un volumen FlexCache nunca almacena en caché la información del índice de directorios de su origen. El estado de activación de esta función se sincroniza desde el volumen de origen con sus cachés, pero la conversión subyacente del índice solo se aplica al origen.
+
+
+Asegúrate de revisar tu topología de protección de datos antes de habilitar esta función en un volumen. Estas restricciones pueden afectar a los planes existentes o futuros, incluidas las relaciones de SnapMirror y la migración de SVM.
+
+
+
+[[related-information]]
+== Información relacionada
+
+* link:../volumes/enable-large-dir-max-support-task.html["Habilitar la compatibilidad de ONTAP con el tamaño máximo de directorio grande"]
+* https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/What_is_maxdirsize["Base de conocimientos de NetApp : ¿Qué es maxdirsize?"^]
+* https://kb.netapp.com/on-prem/ontap/Ontap_OS/OS-KBs/How_to_modify_the_maxdir-size_in_ONTAP_9["NetApp base de conocimientos: cómo modificar el tamaño máximo de directorio (maxdir-size) en ONTAP 9"^]
+* https://hwu.netapp.com/["NetApp Hardware Universe"^]
+
