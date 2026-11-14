@@ -2,7 +2,7 @@
 permalink: snaplock/snapshot-lock-concept.html 
 sidebar: sidebar 
 keywords: snaplock, snapshot, lock, tamperproof 
-summary: A partir de ONTAP 9.12.1, puede bloquear una copia Snapshot en un volumen no perteneciente a SnapLock para proporcionar protección contra ataques de ransomware. El bloqueo de instantáneas garantiza que no se puedan eliminar por accidente o de forma malintencionada. 
+summary: Puedes bloquear una instantánea en un volumen que no sea SnapLock para protegerte de los ataques de ransomware. Bloquear las instantáneas garantiza que no se puedan eliminar por accidente o de forma maliciosa. 
 ---
 = Bloquear una instantánea de ONTAP para protegerse contra ataques de ransomware
 :allow-uri-read: 
@@ -15,14 +15,14 @@ A partir de ONTAP 9.12.1, puede bloquear una copia Snapshot en un volumen no per
 
 Puede utilizar la función de reloj de SnapLock Compliance para bloquear las instantáneas durante un período especificado, de modo que no se puedan eliminar hasta que se alcance la hora de caducidad. Bloquear snapshots las copias snapshot las protege frente a cualquier manipulación y las protege de las amenazas de ransomware. Puede usar snapshots bloqueados para recuperar datos si un volumen se ve afectado por un ataque de ransomware.
 
-A partir de ONTAP 9.14.1, el bloqueo de copias Snapshot es compatible con instantáneas de retención a largo plazo en destinos de almacenes SnapLock y en volúmenes de destino no SnapLock SnapMirror. El bloqueo de instantáneas se activa mediante la definición del período de retención mediante las reglas de política de SnapMirror asociadas a un xref:Modify an existing policy to apply long-term retention[etiqueta de política existente]. La regla anula el período de retención predeterminado establecido en el volumen. Si no existe un período de retención asociado con la etiqueta de SnapMirror, se utiliza el período de retención predeterminado del volumen.
+A partir de ONTAP 9.14.1, el bloqueo de snapshots admite snapshots de retención a largo plazo en volúmenes de destino de SnapMirror de tipo vault y mirror-vault que no son de SnapLock. Puedes habilitar el bloqueo de snapshots configurando el periodo de retención con reglas de políticas de SnapMirror asociadas a una xref:Modify an existing policy to apply long-term retention[etiqueta de política existente]. La regla anula el periodo de retención predeterminado establecido en el volumen. Si no hay ningún periodo de retención asociado a la etiqueta de SnapMirror, se utiliza el periodo de retención predeterminado del volumen.
 
 .Requisitos y consideraciones de Snapshot a prueba de manipulación
 * Si utiliza la CLI de ONTAP, todos los nodos del clúster deben ejecutar ONTAP 9.12.1 o una versión posterior. Si utiliza System Manager, todos los nodos deben ejecutar ONTAP 9.13.1 o una versión posterior.
 * link:../system-admin/install-license-task.html["La licencia de SnapLock debe instalarse en el clúster"]. Esta licencia está incluida en link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["ONTAP One"].
 * link:../snaplock/initialize-complianceclock-task.html["Es necesario inicializar el reloj de cumplimiento de normativas del clúster"].
-* Cuando se habilita el bloqueo de snapshots en un volumen, se pueden actualizar los clústeres a una versión de ONTAP posterior a ONTAP 9.12.1. Sin embargo, no se puede revertir a una versión anterior de ONTAP hasta que todas las Snapshot bloqueadas hayan alcanzado su fecha de caducidad, se eliminen y se deshabilite el bloqueo de snapshots.
-* Cuando una copia de Snapshot está bloqueada, la hora de caducidad del volumen se establece en la hora de caducidad de la copia de Snapshot. Si más de una instantánea está bloqueada, el tiempo de caducidad del volumen refleja el mayor tiempo de caducidad de todas las instantáneas.
+* Cuando el bloqueo de instantáneas está activado en un volumen, puedes actualizar los clústeres a una versión de ONTAP posterior a ONTAP 9.12.1. Sin embargo, no puedes volver a una versión anterior de ONTAP hasta que todas las instantáneas bloqueadas alcancen su fecha de caducidad y se eliminen, y se desactive el bloqueo de instantáneas.
+* Cuando se bloquea una instantánea, el tiempo de caducidad del volumen se establece según el tiempo de caducidad de la instantánea. Si hay más de una instantánea bloqueada, el tiempo de caducidad del volumen refleja el tiempo de caducidad más largo entre todas las instantáneas.
 * El período de retención para instantáneas bloqueadas tiene prioridad sobre el recuento de instantáneas guardadas, lo que significa que no se respeta el límite de mantenimiento de recuento si el período de retención de instantáneas para instantáneas bloqueadas no ha caducado.
 * En una relación de SnapMirror, se puede establecer un período de retención en una regla de política de reflejo-almacén y el período de retención se aplica a las copias de Snapshot replicadas en el destino si el volumen de destino tiene bloqueo de Snapshot habilitado. El período de retención tiene prioridad sobre el recuento KEEP; por ejemplo, las instantáneas que no hayan superado su caducidad se conservarán incluso si se supera el recuento KEEP.
 * Es posible cambiar el nombre de una copia Snapshot en un volumen que no sea de SnapLock. Las operaciones de cambio de nombre de Snapshot en el volumen primario de una relación de SnapMirror se reflejan en el volumen secundario solo si la política es MirrorAllSnapshots. Para otros tipos de directivas, la instantánea a la que se ha cambiado el nombre no se propaga durante las actualizaciones.
@@ -71,7 +71,7 @@ Es posible crear clones de volúmenes y archivos a partir de una copia de Snapsh
 
 
 .Funciones no admitidas
-Actualmente, las siguientes funciones no se admiten con instantáneas a prueba de manipulaciones:
+Las instantáneas a prueba de manipulaciones no admiten estas funciones:
 
 * Grupos de consistencia
 * link:../fabricpool/index.html["FabricPool"]
@@ -181,7 +181,7 @@ A partir de ONTAP 9.12.1, puede crear políticas de Snapshot para aplicar un per
 . En la ventana *Add Snapshot Policy*, introduzca el nombre de la política.
 . Seleccione image:icon_add.gif["Icono Agregar"].
 . Proporcione los detalles de la programación de Snapshot, incluido el nombre de la programación, el número máximo de Snapshot que se deben conservar y el período de retención de SnapLock.
-. En la columna *SnapLock Retention Period*, introduzca el número de horas, días, meses o años para retener las instantáneas. Por ejemplo, una política de Snapshot con un período de retención de 5 días bloquea una snapshot durante 5 días desde el momento en que se creó y no se puede eliminar durante ese periodo. Se admiten los siguientes rangos de períodos de retención:
+. En la columna *Período de retención de SnapLock*, introduce el número de horas, días, meses o años durante los que se conservarán las instantáneas. Por ejemplo, una política de instantáneas con un período de retención de cinco días bloquea una instantánea durante cinco días desde el momento en que se crea y no puedes eliminarla durante ese tiempo. Se admiten los siguientes intervalos de período de retención:
 +
 ** Años: 0 - 100
 ** Meses: 0 - 1200
@@ -322,19 +322,19 @@ cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot sna
 
 En una relación de SnapMirror, se puede establecer un período de retención en una regla de política de reflejo-almacén y el período de retención se aplica a las copias de Snapshot replicadas en el destino si el volumen de destino tiene bloqueo de Snapshot habilitado. El período de retención tiene prioridad sobre el recuento KEEP; por ejemplo, las instantáneas que no hayan superado su caducidad se conservarán incluso si se supera el recuento KEEP.
 
-A partir de ONTAP 9.14.1, puede modificar una política de SnapMirror existente añadiendo una regla para establecer la retención a largo plazo de copias Snapshot. La regla se utiliza para anular el período de retención de volúmenes predeterminado en destinos de almacén de SnapLock y en volúmenes de destino que no son de SnapMirror de SnapLock.
+A partir de ONTAP 9.14.1, puedes modificar una política de SnapMirror existente añadiendo una regla para configurar la retención a largo plazo de las snapshots. La regla anula el periodo de retención predeterminado del volumen en los volúmenes de destino de SnapMirror que sean mirror-vault o vault sin SnapLock.
 
 . Agregue una regla a una política de SnapMirror existente:
 +
 `snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of snapshots> -retention-period [<integer> days|months|years]`
 
 +
-En el siguiente ejemplo se crea una regla que aplica un período de retención de 6 meses a la política existente denominada «lockvault»:
+En el siguiente ejemplo se crea una regla que aplica un período de retención de 6 meses a la política existente llamada "snapvault":
 
 +
 [listing]
 ----
-snapmirror policy add-rule -vserver vs1 -policy lockvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
+snapmirror policy add-rule -vserver vs1 -policy snapvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
 ----
 +
 Obtenga más información sobre `snapmirror policy add-rule` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-policy-add-rule.html["Referencia de comandos del ONTAP"^].

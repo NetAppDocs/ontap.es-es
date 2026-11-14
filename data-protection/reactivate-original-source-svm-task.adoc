@@ -14,16 +14,16 @@ summary: Puede restablecer la relación original de protección de datos entre l
 Puede restablecer la relación original de protección de datos entre la SVM de origen y la de destino cuando ya no necesite servir datos desde el destino. El procedimiento es en gran medida idéntico al procedimiento de replicación de volúmenes, con una excepción. Debe detener la SVM de destino antes de volver a activar la SVM de origen.
 
 .Antes de empezar
-* Si ha aumentado el tamaño del volumen de destino mientras se sirven los datos, antes de reactivar el volumen de origen, debería aumentar manualmente el tamaño máximo automático en el volumen de origen original para garantizar que pueda crecer lo suficiente.
+* Si aumentaste el tamaño del volumen de destino mientras servías datos desde él, aumenta manualmente max-autosize en el volumen de origen original antes de reactivarlo para asegurarte de que pueda crecer lo suficiente.
 
 
 link:destination-volume-grows-automatically-concept.html["Cuando un volumen de destino aumenta automáticamente"]
 
 
-WARNING: El administrador del clúster debe pausar las escrituras del cliente antes de reactivar el SVM de origen original para evitar la pérdida de datos.
+WARNING: Para evitar la pérdida de datos, pausa las aplicaciones cliente antes de reactivar el origen original. Cuando se detiene la SVM de destino, las aplicaciones cliente sufren una interrupción en las operaciones de E/S hasta que se reactiva la SVM de origen.
 
 .Acerca de esta tarea
-A partir de ONTAP 9.11,1, puede reducir el tiempo de resincronización durante un ensayo de recuperación ante desastres utilizando  `-quick-resync true`la opción CLI  `snapmirror resync`del comando y realizando una resincronización inversa de una relación de recuperación ante desastres de SVM. Una resincronización rápida puede reducir el tiempo que lleva volver a la producción evitando las operaciones de reconstrucción y restauración del almacén de datos. Obtenga más información sobre `snapmirror resync` en el link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html["Referencia de comandos del ONTAP"^].
+A partir de ONTAP 9.11.1, puedes reducir el tiempo de resincronización durante un simulacro de recuperación ante desastres usando la opción de CLI `-quick-resync true` del comando `snapmirror resync` al realizar una resincronización inversa de una relación de SVM DR. Una resincronización rápida puede reducir el tiempo que tardas en volver a la producción al omitir las operaciones de reconstrucción y restauración del almacén de datos. Obtén más información sobre `snapmirror resync` en link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html["Referencia de comandos del ONTAP"^].
 
 
 NOTE: Una resincronización rápida no conserva la eficiencia del almacenamiento de los volúmenes de destino. Al habilitar una resincronización rápida, puede aumentar el espacio de volumen utilizado por los volúmenes de destino.
@@ -39,37 +39,37 @@ Puede realizar esta tarea mediante el Administrador del sistema o la CLI de ONTA
 ====
 .Administrador del sistema ONTAP 9.17.1 y posteriores
 --
-. En el clúster de destino, seleccione la relación de protección deseada: haga clic en *Protección > Replicación*.
-. Coloque el cursor sobre el nombre de la fuente y haga clic image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Resincronización inversa*.
-. En la ventana *Relación de resincronización inversa*, haz clic en *Resincronización inversa*.
+. En el clúster de destino, selecciona la relación de protección deseada: selecciona *Protección > Replicación*.
+. Pasa el cursor sobre el nombre del origen, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Reverse resync*.
+. En la ventana *Invertir relación de resincronización*, selecciona *Invertir resincronización*.
 +
 La relación desaparece de la tabla *Replicación* y ahora la administra el clúster de origen original.
 
-. En el clúster de origen original, haga clic en *Protección > Replicación* y verifique que la resincronización inversa esté completa verificando que el estado muestre *Reflejado*.
+. En el clúster de origen original, selecciona *Protección > Replicación* y comprueba que la resincronización inversa se haya completado verificando que el estado muestre *Mirrored*.
 . En el clúster de destino original, navegue a *Clúster > Máquinas virtuales de almacenamiento*.
-. Ubique la máquina virtual de almacenamiento, coloque el cursor sobre el nombre de la máquina virtual de almacenamiento y haga clic en image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Detener*.
-. En la ventana *Detener máquina virtual de almacenamiento*, haga clic en *Detener*.
-. En el clúster de origen, navegue a *Protección > Replicación* y localice la máquina virtual de almacenamiento que desea reactivar, coloque el cursor sobre el nombre de la máquina virtual de almacenamiento y haga clic image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Activar máquina virtual de almacenamiento de destino*.
-. En la ventana *Activar VM de almacenamiento de destino*, seleccione *Activar la VM de almacenamiento de destino y romper la relación* y haga clic en *Activar*.
-. Cuando regrese a la página *Replicación*, vuelva a colocar el cursor sobre el nombre de la máquina virtual de almacenamiento y haga clic en image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Resincronización inversa*.
+. Localiza la máquina virtual de almacenamiento, pasa el cursor sobre el nombre de la máquina virtual de almacenamiento, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Detener*.
+. En la ventana *Detener máquina virtual de almacenamiento*, selecciona *Detener*.
+. En el clúster de origen, ve a *Protección > Replicación*, busca la máquina virtual de almacenamiento que quieres reactivar, pasa el cursor sobre el nombre de la máquina virtual de almacenamiento, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Activar máquina virtual de almacenamiento de destino*.
+. En la ventana *Activar la máquina virtual de almacenamiento de destino*, selecciona *Activar la máquina virtual de almacenamiento de destino y romper la relación* y selecciona *Activar*.
+. Cuando vuelvas a la página *Replicación*, vuelve a pasar el cursor sobre el nombre de la máquina virtual de almacenamiento, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Reverse resync*.
 
 
 --
 .Administrador del sistema ONTAP 9.16.1 y anteriores
 --
-. En el clúster de destino, seleccione la relación de protección deseada: haga clic en *Protección > Relaciones*.
-. Coloque el cursor sobre el nombre de la fuente y haga clic image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Resincronización inversa*.
-. En la ventana *Relación de resincronización inversa*, haz clic en *Resincronización inversa*.
+. En el clúster de destino, selecciona la relación de protección deseada: selecciona *Protección > Relaciones*.
+. Pasa el cursor sobre el nombre del origen, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Reverse resync*.
+. En la ventana *Invertir relación de resincronización*, selecciona *Invertir resincronización*.
 +
 La relación desaparece de la tabla *Relaciones* porque ahora la administra el clúster de origen original.
 
-. En el clúster de origen original, haga clic en *Protección > Relaciones* y verifique que la resincronización inversa esté completa verificando que el estado se muestre como *Reflejado*.
+. En el clúster de origen original, selecciona *Protección > Relaciones* y comprueba que la resincronización inversa se completó verificando que el estado aparezca como *Mirrored*.
 . En el clúster de destino original, navegue a *Almacenamiento > Máquinas virtuales de almacenamiento*.
-. Ubique la máquina virtual de almacenamiento, coloque el cursor sobre el nombre de la máquina virtual de almacenamiento y haga clic en image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Detener*.
-. En la ventana *Detener máquina virtual de almacenamiento*, haga clic en *Detener*.
-. En el clúster de origen, ubique la VM de almacenamiento (que ahora es la SVM de origen de la relación invertida), coloque el cursor sobre el nombre de la SVM y haga clic image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Activar máquina virtual de almacenamiento de destino*.
-. En la ventana *Activar VM de almacenamiento de destino*, seleccione *Activar la VM de almacenamiento de destino y romper la relación* y haga clic en *Activar*.
-. Cuando regrese a la página *Relaciones*, vuelva a colocar el cursor sobre el nombre de la máquina virtual de almacenamiento y haga clic en image:icon_kabob.gif["Icono de opciones de menú"]y haga clic en *Resincronización inversa*.
+. Localiza la máquina virtual de almacenamiento, pasa el cursor sobre el nombre de la máquina virtual de almacenamiento, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Detener*.
+. En la ventana *Detener máquina virtual de almacenamiento*, selecciona *Detener*.
+. En el clúster de origen, localiza la máquina virtual de almacenamiento (que ahora es la SVM de origen de la relación invertida), pasa el cursor sobre el nombre de la SVM, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Activar máquina virtual de almacenamiento de destino*.
+. En la ventana *Activar la máquina virtual de almacenamiento de destino*, selecciona *Activar la máquina virtual de almacenamiento de destino y romper la relación* y selecciona *Activar*.
+. Cuando vuelvas a la página *Relationships*, vuelve a pasar el cursor sobre el nombre de la VM de almacenamiento, selecciona image:icon_kabob.gif["Icono de opciones de menú"] y selecciona *Reverse resync*.
 
 
 --
@@ -164,7 +164,7 @@ snapmirror update -source-path <SVM>: -destination-path <SVM>:
 NOTE: Debe introducir dos puntos (:) después del nombre de la SVM en las `-source-path` `-destination-path` opciones y. Vea el ejemplo siguiente.
 
 +
-En el ejemplo siguiente se actualiza la relación entre la SVM de destino original desde la cual se están sirviendo datos,`svm_backup`, y la SVM de origen original, `svm1`:
+El siguiente ejemplo actualiza la relación entre el SVM de destino original desde el que se sirven los datos, `svm_backup`, y el SVM de origen original, `svm1`:
 
 +
 [listing]
@@ -274,7 +274,7 @@ snapmirror release -source-path <SVM>: -destination-path <SVM>:
 NOTE: Debe introducir dos puntos (:) después del nombre de la SVM en las `-source-path` `-destination-path` opciones y. Vea el ejemplo siguiente.
 
 +
-En el siguiente ejemplo se libera la relación inversa entre la SVM de destino original, svm_backup y la SVM de origen, `svm1`
+El siguiente ejemplo libera la relación invertida entre el SVM de destino original, `svm_backup`, y el SVM de origen original, `svm1`.
 
 +
 [listing]
