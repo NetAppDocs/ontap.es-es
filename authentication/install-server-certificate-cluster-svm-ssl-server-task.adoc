@@ -2,7 +2,7 @@
 permalink: authentication/install-server-certificate-cluster-svm-ssl-server-task.html 
 sidebar: sidebar 
 keywords: generate, install, ca-signed, server, certificate, csr, signing request, signed 
-summary: En los sistemas de producción, se recomienda instalar un certificado digital firmado por CA para usarlo en la autenticación del clúster o SVM como servidor SSL. 
+summary: 'Genera una solicitud de firma de certificado e instala un certificado de servidor firmado por una autoridad de certificación (CA) para autenticar un clúster ONTAP o una SVM como servidor SSL.' 
 ---
 = Genere e instale un certificado de servidor firmado por CA en ONTAP
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: En los sistemas de producción, se recomienda instalar un certificado d
 
 
 [role="lead"]
-En los sistemas de producción, se recomienda instalar un certificado digital firmado por CA para usarlo en la autenticación del clúster o SVM como servidor SSL. Puede utilizar `security certificate generate-csr` el comando para generar una solicitud de firma de certificación (CSR) y el `security certificate install` comando para instalar el certificado que recibe de la entidad de certificación. Obtenga más información sobre `security certificate generate-csr` y `security certificate install` en el link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+certificate["Referencia de comandos del ONTAP"^].
+En los sistemas de producción, instala un certificado digital firmado por una CA como práctica recomendada para autenticar el clúster o la SVM como servidor SSL. Puedes usar el comando  `security certificate generate-csr` para generar una solicitud de firma de certificado (CSR) y el comando  `security certificate install` para instalar el certificado que recibas de la autoridad de certificación. Obtén más información sobre  `security certificate generate-csr` y  `security certificate install` en link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+certificate["Referencia de comandos del ONTAP"^].
 
 
 
@@ -31,7 +31,7 @@ Debe ser un administrador de clúster o de SVM para ejecutar esta tarea.
 security certificate generate-csr -common-name FQDN_or_common_name -size 512|1024|1536|2048 -country country -state state -locality locality -organization organization -unit unit -email-addr email_of_contact -hash-function SHA1|SHA256|MD5
 ----
 +
-El siguiente comando crea una CSR con una clave privada de 2048 bits generada por la `SHA256` función hash para que la utilice el `Software` grupo en `IT` el departamento de una empresa cuyo nombre común personalizado es `server1.companyname.com`, ubicada en Sunnyvale, California, EE.UU. La dirección de correo electrónico del administrador del contacto de SVM es `web@example.com`. El sistema muestra la CSR y la clave privada en la salida.
+El siguiente comando crea un CSR con una clave privada de 2048 bits generada por la función hash  `SHA256`. El CSR es para que lo use el grupo  `Software` del departamento  `IT` de una empresa ubicada en Sunnyvale, California, USA. El nombre común personalizado de la empresa es  `server1.companyname.com`. La dirección de correo electrónico del administrador de contacto de SVM es  `web@example.com`. El sistema muestra el CSR y la clave privada en la salida.
 
 +
 .Ejemplo de creación de una CSR
@@ -57,6 +57,10 @@ NOTE: Keep a copy of your certificate request and private key for future referen
 ====
 . Copie la solicitud de certificado de la salida CSR y envíela en formato electrónico (por ejemplo, correo electrónico) a una CA de terceros de confianza para su firma.
 +
+
+NOTE: La autoridad de certificación debe devolver el certificado firmado en formato PEM codificado en base64 o en formato PKCS12.
+
++
 Después de procesar la solicitud, la CA envía el certificado digital firmado. Debe conservar una copia de la clave privada y el certificado digital firmado por la CA.
 
 
@@ -81,14 +85,14 @@ security certificate install -vserver SVM_name -type certificate_type
 +
 [NOTE]
 ====
-ONTAP solicita los certificados intermedios y de raíz de CA que forman la cadena de certificados del certificado de servidor. La cadena comienza con el certificado de la CA que emitió el certificado de servidor y puede llegar hasta el certificado raíz de la CA. Cualquier certificado intermedio que falte provocará el error en la instalación del certificado de servidor.
+ONTAP te pide los certificados raíz e intermedios de la CA que forman la cadena de certificados del certificado del servidor. La cadena comienza con el certificado de la CA que emitió el certificado del servidor y puede llegar hasta el certificado raíz de la CA. La falta de certificados intermedios hace que falle la instalación del certificado del servidor.
 
 ====
 +
 El siguiente comando instala el certificado de servidor firmado por CA y los certificados intermedios en SVM `engData2`.
 
 +
-.Ejemplo de instalación de certificados intermedios de certificado de servidor firmados por CA
+.Ejemplo de instalación de un certificado de servidor firmado por una CA y de certificados intermedios
 [%collapsible]
 ====
 [listing]
