@@ -2,7 +2,7 @@
 permalink: fabricpool/move-volume-task.html 
 sidebar: sidebar 
 keywords: aggregate, local tier, moving, volume, fabricpool, fabric pool, tiering, policy, policies, block, capacity, cold data, 
-summary: 'Es importante comprender cómo funciona el movimiento de volúmenes con FabricPool porque los cambios que tienen lugar tanto en el nivel local, el nivel de cloud asociado y el volumen (políticas de organización en niveles de los volúmenes) pueden afectar enormemente la funcionalidad.' 
+summary: Traslada un volumen sin interrupciones a un nivel local habilitado para FabricPool y descubre cómo los datos del nivel en la nube, las políticas de organización en niveles y los traslados optimizados de volúmenes afectan al traslado. 
 ---
 = Mover un volumen a un nivel local de ONTAP habilitado para FabricPool
 :allow-uri-read: 
@@ -11,9 +11,9 @@ summary: 'Es importante comprender cómo funciona el movimiento de volúmenes co
 
 
 [role="lead"]
-A link:../volumes/move-volume-task.html["movimiento de volúmenes"] es la forma en la que ONTAP mueve un volumen sin interrupciones de un nivel local (origen) a otro (destino). Los movimientos de volúmenes se pueden realizar por varios motivos, aunque los motivos más comunes son la gestión del ciclo de vida del hardware, la ampliación del clúster y el equilibrio de carga.
+Un link:../volumes/move-volume-task.html["movimiento de volúmenes"] traslada sin interrupciones un volumen de un nivel local de ONTAP (origen) a otro (destino), normalmente para la gestión del ciclo de vida del hardware, la expansión del clúster o el equilibrio de carga. Cuando mueves un volumen a un nivel local habilitado para FabricPool, comprender cómo afecta el traslado a los datos organizados en niveles y a las políticas de organización en niveles te ayuda a evitar tráfico de red innecesario y costes del almacén de objetos.
 
-Es importante comprender cómo funciona el movimiento de volúmenes con FabricPool porque los cambios que tienen lugar tanto en el nivel local, el nivel de cloud asociado y el volumen (políticas de organización en niveles de los volúmenes) pueden afectar enormemente la funcionalidad.
+Los cambios que un movimiento de volumen provoca en el nivel local, en el nivel de nube asociado y en las políticas de organización por niveles de los volúmenes pueden tener un impacto significativo en la funcionalidad de FabricPool.
 
 
 NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para describir un _nivel local_. Independientemente de la versión de ONTAP, la interfaz de línea de comandos de ONTAP utiliza el término _aggregate_. Para obtener más información sobre los niveles locales, consulte link:../disks-aggregates/index.html["Discos y niveles locales"].
@@ -23,20 +23,20 @@ NOTE: Antes de ONTAP 9,7, System Manager utiliza el término _aggregate_ para de
 [[destination-local-tier]]
 == Nivel local de destino
 
-Si el nivel local de destino de un movimiento de volumen no tiene un nivel de cloud conectado, los datos del volumen de origen que se almacenan en el nivel de cloud se escriben en el nivel local en el nivel local de destino.
+Si el nivel local de destino de un movimiento de volumen no tiene ningún nivel en la nube adjunto, los datos del volumen de origen que se almacenan en el nivel en la nube se escriben en el nivel local de destino.
 
-A partir de ONTAP 9,8, cuando se haya  habilitado un volumenlink:determine-data-inactive-reporting-task.html["generación de informes de datos inactivos"], FabricPool utilizará el mapa térmico del volumen para poner en cola de forma inmediata los datos inactivos y comenzar a organizar en niveles tan pronto como se escriban en el nivel local de destino.
+A partir de ONTAP 9.8, cuando un volumen tiene link:determine-data-inactive-reporting-task.html["generación de informes de datos inactivos"] habilitado, FabricPool usa el mapa de actividad del volumen para poner en cola los datos fríos para la organización en niveles en cuanto los datos se escriben en el nivel local de destino.
 
-Antes de ONTAP 9,8, el movimiento de un volumen a otro nivel local restablece el período de inactividad de los bloques del nivel local. Por ejemplo, un volumen que utiliza la política de organización en niveles automática de volúmenes con datos en el nivel local que estuvieron inactivos durante 20 días, pero que aún no tuvo organización en niveles, hará que la temperatura de los datos se restablezca a 0 días después de un movimiento de volumen.
+En ONTAP 9.7 y versiones anteriores, al mover un volumen a otro nivel local, se restablece el periodo de inactividad de los bloques del nivel local. Por ejemplo, si un volumen usa la política de organización en niveles de volumen Auto y tiene datos en el nivel local que han estado inactivos durante 20 días pero que aún no se han organizado en niveles, al mover el volumen se restablece la temperatura de esos datos a 0 días.
 
 
 
 [[optimized-volume-moves]]
 == Movimientos de volúmenes optimizados
 
-A partir de ONTAP 9,6, si el nivel local de destino de un volumen mueve usa el mismo bloque que el nivel local de origen, los datos del volumen de origen que se almacenan en el bloque no se volverán al nivel local. Los datos organizados en niveles permanecen en reposo y solo es necesario mover los datos activos de un nivel local a otro. Este movimiento de volúmenes optimizado proporciona eficiencias de red significativas.
+A partir de ONTAP 9.6, si el nivel local de destino de un movimiento de volumen usa el mismo bucket que el nivel local de origen, los datos del volumen de origen almacenados en el bucket no vuelven a moverse al nivel local. Los datos en niveles permanecen en reposo, y solo es necesario mover los datos activos de un nivel local a otro. Este movimiento de volumen optimizado da como resultado importantes eficiencias de red.
 
-Por ejemplo, un movimiento de volumen optimizado de 300 TB significa que, aunque 300 TB de datos fríos se muevan de un nivel local a otro, no activará 300 TB de lecturas ni 300 TB de escrituras en el almacén de objetos.
+Por ejemplo, en una transición de volumen optimizada de 300 TB, aunque se muevan 300 TB de datos inactivos de un nivel local a otro, la transición no genera 300 TB de lecturas ni 300 TB de escrituras en el almacén de objetos.
 
 Los movimientos de volúmenes no optimizados generan tráfico informático y de red adicional (lecturas/captas y escrituras/puestas), lo que aumenta la demanda sobre el clúster y el almacén de objetos de ONTAP, lo que aumenta los costes cuando se organizan en niveles en almacenes de objetos públicos.
 
@@ -44,46 +44,49 @@ Los movimientos de volúmenes no optimizados generan tráfico informático y de 
 ====
 Algunas configuraciones son incompatibles con los movimientos de volúmenes optimizados:
 
-* Cambio de la política de organización en niveles durante el movimiento de volúmenes
+* Cambio de la política de clasificación por niveles durante el traslado de un volumen
 * Niveles locales de origen y destino con diferentes claves de cifrado
 * Volúmenes FlexClone
 * Volúmenes principales de FlexClone
 * MetroCluster (admite movimientos de volúmenes optimizados en ONTAP 9,8 y versiones posteriores)
 * Bloques de reflejos de FabricPool no sincronizados
+* El volumen se traslada de una plataforma compatible con la tecnología QuickAssist (QAT) a otra que no lo está
 
+
+Más información sobre link:https://kb.netapp.com/on-prem/ontap/DP/SnapMirror/SnapMirror-KBs/How_do_platforms_supporting_QAT_or_zlib_compression_impact_SnapMirror_and_volume_move["cómo influye QAT en los movimientos de volumen"^].
 
 ====
-Si el nivel local de destino de un movimiento de volúmenes tiene un nivel de cloud conectado, los datos del volumen de origen que se almacenan en el nivel de cloud se escriben primero en el nivel local en el nivel local de destino. A continuación se escribe en el nivel de cloud del nivel local de destino si este enfoque es adecuado para la política de organización en niveles del volumen.
+Si el nivel local de destino de un movimiento de volumen tiene un nivel en la nube asociado, los datos del volumen de origen que se almacenan en el nivel en la nube se escriben primero en el nivel local del nivel local de destino. A continuación, si la política de organización en niveles del volumen lo permite, los datos se escriben en el nivel en la nube asociado al nivel local de destino.
 
-La escritura de datos en el nivel local primero mejora el rendimiento del traslado del volumen y reduce el tiempo de transición. Si no se especifica una política de organización en niveles de volúmenes al mover un volumen, el volumen de destino utiliza la política de organización en niveles del volumen de origen.
+Escribir los datos primero en el nivel local mejora el rendimiento del movimiento del volumen y reduce el tiempo de transición. Si no especificas una política de organización en niveles del volumen al mover un volumen, el volumen de destino usa la política de organización en niveles del volumen de origen.
 
-Si se especifica otra política de organización en niveles cuando se realiza el movimiento de volúmenes, el volumen de destino se creará con la política de organización en niveles especificada y el movimiento del volumen no se optimizará.
+Si especificas una política de almacenamiento por niveles diferente al mover el volumen, el volumen de destino se crea con la política de almacenamiento por niveles especificada y el traslado del volumen no se optimiza.
 
 
 
 [[volume-metadata]]
 === Metadatos del volumen
 
-Independientemente de si se optimiza o no un traslado de volumen, ONTAP almacena una cantidad significativa de metadatos sobre la ubicación, la eficiencia del almacenamiento, los permisos, los patrones de uso, etc., de todos los datos, tanto locales como estratificados. Los metadatos siempre permanecen en el nivel local y no están estratificados. Cuando se mueve un volumen de un nivel local a otro, esta información también debe moverse al nivel local de destino.
+Independientemente de si se optimiza el traslado de un volumen, ONTAP almacena una cantidad significativa de metadatos sobre todos los datos, tanto locales como distribuidos por niveles, incluida su ubicación, eficiencia de almacenamiento, permisos y patrones de uso. Los metadatos permanecen siempre en el nivel local y no se distribuyen por niveles. Cuando se traslada un volumen de un nivel local a otro, esta información también debe trasladarse al nivel local de destino.
 
 
 
 [[duration]]
 === Duración
 
-Los movimientos de volumen aún toman tiempo para completarse y la expectativa debe ser que un movimiento de volumen optimizado tomará aproximadamente la misma cantidad de tiempo que mover una cantidad igual de datos no escalonados.
+Los movimientos de volúmenes aún tardan en completarse. Es de esperar que un movimiento de volumen optimizado tarde aproximadamente lo mismo que mover una cantidad equivalente de datos sin organización en niveles.
 
-Es importante entender que el "rendimiento" informado por el  `volume move show` El comando no representa el rendimiento en términos de datos que se mueven desde el nivel de nube, sino los datos de volumen que se actualizan localmente.
+El rendimiento que indica el comando `volume move show` representa datos de volumen actualizados localmente, no datos movidos desde el nivel de la nube.
 
 
-NOTE: Cuando están en una relación de recuperación ante desastres de SVM, los volúmenes de origen y destino deben utilizar la misma política de organización en niveles.
+NOTE: Cuando los volúmenes están en una relación de SVM DR, el volumen de origen y el volumen de destino deben usar la misma política de organización en niveles.
 
 .Pasos
 . Use el `volume move start` comando para mover un volumen de un nivel local de origen a un nivel local de destino.
 
 
 .Ejemplo de movimiento de un volumen
-En el ejemplo siguiente se mueve un volumen llamado `myvol2` de `vs1` SVM a `dest_FabricPool`, un nivel local habilitado para FabricPool.
+En el siguiente ejemplo se mueve un volumen llamado `myvol2` de la SVM `vs1` a `dest_FabricPool`, un nivel local habilitado para FabricPool.
 
 [listing]
 ----
